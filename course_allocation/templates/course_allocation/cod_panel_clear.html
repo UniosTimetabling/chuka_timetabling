@@ -1,0 +1,188 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_cod_panel_clear.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_cod_panel_clear.css' %}">
+{% endblock page_css %}
+
+{% block title %}COD — Archive / Clear Allocations{% endblock %}
+{% block page_title %}COD — Allocations Management{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+<div class="pg">
+
+ <p class="dept-label"><i class="fas fa-building" style="margin-right:5px;opacity:.7;"></i><strong>Department:</strong> {{ dept.name }}</p>
+
+ <!-- ACTIVE ALLOCATIONS -->
+ <div class="card">
+ <div class="card-head"><i class="fas fa-list" style="margin-right:7px;opacity:.8;"></i>Current Allocations</div>
+ <div class="card-body">
+ {% if allocations %}
+
+ <div class="action-bar-top">
+ <span class="action-bar-count">{{ allocations|length }} allocation{{ allocations|length|pluralize }} in your department</span>
+ <form method="post" onsubmit="return confirmSemesterPrompt(this);">
+ {% csrf_token %}
+ <input type="hidden" name="action" value="archive_delete">
+ <input type="hidden" name="semester" id="semester_input">
+ <button type="submit" class="btn btn-danger">
+ <i class="fas fa-archive"></i> Archive &amp; Delete All Allocations
+ </button>
+ </form>
+ </div>
+
+ <div style="overflow-x:auto;">
+ <table>
+ <thead>
+ <tr>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Program</th>
+ <th>Lecturer</th>
+ <th>Students</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for a in allocations %}
+ <tr>
+ <td><strong>{{ a.course_code }}</strong></td>
+ <td>{{ a.course_name }}</td>
+ <td>{{ a.program.name }}</td>
+ <td>{{ a.lecturer.name }}</td>
+ <td>{{ a.number_of_students }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ {% else %}
+ <p class="empty-note">No active allocations found for your department.</p>
+ {% endif %}
+ </div>
+ </div>
+
+ <!-- ARCHIVED SEMESTERS -->
+ <div class="card">
+ <div class="card-head"><i class="fas fa-box-archive" style="margin-right:7px;opacity:.8;"></i>Archived Allocations</div>
+ <div class="card-body">
+
+ {% if archived_by_semester %}
+ {% for semester, items in archived_by_semester.items %}
+ <div class="sem-block" id="sem-block-{{ forloop.counter }}">
+ <div class="sem-heading">
+ <span class="sem-label">Semester: {{ semester }}</span>
+ <div class="sem-actions">
+
+ <form method="post" style="display:inline;">
+ {% csrf_token %}
+ <input type="hidden" name="action" value="restore_semester">
+ <input type="hidden" name="semester" value="{{ semester }}">
+ <button type="submit" class="btn btn-primary btn-sm">
+ <i class="fas fa-rotate-left"></i> Restore
+ </button>
+ </form>
+
+ <form method="post" style="display:inline;"
+ onsubmit="return confirm('Delete all archived allocations for semester {{ semester }}? This cannot be undone.');">
+ {% csrf_token %}
+ <input type="hidden" name="action" value="delete_archived_semester">
+ <input type="hidden" name="semester" value="{{ semester }}">
+ <button type="submit" class="btn btn-secondary btn-sm">
+ <i class="fas fa-trash"></i> Delete Archived
+ </button>
+ </form>
+
+ </div>
+ </div>
+
+ <div style="overflow-x:auto;margin-bottom:.5rem;">
+ <table>
+ <thead>
+ <tr>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Program</th>
+ <th>Lecturer</th>
+ <th>Archived At</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for a in items %}
+ <tr>
+ <td><strong>{{ a.course_code }}</strong></td>
+ <td>{{ a.course_name }}</td>
+ <td>{{ a.program.name }}</td>
+ <td>{{ a.lecturer.name }}</td>
+ <td style="color:var(--text-muted);font-size:12.5px;">{{ a.archived_at|date:"Y-m-d H:i" }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ <hr>
+ {% endfor %}
+
+ {% else %}
+ <p class="empty-note">No archived allocations yet.</p>
+ {% endif %}
+
+ </div>
+ </div>
+
+</div>
+
+{% if archived_by_semester|length > 1 %}
+<!-- FLOATING ARCHIVE NAV -->
+<div class="archive-floatnav" id="archiveFloatNav">
+ <div class="archive-floatnav-title">Archives</div>
+ {% for semester, items in archived_by_semester.items %}
+ <a href="#sem-block-{{ forloop.counter }}" class="archive-floatnav-tab" data-target="sem-block-{{ forloop.counter }}">
+ <span class="archive-floatnav-sem">{{ semester }}</span>
+ <span class="archive-floatnav-count">{{ items|length }}</span>
+ </a>
+ {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'course_allocation/js/course_allocation_course_allocation_cod_panel_clear.js' %}"></script>
+{% if archived_by_semester|length > 1 %}
+<script>
+(function(){
+  var nav = document.getElementById('archiveFloatNav');
+  if(!nav) return;
+  var tabs = nav.querySelectorAll('.archive-floatnav-tab');
+  var targets = [];
+  tabs.forEach(function(tab){
+    var target = document.getElementById(tab.dataset.target);
+    if(target) targets.push({tab: tab, el: target});
+    tab.addEventListener('click', function(e){
+      e.preventDefault();
+      if(target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+
+  function setActive(){
+    var pos = window.scrollY + 120;
+    var current = targets[0];
+    targets.forEach(function(t){
+      if(t.el.offsetTop <= pos) current = t;
+    });
+    tabs.forEach(function(t){ t.classList.remove('active'); });
+    if(current) current.tab.classList.add('active');
+  }
+  window.addEventListener('scroll', setActive, {passive:true});
+  setActive();
+})();
+</script>
+{% endif %}
+{% endblock extra_js %}

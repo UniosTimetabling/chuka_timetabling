@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}panel-page cod-panel-page{% endblock %}
+
+{% block navbar %}{% endblock navbar %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_base.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation.css' %}">
+
+
+<style>
+/* ----------------------------------------------------------
+   1. GLOBAL CARD FLATTENING
+   Strips box-shadow and gradient borders from every card-like
+   element across standard pages, dashboard widgets, and modals.
+   ---------------------------------------------------------- */
+
+/* Generic card selectors (Bootstrap, custom, and common patterns) */
+.card,
+.widget,
+.widget-card,
+.dashboard-card,
+.summary-card,
+.stat-card,
+.info-card,
+.panel,
+.panel-body,
+.content-card,
+.data-card,
+.allocation-card,
+[class*="-card"],
+[class*="card-"],
+[class*="-widget"],
+[class*="widget-"] {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  border: 1px solid #e2e6ea !important;   /* clean flat border */
+  background-image: none !important;       /* remove gradient borders */
+}
+
+/* Bootstrap utility shadow helpers */
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl,
+.shadow-2xl,
+.shadow-none {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+}
+
+/* Tailwind shadow utilities (if CDN Tailwind is in use on any page) */
+[class~="shadow-sm"],
+[class~="shadow"],
+[class~="shadow-md"],
+[class~="shadow-lg"],
+[class~="shadow-xl"],
+[class~="shadow-2xl"] {
+  --tw-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* Card header / footer sub-elements */
+.card-header,
+.card-footer,
+.widget-header,
+.widget-footer {
+  box-shadow: none !important;
+  border-color: #e2e6ea !important;
+  background-image: none !important;
+}
+
+/* ----------------------------------------------------------
+   2. NOTIFICATION PANEL – LINK-TO-BUTTON CONVERSION
+   Converts raw <a> links and inline hyperlinks inside the
+   notification panel into distinct action button components.
+   Styles the JS-injected .nm-action-btn class used by the
+   renderNotificationLink() helper below.
+   ---------------------------------------------------------- */
+
+/* Base action button inside any notification item */
+.nm-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 4px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  /* Flat – no shadow */
+  box-shadow: none;
+}
+
+/* Primary variant – document / report downloads */
+.nm-action-btn.nm-btn-primary {
+  background: #1a56db;
+  color: #fff;
+  border-color: #1a56db;
+}
+.nm-action-btn.nm-btn-primary:hover {
+  background: #1447c0;
+  border-color: #1447c0;
+}
+
+/* Secondary variant – view / open links */
+.nm-action-btn.nm-btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+.nm-action-btn.nm-btn-secondary:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Danger variant – destructive / alert actions */
+.nm-action-btn.nm-btn-danger {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+.nm-action-btn.nm-btn-danger:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+/* Suppress any raw <a> tag that might be injected into the
+   notification body directly (belt-and-suspenders) */
+#nmAlerts a:not(.nm-action-btn),
+#nmSubmissions a:not(.nm-action-btn) {
+  pointer-events: none;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Notification item card – flat */
+.nm-item,
+.notif-item,
+.notification-card {
+  box-shadow: none !important;
+  border: 1px solid #e9ecef !important;
+  border-radius: 6px;
+}
+
+/* ----------------------------------------------------------
+   3. MODAL / OVERLAY CARD FLATTENING
+   Ensures the rules above are also enforced inside every modal,
+   slide-over, popup, and notif overlay in the application.
+   ---------------------------------------------------------- */
+
+/* Notification modal itself */
+.notif-modal {
+  box-shadow: none !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+/* Any card nested inside a modal, overlay, or dialog */
+.notif-overlay .card,
+.notif-overlay [class*="-card"],
+.modal .card,
+.modal [class*="-card"],
+.modal-content,
+.modal-body .card,
+.modal-body [class*="-card"],
+.slide-over .card,
+.slide-over [class*="-card"],
+[role="dialog"] .card,
+[role="dialog"] [class*="-card"] {
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  background-image: none !important;
+  border: 1px solid #e2e6ea !important;
+}
+
+/* Bootstrap modal backdrop / dialog */
+.modal-dialog {
+  filter: none !important;
+}
+.modal-content {
+  box-shadow: none !important;
+  border: 1px solid #dee2e6 !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 
+ HEADER
+ -->
+<header class="app-header">
+  <div class="hdr-left">
+    <!-- Menu Toggle -->
+    <button class="hdr-btn" id="navToggle" title="Toggle Menu" aria-label="Toggle navigation">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="hdr-logo">
+  </div>
+
+  <div class="hdr-center">
+    <div>
+      <div class="hdr-title">{% block page_title %}Timetabling System{% endblock %}</div>
+      <div class="hdr-subtitle">Chuka University</div>
+    </div>
+  </div>
+
+  <div class="hdr-right">
+    <!-- Page-specific header controls slot -->
+    {% block header_controls %}{% endblock %}
+
+    <!-- Search Toggle -->
+    <button class="hdr-btn" id="searchToggle" title="Search">
+      <i class="fas fa-search"></i>
+      <span class="d-none d-md-inline">Search</span>
+    </button>
+
+    <!-- Notification Bell -->
+    <button class="notif-btn" id="notifBell" title="Notifications">
+      <i class="fas fa-bell"></i>
+      <span class="notif-badge hidden" id="notifBadge">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- 
+ SEARCH BAR
+ -->
+<div id="searchBar">
+  <i class="fas fa-search" style="color:rgba(255,255,255,.5);font-size:14px;"></i>
+  <input type="text" id="searchInput" placeholder="Search…" autocomplete="off">
+  <button id="clearSearchBtn"> Clear</button>
+</div>
+
+<!-- 
+ SIDE NAV
+ -->
+<nav class="side-nav" id="sideNav" aria-label="Main navigation">
+  <div class="nav-head">
+    <div class="nav-head-inner">
+      <img src="{% static 'images/chuka.png' %}" alt="" class="nav-head-logo">
+      <div>
+        <h3>Navigation</h3>
+        <div class="nav-head-sub">Timetabling System</div>
+      </div>
+    </div>
+    <button class="nav-close" id="navClose" aria-label="Close menu"></button>
+  </div>
+
+  <div class="nav-body">
+    <div class="nav-cat c-alloc">Allocations</div>
+    <a href="/cod/" class="nav-btn">Home</a>
+    <a href="{% url 'lab_allocations' %}" class="nav-btn">Lab Allocations</a>
+    <a href="/panel/" class="nav-btn">Branches Campus Allocations</a>
+    <a href="/odel/allocations/" class="nav-btn">ODEL Allocations</a>
+    <a href="{% url 'resit_cod_panel' %}" class="nav-btn">Resits Allocations panel</a>
+    <a href="{% url 'safe_undo_page' %}" class="nav-btn">🛟 Safe Undo (Reverse a Delete)</a>
+
+    <div class="nav-cat c-account">Account</div>
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </div>
+
+  <div class="nav-footer">
+    <div class="nav-footer-avatar">{{ request.user.get_short_name|slice:":2"|upper|default:"CU" }}</div>
+    <div class="nav-footer-info">
+      <div class="nav-footer-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+      <div class="nav-footer-role">COD / Admin</div>
+    </div>
+  </div>
+</nav>
+<div class="nav-overlay" id="navOverlay"></div>
+
+<!-- 
+ NOTIFICATION MODAL
+ -->
+<div class="notif-overlay" id="notifOverlay">
+  <div class="notif-modal">
+    <div class="nm-head">
+      <h3><i class="fas fa-bell" style="margin-right:7px;opacity:.8;"></i>Notifications</h3>
+      <div class="nm-head-actions">
+        <button class="nm-mark-all" id="nmMarkAll">Mark all read</button>
+        <button class="nm-close" id="nmClose"></button>
+      </div>
+    </div>
+    <div class="nm-tabs">
+      <button class="nm-tab active" data-tab="alerts"> Alerts</button>
+      <button class="nm-tab" data-tab="submissions"> Submissions</button>
+    </div>
+    <div class="nm-body" id="nmBody">
+      <div class="nm-loading" id="nmLoading">
+        <div class="nm-spinner"></div>Loading notifications…
+      </div>
+      <div id="nmAlerts" style="display:none;"></div>
+      <div id="nmSubmissions" style="display:none;"></div>
+      <div class="nm-empty hidden" id="nmEmpty">
+        <div class="nm-empty-icon"></div>All caught up — no notifications!
+      </div>
+    </div>
+    <div class="nm-foot">
+      <button class="nm-refresh" id="nmRefresh">↻ Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- 
+ PAGE CONTENT
+ -->
+<div class="page-content">
+  {% if messages %}
+  <div style="padding: 10px 20px 0;">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block allocation_content %}{% endblock %}
+</div>
+
+<!-- 
+ BASE JAVASCRIPT
+ -->
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script src="{% static 'course_allocation/js/course_allocation_course_allocation_base.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{{ block.super }}
+
+
+<script>
+(function () {
+  'use strict';
+
+  // ── 1. Label & variant inference ──────────────────────────────────────────
+
+  /**
+   * Given a URL, return the best button label and CSS variant.
+   * Extend the patterns array to cover more URL shapes.
+   */
+  function inferButtonMeta(url) {
+    var lower = (url || '').toLowerCase();
+
+    var patterns = [
+      // Downloads / reports
+      { test: /\.(pdf|docx?|xlsx?|csv|zip|rar)(\?|$)/i, label: 'Download Report',    variant: 'primary', icon: 'fa-download'    },
+      { test: /download/i,                               label: 'Download File',      variant: 'primary', icon: 'fa-download'    },
+      { test: /report/i,                                 label: 'View Report',        variant: 'primary', icon: 'fa-file-alt'    },
+      // Timetable / allocation specific
+      { test: /timetable/i,                              label: 'Open Timetable',     variant: 'secondary', icon: 'fa-calendar-alt' },
+      { test: /allocat/i,                                label: 'View Allocation',    variant: 'secondary', icon: 'fa-table'      },
+      { test: /resit/i,                                  label: 'View Resit Details', variant: 'secondary', icon: 'fa-clipboard-list' },
+      { test: /submission/i,                             label: 'View Submission',    variant: 'secondary', icon: 'fa-inbox'      },
+      // Generic fallbacks
+      { test: /delete|remove|reject/i,                   label: 'Review Action',      variant: 'danger',    icon: 'fa-exclamation-circle' },
+    ];
+
+    for (var i = 0; i < patterns.length; i++) {
+      if (patterns[i].test.test(lower)) {
+        return { label: patterns[i].label, variant: patterns[i].variant, icon: patterns[i].icon };
+      }
+    }
+
+    return { label: 'View Details', variant: 'secondary', icon: 'fa-external-link-alt' };
+  }
+
+  // ── 2. Public helper ───────────────────────────────────────────────────────
+
+  /**
+   * renderNotificationLink(url, labelOverride?)
+   * Returns an HTML string for a flat action button.
+   * Attach as window.renderNotificationLink so your existing
+   * notification JS can call it during render.
+   */
+  window.renderNotificationLink = function (url, labelOverride) {
+    if (!url) return '';
+    var meta  = inferButtonMeta(url);
+    var label = labelOverride || meta.label;
+    return (
+      '<a href="' + url + '" class="nm-action-btn nm-btn-' + meta.variant + '" target="_blank" rel="noopener">' +
+        '<i class="fas ' + meta.icon + '" aria-hidden="true"></i>' +
+        label +
+      '</a>'
+    );
+  };
+
+  // ── 3. Auto-upgrade legacy raw <a> tags (belt-and-suspenders) ─────────────
+  //
+  // If any existing code injects raw hyperlinks into the notification
+  // panels, this MutationObserver intercepts them and replaces each
+  // plain <a> with a proper action button.
+
+  function upgradeRawLinks(root) {
+    root.querySelectorAll('a:not(.nm-action-btn):not(.nav-btn)').forEach(function (a) {
+      var url   = a.getAttribute('href');
+      var label = (a.textContent || '').trim();
+      if (!url || url === '#') return;
+
+      // Infer meta and build button markup
+      var meta    = inferButtonMeta(url);
+      var btnText = label || meta.label;
+
+      var btn = document.createElement('a');
+      btn.href      = url;
+      btn.target    = '_blank';
+      btn.rel       = 'noopener';
+      btn.className = 'nm-action-btn nm-btn-' + meta.variant;
+      btn.innerHTML = '<i class="fas ' + meta.icon + '" aria-hidden="true"></i>' + btnText;
+
+      a.parentNode.replaceChild(btn, a);
+    });
+  }
+
+  // Watch both notification containers
+  function observeContainer(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+
+    // Upgrade anything already present
+    upgradeRawLinks(el);
+
+    // Watch for future injections
+    var observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType === 1) upgradeRawLinks(node);
+        });
+      });
+    });
+    observer.observe(el, { childList: true, subtree: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    observeContainer('nmAlerts');
+    observeContainer('nmSubmissions');
+  });
+
+  // ── 4. Strip any inline box-shadow / filter set via JS on cards ───────────
+  //
+  // Some widget scripts set element.style.boxShadow directly.
+  // This passive observer strips those inline styles on card elements.
+
+  var CARD_SELECTORS = [
+    '.card', '.widget', '.widget-card', '.dashboard-card',
+    '.summary-card', '.stat-card', '.info-card', '.panel',
+    '.notif-modal', '.nm-item', '.notification-card'
+  ].join(',');
+
+  function stripInlineShadows(root) {
+    (root || document).querySelectorAll(CARD_SELECTORS).forEach(function (el) {
+      if (el.style.boxShadow) el.style.boxShadow = 'none';
+      if (el.style.webkitBoxShadow) el.style.webkitBoxShadow = 'none';
+      if (el.style.filter && el.style.filter.indexOf('drop-shadow') !== -1) {
+        el.style.filter = el.style.filter.replace(/drop-shadow\([^)]*\)/g, '').trim();
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    stripInlineShadows();
+
+    var bodyObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType === 1) stripInlineShadows(node);
+        });
+      });
+    });
+    bodyObserver.observe(document.body, { childList: true, subtree: true });
+  });
+
+})();
+</script>
+
+{% endblock %}

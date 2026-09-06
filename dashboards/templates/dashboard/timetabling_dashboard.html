@@ -1,0 +1,809 @@
+{% extends 'dashboard/legacy_base.html' %}
+{% load static %}
+
+{% block title %}Timetabling Dashboard · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .dashboard {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  .dashboard-hero {
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 3px solid #107c41;
+  }
+  .dashboard-hero h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #000000;
+    margin: 0;
+  }
+
+  .excel-grid-section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #000000;
+    margin: 1.8rem 0 0.5rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-left: 4px solid #107c41;
+    padding-left: 6px;
+  }
+
+  .excel-table-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-bottom: 2rem;
+    background: #ffffff;
+    border-bottom: 2px solid #107c41;
+  }
+
+  .excel-table-matrix th,
+  .excel-table-matrix td {
+    border: 1px solid #000000 !important;
+    padding: 6px;
+    vertical-align: top;
+    text-align: left;
+    border-radius: 0 !important;
+    background: none !important;
+  }
+
+  .excel-table-matrix th {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    color: #000000;
+    padding: 6px;
+    border-bottom: 2px solid #000000 !important;
+  }
+
+  /* ── Base action tile ── */
+  .grid-action-container {
+    display: block;
+    color: #000000;
+    text-decoration: none;
+    border: 1px solid #000000;
+    padding: 5px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    background: transparent;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+  }
+  .grid-action-container:last-child { margin-bottom: 0; }
+  .grid-action-container:hover:not(.is-loading) {
+    background-color: #f1f5f9 !important;
+    border-color: #107c41 !important;
+  }
+
+  /* ── Loading state ── */
+  .grid-action-container.is-loading {
+    pointer-events: none;
+    opacity: 0.78;
+    border-color: #107c41 !important;
+    background-color: #f0faf4 !important;
+  }
+  /* Hide original label, show loading text via pseudo-element */
+  .grid-action-container.is-loading .btn-label { display: none; }
+  .grid-action-container.is-loading .btn-loading-label { display: inline !important; }
+
+  /* Progress bar */
+  .btn-progress-wrap {
+    display: none;
+    height: 3px;
+    background: #d1fae5;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .grid-action-container.is-loading .btn-progress-wrap { display: block; }
+  .btn-progress-bar {
+    height: 100%;
+    width: 40%;
+    background: #107c41;
+    animation: dashBtnProgress 1.6s ease-in-out infinite alternate;
+  }
+  @keyframes dashBtnProgress {
+    from { margin-left: 0;   width: 30%; }
+    to   { margin-left: 60%; width: 40%; }
+  }
+
+  .grid-action-container .action-header-text {
+    display: block;
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 2px;
+  }
+  .grid-action-container .action-caption {
+    display: block;
+    font-size: 0.7rem;
+    color: #475569;
+    line-height: 1.2;
+  }
+  .btn-loading-label {
+    display: none;
+    font-style: italic;
+    color: #107c41;
+    font-size: 0.78rem;
+  }
+  .grid-action-container i { margin-right: 3px; }
+
+  /* ── Toast ── */
+  #dash-toast-wrap {
+    position: fixed;
+    bottom: 1.4rem;
+    right: 1.4rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .dash-toast {
+    pointer-events: all;
+    min-width: 260px;
+    max-width: 400px;
+    padding: 10px 14px;
+    border-radius: 3px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    box-shadow: 0 3px 14px rgba(0,0,0,.2);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    animation: toastSlideIn .22s ease;
+  }
+  @keyframes toastSlideIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  .dash-toast.success { background:#1a5c24; color:#fff; }
+  .dash-toast.error   { background:#b71c1c; color:#fff; }
+  .dash-toast.info    { background:#1565c0; color:#fff; }
+  .dash-toast-body    { flex:1; }
+  .dash-toast-close   { background:none; border:none; color:inherit; cursor:pointer; font-size:1.1rem; opacity:.8; padding:0; line-height:1; }
+{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+
+  <div class="dashboard-hero">
+    <h2>Timetabling Dashboard Operations Matrix</h2>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       TABLE 1 · MAIN CAMPUS
+  ══════════════════════════════════════════ -->
+  <div class="excel-grid-section-title">1. Main Campus Internal Schedules &amp; Deliverables</div>
+  <table class="excel-table-matrix">
+    <thead>
+      <tr>
+        <th style="width:25%;">Regular Class &amp; Laboratory Panels</th>
+        <th style="width:25%;">Examination Timetables</th>
+        <th style="width:25%;">Live Publication Feeds</th>
+        <th style="width:25%;">Main Campus Official Exports</th>
+      </tr>
+    </thead>
+    <tbody><tr>
+
+      <!-- Col 1 · Classes -->
+      <td>
+        <a href="{% url 'timetable_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-calendar-check"></i> Class Timetable</span>
+          <span class="action-caption">Main campus lecture schedules workspace panel</span>
+        </a>
+        <a href="{% url 'lab_timetable_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-flask"></i> Lab Timetable</span>
+          <span class="action-caption">Laboratory technical practical room scheduler</span>
+        </a>
+        <a href="{% url 'autoscheduler_home' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-magic"></i> Timetable Auto Scheduler</span>
+          <span class="action-caption">Batch class schedule automation engine run</span>
+        </a>
+        
+      </td>
+
+      <!-- Col 2 · Exams -->
+      <td>
+        <a href="{% url 'exam_timetable_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-clipboard-check"></i> Exam Timetable</span>
+          <span class="action-caption">Main campus written evaluation schedule panel</span>
+        </a>
+        <a href="{% url 'lab_exam_timetable_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-flask-fill"></i> Lab Exam Timetable</span>
+          <span class="action-caption">Practical science lab testing venue sessions</span>
+        </a>
+        <a href="{% url 'exam_autoscheduler_home' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-lightning-charge"></i> Exam Auto Scheduler</span>
+          <span class="action-caption">Automated structural algorithm for final exam blocks</span>
+        </a>
+      </td>
+
+      <!-- Col 3 · Publish + signed downloads -->
+      <td>
+        <!-- Publish buttons: AJAX, show progress -->
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishRegular'); return false;"
+                data-loading="Compiling regular timetable PDF…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf-fill"></i>
+            <span class="btn-label"> Publish Regular (Official)</span>
+            <span class="btn-loading-label">Compiling regular timetable PDF…</span>
+          </span>
+          <span class="action-caption">Compile and release standard timetables online</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishExam'); return false;"
+                data-loading="Compiling exam timetable PDF…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf"></i>
+            <span class="btn-label"> Publish Exam (Official)</span>
+            <span class="btn-loading-label">Compiling exam timetable PDF…</span>
+          </span>
+          <span class="action-caption">Compile and release main examination rows online</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <!--
+          TOKEN-GATED DOWNLOADS
+          These endpoints require ?token=<hmac> generated by the published_timetables registry.
+          Linking directly to them WITHOUT a token always returns 403 "Invalid or expired link".
+          Solution: send the user to the published_timetables registry page (?section=...)
+          which builds fresh signed links for each stored PDF record.
+        -->
+        <a href="{% url 'published_timetables' %}?section=regular"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Published Regular Timetable</span>
+          <span class="action-caption">View &amp; download the latest published regular timetable</span>
+        </a>
+
+        <a href="{% url 'published_timetables' %}?section=exam"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Published Exam Timetable</span>
+          <span class="action-caption">View &amp; download the latest published exam timetable</span>
+        </a>
+      </td>
+
+      <!-- Col 4 · Direct PDF / CSV exports (server generates file synchronously) -->
+      <td>
+        <a href="{% url 'regular_timetabling_pdf_official' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            <span class="btn-label"> Regular Timetable (PDF)</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Build and export official comprehensive class PDF</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+
+        <a href="{% url 'export_main_exam_pdf_official' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <span class="btn-label"> Exam Timetable (PDF)</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Build and export official comprehensive exam PDF</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+
+        <a href="{% url 'export_main_csv' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating CSV…')">
+          <span class="action-header-text">
+            <i class="bi bi-filetype-csv"></i>
+            <span class="btn-label"> Regular Timetable CSV</span>
+            <span class="btn-loading-label">Generating CSV…</span>
+          </span>
+          <span class="action-caption">Download clean data spreadsheet of main classes</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+
+        <a href="{% url 'export_exam_timetable' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating CSV…')">
+          <span class="action-header-text">
+            <i class="bi bi-filetype-csv"></i>
+            <span class="btn-label"> Exam CSV</span>
+            <span class="btn-loading-label">Generating CSV…</span>
+          </span>
+          <span class="action-caption">Download clean data spreadsheet of main exams</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+      </td>
+
+    </tr></tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════
+       TABLE 2 · DUAL CAMPUS / BRANCH / ODEL
+  ══════════════════════════════════════════ -->
+  <div class="excel-grid-section-title">2. Extended Campuses &amp; Cross-Site Unified Systems</div>
+  <table class="excel-table-matrix">
+    <thead>
+      <tr>
+        <th style="width:33.33%;">Dual Campus Coordination Workflows</th>
+        <th style="width:33.33%;">Branch Campus Timetables</th>
+        <th style="width:33.33%;">ODEL (Distance Learning) Division</th>
+      </tr>
+    </thead>
+    <tbody><tr>
+
+      <!-- Col 1 · Dual Campus -->
+      <td>
+        <a href="{% url 'dual_scheduler_page' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-pencil-square"></i> Regular Timetable Scheduling</span>
+          <span class="action-caption">Map cross-referenced lectures across concurrent sites</span>
+        </a>
+        <a href="{% url 'dual_exam_scheduler_page' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-robot"></i> Exam Auto Scheduling</span>
+          <span class="action-caption">Algorithmic synchronized examination scheduling pipeline</span>
+        </a>
+        <a href="{% url 'export_global_regular_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-earmark-pdf"></i>
+            <span class="btn-label"> Global Regular Timetable (PDF)</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Generate master multi-site combined lecture document</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+        <a href="{% url 'export_global_exam_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            <span class="btn-label"> Global Exam Timetable (PDF)</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Generate master multi-site combined exam document</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+        <!-- These are aliases of the same PDF export above — no token needed -->
+        <a href="{% url 'export_global_regular_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Downloading…')">
+          <span class="action-header-text">
+            <i class="bi bi-download"></i>
+            <span class="btn-label"> All Campuses — Regular Timetable</span>
+            <span class="btn-loading-label">Downloading…</span>
+          </span>
+          <span class="action-caption">Download verified universal regular timeline sheet</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+        <a href="{% url 'export_global_exam_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Downloading…')">
+          <span class="action-header-text">
+            <i class="bi bi-download"></i>
+            <span class="btn-label"> All Campuses — Exam Timetable</span>
+            <span class="btn-loading-label">Downloading…</span>
+          </span>
+          <span class="action-caption">Download verified universal examination timeline sheet</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+      </td>
+
+      <!-- Col 2 · Branch Campuses -->
+      <td>
+        <a href="{% url 'campuses_timetable:manual_timetable' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-pencil-square"></i> Campus Manual Scheduling</span>
+          <span class="action-caption">Manually input session matrices for branch hubs</span>
+        </a>
+        <a href="{% url 'campuses_timetable:auto_scheduler' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-robot"></i> Auto Scheduling</span>
+          <span class="action-caption">Execute automatic branch processing tracks</span>
+        </a>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishCampusClass'); return false;"
+                data-loading="Publishing campus class timetable…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf"></i>
+            <span class="btn-label"> Publish Class</span>
+            <span class="btn-loading-label">Publishing campus class timetable…</span>
+          </span>
+          <span class="action-caption">Make active satellite lecture data available</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishCampusExam'); return false;"
+                data-loading="Publishing campus exam timetable…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf-fill"></i>
+            <span class="btn-label"> Publish Exam</span>
+            <span class="btn-loading-label">Publishing campus exam timetable…</span>
+          </span>
+          <span class="action-caption">Make active satellite evaluation rows available</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <a href="{% url 'campuses_timetable:campuses_generate_class_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf"></i>
+            <span class="btn-label"> Generate Class PDF</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Export compile framework of satellite branches lectures</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+        <a href="{% url 'campuses_timetable:campuses_generate_exam_pdf' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf-fill"></i>
+            <span class="btn-label"> Generate Exam PDF</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Export compile framework of satellite branches exams</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+
+        <!--
+          campuses_download_latest_class / campuses_download_latest_exam
+          both require ?token=<hmac> (campus_class / campus_exam resource types).
+          Route through published_timetables registry to get fresh signed links.
+        -->
+        <a href="{% url 'published_timetables' %}?section=campus_class"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Latest Class Timetable</span>
+          <span class="action-caption">Download official live satellite branches class document</span>
+        </a>
+        <a href="{% url 'published_timetables' %}?section=campus_exam"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Latest Exam Timetable</span>
+          <span class="action-caption">Download official live satellite branches exam document</span>
+        </a>
+      </td>
+
+      <!-- Col 3 · ODEL -->
+      <td>
+        <a href="{% url 'odel_system:manual_page' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-pencil-square"></i> ODEL Manual Scheduling</span>
+          <span class="action-caption">Manually map open, distance, e-learning sessions</span>
+        </a>
+        <a href="{% url 'odel_system:auto_page' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-robot"></i> ODEL Auto Scheduling</span>
+          <span class="action-caption">Automated distribution track for virtual courses</span>
+        </a>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishOdelClass'); return false;"
+                data-loading="Publishing ODEL class timetable…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf"></i>
+            <span class="btn-label"> Publish Class</span>
+            <span class="btn-loading-label">Publishing ODEL class timetable…</span>
+          </span>
+          <span class="action-caption">Lock and broadcast remote lecture structures</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishOdelExam'); return false;"
+                data-loading="Publishing ODEL exam timetable…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf-fill"></i>
+            <span class="btn-label"> Publish Exam</span>
+            <span class="btn-loading-label">Publishing ODEL exam timetable…</span>
+          </span>
+          <span class="action-caption">Lock and broadcast remote assessment structures</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <!--
+          odel_download_latest_class / odel_download_latest_exam
+          both require ?token=<hmac> (odel_class / odel_exam resource types).
+          Route through published_timetables registry to get fresh signed links.
+        -->
+        <a href="{% url 'published_timetables' %}?section=odel_class"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Latest Class Timetable</span>
+          <span class="action-caption">Acquire compiled tracking file for live digital lectures</span>
+        </a>
+        <a href="{% url 'published_timetables' %}?section=odel_exam"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Latest Exam Timetable</span>
+          <span class="action-caption">Acquire compiled tracking file for live digital exams</span>
+        </a>
+      </td>
+
+    </tr></tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════
+       TABLE 3 · RESITS / RESOURCES / DIAGNOSTICS
+  ══════════════════════════════════════════ -->
+  <div class="excel-grid-section-title">3. Supplemental Evaluation Tracks, Resource Assets &amp; Configurations</div>
+  <table class="excel-table-matrix">
+    <thead>
+      <tr>
+        <th style="width:33.33%;">Resit Special Timetabling</th>
+        <th style="width:33.33%;">Resource Management &amp; Parameters</th>
+        <th style="width:33.33%;">System Performance Feedback &amp; Diagnostics</th>
+      </tr>
+    </thead>
+    <tbody><tr>
+
+      <!-- Col 1 · Resits -->
+      <td>
+        <a href="{% url 'resit_manual_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-pencil-square"></i> Manual Timetabling</span>
+          <span class="action-caption">Explicit override allocations for supplemental tests</span>
+        </a>
+        <a href="{% url 'resit_auto_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-lightning-charge"></i> Auto Scheduler</span>
+          <span class="action-caption">Algorithmic configuration tracker for student resits</span>
+        </a>
+        <a href="{% url 'resit_cod_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-journal-check"></i> My Resit Allocations</span>
+          <span class="action-caption">Review departmental specific metrics allocations logs</span>
+        </a>
+        <a href="{% url 'generate_resit_allocation' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-file-earmark-pdf"></i> Generate Resit Allocation</span>
+          <span class="action-caption">Build/refresh the resit allocation PDF for every department with resit data</span>
+        </a>
+
+        <button class="grid-action-container"
+                onclick="dashPublish(this,'publishResit'); return false;"
+                data-loading="Publishing resit timetable…">
+          <span class="action-header-text">
+            <i class="bi bi-file-pdf"></i>
+            <span class="btn-label"> Publish Resit Timetable</span>
+            <span class="btn-loading-label">Publishing resit timetable…</span>
+          </span>
+          <span class="action-caption">Commit completed resit structures to live indexes</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </button>
+
+        <!--
+          resit_pdf_download requires ?token=<hmac> (resit resource type).
+          Route through published_timetables registry to get fresh signed links.
+        -->
+        <a href="{% url 'published_timetables' %}?section=resit"
+           class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-download"></i> Latest Resit Timetable</span>
+          <span class="action-caption">Direct pull access file for current supplemental rosters</span>
+        </a>
+      </td>
+
+      <!-- Col 2 · Resources -->
+      <td>
+        <a href="{% url 'venues_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-buildings"></i> Venues &amp; Constraints</span>
+          <span class="action-caption">Venues, lecturer blocks/preferences &amp; autoscheduler constraint toggles</span>
+        </a>
+        <a href="{% url 'lab_venues' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-gear-wide-connected"></i> Lab Venues</span>
+          <span class="action-caption">Manage technical practical resource constraints</span>
+        </a>
+        <!-- <a href="{% url 'course_allocations_view' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-journal-text"></i> Course Allocations</span>
+          <span class="action-caption">Audit assigned course units against dynamic programs</span>
+        </a>
+        <a href="{% url 'view_export_course_allocations' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-printer"></i> View &amp; Print Allocations</span>
+          <span class="action-caption">Generate hard-copy verification files for reference</span>
+        </a> -->
+        <a href="{% url 'update_scheduler_config' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-gear"></i> Scheduler Config</span>
+          <span class="action-caption">Modify foundational parameters and engine boundaries</span>
+        </a>
+        <a href="{% url 'management_allocations_dashboard' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-file-earmark-pdf"></i> Allocation Reports</span>
+          <span class="action-caption">Main/ODeL/Campus/Resit allocation PDFs — every department, auto-refreshed</span>
+        </a>
+      </td>
+
+      <!-- Col 3 · Diagnostics -->
+      <td>
+        <a href="{% url 'feedback_panel' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-chat-left-text"></i> View Feedback</span>
+          <span class="action-caption">Review user reported anomalies and structural notes</span>
+        </a>
+        <a href="{% url 'manage_mobile_announcements' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-megaphone"></i> Send Notification</span>
+          <span class="action-caption">Push a message or document to all, students, or lecturers on the mobile app</span>
+        </a>
+        <a href="{% url 'export_feedbacks' %}"
+           class="grid-action-container" onclick="dashExport(this,'Generating PDF…')">
+          <span class="action-header-text">
+            <i class="bi bi-download"></i>
+            <span class="btn-label"> Download Feedback (PDF)</span>
+            <span class="btn-loading-label">Generating PDF…</span>
+          </span>
+          <span class="action-caption">Compile and extract log system comments list</span>
+          <span class="btn-progress-wrap"><span class="btn-progress-bar"></span></span>
+        </a>
+        <!-- <a href="{% url 'analysis_dashboard' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-bar-chart"></i> Model Entry Analysis</span>
+          <span class="action-caption">Review model item completeness optimization statistics</span>
+        </a> -->
+        <a href="{% url 'timetable_analysis_dashboard' %}" class="grid-action-container">
+          <span class="action-header-text"><i class="bi bi-file-earmark-bar-graph"></i> Timetable Analysis &amp; Reports</span>
+          <span class="action-caption">Scheduled/unscheduled counts, PDF exports by faculty/department/program, and course schedule lookup</span>
+        </a>
+
+
+      </td>
+
+    </tr></tbody>
+  </table>
+
+</div>
+
+<!-- Toast container -->
+<div id="dash-toast-wrap"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function dashToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 6000 : ttl;
+  const wrap = document.getElementById('dash-toast-wrap');
+  const icons = { success:'bi-check-circle-fill', error:'bi-x-circle-fill', info:'bi-info-circle-fill' };
+  const t = document.createElement('div');
+  t.className = 'dash-toast ' + type;
+  t.innerHTML =
+    '<i class="bi ' + (icons[type]||icons.info) + '" style="flex-shrink:0"></i>' +
+    '<span class="dash-toast-body">' + msg + '</span>' +
+    '<button class="dash-toast-close" onclick="this.closest(\'.dash-toast\').remove()">&times;</button>';
+  wrap.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+  return t;
+}
+
+// ── Loading state helpers ─────────────────────────────────────────────────────
+function setLoading(el, on) {
+  if (on) { el.classList.add('is-loading'); el.disabled = true; }
+  else    { el.classList.remove('is-loading'); el.disabled = false; }
+}
+
+// ── Export click (anchor that triggers file download via page navigation) ─────
+// Shows progress + toast while browser fetches; auto-clears after 10 s.
+function dashExport(el, msg) {
+  if (el.classList.contains('is-loading')) return;
+  el.classList.add('is-loading');
+  dashToast('<i class="bi bi-hourglass-split"></i> ' + (msg || 'Preparing download…'), 'info', 4000);
+  setTimeout(() => el.classList.remove('is-loading'), 10000);
+}
+
+// ── CSRF ─────────────────────────────────────────────────────────────────────
+function dashCsrf() {
+  const el = document.querySelector('[name=csrfmiddlewaretoken]');
+  if (el) return el.value;
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : (typeof csrftoken !== 'undefined' ? csrftoken : '');
+}
+
+// ── Publish action map ────────────────────────────────────────────────────────
+const PUBLISH_ACTIONS = {
+  publishRegular: {
+    url: '/publish-regular-pdf/',
+    method: 'GET',
+    confirm: null,
+    onSuccess: function(d) {
+      dashToast('&#10003; Regular timetable published: <b>' + d.filename + '</b>', 'success');
+      if (d.document_url) window.open(d.document_url, '_blank');
+    },
+  },
+  publishExam: {
+    url: '/publish-exam-pdf/',
+    method: 'GET',
+    confirm: null,
+    onSuccess: function(d) {
+      dashToast('&#10003; Exam timetable published: <b>' + d.filename + '</b>', 'success');
+      if (d.document_url) window.open(d.document_url, '_blank');
+    },
+  },
+  publishCampusClass: {
+    url: "{% url 'campuses_timetable:campuses_publish_class' %}",
+    method: 'POST',
+    confirm: 'Publish the Campus class timetable? This will create a new version.',
+    onSuccess: function(d) {
+      dashToast('&#10003; ' + d.message, 'success');
+      if (d.download_url) window.open(d.download_url, '_blank');
+    },
+  },
+  publishCampusExam: {
+    url: "{% url 'campuses_timetable:campuses_publish_exam' %}",
+    method: 'POST',
+    confirm: 'Publish the Campus exam timetable? This will create a new version.',
+    onSuccess: function(d) {
+      dashToast('&#10003; ' + d.message, 'success');
+      if (d.download_url) window.open(d.download_url, '_blank');
+    },
+  },
+  publishOdelClass: {
+    url: "{% url 'odel_system:odel_publish_class' %}",
+    method: 'POST',
+    confirm: 'Publish the ODEL class timetable? This will create a new version.',
+    onSuccess: function(d) {
+      dashToast('&#10003; ' + d.message + ' &mdash; Version: ' + d.version, 'success');
+      if (d.download_url) window.open(d.download_url, '_blank');
+    },
+  },
+  publishOdelExam: {
+    url: "{% url 'odel_system:odel_publish_exam' %}",
+    method: 'POST',
+    confirm: 'Publish the ODEL exam timetable? This will create a new version.',
+    onSuccess: function(d) {
+      dashToast('&#10003; ' + d.message + ' &mdash; Version: ' + d.version, 'success');
+      if (d.download_url) window.open(d.download_url, '_blank');
+    },
+  },
+  publishResit: {
+    url: "{% url 'resit_pdf_publish' %}",
+    method: 'POST',
+    confirm: 'Publish the Resit timetable? This will create a new PDF version.',
+    isBlob: true,
+    onSuccess: function(blob, headers) {
+      const ver = headers.get('X-PDF-Version') || '';
+      dashToast('&#10003; Resit timetable published' + (ver ? ' &mdash; Version ' + ver : ''), 'success');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    },
+  },
+};
+
+// ── Main publish dispatcher ───────────────────────────────────────────────────
+async function dashPublish(btn, action) {
+  if (btn.classList.contains('is-loading')) return;
+
+  const cfg = PUBLISH_ACTIONS[action];
+  if (!cfg) { console.error('Unknown action:', action); return; }
+
+  if (cfg.confirm && !confirm(cfg.confirm)) return;
+
+  setLoading(btn, true);
+  const loadingMsg = btn.dataset.loading || 'Processing…';
+  const infoT = dashToast(
+    '<i class="bi bi-hourglass-split"></i> ' + loadingMsg,
+    'info', 0
+  );
+
+  try {
+    const hdrs = { 'X-Requested-With': 'XMLHttpRequest' };
+    if (cfg.method === 'POST') hdrs['X-CSRFToken'] = dashCsrf();
+
+    const resp = await fetch(cfg.url, { method: cfg.method, headers: hdrs });
+
+    // Resit returns a raw PDF blob on success
+    if (cfg.isBlob) {
+      if (resp.ok && (resp.headers.get('Content-Type') || '').includes('application/pdf')) {
+        infoT.remove();
+        const blob = await resp.blob();
+        cfg.onSuccess(blob, resp.headers);
+      } else {
+        const data = await resp.json().catch(() => ({ error: 'Unexpected response' }));
+        infoT.remove();
+        dashToast('&#10007; Error: ' + (data.error || resp.statusText), 'error');
+      }
+      return;
+    }
+
+    const data = await resp.json();
+    infoT.remove();
+
+    if (data.success) {
+      cfg.onSuccess(data, resp.headers);
+    } else {
+      dashToast('&#10007; Error: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (err) {
+    infoT.remove();
+    dashToast('&#10007; Network error — please try again.', 'error');
+    console.error('dashPublish error:', err);
+  } finally {
+    setLoading(btn, false);
+  }
+}
+</script>
+{% endblock %}

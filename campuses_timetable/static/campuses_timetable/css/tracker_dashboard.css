@@ -1,0 +1,147 @@
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      min-height: 100vh; background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #004d26; padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid #007a3d; height: 62px;
+    }
+    .hdr-left { display: flex; align-items: center; gap: 10px; }
+    .hdr-left h1 { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .hdr-left .badge {
+      background: #007a3d; color: #fff; font-size: 11px; font-weight: 600;
+      padding: 3px 9px; border-radius: 20px; letter-spacing: .4px;
+    }
+    .hdr-right { display: flex; align-items: center; gap: 10px; }
+    .btn-back {
+      background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3);
+      padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px;
+      display: flex; align-items: center; gap: 6px; transition: background .2s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.25); }
+
+    /* ── MAIN LAYOUT ── */
+    main { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background: #fff; border-radius: 10px; padding: 14px 18px;
+      display: flex; align-items: center; gap: 16px; margin-bottom: 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .filter-bar label { font-size: 13px; color: #555; font-weight: 600; }
+    .filter-bar input[type="text"] {
+      border: 1px solid #ccc; border-radius: 6px; padding: 6px 12px;
+      font-size: 13px; width: 160px; outline: none;
+    }
+    .filter-bar input:focus { border-color: #004d26; }
+    .filter-bar button {
+      background: #004d26; color: #fff; border: none; border-radius: 6px;
+      padding: 7px 16px; font-size: 13px; cursor: pointer; font-weight: 600;
+    }
+    .filter-bar button:hover { background: #007a3d; }
+
+    /* ── PROGRAM CARD ── */
+    .program-card {
+      background: #fff; border-radius: 12px; margin-bottom: 28px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.09); overflow: hidden;
+    }
+    .program-header {
+      background: #004d26; color: #fff; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .program-header h2 { font-size: 1.05rem; font-weight: 700; }
+    .program-header .meta { font-size: 12px; opacity: .8; }
+    .overall-badge {
+      padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    }
+    .overall-badge.ok { background: #e8f5e9; color: #2e7d32; }
+    .overall-badge.gap { background: #ffebee; color: #c62828; }
+
+    /* ── YEAR SECTION ── */
+    .year-section { border-bottom: 1px solid #eee; }
+    .year-section:last-child { border-bottom: none; }
+    .year-header {
+      padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; user-select: none; background: #f9fafb;
+      border-left: 4px solid #004d26; transition: background .15s;
+    }
+    .year-header:hover { background: #f0f4f0; }
+    .year-label {
+      font-weight: 700; font-size: .97rem; color: #004d26;
+    }
+    .year-status {
+      font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    }
+    .year-status.ok { background: #e8f5e9; color: #2e7d32; }
+    .year-status.gap { background: #fff3e0; color: #e65100; }
+    .year-chevron { margin-left: auto; color: #888; transition: transform .2s; }
+    .year-chevron.open { transform: rotate(180deg); }
+
+    .year-body { display: none; padding: 0 20px 16px; }
+    .year-body.open { display: block; }
+
+    /* ── SEMESTER TABS ── */
+    .sem-tabs { display: flex; gap: 8px; margin: 14px 0 12px; }
+    .sem-tab {
+      padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+      border: 2px solid transparent; cursor: pointer; transition: all .15s;
+      background: #f0f4f0; color: #555;
+    }
+    .sem-tab.active { background: #004d26; color: #fff; border-color: #004d26; }
+    .sem-tab.has-gap { border-color: #e65100; }
+
+    /* ── SEM PANEL ── */
+    .sem-panel { display: none; }
+    .sem-panel.active { display: block; }
+
+    /* ── COURSE TABLE ── */
+    .course-table {
+      width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px;
+    }
+    .course-table th {
+      background: #f5f5f5; text-align: left; padding: 8px 12px;
+      border-bottom: 2px solid #ddd; font-size: 12px; color: #555;
+    }
+    .course-table td { padding: 7px 12px; border-bottom: 1px solid #eee; }
+    .course-table tr:last-child td { border-bottom: none; }
+    .status-ok { color: #2e7d32; font-weight: 600; }
+    .status-missing { color: #c62828; font-weight: 600; }
+    .status-carryover { color: #e65100; font-weight: 600; }
+    .code-cell { font-family: monospace; font-weight: 600; color: #1565c0; }
+
+    /* ── REPORT BOX ── */
+    .report-box {
+      background: #f9fafb; border: 1px solid #ddd; border-radius: 8px;
+      padding: 14px 16px; margin-top: 12px;
+    }
+    .report-box pre { font-size: 12px; white-space: pre-wrap; color: #333; font-family: monospace; }
+    .report-toggle {
+      background: none; border: 1px solid #ccc; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; color: #555;
+      margin-top: 10px; transition: background .15s;
+    }
+    .report-toggle:hover { background: #eee; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: #999;
+    }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 10px; display: block; }
+
+    /* ── LEGEND ── */
+    .legend {
+      background: #fff; border-radius: 10px; padding: 12px 18px;
+      margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+      font-size: 12px; color: #555;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot.ok   { background: #2e7d32; }
+    .dot.miss { background: #c62828; }
+    .dot.over { background: #e65100; }

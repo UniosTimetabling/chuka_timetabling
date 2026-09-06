@@ -1,0 +1,713 @@
+{% extends "timetable/autoscheduler_base.html" %}
+{% load static %}
+
+{% block title %}AutoScheduler — Chuka University{% endblock %}
+{% block load_text %}Loading Timetable Scheduler…{% endblock %}
+{% block page_title %}Timetable AutoScheduler{% endblock %}
+{% block topbar_badge %}<span class="topbar-badge" style="background:var(--navy-light)">Classes</span>{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<style>
+  /* Ensure the table lines behave strictly like a flat spreadsheet */
+  .excel-table, .excel-table tr, .excel-table th, .excel-table td {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+  }
+  .excel-table th, .excel-table td.venue-header {
+    background: #f9f9f9 !important;
+  }
+  /* Remove table row hover styling completely */
+  .excel-table tbody tr:hover, .excel-table tbody tr:hover td {
+    background: #fff !important;
+  }
+  
+  /* Day Jump Quick Links Panel */
+  .day-navigator-rail {
+    position: sticky;
+    top: 70px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 45px;
+    min-width: 45px;
+  }
+  .day-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #333;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .day-nav-btn:hover {
+    background: #f1f1f1;
+    color: #000;
+  }
+</style>
+
+<form method="post" action="" class="config-strip" id="resetForm" style="display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:12px; border:1px solid #ccc; border-radius:4px; margin-bottom:12px; background:#fff;">
+  {% csrf_token %}
+  <input type="hidden" name="save_timetable_config" value="1">
+  <label style="display:inline-flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; color:#333; margin:0;">
+    Start Time <input type="time" name="start_time" value="{{ default_start }}" required style="padding:4px 8px; border:1px solid #ccc; border-radius:3px; font-weight:normal;">
+  </label>
+  <label style="display:inline-flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; color:#333; margin:0;">
+    End Time <input type="time" name="end_time" value="{{ default_end }}" required style="padding:4px 8px; border:1px solid #ccc; border-radius:3px; font-weight:normal;">
+  </label>
+  <label style="display:inline-flex; align-items:center; gap:8px; font-size:0.85rem; font-weight:600; color:#333; margin:0;">
+    Slot (hrs) <input type="number" name="slot_size" value="{{ default_slot }}" min="1" required style="padding:4px 8px; border:1px solid #ccc; border-radius:3px; font-weight:normal; width:60px;">
+  </label>
+  
+  <div style="display:inline-flex; align-items:center; gap:8px; margin:0;">
+    <span style="font-size:0.85rem; font-weight:600; color:#333;">Days:</span>
+    <div style="display:inline-flex; flex-wrap:wrap; gap:8px;">
+      {% for d in days %}
+        <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.82rem; cursor:pointer; margin:0; font-weight:normal;">
+          <input type="checkbox" name="days" value="{{ d }}" checked style="margin:0;"> {{ d|slice:":3" }}
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="config-strip-actions" style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+    <button type="submit" class="btn" style="background:#2176ae; border:1px solid #2176ae; color:#fff; padding:4px 14px; font-size:0.82rem; border-radius:3px; font-weight:600;">
+      <i class="fas fa-save me-1"></i> Save Config
+    </button>
+    <a href="{% url 'update_scheduler_config' %}" class="btn" style="background:none; border:1px solid #ccc; color:#333; padding:4px 12px; font-size:0.82rem; border-radius:3px; text-decoration:none;">
+      <i class="fas fa-sliders-h me-1"></i> Full Config
+    </a>
+  </div>
+</form>
+
+{% if messages %}
+<ul style="list-style:none;padding:0;margin:0 0 10px;">
+  {% for message in messages %}
+    <li style="padding:7px 12px;border-radius:4px;font-size:0.83rem;margin-bottom:4px;
+               background:{% if message.tags == 'success' %}#d1f5e0{% else %}#fde8e8{% endif %};
+               border:1px solid {% if message.tags == 'success' %}#198754{% else %}#c0392b{% endif %};
+               color:{% if message.tags == 'success' %}#145a32{% else %}#7b1010{% endif %};">
+      {{ message }}
+    </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if config %}
+<div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; padding:8px 12px; border:1px solid #ccc; border-radius:4px; margin-bottom:16px; background:#fff; font-size:0.82rem; color:#333;">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-weight:700; color:#111;"><i class="fas fa-moon me-1"></i>Evening Class:</span>
+    {% if config.enable_evening_classes %}
+      <span style="border:1px solid #198754; color:#198754; padding:1px 5px; font-size:0.7rem; font-weight:bold; border-radius:2px;">ENABLED</span>
+    {% else %}
+      <span style="border:1px solid #ccc; color:#777; padding:1px 5px; font-size:0.7rem; font-weight:bold; border-radius:2px;">DISABLED</span>
+    {% endif %}
+    <span style="color:#555;">Start: <strong>{{ config.evening_start_time|time:"H:i" }}</strong></span>
+    <span style="color:#555;">End: <strong>{{ config.evening_end_time|time:"H:i" }}</strong></span>
+    <span style="color:#555;">Slots/day: <strong>{{ config.evening_slot_count }}</strong></span>
+  </div>
+
+  <div style="width:1px; height:18px; background:#ccc; min-width:1px;"></div>
+
+  <div style="display:flex; align-items:center; gap:10px; flex-grow:1;">
+    <span style="font-weight:700; color:#111;"><i class="fas fa-calendar-alt me-1"></i>Weekend Class:</span>
+    {% if config.enable_weekend_classes %}
+      <span style="border:1px solid #198754; color:#198754; padding:1px 5px; font-size:0.7rem; font-weight:bold; border-radius:2px;">ENABLED</span>
+    {% else %}
+      <span style="border:1px solid #ccc; color:#777; padding:1px 5px; font-size:0.7rem; font-weight:bold; border-radius:2px;">DISABLED</span>
+    {% endif %}
+    <span style="color:#555;">Start: <strong>{{ config.weekend_start_time|time:"H:i" }}</strong></span>
+    <span style="color:#555;">End: <strong>{{ config.weekend_end_time|time:"H:i" }}</strong></span>
+    <span style="color:#555;">Size: <strong>{{ config.weekend_slot_size }}h</strong></span>
+    <span style="color:#666; font-size:0.78rem;">(Sat & Sun)</span>
+  </div>
+
+  <div>
+    <a href="{% url 'update_scheduler_config' %}" style="font-size:0.8rem; color:#0d6efd; text-decoration:none; font-weight:600;"><i class="fas fa-edit me-1"></i>Edit Config</a>
+  </div>
+</div>
+{% endif %}
+
+<nav class="actions-bar">
+  <a href="{% url 'timetable_dashboard' %}" class="btn btn-ghost btn-back">
+    <i class="fas fa-arrow-left"></i> Dashboard
+  </a>
+  {% if navbar_links %}
+    {% for label, url_name in navbar_links.items %}
+      <a class="btn btn-ghost btn-sm" href="{% url url_name %}">
+        <i class="fas fa-download"></i> {{ label }}
+      </a>
+    {% endfor %}
+  {% endif %}
+  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+    <div style="display: inline-flex; align-items: center; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background: #fff;">
+      <select id="schedulerTypeSelect" style="border: none; padding: 6px 12px; font-size: 0.85rem; color: #333; outline: none; background: #fff; cursor: pointer;">
+        <option value="standard" selected>Standard Scheduler</option>
+        <option value="basic-stable">Basic Stable</option>
+        <option value="advanced-stable">Advanced Stable</option>
+      </select>
+      <button class="btn btn-navy" onclick="runSelectedScheduler()" id="runSchedulerBtn" style="border: none; border-radius: 0; margin: 0; height: 100%; padding: 6px 16px;">
+        <i class="fas fa-sync-alt"></i> Run Autoscheduler
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="timetable"><i class="fas fa-calendar-alt"></i> Timetable</button>
+  <button class="tab-btn" data-tab="merged"><i class="fas fa-object-group"></i> Merged Groups</button>
+</div>
+
+<div style="display:flex; align-items:start; gap:12px; width:100%;">
+  
+  <div class="day-navigator-rail" id="dayNavigatorRail"></div>
+
+  <div style="flex-grow:1; min-width:0;">
+    <div id="timetable-tab" class="tab-content active">
+      <div id="timetableContainer">
+        <div class="box-info"><i class="fas fa-info-circle me-2"></i>Select a scheduler type and click Run to generate the timetable.</div>
+      </div>
+    </div>
+
+    <div id="merged-tab" class="tab-content">
+      <div class="panel">
+        <div class="panel-head"><i class="fas fa-object-group"></i> Merged Course Groups</div>
+        <div class="panel-body">
+          <form id="addMergedForm" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; padding:12px; border:1px solid #ccc; border-radius:4px; background:#fff;">
+            {% csrf_token %}
+            <input type="text" id="baseCourseInput" placeholder="Base course code" style="padding:6px 10px; border:1px solid #ccc; border-radius:3px; font-size:0.85rem; flex:1; min-width:140px;">
+            <input type="text" id="mergedCoursesInput" placeholder="Courses to merge (comma-separated)" style="padding:6px 10px; border:1px solid #ccc; border-radius:3px; font-size:0.85rem; flex:2; min-width:200px;">
+            <button type="button" class="btn" style="border:1px solid #333; color:#333; background:none; padding:6px 16px; font-size:0.85rem; border-radius:3px;" onclick="addMerged()"><i class="fas fa-plus"></i> Add</button>
+          </form>
+          <div id="mergedGroupsList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="constraintConfirmModal" class="modal fade" data-bs-backdrop="static" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border:1px solid #ccc; border-radius:4px; overflow:hidden; box-shadow:none;">
+      <div class="prog-modal-head" style="border-radius:0; background:none; border-bottom:1px solid #ccc; color:#333; padding:15px;">
+        <span class="head-title" style="color:#333; font-weight:600;">
+          <i class="fas fa-shield-alt me-2"></i>Confirm Constraints Before Running
+        </span>
+      </div>
+      <div class="modal-body" style="padding:20px; background:#fff;">
+        <p style="font-size:0.88rem;color:#555;margin-bottom:14px;">
+          These constraint categories will be applied to this run. Untick anything you want to
+          <strong>ignore for this run only</strong> — persisted settings won't change.
+        </p>
+        <div id="constraintList" style="max-height:340px;overflow-y:auto;">
+          <div style="text-align:center;padding:20px;color:#999;">
+            <i class="fas fa-spinner fa-spin"></i> Loading constraints…
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="background:#fff; border-top:1px solid #ccc; display:flex; justify-content:space-between; align-items:center;">
+        <a href="{% url 'venues_panel' %}#tab-constraint_toggles" target="_blank" style="font-size:0.82rem;color:#004d26;font-weight:600;text-decoration:none;">
+          <i class="fas fa-sliders-h"></i> Manage / add / remove constraint rules →
+        </a>
+        <div>
+        <button type="button" class="btn" style="border:1px solid #999; color:#555; background:none; padding:6px 14px; font-size:0.85rem; border-radius:3px;" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-navy" style="padding:6px 16px; font-size:0.85rem; border-radius:3px;" onclick="confirmAndRunScheduler()">
+          <i class="fas fa-play"></i> Yes, Run Scheduler
+        </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="schedulerProgressModal" class="modal fade" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="border:1px solid #ccc; border-radius:4px; overflow:hidden; box-shadow:none;">
+      <div class="prog-modal-head" id="progressModalHead" style="border-radius:0; background:none; border-bottom:1px solid #ccc; color:#333; padding:15px;">
+        <div class="head-spinner" id="progressSpinner"></div>
+        <span class="head-title" id="progressModalTitle" style="color:#333; font-weight:600;">
+          <i class="fas fa-cogs me-2"></i>Scheduler in Progress
+        </span>
+        <span id="modeIndicator" style="margin-left:10px; font-size:0.72rem; background:none; border:1px solid #ccc; color:#333; padding:2px 9px; border-radius:10px;">Standard</span>
+      </div>
+      <div class="modal-body" style="padding:20px; background:#fff;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:0.82rem">
+          <span id="progressPercentage" style="font-weight:700">0%</span>
+          <span id="batchInfo" style="color:#666">Initializing…</span>
+        </div>
+        
+        <div class="prog-wrap" style="background:#eee; height:16px; border-radius:3px; overflow:hidden;">
+          <div class="prog-fill" id="progressBar" style="width:0%; background:#ffc107; height:100%; transition: width 0.3s ease, background-color 0.4s ease;"></div>
+        </div>
+        
+        <div id="progressBarLabelText" style="font-size:0.8rem; font-weight:700; color:#555; text-align:center; margin-top:6px; letter-spacing:0.3px; text-transform:uppercase;">
+          Setting Up Engine Workspace...
+        </div>
+
+        <div class="modal-stats" style="display:flex; gap:10px; margin:15px 0;">
+          <div class="ms-card" style="border:1px solid #ccc; padding:10px; flex:1; text-align:center;"><div class="ms-val" id="scheduledCount" style="font-size:1.2rem; font-weight:bold;">0</div><div class="ms-lbl" style="font-size:0.75rem; color:#666;">Scheduled</div></div>
+          <div class="ms-card" style="border:1px solid #ccc; padding:10px; flex:1; text-align:center;"><div class="ms-val" id="remainingCount" style="font-size:1.2rem; font-weight:bold;">0</div><div class="ms-lbl" style="font-size:0.75rem; color:#666;">Remaining</div></div>
+          <div class="ms-card" style="border:1px solid #ccc; padding:10px; flex:1; text-align:center;"><div class="ms-val" id="currentBatch" style="font-size:1.2rem; font-weight:bold;">0/0</div><div class="ms-lbl" style="font-size:0.75rem; color:#666;">Current Batch</div></div>
+        </div>
+
+        <div class="action-strip" style="background:none; border:1px solid #ccc; padding:8px; border-radius:4px; font-size:0.85rem; margin-bottom:12px; color:#333;">
+          <i class="fas fa-bolt"></i> <span id="currentAction">Initializing…</span>
+        </div>
+
+        <div style="font-size:0.8rem;font-weight:700;color:#333;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <i class="fas fa-terminal"></i> Process Log
+        </div>
+        <div class="console-wrap" style="border:1px solid #ccc; background:none;">
+          <div id="consoleOutput" style="padding:10px; font-family:monospace; font-size:0.8rem; color:#333; max-height:150px; overflow-y:auto;">
+            <div class="cl info"><span class="cl-ts">[00:00:00]</span> <span class="cl-msg">Starting scheduler…</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="background:#fff; border-top:1px solid #ccc">
+        <button type="button" class="btn" style="border:1px solid #cc0000; color:#cc0000; background:none; padding:6px 12px; font-size:0.85rem; border-radius:3px;" onclick="cancelScheduling()">
+          <i class="fas fa-stop"></i> Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pub-overlay" id="pubOverlay">
+  <div class="pub-card" style="background:#fff; border:1px solid #ccc; box-shadow:none; border-radius:4px;">
+    <div class="pub-spinner" id="pubSpinner"></div>
+    <div class="pub-check" id="pubCheck" style="display:none; color:#333;"><i class="fas fa-check"></i></div>
+    <div class="pub-title" id="pubTitle" style="color:#333;">Publishing</div>
+    <div class="pub-msg"   id="pubMsg" style="color:#666;">Please wait…</div>
+    <div class="pub-prog" style="background:#eee;"><div class="pub-prog-fill" id="pubFill" style="background:#555;"></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let isScheduling = false, progressInterval, progressModal, constraintModal;
+  let currentActiveType = 'standard';
+  let pendingSchedulerType = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTabs();
+    progressModal = new bootstrap.Modal(document.getElementById('schedulerProgressModal'));
+    constraintModal = new bootstrap.Modal(document.getElementById('constraintConfirmModal'));
+    loadMergedGroups();
+    loadTimetable();
+
+    document.getElementById('resetForm').addEventListener('submit', function() {
+      const btn = this.querySelector('button[type=submit]');
+      btnLoad(btn, 'Resetting…');
+    });
+  });
+
+  function runSelectedScheduler() {
+    const selectedType = document.getElementById('schedulerTypeSelect').value;
+    pendingSchedulerType = selectedType;
+
+    const listEl = document.getElementById('constraintList');
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;"><i class="fas fa-spinner fa-spin"></i> Loading constraints…</div>';
+    constraintModal.show();
+
+    fetch("{% url 'scheduler_constraint_summary' %}?scheduler_type=regular")
+      .then(r => r.json())
+      .then(d => {
+        if (d.status !== 'success' || !d.constraints.length) {
+          listEl.innerHTML = '<p style="color:#666;font-size:0.85rem;">No constraint rules are configured yet — the scheduler will run with defaults only.</p>';
+          return;
+        }
+        listEl.innerHTML = d.constraints.map(c => `
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;cursor:pointer;">
+            <input type="checkbox" class="constraint-toggle" data-key="${c.key}" ${c.is_enabled ? 'checked' : ''} style="margin-top:3px;">
+            <span>
+              <div style="font-weight:600;font-size:0.88rem;color:#333;">
+                ${c.label}
+                <span style="font-weight:400;color:#888;font-size:0.78rem;">(${c.rule_count} active rule${c.rule_count === 1 ? '' : 's'})</span>
+              </div>
+              <div style="font-size:0.8rem;color:#666;margin-top:2px;">${c.description}</div>
+            </span>
+          </label>
+        `).join('');
+      })
+      .catch(() => {
+        listEl.innerHTML = '<p style="color:#cc0000;font-size:0.85rem;">Could not load constraints — the scheduler will still run using its saved defaults.</p>';
+      });
+  }
+
+  function confirmAndRunScheduler() {
+    const disabled = Array.from(document.querySelectorAll('.constraint-toggle'))
+      .filter(cb => !cb.checked)
+      .map(cb => cb.dataset.key);
+    constraintModal.hide();
+    runScheduler(pendingSchedulerType, disabled);
+  }
+
+  function runScheduler(type, disabledConstraints) {
+    currentActiveType = type || 'standard';
+    const btn = document.getElementById('runSchedulerBtn');
+    btnLoad(btn, 'Scheduling…');
+    
+    document.getElementById('modeIndicator').textContent =
+      { 'standard':'Standard','basic-stable':'Basic Stable','advanced-stable':'Adv. Stable' }[currentActiveType] || currentActiveType;
+
+    const urlMap = {
+      'standard':         "{% url 'start_scheduling' %}",
+      'basic-stable':     "{% url 'start_basic_stable' %}",
+      'advanced-stable':  "{% url 'start_advanced_stable' %}"
+    };
+
+    progressModal.show();
+    isScheduling = true;
+    
+    // Set baseline initializing parameters
+    const bar = document.getElementById('progressBar');
+    bar.style.width = '0%';
+    bar.style.backgroundColor = '#ffc107'; // Init Yellow
+    document.getElementById('progressBarLabelText').textContent = "Setting Up Engine Workspace...";
+    document.getElementById('progressBarLabelText').style.color = "#b58100";
+    
+    progressInterval = setInterval(updateProgress, 1200);
+
+    fetch(urlMap[currentActiveType], {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRF(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled_constraints: disabledConstraints || [] })
+    })
+    .then(r => r.json())
+    .then(d => { if (d.status !== 'started') completeScheduling(d); })
+    .catch(e => completeScheduling({ status:'error', message: e.message }));
+  }
+
+  function updateProgress() {
+    if (!isScheduling) return;
+    const urls = {
+      'standard':        "{% url 'scheduler_progress' %}",
+      'basic-stable':    "{% url 'basic_stable_progress' %}",
+      'advanced-stable': "{% url 'advanced_stable_progress' %}"
+    };
+    fetch(urls[currentActiveType] || urls.standard)
+      .then(r => r.json())
+      .then(d => {
+        if (['completed','error','cancelled'].includes(d.status) || d.progress >= 100) {
+          completeScheduling(d); return;
+        }
+        const pct = d.progress || 0;
+        const bar = document.getElementById('progressBar');
+        const textLabel = document.getElementById('progressBarLabelText');
+        
+        bar.style.width = pct + '%';
+        document.getElementById('progressPercentage').textContent = pct + '%';
+        document.getElementById('currentAction').textContent = d.current_action || 'Processing…';
+        document.getElementById('scheduledCount').textContent = d.scheduled_count || 0;
+        document.getElementById('remainingCount').textContent = d.remaining_count || 0;
+        document.getElementById('batchInfo').textContent = d.batch_info || '…';
+        document.getElementById('currentBatch').textContent = `${d.current_batch||0}/${d.total_batches||0}`;
+        
+        // Multi-stage progressive color & statement controller
+        if (pct < 35) {
+          bar.style.backgroundColor = '#ffc107'; // Yellow
+          textLabel.textContent = "Phase 1: Analyzing rules & resolving venue constraint spaces...";
+          textLabel.style.color = "#b58100";
+        } else if (pct >= 35 && pct < 85) {
+          bar.style.backgroundColor = '#0d6efd'; // Blue
+          textLabel.textContent = "Phase 2: Executing bulk allocation & processing course matrices...";
+          textLabel.style.color = "#0a58ca";
+        } else {
+          bar.style.backgroundColor = '#198754'; // Green
+          textLabel.textContent = "Phase 3: Final optimization routines & conflict check passes...";
+          textLabel.style.color = "#146c43";
+        }
+        
+        renderConsole(d.log_entries || d.messages || []);
+      })
+      .catch(() => {});
+  }
+
+  function completeScheduling(data) {
+    clearInterval(progressInterval);
+    isScheduling = false;
+    btnReset(document.getElementById('runSchedulerBtn'));
+    
+    const bar = document.getElementById('progressBar');
+    const textLabel = document.getElementById('progressBarLabelText');
+    
+    bar.style.width = '100%';
+    bar.style.backgroundColor = '#198754'; // Complete Green
+    textLabel.textContent = "Allocation Routine Finished Successfully.";
+    textLabel.style.color = "#146c43";
+    
+    document.getElementById('progressPercentage').textContent = '100%';
+    document.getElementById('currentAction').textContent = data.message || 'Done';
+    if (data.log_entries || data.messages) renderConsole(data.log_entries || data.messages || []);
+
+    document.querySelector('#schedulerProgressModal .modal-footer').innerHTML =
+      `<button class="btn" style="border:1px solid #333; color:#333; background:none;" onclick="progressModal.hide(); loadTimetable()"><i class="fas fa-check me-1"></i> Close & Refresh</button>`;
+
+    if (data.status === 'completed') {
+      setTimeout(() => { progressModal.hide(); loadTimetable(); }, 3000);
+    }
+  }
+
+  function cancelScheduling() {
+    if (!confirm('Cancel scheduling?')) return;
+    clearInterval(progressInterval); isScheduling = false;
+    const urls = {
+      'standard':        "{% url 'cancel_scheduling' %}",
+      'basic-stable':    "{% url 'cancel_basic_stable' %}",
+      'advanced-stable': "{% url 'cancel_advanced_stable' %}"
+    };
+    fetch(urls[currentActiveType] || urls.standard, { method:'POST', headers:{'X-CSRFToken':getCSRF()} }).catch(() => {});
+  }
+
+  /* ── STRICT EXCEL GRID PATTERN (No hovers, clean flat table architecture) ── */
+  async function loadTimetable() {
+    const container = document.getElementById('timetableContainer');
+    container.innerHTML = '<div style="padding:20px; font-size:0.88rem; color:#666;"><i class="fas fa-spinner fa-spin me-2"></i>Loading grid…</div>';
+    
+    try {
+      const [venuesResponse, timetableResponse] = await Promise.all([
+        fetch("{% url 'api_get_venues' %}"),
+        fetch("{% url 'api_get_timetable' %}")
+      ]);
+      
+      const venuesData = await venuesResponse.json();
+      const timetableData = await timetableResponse.json();
+      
+      const venues = venuesData.venues || venuesData || [];
+      const timetable = timetableData.timetable || timetableData || [];
+      
+      renderTimetable(venues, timetable, container);
+    } catch(e) {
+      container.innerHTML = `<div style="padding:12px; color:#cc0000; border:1px solid #cc0000; font-size:0.85rem;"><i class="fas fa-exclamation-triangle me-2"></i>Failed to load timetable: ${e.message}</div>`;
+    }
+  }
+
+  function sortTimeSlots(slots) {
+    return slots.sort((a, b) => {
+      const timeA = a.split('–')[0];
+      const timeB = b.split('–')[0];
+      const toMinutes = (time) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + (minutes || 0);
+      };
+      return toMinutes(timeA) - toMinutes(timeB);
+    });
+  }
+
+  function renderTimetable(venues, timetable, container) {
+    const navRail = document.getElementById('dayNavigatorRail');
+    navRail.innerHTML = ''; // Reset day jump tags
+
+    if (!timetable.length) {
+      container.innerHTML = '<div style="padding:12px; border:1px solid #ccc; font-size:0.85rem; color:#555;">No timetable data available. Run the scheduler first.</div>';
+      return;
+    }
+    
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const byDate = {};
+
+    timetable.forEach(entry => {
+      const date = entry.date || entry.day || 'Unknown';
+      if (!byDate[date]) {
+        byDate[date] = { slots: new Set(), venues: new Set(), entries: {} };
+      }
+      
+      const slotKey = `${entry.start_time}–${entry.end_time}`;
+      const venue = entry.venue || 'N/A';
+      
+      byDate[date].slots.add(slotKey);
+      byDate[date].venues.add(venue);
+      
+      if (!byDate[date].entries[slotKey]) byDate[date].entries[slotKey] = {};
+      if (!byDate[date].entries[slotKey][venue]) byDate[date].entries[slotKey][venue] = [];
+      
+      byDate[date].entries[slotKey][venue].push(entry);
+    });
+
+    const sortedDays = Object.keys(byDate).sort((a, b) => {
+      const indexA = dayOrder.indexOf(a);
+      const indexB = dayOrder.indexOf(b);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    let html = '';
+    sortedDays.forEach(date => {
+      const dayData = byDate[date];
+      const slots = sortTimeSlots([...dayData.slots]);
+      const venuesList = [...dayData.venues].sort();
+      const elementId = `day-block-${date.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+      
+      // Build Quick Link Scroll Trigger Button
+      const shortDay = date.substring(0, 3).toUpperCase();
+      const jumpBtn = document.createElement('a');
+      jumpBtn.className = 'day-nav-btn';
+      jumpBtn.href = `#${elementId}`;
+      jumpBtn.title = `Jump to ${date}`;
+      jumpBtn.innerHTML = `<i class="fas fa-chevron-down" style="font-size:0.55rem; opacity:0.6; margin-bottom:2px;"></i>${shortDay}`;
+      navRail.appendChild(jumpBtn);
+
+      html += `
+        <div class="day-block" id="${elementId}" style="margin-bottom:24px; scroll-margin-top: 80px;">
+          <div style="padding:6px 0; border-bottom:1px solid #333; font-size:0.9rem; font-weight:700; color:#111; margin-bottom:8px;">
+            <i class="fas fa-calendar-day" style="margin-right:6px; color:#555;"></i>${date} 
+            <span style="font-weight:400; font-size:0.75rem; color:#666; margin-left:8px;">(${venuesList.length} venues · ${slots.length} slots)</span>
+          </div>
+          <div style="overflow-x:auto; width:100%;">
+            <table class="excel-table" style="width:100%; border-collapse: collapse; font-family:-apple-system,BlinkMacSystemFont,sans-serif; font-size:0.82rem; color:#333;">
+              <thead>
+                <tr>
+                  <th class="venue-header" style="padding:6px 10px; font-weight:600; text-align:left; width:120px; color:#444;">Venue</th>
+                  ${slots.map(slot => 
+                    `<th style="padding:6px 10px; font-weight:600; text-align:center; color:#444; min-width:130px;">${slot}</th>`
+                  ).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                ${venuesList.map(venue => `
+                  <tr>
+                    <td class="venue-header" style="padding:6px 10px; font-weight:600; text-align:left;">${venue}</td>
+                    ${slots.map(slot => {
+                      const entries = (dayData.entries[slot] && dayData.entries[slot][venue]) || [];
+                      if (!entries.length) {
+                        return `<td style="text-align:center; color:#ccc; padding:6px;">—</td>`;
+                      }
+                      return `
+                        <td style="padding:6px; vertical-align:top; text-align:left;">
+                          ${entries.map(entry => `
+                            <div style="line-height:1.3; margin-bottom:4px;">
+                              <div style="font-weight:700; color:#111; font-size:0.85rem;">${entry.course_code || entry.code || 'N/A'}</div>
+                              <div style="font-size:0.72rem; color:#666;">
+                                Size: ${entry.students || entry.student_count || 0}
+                                ${entry.lecturer ? ` · ${entry.lecturer}` : ''}
+                              </div>
+                            </div>
+                          `).join('')}
+                        </td>
+                      `;
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  }
+
+  /* ── MERGED GROUPS LOGIC ── */
+  async function loadMergedGroups() {
+    try {
+      const response = await fetch("{% url 'merged_api' %}");
+      const data = await response.json();
+      const groups = data.merged_groups || data || [];
+      const el = document.getElementById('mergedGroupsList');
+      
+      if (!groups.length) { 
+        el.innerHTML = '<div style="font-size:0.85rem; color:#666; padding:8px 0;">No merged groups configurations found.</div>'; 
+        return; 
+      }
+      
+      el.innerHTML = groups.map((g, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid #e0e0e0;border-radius:3px;margin-bottom:6px;">
+          <span style="font-weight:700;color:#333">${g.base_code || g.base}</span>
+          <span style="color:#666;font-size:0.78rem">← ${(g.merged_codes || g.merged || []).join(', ')}</span>
+          <button class="btn btn-sm" style="margin-left:auto; background:none; border:1px solid #cc0000; color:#cc0000; padding:2px 6px; font-size:0.75rem;" onclick="deleteMerged(${g.id || i})"><i class="fas fa-trash"></i></button>
+        </div>`).join('');
+    } catch(e) {
+      document.getElementById('mergedGroupsList').innerHTML = `<div style="font-size:0.82rem; color:#cc0000;">Failed to load: ${e.message}</div>`;
+    }
+  }
+
+  async function addMerged() {
+    const base = document.getElementById('baseCourseInput').value.trim();
+    const courses = document.getElementById('mergedCoursesInput').value.trim();
+    
+    if (!base || !courses) return;
+    
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCSRF());
+    fd.append('base_course', base);
+    fd.append('merged_courses', courses);
+    
+    await fetch("{% url 'merged_api' %}", { method: 'POST', body: fd });
+    document.getElementById('baseCourseInput').value = '';
+    document.getElementById('mergedCoursesInput').value = '';
+    loadMergedGroups();
+  }
+
+  async function deleteMerged(id) {
+    if (!confirm('Delete this merged group?')) return;
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCSRF());
+    fd.append('action', 'delete');
+    fd.append('id', id);
+    
+    await fetch("{% url 'merged_api' %}", { method: 'POST', body: fd });
+    loadMergedGroups();
+  }
+
+  function getCSRF() { return document.querySelector('[name=csrfmiddlewaretoken]').value; }
+
+  function btnLoad(btn, text) {
+    if (!btn) return;
+    btn._originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = text;
+  }
+
+  function btnReset(btn) {
+    if (!btn || !btn._originalHTML) return;
+    btn.disabled = false;
+    btn.innerHTML = btn._originalHTML;
+  }
+
+  function renderConsole(entries) {
+    const consoleEl = document.getElementById('consoleOutput');
+    if (!consoleEl || !entries || !entries.length) return;
+    
+    consoleEl.innerHTML = entries.slice(-10).map(entry => {
+      const time = entry.timestamp || new Date().toLocaleTimeString();
+      const msg = entry.message || entry;
+      return `<div style="margin-bottom:2px;">[${time}] ${msg}</div>`;
+    }).join('');
+  }
+
+  function initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById(this.dataset.tab + '-tab').classList.add('active');
+        
+        // Show navigation arrows only inside the core Timetable tab workspace
+        const rail = document.getElementById('dayNavigatorRail');
+        if (this.dataset.tab === 'timetable') {
+          rail.style.display = 'flex';
+        } else {
+          rail.style.display = 'none';
+        }
+      });
+    });
+  }
+</script>
+{% endblock %}

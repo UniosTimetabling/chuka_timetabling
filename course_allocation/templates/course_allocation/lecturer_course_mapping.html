@@ -1,0 +1,256 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_lecturer_course_mapping.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/lect_mapping2.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_lecturer_course_mapping.css' %}">
+{% endblock page_css %}
+
+{% block title %}Lecturer Course Mapping{% endblock %}
+{% block page_title %}Lecturer Course Mapping{% endblock %}
+
+{% block header_controls %}
+<a href="{% url homepage_url %}" class="hdr-btn">
+ <i class="fas fa-home"></i> <span class="d-none d-md-inline">Homepage</span>
+</a>
+{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+
+<div class="infobar">
+ Logged in as: <strong>{{ request.user.username }}</strong>&nbsp;|&nbsp;Role:
+ {% if is_superuser %}Superuser (all departments)
+ {% elif is_admin %}Admin (all departments)
+ {% else %}COD &mdash; {{ user_department.name }}{% endif %}
+</div>
+
+<div class="msgs" id="msgBox">
+ {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+</div>
+
+<div class="pg">
+<div class="wrap">
+
+ <!-- FORM -->
+ <div class="panel">
+ <div class="ph" id="formTitle"><i class="fas fa-link" style="margin-right:6px;opacity:.8;"></i>Assign Courses to Lecturer</div>
+ <div class="pb">
+ <input type="hidden" id="mappingId">
+
+ {% if is_superuser or is_admin %}
+ <div class="fr">
+ <label for="dSel">Department</label>
+ <select id="dSel">
+ <option value="">-- Auto-detect from lecturer --</option>
+ {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+ </select>
+ </div>
+ {% else %}
+ <input type="hidden" id="dSel" value="{{ user_department.id }}">
+ {% endif %}
+
+ <div class="fr">
+ <label for="lSel">Lecturer <span style="color:var(--danger)">*</span></label>
+ <select id="lSel">
+ <option value="">-- Select Lecturer --</option>
+ {% for l in lecturers %}
+ <option value="{{ l.id }}" data-dept="{{ l.department.id|default:'' }}">
+ {{ l.display_name }}{% if l.department %} &mdash; {{ l.department.name }}{% endif %}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div class="fr">
+ <label>Courses <span style="color:var(--danger)">*</span></label>
+ <input type="text" class="filter-inp" id="cFilt" placeholder="Filter by code or name...">
+ <select id="cSel" multiple>
+ {% for c in courses %}
+ <option value="{{ c.id }}" data-dept="{{ c.program.department.id }}">
+ {{ c.course_code }} &ndash; {{ c.course_name }} ({{ c.program.name }}, Y{{ c.year }}S{{ c.semester }})
+ </option>
+ {% endfor %}
+ </select>
+ <div class="hint">Hold Ctrl / Cmd to select multiple courses</div>
+ </div>
+
+ <div class="fr">
+ <label for="nInp">Notes (optional)</label>
+ <textarea id="nInp" placeholder="Specialisation area, remarks..."></textarea>
+ </div>
+
+ <div class="btn-row">
+ <button class="btn btn-g" id="saveBtn"><span id="saveTxt">Save Mapping</span></button>
+ <button class="btn btn-gr" id="clearBtn">Clear</button>
+ </div>
+ <div id="fSt"></div>
+ </div>
+ </div>
+
+ <!-- TABLE -->
+ <div class="panel">
+ <div class="ph"><i class="fas fa-table" style="margin-right:6px;opacity:.8;"></i>Current Mappings</div>
+ <div class="ttbar">
+ <input type="text" id="tSrch" placeholder="Search lecturer, department, course...">
+ <span class="tcnt" id="rCnt">{{ mappings|length }} mapping(s)</span>
+ </div>
+ <div class="tscroll">
+ <table>
+ <thead>
+ <tr><th>#</th><th>Lecturer</th><th>Department</th><th>Courses</th><th>Notes</th><th>Actions</th></tr>
+ </thead>
+ <tbody id="tBody">
+ {% for mp in mappings %}
+ <tr data-id="{{ mp.id }}">
+ <td>{{ forloop.counter }}</td>
+ <td>{{ mp.lecturer.display_name }}</td>
+ <td>{{ mp.department.name|default:"&mdash;" }}</td>
+ <td>
+ <div class="tags">
+ {% for c in mp.courses.all|slice:":5" %}<span class="tag">{{ c.course_code }}</span>{% endfor %}
+ {% if mp.courses.count > 5 %}<span class="tag tag-more">+{{ mp.courses.count|add:"-5" }}</span>{% endif %}
+ </div>
+ </td>
+ <td>{{ mp.notes|default:"&mdash;"|truncatechars:50 }}</td>
+ <td>
+ <button class="lnk" onclick="loadMap({{ mp.id }},{{ mp.lecturer.id }},{{ mp.department.id|default:'null' }})">Edit</button>
+ <button class="lnk lnk-r" onclick="delMap({{ mp.id }},this)">Delete</button>
+ </td>
+ </tr>
+ {% empty %}
+ <tr class="erow"><td colspan="6">No mappings yet. Use the form to add one.</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div><!-- wrap -->
+</div><!-- pg -->
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * course_allocation_course_allocation_lecturer_course_mapping.js
+ * Extracted inline JS from: course_allocation/templates/course_allocation/lecturer_course_mapping.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+const CSRF=()=>{const m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]:''};
+const URL_SAVE   ="{% url 'save_lecturer_mapping' %}";
+const URL_DELETE ="{% url 'delete_lecturer_mapping' %}";
+const URL_GET    ="{% url 'get_lecturer_mapping' %}";
+
+document.getElementById('cFilt').addEventListener('input',function(){
+  const q=this.value.toLowerCase();
+  document.querySelectorAll('#cSel option').forEach(o=>{o.hidden=!!q&&!o.text.toLowerCase().includes(q)});
+});
+
+document.getElementById('tSrch').addEventListener('input',function(){
+  const q=this.value.toLowerCase();let v=0;
+  document.querySelectorAll('#tBody tr:not(.erow)').forEach(r=>{
+    const show=!q||r.textContent.toLowerCase().includes(q);
+    r.style.display=show?'':'none';if(show)v++;
+  });
+  document.getElementById('rCnt').textContent=v+' mapping(s)';
+});
+
+function loadMap(mId,lId,dId){
+  document.getElementById('mappingId').value=mId;
+  document.getElementById('lSel').value=lId;
+  const ds=document.getElementById('dSel');
+  if(ds&&ds.tagName==='SELECT'&&dId) ds.value=dId;
+  fetch(`${URL_GET}?lecturer_id=${lId}&department_id=${dId||''}`)
+    .then(r=>r.json()).then(d=>{
+      if(d.success){
+        Array.from(document.getElementById('cSel').options).forEach(o=>{
+          o.selected=d.course_ids.includes(parseInt(o.value));
+        });
+        document.getElementById('nInp').value=d.notes||'';
+      }
+    });
+  document.getElementById('saveTxt').textContent='Update Mapping';
+  document.getElementById('formTitle').textContent='Edit Mapping';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.getElementById('clearBtn').addEventListener('click',()=>{
+  ['mappingId','nInp','cFilt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('lSel').value='';
+  const ds=document.getElementById('dSel');if(ds&&ds.tagName==='SELECT')ds.value='';
+  Array.from(document.getElementById('cSel').options).forEach(o=>{o.selected=false;o.hidden=false;});
+  const st=document.getElementById('fSt');st.className='';st.textContent='';
+  document.getElementById('saveTxt').textContent='Save Mapping';
+  document.getElementById('formTitle').textContent='Assign Courses to Lecturer';
+});
+
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const lId=document.getElementById('lSel').value;
+  if(!lId){showSt('Please select a lecturer.','err');return}
+  const cIds=Array.from(document.getElementById('cSel').selectedOptions).map(o=>o.value);
+  const ds=document.getElementById('dSel');
+  const dId=ds&&ds.tagName==='SELECT'?ds.value:'';
+  const body=new URLSearchParams();
+  body.append('lecturer_id',lId);
+  if(dId)body.append('department_id',dId);
+  body.append('notes',document.getElementById('nInp').value);
+  cIds.forEach(id=>body.append('course_ids',id));
+  const btn=document.getElementById('saveBtn');btn.disabled=true;
+  document.getElementById('saveTxt').innerHTML='<span class="spin"></span>Saving...';
+  try{
+    const r=await fetch(URL_SAVE,{method:'POST',headers:{'X-CSRFToken':CSRF(),'Content-Type':'application/x-www-form-urlencoded'},body});
+    const d=await r.json();
+    if(d.success){
+      showSt((d.created?'Mapping created.':'Mapping updated.')+` ${d.courses_count} course(s) assigned.`,'ok');
+      renderRow(d);
+      document.getElementById('mappingId').value=d.mapping_id;
+      document.getElementById('saveTxt').textContent='Update Mapping';
+      document.getElementById('formTitle').textContent='Edit Mapping';
+    }else{showSt(d.error||'Save failed.','err');document.getElementById('saveTxt').textContent='Save Mapping';}
+  }catch(e){showSt('Error: '+e.message,'err');document.getElementById('saveTxt').textContent='Save Mapping';}
+  finally{btn.disabled=false;}
+});
+
+function showSt(msg,cls){const el=document.getElementById('fSt');el.textContent=msg;el.className=cls;}
+
+function renderRow(d){
+  const tbody=document.getElementById('tBody');
+  const erow=tbody.querySelector('.erow');if(erow)erow.remove();
+  const tagHtml=d.courses.slice(0,5).map(c=>`<span class="tag">${c.code}</span>`).join('')
+    +(d.courses.length>5?`<span class="tag tag-more">+${d.courses.length-5}</span>`:'');
+  const lId=document.getElementById('lSel').value;
+  const ds=document.getElementById('dSel');
+  const dId=ds&&ds.tagName==='SELECT'?ds.value||'null':'null';
+  const n=tbody.querySelectorAll('tr:not(.erow)').length;
+  const cells=`<td>${d.created?n+1:tbody.querySelector('[data-id="${d.mapping_id}"]')?.querySelector('td')?.textContent||n}</td>
+    <td>${d.lecturer}</td><td>${d.department||'&mdash;'}</td>
+    <td><div class="tags">${tagHtml}</div></td><td>&mdash;</td>
+    <td><button class="lnk" onclick="loadMap(${d.mapping_id},${lId},${dId})">Edit</button>
+    <button class="lnk lnk-r" onclick="delMap(${d.mapping_id},this)">Delete</button></td>`;
+  let row=tbody.querySelector(`tr[data-id="${d.mapping_id}"]`);
+  if(row){row.innerHTML=cells;}
+  else{row=document.createElement('tr');row.dataset.id=d.mapping_id;row.innerHTML=cells;tbody.prepend(row);}
+  document.getElementById('rCnt').textContent=tbody.querySelectorAll('tr:not(.erow)').length+' mapping(s)';
+}
+
+async function delMap(mId,btn){
+  if(!confirm('Remove this lecturer-course mapping?'))return;
+  btn.disabled=true;
+  try{
+    const r=await fetch(URL_DELETE,{method:'POST',headers:{'X-CSRFToken':CSRF(),'Content-Type':'application/x-www-form-urlencoded'},body:`mapping_id=${mId}`});
+    const d=await r.json();
+    if(d.success){
+      const row=document.querySelector(`#tBody tr[data-id="${mId}"]`);if(row)row.remove();
+      const left=document.querySelectorAll('#tBody tr:not(.erow)').length;
+      document.getElementById('rCnt').textContent=left+' mapping(s)';
+      if(!left)document.getElementById('tBody').innerHTML='<tr class="erow"><td colspan="6">No mappings found.</td></tr>';
+      if(document.getElementById('mappingId').value==mId)document.getElementById('clearBtn').click();
+    }else{alert(d.error||'Delete failed.');btn.disabled=false;}
+  }catch(e){alert('Error: '+e.message);btn.disabled=false;}
+}
+</script>
+{% endblock extra_js %}

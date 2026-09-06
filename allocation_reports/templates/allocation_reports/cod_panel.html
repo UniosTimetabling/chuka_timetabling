@@ -1,0 +1,130 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Course Allocation PDFs · {{ department.name }}{% endblock %}
+
+{% block content %}
+<div class="alloc-grid-page">
+  <div class="alloc-grid-topbar">
+    <div class="alloc-grid-title">
+      <span class="alloc-grid-title-main">Course Allocation Reports</span>
+      <span class="alloc-grid-title-sub">{{ department.name }}</span>
+    </div>
+    <a href="{% url 'cod_all_departments_allocations' %}" class="grid-link">View all departments (read-only) →</a>
+  </div>
+
+  <div class="alloc-grid-wrap">
+    <table class="alloc-grid">
+      <thead>
+        <tr>
+          <th class="col-dept">Scope</th>
+          <th class="col-status">Status</th>
+          <th class="col-num">Version</th>
+          <th class="col-date">Generated</th>
+          <th class="col-pdf">PDF</th>
+          <th class="col-num">Archived</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for panel in panels %}
+        <tr id="{{ panel.scope }}" class="{% if panel.current and panel.current.is_ready %}is-ready{% elif panel.current.status == 'no_data' %}is-empty{% else %}is-error{% endif %}">
+          <td class="col-dept">{{ panel.label }}</td>
+          <td class="col-status">
+            <span class="status-pill">
+              {% if panel.current and panel.current.is_ready %}Ready
+              {% elif panel.current.status == "no_data" %}No data yet
+              {% else %}Failed
+              {% endif %}
+            </span>
+            {% if not panel.current or not panel.current.is_ready and panel.current.status != "no_data" %}
+              <div class="cell-error">{{ panel.current.error_message }}</div>
+            {% endif %}
+          </td>
+          <td class="col-num">{{ panel.current.version|default:"—" }}</td>
+          <td class="col-date">{{ panel.current.generated_at|default:"—" }}</td>
+          <td class="col-pdf">
+            {% if panel.current and panel.current.is_ready %}
+              <a href="{{ panel.current.file.url }}" target="_blank" class="grid-link">Open PDF</a>
+            {% else %}<span class="cell-dash">—</span>{% endif %}
+          </td>
+          <td class="col-num">
+            {% with archived=panel.history|length|add:"-1" %}
+              {% if archived > 0 %}
+                <button type="button" class="archive-toggle" data-target="hist-{{ panel.scope }}">{{ archived }} ▾</button>
+              {% else %}<span class="cell-dash">—</span>{% endif %}
+            {% endwith %}
+          </td>
+        </tr>
+        {% if panel.history|length > 1 %}
+        <tr id="hist-{{ panel.scope }}" class="archive-row is-hidden">
+          <td colspan="6">
+            <table class="alloc-subgrid">
+              <thead><tr><th>Version</th><th>Generated</th><th>PDF</th></tr></thead>
+              <tbody>
+                {% for h in panel.history %}
+                  {% if not h.is_current and h.file %}
+                  <tr>
+                    <td>v{{ h.version }}</td>
+                    <td>{{ h.generated_at }}</td>
+                    <td><a href="{{ h.file.url }}" target="_blank" class="grid-link">Open</a></td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+.alloc-grid-page{max-width:1280px;margin:0 auto;padding:20px 24px 40px;font-size:13.5px;color:#1c1c1c;}
+.alloc-grid-topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:16px;flex-wrap:wrap;}
+.alloc-grid-title-main{font-size:1.15rem;font-weight:700;color:#1c1c1c;}
+.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#000000;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+
+.alloc-grid-wrap{border:1px solid #d9d3d3;overflow-x:auto;}
+.alloc-grid{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.alloc-grid thead th{position:sticky;top:0;background:#efe9e9;color:#3a3535;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:7px 10px;border-bottom:2px solid #c9c0c0;border-right:1px solid #ddd6d6;white-space:nowrap;}
+.alloc-grid thead th:last-child{border-right:none;}
+.alloc-grid .col-num,.alloc-grid .col-status,.alloc-grid .col-date,.alloc-grid .col-pdf{text-align:center;}
+.alloc-grid tbody td{padding:6px 10px;border-bottom:1px solid #e6e0e0;border-right:1px solid #ececec;line-height:1.3;vertical-align:top;}
+.alloc-grid tbody td:last-child{border-right:none;}
+.alloc-grid tbody tr:not(.archive-row):nth-child(4n+1){background:#faf9f9;}
+.alloc-grid tbody tr:hover{background:#f2ecec;}
+.alloc-grid tbody tr.is-empty td{color:#999;}
+.alloc-grid tbody tr.is-error td{background:#fdf1ee;}
+.alloc-grid .col-dept{font-weight:600;}
+
+.status-pill{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+.is-ready .status-pill{color:#1a6b34;}
+.is-empty .status-pill{color:#999;}
+.is-error .status-pill{color:#a33;}
+.cell-error{font-size:.72rem;color:#a33;margin-top:2px;}
+
+.grid-link{color:#1245a8;text-decoration:none;font-weight:600;font-size:.8rem;}
+.grid-link:hover{text-decoration:underline;}
+.cell-dash{color:#aaa;}
+
+.archive-toggle{background:none;border:1px solid #c9c0c0;border-radius:3px;font-size:.72rem;font-weight:700;color:#4a4444;padding:2px 8px;cursor:pointer;}
+.archive-toggle:hover{background:#efe9e9;}
+.archive-row.is-hidden{display:none;}
+.archive-row td{background:#f7f4ee;padding:8px 10px 8px 24px;}
+.alloc-subgrid{width:100%;border-collapse:collapse;font-size:.78rem;}
+.alloc-subgrid th{text-align:left;padding:4px 8px;color:#7a7070;font-weight:700;text-transform:uppercase;font-size:.68rem;border-bottom:1px solid #e2dcdc;}
+.alloc-subgrid td{padding:4px 8px;border-bottom:1px solid #ece7e7;}
+</style>
+
+<script>
+(function () {
+  document.querySelectorAll(".archive-toggle").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var row = document.getElementById(btn.getAttribute("data-target"));
+      if (row) row.classList.toggle("is-hidden");
+    });
+  });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,1794 @@
+--- allocation_reports/adapters.py	2026-08-11 22:35:59.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/allocation_reports/adapters.py	2026-08-13 00:04:24.453031134 +0000
+@@ -14,6 +14,18 @@
+         "students": int,
+         "program": str,
+         "year": int | None,
++        "semester": int | None,       # 1 or 2 — drives table splitting
++        "intake": str,                # "Normal" or "Special" — drives table splitting
++        "is_elective": bool,
++        "stem": str | None,           # SpecializationStem name, if any
++        "stem_category": str | None,  # the SpecializationCategory (choice-point)
++                                       # this stem belongs to
++        "selection_group": str | None,# SelectionGroup name for pick-one electives
++        "merged_with": list[str],     # course codes of sibling allocations in the
++                                       # same CombinedCourseGroup, for the Lecturer column
++        "student_group": str | None,  # e.g. "A", "B" — splits a program/year/
++                                       # semester/intake cohort into its groups;
++                                       # None means shared across all groups
+     }
+ 
+ Add a new scope by adding one entry to ADAPTERS — nothing else needs to change.
+@@ -76,7 +88,11 @@
+         .filter(department=department)
+         .annotate(_is_combined_secondary=Exists(is_secondary_of_group))
+         .exclude(_is_combined_secondary=True)
+-        .select_related("origin_department", "lecturer", "program", "program_course")
++        .select_related(
++            "origin_department", "lecturer", "program", "program_course",
++            "specialization_stem", "specialization_stem__category",
++            "selection_group", "student_group",
++        )
+         .prefetch_related("is_primary_of_combined_group__allocations")
+         .order_by("program__name", "program_course__year", "course_code")
+     )
+@@ -86,14 +102,17 @@
+     # If this allocation is the primary of a CombinedCourseGroup, report
+     # the group's full combined student count (covers the case where
+     # "Create Combined Group" — not "Smart Combine" — was used, so the
+-    # primary row's own number_of_students was never updated).
++    # primary row's own number_of_students was never updated), and record
++    # which sibling course codes were merged into it so that's visible in
++    # the Lecturer column instead of disappearing silently.
+     students = a.number_of_students
+     combined_group = a.is_primary_of_combined_group.all()[:1]
+     combined_group = combined_group[0] if combined_group else None
++    merged_with = []
+     if combined_group is not None:
+-        students = sum(
+-            m.number_of_students for m in combined_group.allocations.all()
+-        )
++        siblings = [m for m in combined_group.allocations.all() if m.pk != a.pk]
++        students = a.number_of_students + sum(m.number_of_students for m in siblings)
++        merged_with = sorted({m.course_code for m in siblings})
+ 
+     return {
+         "course_code": a.course_code,
+@@ -103,6 +122,28 @@
+         "students": students,
+         "program": a.program.name if a.program else "—",
+         "year": a.program_course.year if a.program_course_id else None,
++        "semester": a.program_course.semester if a.program_course_id else None,
++        "intake": a.get_intake_display() if a.intake else "Normal",
++        "is_elective": bool(a.is_elective),
++        "stem": a.specialization_stem.name if a.specialization_stem_id else None,
++        # The choice-point this stem belongs to (e.g. "Year 3 Semester 1
++        # Specialization"), so the PDF can show "students choose ONE stem
++        # out of this category" as a combination rather than a bare tag.
++        "stem_category": (
++            a.specialization_stem.category.name
++            if a.specialization_stem_id and a.specialization_stem.category_id
++            else None
++        ),
++        # Pick-one-of elective grouping (SelectionGroup) — a different
++        # "combination" concept from stems: any ONE course from this named
++        # group satisfies the requirement, vs. a stem where ALL courses
++        # in it are taken together.
++        "selection_group": a.selection_group.name if a.selection_group_id else None,
++        "merged_with": merged_with,
++        # None means "shared across all groups" (electives / stem courses) —
++        # the row is repeated under every group heading in the PDF rather
++        # than being dropped or arbitrarily assigned to just one group.
++        "student_group": a.student_group.letter if a.student_group_id else None,
+     }
+ 
+ 
+@@ -126,6 +167,14 @@
+         "students": a.number_of_students,
+         "program": a.program.name if a.program else "—",
+         "year": a.program_course.year if a.program_course_id else None,
++        "semester": a.program_course.semester if a.program_course_id else None,
++        "intake": "Normal",
++        "is_elective": False,
++        "stem": None,
++        "stem_category": None,
++        "selection_group": None,
++        "merged_with": [],
++        "student_group": None,
+     }
+ 
+ 
+@@ -152,6 +201,14 @@
+         "students": a.number_of_students,
+         "program": a.program.name if a.program else "—",
+         "year": a.program_year,
++        "semester": a.allocation_semester,
++        "intake": "Normal",
++        "is_elective": False,
++        "stem": None,
++        "stem_category": None,
++        "selection_group": None,
++        "merged_with": [],
++        "student_group": None,
+     }
+ 
+ 
+@@ -175,6 +232,14 @@
+         "students": a.number_of_students,
+         "program": a.program.name if a.program else "—",
+         "year": a.program_course.year if a.program_course_id else None,
++        "semester": a.program_course.semester if a.program_course_id else None,
++        "intake": "Normal",
++        "is_elective": False,
++        "stem": None,
++        "stem_category": None,
++        "selection_group": None,
++        "merged_with": [],
++        "student_group": None,
+     }
+ 
+ 
+--- allocation_reports/pdf_builder.py	2026-07-23 05:12:58.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/allocation_reports/pdf_builder.py	2026-08-13 00:04:24.452704582 +0000
+@@ -2,10 +2,21 @@
+ allocation_reports/pdf_builder.py
+ ===================================
+ Builds a Course Allocation PDF that visually matches Chuka University's
+-existing timetable PDFs (same header block: logo, telephone/box, motto,
+-directorate name, Ref/Date line, red title). Content is organised
+-Program -> Program Year, each with a table of:
+-    Course Code | Course Name | Origin Department | Lecturer | No. of Students
++official letterhead style: black-and-white only (no color accents), one
++typeface throughout (Times New Roman), logo centred at the very top of the
++header block above the university name.
++
++Content is organised:
++    Program -> Year -> Semester -> Intake -> Student Group (A / B / C / ...)
++each combination getting:
++    - a plain table of core/mandatory courses, then
++    - one sub-table per specialization stem ("Specialization — <category>:
++      <stem> Stem"), showing the full combination of courses a student who
++      picks that stem takes together, and
++    - one sub-table per elective selection group ("Elective Options —
++      <name>"), showing the combination of courses a student picks exactly
++      one from,
++each table: Course Code | Course Name | Type | Origin Department | Lecturer | No. of Students
+ """
+ import io
+ from collections import defaultdict
+@@ -21,6 +32,22 @@
+ 
+ from allocation_reports.adapters import get_adapter
+ 
++# Official Chuka University letterhead is black and white only — no color
++# accents. Table header bars are solid black with white text, matching the
++# "Header row: white text on black background" convention already used
++# (and documented in code comments) in campuses_timetable/pdf_views.py and
++# odel_system/pdf_management_views.py. Previous revisions of this file used
++# a red accent (#FF0000, later #CC0000) which is not the official style.
++HEADER_BAR = colors.black
++BODY_TEXT = colors.black
++
++# Times New Roman equivalents built into reportlab — no font registration
++# needed. Used exclusively throughout this document; no other typeface.
++FONT_REGULAR = "Times-Roman"
++FONT_BOLD = "Times-Bold"
++FONT_ITALIC = "Times-Italic"
++FONT_BOLD_ITALIC = "Times-BoldItalic"
++
+ 
+ def _get_template_config():
+     from export_import.models import TimetablePdfTemplate
+@@ -28,37 +55,28 @@
+ 
+ 
+ def _header_flowables(styles, template_config, title_text, ref_number, date_str):
++    """
++    Logo centred on its own row at the very top, university name directly
++    beneath it, then motto/directorate, then a left/right contact-info row,
++    then the bold Ref/Date rule, then the (black, bold) report title —
++    every element centred and aligned to the same margins for a clean,
++    symmetrical letterhead.
++    """
+     flow = []
+-    header_rows = [[
+-        Paragraph(
+-            f"Telephones: {template_config.telephone}<br/>Direct Line:",
+-            styles["Small"],
+-        ),
+-        Paragraph(
+-            f"<b>{template_config.university_name}</b>", styles["UniName"],
+-        ),
+-        Paragraph(
+-            f"{template_config.address}<br/>Email: {template_config.email} "
+-            f"Website: {template_config.website}",
+-            styles["SmallRight"],
+-        ),
+-    ]]
+-    logo_cell = None
++
++    logo_img = None
+     try:
+         if template_config.university_logo and template_config.university_logo.path:
+-            logo_cell = Image(template_config.university_logo.path, width=0.7 * inch, height=0.7 * inch)
++            logo_img = Image(template_config.university_logo.path, width=0.85 * inch, height=0.85 * inch)
++            logo_img.hAlign = "CENTER"
+     except Exception:
+-        logo_cell = None
++        logo_img = None
+ 
+-    header_table = Table(header_rows, colWidths=[180, 220, 180])
+-    header_table.setStyle(TableStyle([
+-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+-        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+-        ("ALIGN", (2, 0), (2, 0), "RIGHT"),
+-    ]))
+-    flow.append(header_table)
+-    if logo_cell:
++    if logo_img:
++        flow.append(logo_img)
+         flow.append(Spacer(1, 4))
++
++    flow.append(Paragraph(f"<b>{template_config.university_name}</b>", styles["UniName"]))
+     flow.append(Paragraph(
+         f"<i>{template_config.motto_latin}</i> {template_config.motto_swahili}",
+         styles["Center"],
+@@ -66,37 +84,166 @@
+     flow.append(Paragraph(template_config.directorate_name, styles["CenterBold"]))
+     flow.append(Spacer(1, 6))
+ 
++    contact_row = Table(
++        [[
++            Paragraph(f"Telephones: {template_config.telephone}<br/>Direct Line:", styles["Small"]),
++            Paragraph(
++                f"{template_config.address}<br/>Email: {template_config.email} "
++                f"Website: {template_config.website}",
++                styles["SmallRight"],
++            ),
++        ]],
++        colWidths=[260, 260],
++    )
++    contact_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
++    flow.append(contact_row)
++    flow.append(Spacer(1, 8))
++
+     ref_line = Table(
+         [[Paragraph(f"<b>Ref: {ref_number}</b>", styles["Small"]),
+           Paragraph(f"<b>Date: {date_str}</b>", styles["SmallRight"])]],
+-        colWidths=[290, 290],
++        colWidths=[260, 260],
+     )
++    ref_line.setStyle(TableStyle([
++        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
++        ("LINEBELOW", (0, 0), (-1, -1), 0.5, colors.black),
++    ]))
+     flow.append(ref_line)
+     flow.append(Spacer(1, 10))
+-    flow.append(Paragraph(title_text, styles["Title Red"]))
++    flow.append(Paragraph(title_text, styles["TitleBlack"]))
+     flow.append(Spacer(1, 10))
+     return flow
+ 
+ 
+ def _styles():
+     ss = getSampleStyleSheet()
+-    ss.add(ParagraphStyle("Small", parent=ss["Normal"], fontSize=8, leading=10))
++    ss.add(ParagraphStyle("Small", parent=ss["Normal"], fontName=FONT_REGULAR, fontSize=8, leading=10,
++                           textColor=BODY_TEXT))
+     ss.add(ParagraphStyle("SmallRight", parent=ss["Small"], alignment=2))
+-    ss.add(ParagraphStyle("UniName", parent=ss["Normal"], fontSize=16, alignment=1, fontName="Helvetica-Bold"))
+-    ss.add(ParagraphStyle("Center", parent=ss["Normal"], fontSize=9, alignment=1))
+-    ss.add(ParagraphStyle("CenterBold", parent=ss["Normal"], fontSize=10, alignment=1, fontName="Helvetica-Bold"))
+-    ss.add(ParagraphStyle("Title Red", parent=ss["Normal"], fontSize=13, alignment=1,
+-                           fontName="Helvetica-Bold", textColor=colors.red))
+-    ss.add(ParagraphStyle("SectionHead", parent=ss["Normal"], fontSize=11, fontName="Helvetica-Bold",
+-                           spaceBefore=10, spaceAfter=4, textColor=colors.HexColor("#1a1a1a")))
+-    ss.add(ParagraphStyle("SubHead", parent=ss["Normal"], fontSize=9.5, fontName="Helvetica-Bold",
+-                           spaceBefore=4, spaceAfter=2))
+-    ss.add(ParagraphStyle("Cell", parent=ss["Normal"], fontSize=8, leading=10))
++    ss.add(ParagraphStyle("UniName", parent=ss["Normal"], fontSize=16, alignment=1,
++                           fontName=FONT_BOLD, textColor=BODY_TEXT))
++    ss.add(ParagraphStyle("Center", parent=ss["Normal"], fontSize=9, alignment=1,
++                           fontName=FONT_REGULAR, textColor=BODY_TEXT))
++    ss.add(ParagraphStyle("CenterBold", parent=ss["Normal"], fontSize=10, alignment=1,
++                           fontName=FONT_BOLD, textColor=BODY_TEXT))
++    ss.add(ParagraphStyle("TitleBlack", parent=ss["Normal"], fontSize=13, alignment=1,
++                           fontName=FONT_BOLD, textColor=BODY_TEXT))
++    ss.add(ParagraphStyle("SectionHead", parent=ss["Normal"], fontSize=11, fontName=FONT_BOLD,
++                           spaceBefore=10, spaceAfter=4, textColor=BODY_TEXT))
++    # One notch below SectionHead — identifies Year + Semester + Intake, the
++    # actual cohort a table belongs to (e.g. "Year 1 — Semester 1 — Normal
++    # Intake" vs "Year 2 — Semester 2 — Special Intake"), so cohorts that
++    # share a program/year but differ in semester or intake never collapse
++    # into one table.
++    ss.add(ParagraphStyle("SubHead", parent=ss["Normal"], fontSize=9.5, fontName=FONT_BOLD,
++                           spaceBefore=4, spaceAfter=2, textColor=BODY_TEXT))
++    # Group A / Group B / Group C sub-tables sit one notch below SubHead —
++    # same cohort, split further where the COD has split the program into
++    # parallel teaching groups.
++    ss.add(ParagraphStyle("GroupHead", parent=ss["Normal"], fontSize=9, fontName=FONT_BOLD_ITALIC,
++                           spaceBefore=3, spaceAfter=2, textColor=BODY_TEXT))
++    # Specialization-stem / elective-selection-group combination headings —
++    # sit under a GroupHead (or directly under SubHead when the cohort has
++    # no Group A/B/C split), and additionally carry a one-line explanatory
++    # note so it's clear the listed courses are a *combination* students
++    # take together (a stem) or choose one from (a selection group), not
++    # just more mandatory courses.
++    ss.add(ParagraphStyle("ComboHead", parent=ss["Normal"], fontSize=8.5, fontName=FONT_BOLD,
++                           spaceBefore=3, spaceAfter=1, textColor=BODY_TEXT, leftIndent=8))
++    ss.add(ParagraphStyle("ComboNote", parent=ss["Normal"], fontSize=7.5, fontName=FONT_ITALIC,
++                           spaceBefore=0, spaceAfter=2, textColor=BODY_TEXT, leftIndent=8))
++    ss.add(ParagraphStyle("Cell", parent=ss["Normal"], fontSize=8, leading=10,
++                           fontName=FONT_REGULAR, textColor=BODY_TEXT))
+     ss.add(ParagraphStyle("CellHead", parent=ss["Normal"], fontSize=8, leading=10,
+-                           fontName="Helvetica-Bold", textColor=colors.white))
++                           fontName=FONT_BOLD, textColor=colors.white))
+     return ss
+ 
+ 
++def _type_cell(r):
++    # Stem/selection-group membership is shown via the sub-table heading it
++    # sits under (see _render_group_rows) — this column just flags whether
++    # the course itself is elective or core, independent of that grouping.
++    return "Elective" if r.get("is_elective") else "Core"
++
++
++def _lecturer_cell(r):
++    text = r["lecturer"]
++    merged = r.get("merged_with") or []
++    if merged:
++        text += f"<br/><font size=6.5><i>(merged with {', '.join(merged)})</i></font>"
++    return text
++
++
++def _render_table(story, styles, group_rows):
++    col_widths = [62, 148, 68, 92, 100, 48]
++    header_row = ["Course Code", "Course Name", "Type", "Origin Department", "Lecturer", "No. of Students"]
++
++    table_data = [[Paragraph(h, styles["CellHead"]) for h in header_row]]
++    for r in sorted(group_rows, key=lambda x: x["course_code"]):
++        table_data.append([
++            Paragraph(r["course_code"], styles["Cell"]),
++            Paragraph(r["course_name"], styles["Cell"]),
++            Paragraph(_type_cell(r), styles["Cell"]),
++            Paragraph(r["origin_department"], styles["Cell"]),
++            Paragraph(_lecturer_cell(r), styles["Cell"]),
++            Paragraph(str(r["students"]), styles["Cell"]),
++        ])
++
++    t = Table(table_data, colWidths=col_widths, repeatRows=1)
++    t.setStyle(TableStyle([
++        ("BACKGROUND", (0, 0), (-1, 0), HEADER_BAR),
++        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
++        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
++        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f2f2f2")]),
++        ("TOPPADDING", (0, 0), (-1, -1), 3),
++        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
++    ]))
++    story.append(t)
++    story.append(Spacer(1, 8))
++
++
++def _render_group_rows(story, styles, rows):
++    """
++    Given the rows for one Program/Year/Semester/Intake/(Group) bucket,
++    split out any specialization-stem or elective-selection-group
++    "combinations" into their own clearly labeled sub-tables, so a stem's
++    full set of courses reads as one unit rather than being scattered
++    through a flat table with only a small per-row tag. Plain
++    core/mandatory courses (and electives outside any named selection
++    group) still render as a single ordinary table.
++    """
++    core_rows = []
++    stem_buckets = defaultdict(list)   # (category_name, stem_name) -> rows
++    selgroup_buckets = defaultdict(list)  # selection_group_name -> rows
++
++    for r in rows:
++        if r.get("stem"):
++            stem_buckets[(r.get("stem_category") or "Specialization", r["stem"])].append(r)
++        elif r.get("selection_group"):
++            selgroup_buckets[r["selection_group"]].append(r)
++        else:
++            core_rows.append(r)
++
++    if core_rows:
++        _render_table(story, styles, core_rows)
++
++    for (category_name, stem_name) in sorted(stem_buckets.keys(), key=lambda k: (k[0], k[1])):
++        story.append(Paragraph(f"Specialization — {category_name}: {stem_name} Stem", styles["ComboHead"]))
++        story.append(Paragraph(
++            "Students who choose this stem take every course listed below together.",
++            styles["ComboNote"],
++        ))
++        _render_table(story, styles, stem_buckets[(category_name, stem_name)])
++
++    for selgroup_name in sorted(selgroup_buckets.keys()):
++        story.append(Paragraph(f"Elective Options — {selgroup_name}", styles["ComboHead"]))
++        story.append(Paragraph(
++            "Students choose exactly one course from the list below.",
++            styles["ComboNote"],
++        ))
++        _render_table(story, styles, selgroup_buckets[selgroup_name])
++
++
+ def build_allocation_pdf(scope, department, rows, campus=None, generated_by=None):
+     """
+     rows: normalised list of dicts from adapters.fetch_rows()
+@@ -122,46 +269,70 @@
+     story = _header_flowables(styles, template_config, title_text, ref_number, date_str)
+ 
+     if not rows:
+-        story.append(Paragraph("No allocations have been submitted for this department yet.", styles["Normal"]))
++        story.append(Paragraph("No allocations have been submitted for this department yet.", styles["Small"]))
+         doc.build(story)
+         return buf.getvalue()
+ 
+-    # Group by Program -> Year
++    # Group by Program -> Year -> Semester -> Intake. Semester and intake are
++    # both cohort-defining: a "Special Intake" Year-2-Semester-2 cohort is a
++    # different set of students from the Normal-intake Year-1-Semester-1
++    # cohort of the same program, and must never share a table with it even
++    # though they're the same program/year.
+     grouped = defaultdict(lambda: defaultdict(list))
+     for r in rows:
+-        grouped[r["program"]][r["year"]].append(r)
++        semester_key = r.get("semester")
++        intake_key = r.get("intake") or "Normal"
++        grouped[r["program"]][(r["year"], semester_key, intake_key)].append(r)
++
++    def _cohort_sort_key(k):
++        year, semester, intake = k
++        return (
++            year is None, year,
++            semester is None, semester,
++            intake != "Normal",  # Normal intake first, Special after
++        )
+ 
+-    col_widths = [70, 170, 110, 110, 60]
+-    header_row = ["Course Code", "Course Name", "Origin Department", "Lecturer", "No. of Students"]
++    def _group_sort_key(letter):
++        return (letter is None, letter)  # shared (None) rows first, then A, B, C...
+ 
+     for program_name in sorted(grouped.keys()):
+         story.append(Paragraph(program_name, styles["SectionHead"]))
+-        years = grouped[program_name]
+-        for year in sorted(years.keys(), key=lambda y: (y is None, y)):
+-            year_label = f"Year {year}" if year else "Year — (unspecified)"
+-            story.append(Paragraph(year_label, styles["SubHead"]))
++        cohorts = grouped[program_name]
+ 
+-            table_data = [[Paragraph(h, styles["CellHead"]) for h in header_row]]
+-            for r in sorted(years[year], key=lambda x: x["course_code"]):
+-                table_data.append([
+-                    Paragraph(r["course_code"], styles["Cell"]),
+-                    Paragraph(r["course_name"], styles["Cell"]),
+-                    Paragraph(r["origin_department"], styles["Cell"]),
+-                    Paragraph(r["lecturer"], styles["Cell"]),
+-                    Paragraph(str(r["students"]), styles["Cell"]),
+-                ])
+-
+-            t = Table(table_data, colWidths=col_widths, repeatRows=1)
+-            t.setStyle(TableStyle([
+-                ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#7a1f1f")),
+-                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+-                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+-                ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f4f4f4")]),
+-                ("TOPPADDING", (0, 0), (-1, -1), 3),
+-                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+-            ]))
+-            story.append(t)
+-            story.append(Spacer(1, 8))
++        for (year, semester, intake) in sorted(cohorts.keys(), key=_cohort_sort_key):
++            year_label = f"Year {year}" if year else "Year — (unspecified)"
++            semester_label = f"Semester {semester}" if semester else "Semester — (unspecified)"
++            intake_label = f"{intake} Intake" if intake and intake != "Normal" else "Normal Intake"
++            story.append(Paragraph(f"{year_label} — {semester_label} — {intake_label}", styles["SubHead"]))
++
++            cohort_rows = cohorts[(year, semester, intake)]
++
++            # Split further by Student Group (COD-defined Group A / B / C...)
++            # so a cohort the COD has split into parallel teaching groups
++            # (e.g. BSc Nursing — Group A / Group B / Group C) gets one
++            # clearly-labeled table per group instead of one table that
++            # silently mixes every group's allocations together.
++            by_group = defaultdict(list)
++            for r in cohort_rows:
++                by_group[r.get("student_group")].append(r)
++
++            group_keys = sorted(by_group.keys(), key=_group_sort_key)
++            has_real_groups = any(k is not None for k in group_keys)
++
++            if not has_real_groups:
++                # No group splitting in this cohort — one set of tables
++                # (core + any stem/selection-group combinations) as before.
++                _render_group_rows(story, styles, cohort_rows)
++            else:
++                for letter in group_keys:
++                    if letter is None:
++                        # Shared across every group (electives / stem courses) —
++                        # still labeled explicitly so it isn't mistaken for a
++                        # missed group.
++                        story.append(Paragraph("Shared across all groups", styles["GroupHead"]))
++                    else:
++                        story.append(Paragraph(f"Group {letter}", styles["GroupHead"]))
++                    _render_group_rows(story, styles, by_group[letter])
+ 
+     story.append(Spacer(1, 14))
+     story.append(Paragraph(
+--- allocation_reports/signature.py	2026-07-23 05:12:30.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/allocation_reports/signature.py	2026-08-13 00:04:24.452639619 +0000
+@@ -4,7 +4,8 @@
+ Detects "has anything changed since the last PDF for this department/scope
+ was generated?" without relying on an `updated_at` column (CourseAllocation
+ has none). We fingerprint the actual visible content of every row — course
+-code, name, lecturer, student count, program, year — into one SHA-256 hash.
++code, name, lecturer, student count, program, year, semester, intake,
++elective/stem tags, and merged-group membership — into one SHA-256 hash.
+ If that hash matches the hash stored on the current AllocationPdfRun, the
+ existing PDF is still accurate and nothing is regenerated.
+ """
+@@ -30,6 +31,14 @@
+                 str(r["students"]),
+                 r["program"],
+                 str(r["year"]),
++                str(r.get("semester")),
++                str(r.get("intake")),
++                str(r.get("is_elective")),
++                str(r.get("stem")),
++                str(r.get("stem_category")),
++                str(r.get("selection_group")),
++                ",".join(sorted(r.get("merged_with") or [])),
++                str(r.get("student_group")),
+             ])
+         )
+     parts.sort()  # order-independent — reordering rows shouldn't force a regenerate
+--- allocation_reports/templates/allocation_reports/dashboard.html	2026-07-23 05:46:46.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/allocation_reports/templates/allocation_reports/dashboard.html	2026-08-13 00:04:24.453231492 +0000
+@@ -75,13 +75,13 @@
+ .alloc-grid-page{max-width:1280px;margin:0 auto;padding:20px 24px 40px;font-size:13.5px;color:#1c1c1c;}
+ .alloc-grid-topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+ .alloc-grid-title-main{font-size:1.15rem;font-weight:700;color:#1c1c1c;}
+-.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#7a1f1f;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
++.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#000000;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+ .alloc-grid-meta{font-size:.78rem;color:#666;}
+ 
+ .alloc-scope-bar{display:flex;border:1px solid #d9d3d3;border-bottom:none;background:#f3efef;}
+ .alloc-scope-tab{flex:0 0 auto;padding:7px 18px;font-size:.82rem;font-weight:600;color:#4a4444;text-decoration:none;border-right:1px solid #d9d3d3;}
+ .alloc-scope-tab:hover{background:#e9e3e3;}
+-.alloc-scope-tab.is-active{background:#7a1f1f;color:#fff;}
++.alloc-scope-tab.is-active{background:#000000;color:#fff;}
+ 
+ .alloc-grid-note{padding:6px 10px;font-size:.78rem;color:#555;background:#faf7f0;border:1px solid #eee0c0;border-top:none;}
+ 
+@@ -107,7 +107,7 @@
+ 
+ .grid-link{color:#1245a8;text-decoration:none;font-weight:600;font-size:.8rem;}
+ .grid-link:hover{text-decoration:underline;}
+-.grid-link--muted{color:#7a1f1f;}
++.grid-link--muted{color:#000000;}
+ .cell-dash{color:#aaa;}
+ .alloc-grid-empty{padding:16px;text-align:center;color:#777;}
+ </style>
+--- allocation_reports/templates/allocation_reports/cod_panel.html	2026-07-23 05:47:10.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/allocation_reports/templates/allocation_reports/cod_panel.html	2026-08-13 00:04:24.453166228 +0000
+@@ -83,7 +83,7 @@
+ .alloc-grid-page{max-width:1280px;margin:0 auto;padding:20px 24px 40px;font-size:13.5px;color:#1c1c1c;}
+ .alloc-grid-topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;gap:16px;flex-wrap:wrap;}
+ .alloc-grid-title-main{font-size:1.15rem;font-weight:700;color:#1c1c1c;}
+-.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#7a1f1f;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
++.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#000000;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+ 
+ .alloc-grid-wrap{border:1px solid #d9d3d3;overflow-x:auto;}
+ .alloc-grid{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+--- export_import/official_timetables.py	2026-08-08 13:53:00.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/export_import/official_timetables.py	2026-08-13 00:04:24.579690811 +0000
+@@ -351,7 +351,7 @@
+             'UnivName',
+             parent=styles['Normal'],
+             fontSize=16,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             alignment=1,
+             spaceAfter=2,
+             textColor=colors.black,
+@@ -361,7 +361,7 @@
+             'Directorate',
+             parent=styles['Normal'],
+             fontSize=11,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             alignment=1,
+             spaceAfter=2,
+             textColor=colors.black,
+@@ -371,7 +371,7 @@
+             'Contact',
+             parent=styles['Normal'],
+             fontSize=9,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             alignment=0,  # left-aligned inside table cells
+             textColor=colors.black,
+         )
+@@ -380,26 +380,29 @@
+             'RefLine',
+             parent=styles['Normal'],
+             fontSize=9,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             alignment=0,
+             textColor=colors.black,
+         )
+-        # Red centered timetable title
++        # Red centered timetable title — #CC0000 is the official Chuka
++        # University brand red used across the other PDF generators
++        # (campuses_timetable/pdf_views.py, odel_system/pdf_management_views.py).
++        # Plain reportlab colors.red (#FF0000) is NOT the official color.
+         title_style = ParagraphStyle(
+             'TimetableTitle',
+             parent=styles['Normal'],
+             fontSize=13,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             alignment=1,
+             spaceAfter=10,
+-            textColor=colors.red,
++            textColor=colors.black,
+         )
+         # Day header (e.g. "MONDAY 13/10/2025")
+         subtitle_style = ParagraphStyle(
+             'DaySection',
+             parent=styles['Normal'],
+             fontSize=11,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             alignment=1,
+             spaceAfter=4,
+             textColor=colors.black,
+@@ -444,7 +447,7 @@
+         elements.append(Paragraph(template_config.university_name, univ_name_style))
+         motto = f"Knowledge is Wealth (<i>{template_config.motto_latin}</i>) {template_config.motto_swahili}"
+         elements.append(Paragraph(motto, ParagraphStyle(
+-            'Motto', parent=styles['Normal'], fontSize=9, alignment=1, fontName='Helvetica', spaceAfter=2)))
++            'Motto', parent=styles['Normal'], fontSize=9, alignment=1, fontName='Times-Roman', spaceAfter=2)))
+         elements.append(Paragraph(template_config.directorate_name, directorate_style))
+         elements.append(Spacer(1, 6))
+ 
+@@ -482,7 +485,7 @@
+                 'TableHeader',
+                 parent=styles['Normal'],
+                 fontSize=9,
+-                fontName='Helvetica-Bold',
++                fontName='Times-Bold',
+                 textColor=colors.black,
+                 alignment=1,
+                 wordWrap='CJK'
+@@ -496,7 +499,7 @@
+                 'TableCell',
+                 parent=styles['Normal'],
+                 fontSize=8,
+-                fontName='Helvetica',
++                fontName='Times-Roman',
+                 textColor=colors.black,
+                 alignment=1,
+                 wordWrap='CJK',
+@@ -527,7 +530,7 @@
+                 ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++                ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+                 ('FONTSIZE', (0, 0), (-1, 0), 9),
+                 ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+                 ('TOPPADDING', (0, 0), (-1, 0), 6),
+@@ -567,7 +570,7 @@
+             # Section banner
+             lab_banner_style = ParagraphStyle(
+                 'LabBanner', parent=styles['Normal'],
+-                fontSize=12, fontName='Helvetica-Bold', alignment=1,
++                fontSize=12, fontName='Times-Bold', alignment=1,
+                 textColor=colors.white,
+             )
+             lab_banner_data = [[Paragraph("<b>LAB TIMETABLE</b>", lab_banner_style)]]
+@@ -585,19 +588,19 @@
+ 
+             lab_header_style = ParagraphStyle(
+                 'LabTableHeader', parent=styles['Normal'],
+-                fontSize=9, fontName='Helvetica-Bold',
++                fontSize=9, fontName='Times-Bold',
+                 textColor=colors.black, alignment=1, wordWrap='CJK'
+             )
+             lab_cell_style = ParagraphStyle(
+                 'LabTableCell', parent=styles['Normal'],
+-                fontSize=8, fontName='Helvetica',
++                fontSize=8, fontName='Times-Roman',
+                 textColor=colors.black, alignment=1, wordWrap='CJK', leading=10,
+             )
+             lab_table_style = TableStyle([
+                 ('BACKGROUND',    (0, 0), (-1,  0), colors.white),
+                 ('TEXTCOLOR',     (0, 0), (-1,  0), colors.black),
+                 ('ALIGN',         (0, 0), (-1,  0), 'CENTER'),
+-                ('FONTNAME',      (0, 0), (-1,  0), 'Helvetica-Bold'),
++                ('FONTNAME',      (0, 0), (-1,  0), 'Times-Bold'),
+                 ('FONTSIZE',      (0, 0), (-1,  0), 9),
+                 ('BOTTOMPADDING', (0, 0), (-1,  0), 6),
+                 ('TOPPADDING',    (0, 0), (-1,  0), 6),
+@@ -709,7 +712,7 @@
+                 # Evening banner
+                 ev_banner_style = ParagraphStyle(
+                     'EvBanner', parent=styles['Normal'],
+-                    fontSize=12, fontName='Helvetica-Bold', alignment=1, textColor=colors.white,
++                    fontSize=12, fontName='Times-Bold', alignment=1, textColor=colors.white,
+                 )
+                 pw = A4[0] - 36 - 36
+                 ev_banner_data = [[Paragraph("<b>EVENING CLASSES TIMETABLE</b>", ev_banner_style)]]
+@@ -725,22 +728,22 @@
+                 elements.append(Spacer(1, 6))
+                 elements.append(Paragraph(
+                     f"Time: {ev_start.strftime('%H:%M')} – {ev_end.strftime('%H:%M')}",
+-                    ParagraphStyle('EvSub', parent=styles['Normal'], fontSize=9, fontName='Helvetica',
++                    ParagraphStyle('EvSub', parent=styles['Normal'], fontSize=9, fontName='Times-Roman',
+                                    alignment=1, textColor=colors.HexColor("#1565c0"))
+                 ))
+                 elements.append(Spacer(1, 10))
+ 
+                 grid_cell_style = ParagraphStyle(
+                     'EvCell', parent=styles['Normal'],
+-                    fontSize=8, fontName='Helvetica', textColor=colors.black, alignment=1, leading=10,
++                    fontSize=8, fontName='Times-Roman', textColor=colors.black, alignment=1, leading=10,
+                 )
+                 grid_hdr_style = ParagraphStyle(
+                     'EvHdr', parent=styles['Normal'],
+-                    fontSize=9, fontName='Helvetica-Bold', textColor=colors.black, alignment=1,
++                    fontSize=9, fontName='Times-Bold', textColor=colors.black, alignment=1,
+                 )
+                 ev_tbl_style = TableStyle([
+                     ('BACKGROUND',    (0, 0), (-1,  0), colors.HexColor("#d0e8ff")),
+-                    ('FONTNAME',      (0, 0), (-1,  0), 'Helvetica-Bold'),
++                    ('FONTNAME',      (0, 0), (-1,  0), 'Times-Bold'),
+                     ('GRID',          (0, 0), (-1, -1), 0.5, colors.black),
+                     ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
+                     ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+@@ -819,7 +822,7 @@
+                 elements.append(PageBreak())
+                 wk_banner_style = ParagraphStyle(
+                     'WkBanner', parent=styles['Normal'],
+-                    fontSize=12, fontName='Helvetica-Bold', alignment=1, textColor=colors.white,
++                    fontSize=12, fontName='Times-Bold', alignment=1, textColor=colors.white,
+                 )
+                 pw = A4[0] - 36 - 36
+                 wk_banner_data = [[Paragraph("<b>WEEKEND CLASSES TIMETABLE</b>", wk_banner_style)]]
+@@ -835,22 +838,22 @@
+                 elements.append(Spacer(1, 6))
+                 elements.append(Paragraph(
+                     f"Time: {wk_start.strftime('%H:%M')} – {wk_end.strftime('%H:%M')} | Slot: {wk_slot_size}h",
+-                    ParagraphStyle('WkSub', parent=styles['Normal'], fontSize=9, fontName='Helvetica',
++                    ParagraphStyle('WkSub', parent=styles['Normal'], fontSize=9, fontName='Times-Roman',
+                                    alignment=1, textColor=colors.HexColor("#6a1b9a"))
+                 ))
+                 elements.append(Spacer(1, 10))
+ 
+                 wk_cell_style = ParagraphStyle(
+                     'WkCell', parent=styles['Normal'],
+-                    fontSize=8, fontName='Helvetica', textColor=colors.black, alignment=1, leading=10,
++                    fontSize=8, fontName='Times-Roman', textColor=colors.black, alignment=1, leading=10,
+                 )
+                 wk_hdr_style = ParagraphStyle(
+                     'WkHdr', parent=styles['Normal'],
+-                    fontSize=9, fontName='Helvetica-Bold', textColor=colors.black, alignment=1,
++                    fontSize=9, fontName='Times-Bold', textColor=colors.black, alignment=1,
+                 )
+                 wk_tbl_style = TableStyle([
+                     ('BACKGROUND',    (0, 0), (-1,  0), colors.HexColor("#ede1f5")),
+-                    ('FONTNAME',      (0, 0), (-1,  0), 'Helvetica-Bold'),
++                    ('FONTNAME',      (0, 0), (-1,  0), 'Times-Bold'),
+                     ('GRID',          (0, 0), (-1, -1), 0.5, colors.black),
+                     ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
+                     ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+@@ -891,14 +894,14 @@
+             'Sig',
+             parent=styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=0,
+         )
+         sig_bold = ParagraphStyle(
+             'SigBold',
+             parent=sig_style,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+         )
+ 
+         # "Prepared by:" label
+@@ -914,7 +917,7 @@
+         # Page number note
+         elements.append(Spacer(1, 20))
+         nb_style = ParagraphStyle('NB', parent=styles['Normal'], fontSize=8,
+-                                  fontName='Helvetica', textColor=colors.black, alignment=0)
++                                  fontName='Times-Roman', textColor=colors.black, alignment=0)
+         if template_config.key_section and template_config.key_section.strip():
+             elements.append(Paragraph("<b>NB:</b>", nb_style))
+             for line in template_config.key_section.strip().splitlines():
+@@ -925,7 +928,7 @@
+         def add_page_furniture(canvas_obj, doc_obj):
+             draw_reportlab_watermark(canvas_obj, doc_obj, template_config, doc_ref=reference_number)
+             canvas_obj.saveState()
+-            canvas_obj.setFont('Helvetica', 8)
++            canvas_obj.setFont('Times-Roman', 8)
+             page_num_text = f"Page {canvas_obj.getPageNumber()} of {doc_obj.page}"
+             canvas_obj.drawCentredString(A4[0] / 2.0, 20, page_num_text)
+             canvas_obj.restoreState()
+--- export_import/official_exam_timetable.py	2026-08-08 13:53:25.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/export_import/official_exam_timetable.py	2026-08-13 00:04:24.582547770 +0000
+@@ -371,35 +371,35 @@
+         # ── Styles matching the official Chuka University PDF template ──────────
+         univ_name_style = ParagraphStyle(
+             'UnivName', parent=styles['Normal'],
+-            fontSize=16, fontName='Helvetica-Bold', alignment=1,
++            fontSize=16, fontName='Times-Bold', alignment=1,
+             spaceAfter=2, textColor=colors.black,
+         )
+         directorate_style = ParagraphStyle(
+             'Directorate', parent=styles['Normal'],
+-            fontSize=11, fontName='Helvetica-Bold', alignment=1,
++            fontSize=11, fontName='Times-Bold', alignment=1,
+             spaceAfter=2, textColor=colors.black,
+         )
+         contact_style = ParagraphStyle(
+             'Contact', parent=styles['Normal'],
+-            fontSize=9, fontName='Helvetica', alignment=0, textColor=colors.black,
++            fontSize=9, fontName='Times-Roman', alignment=0, textColor=colors.black,
+         )
+         ref_style = ParagraphStyle(
+             'RefLine', parent=styles['Normal'],
+-            fontSize=9, fontName='Helvetica-Bold', alignment=0, textColor=colors.black,
++            fontSize=9, fontName='Times-Bold', alignment=0, textColor=colors.black,
+         )
+         title_style = ParagraphStyle(
+             'TimetableTitle', parent=styles['Normal'],
+-            fontSize=13, fontName='Helvetica-Bold', alignment=1,
+-            spaceAfter=10, textColor=colors.red,
++            fontSize=13, fontName='Times-Bold', alignment=1,
++            spaceAfter=10, textColor=colors.black,
+         )
+         subtitle_style = ParagraphStyle(
+             'DateSection', parent=styles['Normal'],
+-            fontSize=11, fontName='Helvetica-Bold', alignment=1,
++            fontSize=11, fontName='Times-Bold', alignment=1,
+             spaceAfter=4, textColor=colors.black,
+         )
+         date_header_style = ParagraphStyle(
+             'DateHeader', parent=styles['Normal'],
+-            fontSize=10, fontName='Helvetica-Bold', alignment=0,
++            fontSize=10, fontName='Times-Bold', alignment=0,
+             spaceAfter=4, textColor=colors.black,
+         )
+ 
+@@ -435,7 +435,7 @@
+         motto = f"Knowledge is Wealth (<i>{template_config.motto_latin}</i>) {template_config.motto_swahili}"
+         elements.append(Paragraph(motto, ParagraphStyle(
+             'Motto', parent=styles['Normal'], fontSize=9, alignment=1,
+-            fontName='Helvetica', spaceAfter=2)))
++            fontName='Times-Roman', spaceAfter=2)))
+         elements.append(Paragraph(template_config.directorate_name, directorate_style))
+         elements.append(Spacer(1, 6))
+ 
+@@ -468,17 +468,17 @@
+ 
+             header_style_cell = ParagraphStyle(
+                 'TableHeaderCell', parent=styles['Normal'],
+-                fontSize=9, fontName='Helvetica-Bold',
++                fontSize=9, fontName='Times-Bold',
+                 textColor=colors.black, alignment=1, wordWrap='CJK', leading=12,
+             )
+             cell_style = ParagraphStyle(
+                 'TableCell', parent=styles['Normal'],
+-                fontSize=9, fontName='Helvetica',
++                fontSize=9, fontName='Times-Roman',
+                 textColor=colors.black, alignment=1, wordWrap='CJK', leading=11,
+             )
+             venue_cell_style = ParagraphStyle(
+                 'VenueCell', parent=styles['Normal'],
+-                fontSize=9, fontName='Helvetica-Bold',
++                fontSize=9, fontName='Times-Bold',
+                 textColor=colors.black, alignment=1, wordWrap='CJK', leading=11,
+             )
+ 
+@@ -514,12 +514,12 @@
+                 ('TEXTCOLOR',    (0, 0), (-1,  0), colors.black),
+                 ('ALIGN',        (0, 0), (-1,  0), 'CENTER'),
+                 ('VALIGN',       (0, 0), (-1,  0), 'MIDDLE'),
+-                ('FONTNAME',     (0, 0), (-1,  0), 'Helvetica-Bold'),
++                ('FONTNAME',     (0, 0), (-1,  0), 'Times-Bold'),
+                 ('FONTSIZE',     (0, 0), (-1,  0), 9),
+                 ('BOTTOMPADDING',(0, 0), (-1,  0), 8),
+                 ('TOPPADDING',   (0, 0), (-1,  0), 8),
+                 ('BACKGROUND',   (0, 1), ( 0, -1), colors.white),
+-                ('FONTNAME',     (0, 1), ( 0, -1), 'Helvetica-Bold'),
++                ('FONTNAME',     (0, 1), ( 0, -1), 'Times-Bold'),
+                 ('TEXTCOLOR',    (0, 1), ( 0, -1), colors.black),
+                 ('GRID',         (0, 0), (-1, -1), 0.5, colors.black),
+                 ('BOX',          (0, 0), (-1, -1), 0.8, colors.black),
+@@ -544,7 +544,7 @@
+             banner = Table([[Paragraph(
+                 f"<b>{label}</b>",
+                 ParagraphStyle("SBan", parent=styles['Normal'],
+-                               fontSize=12, fontName='Helvetica-Bold',
++                               fontSize=12, fontName='Times-Bold',
+                                alignment=1, textColor=fg),
+             )]], colWidths=[page_width])
+             banner.setStyle(TableStyle([
+@@ -594,14 +594,14 @@
+ 
+         sig_style = ParagraphStyle(
+             'Sig', parent=styles['Normal'],
+-            fontSize=10, fontName='Helvetica', textColor=colors.black, alignment=0,
++            fontSize=10, fontName='Times-Roman', textColor=colors.black, alignment=0,
+         )
+         sig_bold = ParagraphStyle(
+-            'SigBold', parent=sig_style, fontName='Helvetica-Bold',
++            'SigBold', parent=sig_style, fontName='Times-Bold',
+         )
+         nb_style = ParagraphStyle(
+             'NB', parent=styles['Normal'], fontSize=8,
+-            fontName='Helvetica', textColor=colors.black, alignment=0,
++            fontName='Times-Roman', textColor=colors.black, alignment=0,
+         )
+ 
+         # NB section from key_section if available
+@@ -626,7 +626,7 @@
+         def add_page_furniture(canvas_obj, doc_obj):
+             draw_reportlab_watermark(canvas_obj, doc_obj, template_config, doc_ref=reference_number)
+             canvas_obj.saveState()
+-            canvas_obj.setFont('Helvetica', 8)
++            canvas_obj.setFont('Times-Roman', 8)
+             page_num_text = f"Page {canvas_obj.getPageNumber()} of {doc_obj.page}"
+             canvas_obj.drawCentredString(pagesize[0] / 2.0, 15, page_num_text)
+             canvas_obj.restoreState()
+--- export_import/publish_timetables_pdfs.py	2026-07-22 10:15:46.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/export_import/publish_timetables_pdfs.py	2026-08-13 00:04:24.583678218 +0000
+@@ -144,16 +144,16 @@
+     ])
+ 
+     uni_style  = ParagraphStyle("UniName", parent=styles["Normal"],
+-                    fontSize=16, fontName="Helvetica-Bold", alignment=1, spaceAfter=2)
++                    fontSize=16, fontName="Times-Bold", alignment=1, spaceAfter=2)
+     motto_sty  = ParagraphStyle("Motto",   parent=styles["Normal"],
+-                    fontSize=9,  fontName="Helvetica",      alignment=1, spaceAfter=2)
++                    fontSize=9,  fontName="Times-Roman",      alignment=1, spaceAfter=2)
+     dir_style  = ParagraphStyle("Dir",     parent=styles["Normal"],
+-                    fontSize=10, fontName="Helvetica-Bold", alignment=1, spaceAfter=2)
++                    fontSize=10, fontName="Times-Bold", alignment=1, spaceAfter=2)
+     con_l      = ParagraphStyle("ConL",    parent=styles["Normal"],
+-                    fontSize=8,  fontName="Helvetica",      alignment=0, spaceAfter=1)
++                    fontSize=8,  fontName="Times-Roman",      alignment=0, spaceAfter=1)
+     con_r      = ParagraphStyle("ConR",    parent=con_l, alignment=2)
+     ref_l      = ParagraphStyle("RefL",    parent=styles["Normal"],
+-                    fontSize=9,  fontName="Helvetica-Bold", alignment=0,
++                    fontSize=9,  fontName="Times-Bold", alignment=0,
+                     spaceBefore=4, spaceAfter=4)
+     ref_r      = ParagraphStyle("RefR",    parent=ref_l, alignment=2)
+ 
+@@ -212,7 +212,7 @@
+     banner = Table([[Paragraph(
+         f"<b>{date_label}</b>",
+         ParagraphStyle("Banner", parent=styles["Normal"], fontSize=11,
+-                       fontName="Helvetica-Bold", alignment=1, textColor=colors.white),
++                       fontName="Times-Bold", alignment=1, textColor=colors.white),
+     )]], colWidths=[page_width])
+     banner.setStyle(TableStyle([
+         ("BACKGROUND",    (0, 0), (-1, -1), colors.black),
+@@ -224,10 +224,10 @@
+     elements.append(banner)
+ 
+     hdr_sty  = ParagraphStyle("TH",  parent=styles["Normal"],
+-                   fontSize=9, fontName="Helvetica-Bold", alignment=1, wordWrap="CJK", leading=11)
++                   fontSize=9, fontName="Times-Bold", alignment=1, wordWrap="CJK", leading=11)
+     cell_sty = ParagraphStyle("TC",  parent=styles["Normal"],
+-                   fontSize=8, fontName="Helvetica",      alignment=1, wordWrap="CJK", leading=10)
+-    room_sty = ParagraphStyle("TRoom", parent=cell_sty,  fontName="Helvetica-Bold")
++                   fontSize=8, fontName="Times-Roman",      alignment=1, wordWrap="CJK", leading=10)
++    room_sty = ParagraphStyle("TRoom", parent=cell_sty,  fontName="Times-Bold")
+ 
+     headers = [Paragraph("ROOM", hdr_sty)] + [Paragraph(ts, hdr_sty) for ts in time_slots]
+     rows = [headers]
+@@ -244,15 +244,15 @@
+     tbl = Table(rows, colWidths=col_widths, repeatRows=1)
+     tbl.setStyle(TableStyle([
+         ("BACKGROUND",    (0, 0), (-1,  0), colors.white),
+-        ("FONTNAME",      (0, 0), (-1,  0), "Helvetica-Bold"),
++        ("FONTNAME",      (0, 0), (-1,  0), "Times-Bold"),
+         ("FONTSIZE",      (0, 0), (-1,  0), 9),
+         ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+         ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+         ("TOPPADDING",    (0, 0), (-1,  0), 6),
+         ("BOTTOMPADDING", (0, 0), (-1,  0), 6),
+         ("BACKGROUND",    (0, 1), (-1, -1), colors.white),
+-        ("FONTNAME",      (0, 1), ( 0, -1), "Helvetica-Bold"),
+-        ("FONTNAME",      (1, 1), (-1, -1), "Helvetica"),
++        ("FONTNAME",      (0, 1), ( 0, -1), "Times-Bold"),
++        ("FONTNAME",      (1, 1), (-1, -1), "Times-Roman"),
+         ("FONTSIZE",      (0, 1), (-1, -1), 8),
+         ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+         ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+@@ -275,7 +275,7 @@
+     return TableStyle([
+         ("BACKGROUND",     (0, 0), (-1,  0), colors.HexColor("#1a1a1a")),
+         ("TEXTCOLOR",      (0, 0), (-1,  0), colors.white),
+-        ("FONTNAME",       (0, 0), (-1,  0), "Helvetica-Bold"),
++        ("FONTNAME",       (0, 0), (-1,  0), "Times-Bold"),
+         ("FONTSIZE",       (0, 0), (-1,  0), 8),
+         ("ALIGN",          (0, 0), (-1, -1), "CENTER"),
+         ("VALIGN",         (0, 0), (-1, -1), "MIDDLE"),
+@@ -286,7 +286,7 @@
+         ("BACKGROUND",     (0, 1), (-1, -1), colors.white),
+         ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f5f5f5")]),
+         ("TEXTCOLOR",      (0, 1), (-1, -1), colors.black),
+-        ("FONTNAME",       (0, 1), (-1, -1), "Helvetica"),
++        ("FONTNAME",       (0, 1), (-1, -1), "Times-Roman"),
+         ("FONTSIZE",       (0, 1), (-1, -1), 8),
+         ("GRID",           (0, 0), (-1, -1), 0.5, colors.black),
+         ("BOX",            (0, 0), (-1, -1), 0.8, colors.black),
+@@ -313,15 +313,15 @@
+     elements.append(Spacer(1, 6))
+ 
+     title_sty = ParagraphStyle("FTitle", parent=styles["Normal"],
+-        fontSize=10, fontName="Helvetica-Bold", alignment=0,
++        fontSize=10, fontName="Times-Bold", alignment=0,
+         textColor=colors.black, spaceAfter=4)
+     sub_sty = ParagraphStyle("FSub", parent=styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold", alignment=0,
++        fontSize=9, fontName="Times-Bold", alignment=0,
+         textColor=colors.HexColor("#333333"), spaceBefore=8, spaceAfter=4)
+     hdr_sty = ParagraphStyle("FHdr", parent=styles["Normal"],
+-        fontSize=8, fontName="Helvetica-Bold", alignment=1, textColor=colors.white)
++        fontSize=8, fontName="Times-Bold", alignment=1, textColor=colors.white)
+     cel_sty = ParagraphStyle("FCel", parent=styles["Normal"],
+-        fontSize=8, fontName="Helvetica", alignment=1,
++        fontSize=8, fontName="Times-Roman", alignment=1,
+         textColor=colors.black, leading=10)
+ 
+     elements.append(Paragraph(section_label, title_sty))
+@@ -376,10 +376,10 @@
+ 
+ def _append_nb_and_key(elements, styles, template_config):
+     nb_sty  = ParagraphStyle("NB",    parent=styles["Normal"],
+-        fontSize=8, fontName="Helvetica", alignment=0,
++        fontSize=8, fontName="Times-Roman", alignment=0,
+         spaceBefore=2, spaceAfter=2, leftIndent=12)
+     lbl_sty = ParagraphStyle("NBLbl", parent=nb_sty,
+-        leftIndent=0, fontName="Helvetica-Bold")
++        leftIndent=0, fontName="Times-Bold")
+ 
+     elements.append(Spacer(1, 8))
+     elements.append(Paragraph("<b>NB:</b>", lbl_sty))
+@@ -421,7 +421,7 @@
+         return slots
+ 
+     def _banner_tbl(text, bg_hex):
+-        ban_s = ParagraphStyle('OvPubBan', fontSize=12, fontName='Helvetica-Bold',
++        ban_s = ParagraphStyle('OvPubBan', fontSize=12, fontName='Times-Bold',
+                                alignment=1, textColor=colors.white)
+         tbl = Table([[Paragraph(f"<b>{text}</b>", ban_s)]], colWidths=[pw])
+         tbl.setStyle(TableStyle([
+@@ -431,17 +431,17 @@
+         ]))
+         return tbl
+ 
+-    cell_s = ParagraphStyle('OvCell', fontSize=8, fontName='Helvetica',
++    cell_s = ParagraphStyle('OvCell', fontSize=8, fontName='Times-Roman',
+                             alignment=1, leading=10, textColor=colors.black)
+-    hdr_s  = ParagraphStyle('OvHdr',  fontSize=9, fontName='Helvetica-Bold',
++    hdr_s  = ParagraphStyle('OvHdr',  fontSize=9, fontName='Times-Bold',
+                             alignment=1, textColor=colors.black)
+-    day_s  = ParagraphStyle('OvDay',  fontSize=10, fontName='Helvetica-Bold',
++    day_s  = ParagraphStyle('OvDay',  fontSize=10, fontName='Times-Bold',
+                             alignment=0, textColor=colors.black, spaceBefore=8)
+ 
+     def _grid_style(hdr_bg):
+         return TableStyle([
+             ('BACKGROUND',    (0,0),(-1, 0), hdr_bg),
+-            ('FONTNAME',      (0,0),(-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME',      (0,0),(-1, 0), 'Times-Bold'),
+             ('GRID',          (0,0),(-1,-1), 0.5, colors.black),
+             ('BOX',           (0,0),(-1,-1), 0.8, colors.black),
+             ('ALIGN',         (0,0),(-1,-1), 'CENTER'),
+@@ -533,7 +533,7 @@
+ 
+ def _append_signature(elements, styles, template_config):
+     sig_sty = ParagraphStyle("Sig", parent=styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold", alignment=0, spaceAfter=2)
++        fontSize=9, fontName="Times-Bold", alignment=0, spaceAfter=2)
+     elements.append(Spacer(1, 18))
+     elements.append(Paragraph("<b>Prepared by:</b>", sig_sty))
+     elements.append(Spacer(1, 30))
+@@ -782,12 +782,12 @@
+         _build_letterhead_header(elements, styles, template_config, ref_num, ref_date)
+ 
+         title_sty = ParagraphStyle("RTitle", parent=styles["Normal"],
+-            fontSize=13, fontName="Helvetica-Bold", alignment=1,
+-            textColor=colors.red, spaceBefore=4, spaceAfter=10)
++            fontSize=13, fontName="Times-Bold", alignment=1,
++            textColor=colors.black, spaceBefore=4, spaceAfter=10)
+         elements.append(Paragraph(report_title, title_sty))
+ 
+         cont_sty = ParagraphStyle("Cont", parent=styles["Normal"],
+-            fontSize=10, fontName="Helvetica-Bold",
++            fontSize=10, fontName="Times-Bold",
+             alignment=1, textColor=colors.black, spaceAfter=8)
+ 
+         # ── Section banner helper ─────────────────────────────────────────────
+@@ -796,7 +796,7 @@
+             banner = Table([[Paragraph(
+                 f"<b>{label}</b>",
+                 ParagraphStyle("SBan", parent=styles["Normal"],
+-                               fontSize=12, fontName="Helvetica-Bold",
++                               fontSize=12, fontName="Times-Bold",
+                                alignment=1, textColor=fg),
+             )]], colWidths=[page_width])
+             banner.setStyle(TableStyle([
+@@ -1077,12 +1077,12 @@
+         _build_letterhead_header(elements, styles, template_config, ref_num, ref_date)
+ 
+         title_sty = ParagraphStyle("RTitle", parent=styles["Normal"],
+-            fontSize=13, fontName="Helvetica-Bold", alignment=1,
+-            textColor=colors.red, spaceBefore=4, spaceAfter=10)
++            fontSize=13, fontName="Times-Bold", alignment=1,
++            textColor=colors.black, spaceBefore=4, spaceAfter=10)
+         elements.append(Paragraph(report_title, title_sty))
+ 
+         cont_sty = ParagraphStyle("Cont", parent=styles["Normal"],
+-            fontSize=10, fontName="Helvetica-Bold",
++            fontSize=10, fontName="Times-Bold",
+             alignment=1, textColor=colors.black, spaceAfter=8)
+ 
+         # ── Section banner helper (reuse pattern from exam publisher) ─────────
+@@ -1091,7 +1091,7 @@
+             b = Table([[Paragraph(
+                 f"<b>{label}</b>",
+                 ParagraphStyle("RegSBan", parent=styles["Normal"], fontSize=12,
+-                               fontName="Helvetica-Bold", alignment=1, textColor=fg),
++                               fontName="Times-Bold", alignment=1, textColor=fg),
+             )]], colWidths=[pw])
+             b.setStyle(TableStyle([
+                 ("BACKGROUND",    (0, 0), (-1, -1), bg),
+--- export_import/global_combined_timetable_pdf.py	2026-07-22 03:09:20.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/export_import/global_combined_timetable_pdf.py	2026-08-13 00:04:24.583279893 +0000
+@@ -20,20 +20,21 @@
+              name='export_global_exam_pdf'),
+     ]
+ 
+-Design mirrors the official Chuka University letterhead:
+-  - Logo centred, contact details left/right
++Design mirrors the official Chuka University letterhead — black and white
++only, one typeface (Times New Roman) throughout:
++  - Logo centred at the top, contact details left/right beneath it
+   - University name bold centred, motto below, directorate bold centred
+   - Ref/date row with horizontal rule
+-  - Red centred report title
++  - Black centred report title
+   - Day/date section headers in bold black (centred)
+   - Black grid tables, white cells, bold column headers
+   - Lab section in dark banner
+   - Campus sections separated by page-breaks with bold campus banners
+   - Signature block at the end of each major section
+ 
+-Color scheme (matching official PDF):
++Color scheme (matching official PDF — black and white only):
+   - Header text:          black
+-  - Report title:         red  (#CC0000)
++  - Report title:         black
+   - Table header bg:      white, text black bold
+   - Table cell bg:        white, text black
+   - Table borders:        black 0.5 pt grid, 0.8 pt box
+@@ -102,7 +103,7 @@
+ DAYS_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+ 
+ # Colors matching the official template
+-COLOR_RED_TITLE   = colors.HexColor("#CC0000")
++COLOR_TITLE       = colors.black
+ COLOR_DARK_BANNER = colors.HexColor("#1a1a1a")
+ COLOR_CAMPUS_BAN  = colors.HexColor("#003366")   # navy for campus sections
+ COLOR_LAB_BANNER  = colors.HexColor("#333333")
+@@ -214,82 +215,82 @@
+ 
+     s["univ_name"] = ParagraphStyle(
+         "UnivName", parent=base_styles["Normal"],
+-        fontSize=16, fontName="Helvetica-Bold",
++        fontSize=16, fontName="Times-Bold",
+         alignment=1, spaceAfter=2, textColor=COLOR_BLACK,
+     )
+     s["motto"] = ParagraphStyle(
+         "Motto", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica",
++        fontSize=9, fontName="Times-Roman",
+         alignment=1, spaceAfter=2, textColor=COLOR_BLACK,
+     )
+     s["directorate"] = ParagraphStyle(
+         "Directorate", parent=base_styles["Normal"],
+-        fontSize=11, fontName="Helvetica-Bold",
++        fontSize=11, fontName="Times-Bold",
+         alignment=1, spaceAfter=2, textColor=COLOR_BLACK,
+     )
+     s["contact_left"] = ParagraphStyle(
+         "ContactLeft", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica",
++        fontSize=9, fontName="Times-Roman",
+         alignment=0, textColor=COLOR_BLACK,
+     )
+     s["contact_right"] = ParagraphStyle(
+         "ContactRight", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica",
++        fontSize=9, fontName="Times-Roman",
+         alignment=2, textColor=COLOR_BLACK,
+     )
+     s["ref"] = ParagraphStyle(
+         "Ref", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold",
++        fontSize=9, fontName="Times-Bold",
+         alignment=0, textColor=COLOR_BLACK,
+     )
+     s["ref_right"] = ParagraphStyle(
+         "RefRight", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold",
++        fontSize=9, fontName="Times-Bold",
+         alignment=2, textColor=COLOR_BLACK,
+     )
+     s["report_title"] = ParagraphStyle(
+         "ReportTitle", parent=base_styles["Normal"],
+-        fontSize=13, fontName="Helvetica-Bold",
+-        alignment=1, spaceAfter=10, textColor=COLOR_RED_TITLE,
++        fontSize=13, fontName="Times-Bold",
++        alignment=1, spaceAfter=10, textColor=COLOR_TITLE,
+     )
+     s["day_section"] = ParagraphStyle(
+         "DaySection", parent=base_styles["Normal"],
+-        fontSize=11, fontName="Helvetica-Bold",
++        fontSize=11, fontName="Times-Bold",
+         alignment=1, spaceAfter=4, textColor=COLOR_BLACK,
+     )
+     s["table_header"] = ParagraphStyle(
+         "TableHeader", parent=base_styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold",
++        fontSize=9, fontName="Times-Bold",
+         alignment=1, textColor=COLOR_BLACK, wordWrap="CJK",
+     )
+     s["table_cell"] = ParagraphStyle(
+         "TableCell", parent=base_styles["Normal"],
+-        fontSize=8, fontName="Helvetica",
++        fontSize=8, fontName="Times-Roman",
+         alignment=1, textColor=COLOR_BLACK, wordWrap="CJK", leading=10,
+     )
+     s["banner_text"] = ParagraphStyle(
+         "BannerText", parent=base_styles["Normal"],
+-        fontSize=12, fontName="Helvetica-Bold",
++        fontSize=12, fontName="Times-Bold",
+         alignment=1, textColor=COLOR_WHITE,
+     )
+     s["campus_banner_text"] = ParagraphStyle(
+         "CampusBannerText", parent=base_styles["Normal"],
+-        fontSize=13, fontName="Helvetica-Bold",
++        fontSize=13, fontName="Times-Bold",
+         alignment=1, textColor=COLOR_WHITE,
+     )
+     s["sig"] = ParagraphStyle(
+         "Sig", parent=base_styles["Normal"],
+-        fontSize=10, fontName="Helvetica",
++        fontSize=10, fontName="Times-Roman",
+         alignment=0, textColor=COLOR_BLACK,
+     )
+     s["sig_bold"] = ParagraphStyle(
+         "SigBold", parent=base_styles["Normal"],
+-        fontSize=10, fontName="Helvetica-Bold",
++        fontSize=10, fontName="Times-Bold",
+         alignment=0, textColor=COLOR_BLACK,
+     )
+     s["nb"] = ParagraphStyle(
+         "NB", parent=base_styles["Normal"],
+-        fontSize=8, fontName="Helvetica",
++        fontSize=8, fontName="Times-Roman",
+         alignment=0, textColor=COLOR_BLACK,
+     )
+     return s
+@@ -392,7 +393,7 @@
+         ("BACKGROUND",    (0, 0), (-1,  0), COLOR_WHITE),
+         ("TEXTCOLOR",     (0, 0), (-1,  0), COLOR_BLACK),
+         ("ALIGN",         (0, 0), (-1,  0), "CENTER"),
+-        ("FONTNAME",      (0, 0), (-1,  0), "Helvetica-Bold"),
++        ("FONTNAME",      (0, 0), (-1,  0), "Times-Bold"),
+         ("FONTSIZE",      (0, 0), (-1,  0), 9),
+         ("BOTTOMPADDING", (0, 0), (-1,  0), 6),
+         ("TOPPADDING",    (0, 0), (-1,  0), 6),
+@@ -469,7 +470,7 @@
+     def _tbl_style(hdr_bg):
+         return TableStyle([
+             ('BACKGROUND',    (0, 0), (-1, 0), hdr_bg),
+-            ('FONTNAME',      (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME',      (0, 0), (-1, 0), 'Times-Bold'),
+             ('GRID',          (0, 0), (-1, -1), 0.5, colors.black),
+             ('BOX',           (0, 0), (-1, -1), 0.8, colors.black),
+             ('ALIGN',         (0, 0), (-1, -1), 'CENTER'),
+@@ -482,7 +483,7 @@
+ 
+     def _banner(text, bg_hex):
+         from reportlab.platypus import Paragraph
+-        ban_s = ParagraphStyle('OvBan', fontSize=12, fontName='Helvetica-Bold',
++        ban_s = ParagraphStyle('OvBan', fontSize=12, fontName='Times-Bold',
+                                alignment=1, textColor=colors.white)
+         tbl = Table([[Paragraph(f"<b>{text}</b>", ban_s)]], colWidths=[pw])
+         tbl.setStyle(TableStyle([
+@@ -1163,7 +1164,7 @@
+ def _page_number_cb(canvas_obj, doc_obj):
+     """onPage callback that draws 'Page X' at bottom centre."""
+     canvas_obj.saveState()
+-    canvas_obj.setFont("Helvetica", 8)
++    canvas_obj.setFont("Times-Roman", 8)
+     canvas_obj.drawCentredString(
+         A4[0] / 2.0, 20,
+         f"Page {canvas_obj.getPageNumber()}"
+--- resits_timetabling/resit_timetable_pdf.py	2026-08-07 15:31:40.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/resits_timetabling/resit_timetable_pdf.py	2026-08-13 00:04:24.592767010 +0000
+@@ -125,16 +125,16 @@
+     ])
+ 
+     uni_style = ParagraphStyle("UniName", parent=styles["Normal"],
+-                    fontSize=16, fontName="Helvetica-Bold", alignment=1, spaceAfter=2)
++                    fontSize=16, fontName="Times-Bold", alignment=1, spaceAfter=2)
+     motto_sty = ParagraphStyle("Motto",   parent=styles["Normal"],
+-                    fontSize=9,  fontName="Helvetica",      alignment=1, spaceAfter=2)
++                    fontSize=9,  fontName="Times-Roman",      alignment=1, spaceAfter=2)
+     dir_style = ParagraphStyle("Dir",     parent=styles["Normal"],
+-                    fontSize=10, fontName="Helvetica-Bold", alignment=1, spaceAfter=2)
++                    fontSize=10, fontName="Times-Bold", alignment=1, spaceAfter=2)
+     con_l     = ParagraphStyle("ConL",    parent=styles["Normal"],
+-                    fontSize=8,  fontName="Helvetica",      alignment=0, spaceAfter=1)
++                    fontSize=8,  fontName="Times-Roman",      alignment=0, spaceAfter=1)
+     con_r     = ParagraphStyle("ConR",    parent=con_l, alignment=2)
+     ref_l     = ParagraphStyle("RefL",    parent=styles["Normal"],
+-                    fontSize=9,  fontName="Helvetica-Bold", alignment=0,
++                    fontSize=9,  fontName="Times-Bold", alignment=0,
+                     spaceBefore=4, spaceAfter=4)
+     ref_r     = ParagraphStyle("RefR",    parent=ref_l, alignment=2)
+ 
+@@ -204,7 +204,7 @@
+     banner = Table([[Paragraph(
+         f"<b>{date_label}</b>",
+         ParagraphStyle("RBanner", parent=styles["Normal"], fontSize=11,
+-                       fontName="Helvetica-Bold", alignment=1, textColor=colors.white),
++                       fontName="Times-Bold", alignment=1, textColor=colors.white),
+     )]], colWidths=[page_width])
+     banner.setStyle(TableStyle([
+         ("BACKGROUND",    (0, 0), (-1, -1), colors.black),
+@@ -216,12 +216,12 @@
+     elements.append(banner)
+ 
+     hdr_sty  = ParagraphStyle("RTH",   parent=styles["Normal"],
+-                   fontSize=9, fontName="Helvetica-Bold", alignment=1,
++                   fontSize=9, fontName="Times-Bold", alignment=1,
+                    wordWrap="CJK", leading=11)
+     cell_sty = ParagraphStyle("RTC",   parent=styles["Normal"],
+-                   fontSize=8, fontName="Helvetica",      alignment=0,
++                   fontSize=8, fontName="Times-Roman",      alignment=0,
+                    wordWrap="CJK", leading=10)
+-    room_sty = ParagraphStyle("RTRoom", parent=cell_sty, fontName="Helvetica-Bold",
++    room_sty = ParagraphStyle("RTRoom", parent=cell_sty, fontName="Times-Bold",
+                    alignment=1)
+ 
+     headers = [Paragraph("ROOM", hdr_sty)] + [Paragraph(ts, hdr_sty) for ts in time_slots]
+@@ -239,7 +239,7 @@
+     tbl = Table(rows, colWidths=col_w, repeatRows=1)
+     tbl.setStyle(TableStyle([
+         ("BACKGROUND",    (0, 0), (-1,  0), colors.white),
+-        ("FONTNAME",      (0, 0), (-1,  0), "Helvetica-Bold"),
++        ("FONTNAME",      (0, 0), (-1,  0), "Times-Bold"),
+         ("FONTSIZE",      (0, 0), (-1,  0), 9),
+         ("ALIGN",         (0, 0), (-1,  0), "CENTER"),
+         ("ALIGN",         (0, 1), (0,  -1), "CENTER"),
+@@ -248,8 +248,8 @@
+         ("TOPPADDING",    (0, 0), (-1,  0), 6),
+         ("BOTTOMPADDING", (0, 0), (-1,  0), 6),
+         ("BACKGROUND",    (0, 1), (-1, -1), colors.white),
+-        ("FONTNAME",      (0, 1), ( 0, -1), "Helvetica-Bold"),
+-        ("FONTNAME",      (1, 1), (-1, -1), "Helvetica"),
++        ("FONTNAME",      (0, 1), ( 0, -1), "Times-Bold"),
++        ("FONTNAME",      (1, 1), (-1, -1), "Times-Roman"),
+         ("FONTSIZE",      (0, 1), (-1, -1), 8),
+         ("LEFTPADDING",   (0, 0), (-1, -1), 4),
+         ("RIGHTPADDING",  (0, 0), (-1, -1), 4),
+@@ -270,10 +270,10 @@
+ 
+ def _append_nb_and_key(elements, styles, template_config):
+     nb_sty  = ParagraphStyle("NB",    parent=styles["Normal"],
+-        fontSize=8, fontName="Helvetica", alignment=0,
++        fontSize=8, fontName="Times-Roman", alignment=0,
+         spaceBefore=2, spaceAfter=2, leftIndent=12)
+     lbl_sty = ParagraphStyle("NBLbl", parent=nb_sty,
+-        leftIndent=0, fontName="Helvetica-Bold")
++        leftIndent=0, fontName="Times-Bold")
+ 
+     elements.append(Spacer(1, 8))
+     elements.append(Paragraph("<b>NB:</b>", lbl_sty))
+@@ -296,7 +296,7 @@
+ 
+ def _append_signature(elements, styles, template_config):
+     sig_sty = ParagraphStyle("Sig", parent=styles["Normal"],
+-        fontSize=9, fontName="Helvetica-Bold", alignment=0, spaceAfter=2)
++        fontSize=9, fontName="Times-Bold", alignment=0, spaceAfter=2)
+     elements.append(Spacer(1, 18))
+     elements.append(Paragraph("<b>Prepared by:</b>", sig_sty))
+     elements.append(Spacer(1, 30))
+@@ -413,7 +413,7 @@
+     # ── Page-number footer ────────────────────────────────────────────────────
+     def _on_page(canvas, doc_obj):
+         canvas.saveState()
+-        canvas.setFont("Helvetica", 8)
++        canvas.setFont("Times-Roman", 8)
+         canvas.drawCentredString(
+             pagesize[0] / 2,
+             15,
+@@ -431,14 +431,14 @@
+     report_title = f"Resit Examination Timetable ({academic_year} — {semester_label})"
+     title_sty = ParagraphStyle(
+         "RTitle", parent=styles["Normal"],
+-        fontSize=13, fontName="Helvetica-Bold", alignment=1,
+-        textColor=colors.red, spaceBefore=4, spaceAfter=10,
++        fontSize=13, fontName="Times-Bold", alignment=1,
++        textColor=colors.black, spaceBefore=4, spaceAfter=10,
+     )
+     elements.append(Paragraph(report_title, title_sty))
+ 
+     cont_sty = ParagraphStyle(
+         "Cont", parent=styles["Normal"],
+-        fontSize=10, fontName="Helvetica-Bold",
++        fontSize=10, fontName="Times-Bold",
+         alignment=1, textColor=colors.black, spaceAfter=8,
+     )
+ 
+@@ -448,7 +448,7 @@
+         elements.append(Paragraph(
+             "No published resit timetable entries found.",
+             ParagraphStyle("Empty", parent=styles["Normal"], fontSize=14,
+-                           fontName="Helvetica-Bold", alignment=1,
++                           fontName="Times-Bold", alignment=1,
+                            textColor=colors.HexColor("#b71c1c")),
+         ))
+     else:
+--- campuses_timetable/pdf_views.py	2026-07-22 03:09:20.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/campuses_timetable/pdf_views.py	2026-08-13 00:04:24.574484505 +0000
+@@ -61,7 +61,7 @@
+             spaceAfter=2,
+             spaceBefore=2,
+             alignment=1,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black
+         )
+ 
+@@ -73,7 +73,7 @@
+             spaceAfter=4,
+             spaceBefore=2,
+             alignment=1,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black
+         )
+ 
+@@ -95,7 +95,7 @@
+             spaceAfter=6,
+             spaceBefore=4,
+             alignment=0,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+         )
+ 
+@@ -104,7 +104,7 @@
+             'TableCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -116,7 +116,7 @@
+             'VenueCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -128,7 +128,7 @@
+             'CampusCell',
+             parent=self.styles['Normal'],
+             fontSize=9,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -153,8 +153,8 @@
+             spaceAfter=6,
+             spaceBefore=6,
+             alignment=1,
+-            fontName='Helvetica-Bold',
+-            textColor=colors.HexColor('#CC0000')
++            fontName='Times-Bold',
++            textColor=colors.black
+         )
+ 
+         # Ref/date line: normal, black
+@@ -162,7 +162,7 @@
+             'RefStyle',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=0,
+         )
+@@ -170,7 +170,7 @@
+             'DateRightStyle',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=2,
+         )
+@@ -180,7 +180,7 @@
+             'HeaderCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.white,
+             alignment=1,
+             wordWrap='CJK',
+@@ -192,7 +192,7 @@
+             'NBLabel',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=0,
+         )
+@@ -200,7 +200,7 @@
+             'NBText',
+             parent=self.styles['Normal'],
+             fontSize=9,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=0,
+             leftIndent=8
+@@ -276,7 +276,7 @@
+         motto_style = ParagraphStyle(
+             'MottoStyle', parent=self.styles['Normal'],
+             fontSize=9, alignment=1, textColor=colors.black,
+-            fontName='Helvetica-Oblique', spaceAfter=2
++            fontName='Times-Italic', spaceAfter=2
+         )
+         motto = f"{self.template_config.motto_latin}  {self.template_config.motto_swahili}"
+         elements.append(Paragraph(motto, motto_style))
+@@ -449,11 +449,11 @@
+         # Table styling — plain black/white matching official template
+         table_style = TableStyle([
+             # Header row: white text on black background
+-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#404040')),
++            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+             ('FONTSIZE', (0, 0), (-1, 0), 10),
+             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+             ('TOPPADDING', (0, 0), (-1, 0), 8),
+@@ -625,11 +625,11 @@
+         
+         # Table styling — plain black/white matching official template
+         table_style = TableStyle([
+-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#404040')),
++            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+             ('FONTSIZE', (0, 0), (-1, 0), 10),
+             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+             ('TOPPADDING', (0, 0), (-1, 0), 8),
+@@ -754,10 +754,10 @@
+     ]
+     summary_table = Table(summary_data, colWidths=[150, 150])
+     summary_table.setStyle(TableStyle([
+-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#404040')),
++        ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++        ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+         ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+     ]))
+@@ -800,15 +800,15 @@
+         table = Table(table_data, colWidths=col_widths, repeatRows=1)
+         
+         table_style = TableStyle([
+-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#404040')),
++            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+             ('GRID', (0, 0), (-1, -2), 0.5, colors.black),
+             ('BOX', (0, -1), (-1, -1), 1, colors.black),
+             ('BACKGROUND', (0, 1), (-1, -2), colors.white),
+             ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#f5f5f5')),
+-            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
++            ('FONTNAME', (0, -1), (-1, -1), 'Times-Bold'),
+         ])
+         
+         table.setStyle(table_style)
+--- odel_system/pdf_management_views.py	2026-07-23 03:03:58.000000000 +0000
++++ /home/claude/work/chuka_timetabling_updated/odel_system/pdf_management_views.py	2026-08-13 00:04:24.414216555 +0000
+@@ -53,7 +53,7 @@
+             spaceAfter=2,
+             spaceBefore=2,
+             alignment=1,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black
+         )
+ 
+@@ -65,7 +65,7 @@
+             spaceAfter=4,
+             spaceBefore=2,
+             alignment=1,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black
+         )
+ 
+@@ -87,7 +87,7 @@
+             spaceAfter=6,
+             spaceBefore=4,
+             alignment=0,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+         )
+ 
+@@ -96,7 +96,7 @@
+             'TableCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -108,7 +108,7 @@
+             'VenueCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -133,8 +133,8 @@
+             spaceAfter=6,
+             spaceBefore=6,
+             alignment=1,
+-            fontName='Helvetica-Bold',
+-            textColor=colors.HexColor('#CC0000')
++            fontName='Times-Bold',
++            textColor=colors.black
+         )
+ 
+         # Ref/date line styles
+@@ -142,7 +142,7 @@
+             'RefStyle',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=0,
+         )
+@@ -150,7 +150,7 @@
+             'DateRightStyle',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=2,
+         )
+@@ -160,7 +160,7 @@
+             'HeaderCell',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=1,
+             wordWrap='CJK',
+@@ -172,7 +172,7 @@
+             'NBLabel',
+             parent=self.styles['Normal'],
+             fontSize=10,
+-            fontName='Helvetica-Bold',
++            fontName='Times-Bold',
+             textColor=colors.black,
+             alignment=0,
+         )
+@@ -180,7 +180,7 @@
+             'NBText',
+             parent=self.styles['Normal'],
+             fontSize=9,
+-            fontName='Helvetica',
++            fontName='Times-Roman',
+             textColor=colors.black,
+             alignment=0,
+             leftIndent=8
+@@ -255,7 +255,7 @@
+         motto_style = ParagraphStyle(
+             'MottoStyle', parent=self.styles['Normal'],
+             fontSize=9, alignment=1, textColor=colors.black,
+-            fontName='Helvetica-Oblique', spaceAfter=2
++            fontName='Times-Italic', spaceAfter=2
+         )
+         motto = f"{self.template_config.motto_latin}  {self.template_config.motto_swahili}"
+         elements.append(Paragraph(motto, motto_style))
+@@ -435,18 +435,18 @@
+         # Table styling — plain black/white matching official template
+         table_style = TableStyle([
+             # Header row: white text on black background
+-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#CCCCCC')),
+-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
++            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
++            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+             ('FONTSIZE', (0, 0), (-1, 0), 10),
+             ('TOPPADDING', (0, 0), (-1, 0), 8),
+             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+ 
+             # Venue column: bold, white background
+             ('BACKGROUND', (0, 1), (0, -1), colors.white),
+-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 1), (0, -1), 'Times-Bold'),
+ 
+             # Grid: black borders
+             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+@@ -629,17 +629,17 @@
+         
+         # Table styling — plain black/white matching official template
+         table_style = TableStyle([
+-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#CCCCCC')),
+-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
++            ('BACKGROUND', (0, 0), (-1, 0), colors.black),
++            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 0), (-1, 0), 'Times-Bold'),
+             ('FONTSIZE', (0, 0), (-1, 0), 10),
+             ('TOPPADDING', (0, 0), (-1, 0), 8),
+             ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+ 
+             ('BACKGROUND', (0, 1), (0, -1), colors.white),
+-            ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
++            ('FONTNAME', (0, 1), (0, -1), 'Times-Bold'),
+ 
+             ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+             ('BOX', (0, 0), (-1, -1), 1, colors.black),

@@ -1,0 +1,127 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Student Timetable Viewer · {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboards_dashboard_view_timetable.css' %}"><link rel="stylesheet" href="{% static 'css/website.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+{% endblock %}
+
+{% block nav_links %}
+ <a href="{% url 'student_portal' %}">Timetables</a>
+ <a href="{% url 'student_portal' %}">Examinations</a>
+ <a href="/classrep/login/">Class Reps</a>
+ <a href="{% url 'feedback_page' %}" class="nav-badge">Feedback</a>
+{% endblock %}
+
+{% block content %}
+<div class="tv-page">
+ <div class="tv-container">
+
+ <h2 class="tv-title">Student Timetable Viewer</h2>
+
+ <!-- Form -->
+ <div id="form-container" class="tv-form-box">
+ <div class="tv-form-row">
+ <div class="tv-form-field">
+ <label for="student-year"><i class="fas fa-calendar-alt"></i> Academic Year</label>
+ <select id="student-year">
+ <option value="">Select Year</option>
+ <option value="1">Year 1</option>
+ <option value="2">Year 2</option>
+ <option value="3">Year 3</option>
+ <option value="4">Year 4</option>
+ <option value="5">Year 5</option>
+ <option value="6">Year 6</option>
+ </select>
+ </div>
+ <div class="tv-form-field">
+ <label for="program-select"><i class="fas fa-graduation-cap"></i> Programme</label>
+ <select id="program-select">
+ <option value="">Select Programme</option>
+ {% for prog in programs %}
+ <option value="{{ prog.id }}">{{ prog.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ </div>
+ <div class="tv-form-row">
+ <div class="tv-form-field">
+ <button class="tv-btn" id="see-btn"><i class="fas fa-eye"></i> View Timetable</button>
+ </div>
+ <div class="tv-form-field">
+ <button class="tv-btn secondary" id="clear-btn"><i class="fas fa-undo-alt"></i> Clear</button>
+ </div>
+ <div class="tv-form-field">
+ <a href="{% url 'feedback_page' %}" style="text-decoration:none;">
+ <button class="tv-btn secondary" style="margin:0;"><i class="fas fa-comment-dots"></i> Give Feedback</button>
+ </a>
+ </div>
+ </div>
+ </div>
+
+ <!-- Viewer Controls -->
+ <div id="viewer-controls" class="tv-controls">
+ <div class="tv-controls-row">
+ <button class="tv-btn" id="minimal-btn"><i class="fas fa-users"></i> Class Rep Timetable</button>
+ <button class="tv-btn" id="main-btn"><i class="fas fa-calendar-check"></i> Official Timetable</button>
+ <button class="tv-btn" id="exam-btn"><i class="fas fa-pen-alt"></i> Exam Timetable</button>
+ <button class="tv-btn" id="lab-btn"><i class="fas fa-flask"></i> Lab Timetable</button>
+ <button class="tv-btn" id="lab-exam-btn"><i class="fas fa-vial"></i> Lab Exam Timetable</button>
+ <button class="tv-btn secondary" id="back-btn"><i class="fas fa-arrow-left"></i> Change Programme</button>
+ </div>
+ <div id="program-summary" class="tv-notice"></div>
+ </div>
+
+ <div id="timetable-container"></div>
+
+ <div class="tv-footer-note">
+ <i class="fas fa-clock"></i> Timetable information is updated in real-time. For inquiries, contact the Directorate of Timetabling &amp; Examinations.
+ </div>
+
+ </div>
+</div>
+
+<!-- Print/Download (bottom right) -->
+<div id="print-actions" class="tv-print-actions">
+ <button class="tv-btn" id="download-img-btn"><i class="fas fa-camera"></i> Save Image</button>
+ <button class="tv-btn secondary" id="print-btn"><i class="fas fa-print"></i> Print</button>
+</div>
+
+<!-- Floating Bot (bottom left) -->
+<button class="bot-fab" onclick="toggleBot()" id="botFab" aria-label="Ask assistant"><i class="fas fa-robot" aria-hidden="true"></i></button>
+<div class="bot-fab-label" id="botFabLabel">Need help?</div>
+
+<div class="bot-panel" id="botPanel">
+ <div class="bot-panel-header">
+ <div class="bph-face"><i class="fas fa-robot" aria-hidden="true"></i></div>
+ <div class="bph-info">
+ <strong>Timetabling Assistant</strong>
+ <small>Ask about timetables &amp; exams</small>
+ </div>
+ <button class="bot-panel-close" onclick="toggleBot()"><i class="fas fa-times" aria-hidden="true"></i></button>
+ </div>
+ <div class="bot-panel-body" id="botPanelBody">
+ <div class="bp-msg bot">Hi! I can help you navigate timetables. What do you need?</div>
+ <div class="bp-chip-row">
+ <button class="bp-chip" onclick="botQuick('How do I view my timetable?')">How to use this page</button>
+ <button class="bp-chip" onclick="botQuick('Where is the exam timetable?')">Exam timetable</button>
+ <button class="bp-chip" onclick="botQuick('Where is the lab timetable?')">Lab timetable</button>
+ <button class="bp-chip" onclick="botQuick('How do I download my timetable?')">Download</button>
+ <button class="bp-chip" onclick="botQuick('Report a clash')">Report clash</button>
+ </div>
+ </div>
+ <div class="bot-panel-input">
+ <input type="text" id="botInput" placeholder="Type a question…" onkeydown="if(event.key==='Enter')sendBot()">
+ <button onclick="sendBot()">&#10148;</button>
+ </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'dashboards/js/dashboards_dashboard_view_timetable.js' %}?v=2"></script>
+{% endblock %}

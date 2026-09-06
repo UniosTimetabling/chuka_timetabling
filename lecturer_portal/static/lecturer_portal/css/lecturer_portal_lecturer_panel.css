@@ -1,0 +1,130 @@
+/* lecturer_portal_lecturer_panel.css — extracted from lecturer_panel.html */
+/* ── Button fix: hardcode green so it never depends on missing tokens ── */
+  .btn-primary {
+    background: linear-gradient(135deg, #27ae60, #1e8449) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #1e8449, #155f36) !important;
+    box-shadow: 0 3px 12px rgba(30,132,73,.38) !important;
+    transform: translateY(-1px);
+  }
+
+  /* ═══════════════════════════════════════
+     LECTURER PANEL — LOCAL STYLES
+  ═══════════════════════════════════════ */
+  .lec-main {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    padding: 20px;
+    align-items: start;
+  }
+
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-card__head {
+    padding: 14px 20px;
+    border-bottom: 2px solid var(--border-light);
+    background: linear-gradient(100deg, var(--navy-50), var(--green-20));
+    flex-shrink: 0;
+  }
+
+  .panel-card__head h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--navy-700);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-card__body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 220px);
+    scroll-behavior: smooth;
+  }
+  .panel-card__body::-webkit-scrollbar { width: 6px; }
+  .panel-card__body::-webkit-scrollbar-track { background: var(--border-light); border-radius: 3px; }
+  .panel-card__body::-webkit-scrollbar-thumb { background: var(--navy-400); border-radius: 3px; }
+  .panel-card__body::-webkit-scrollbar-thumb:hover { background: var(--navy-600); }
+
+  .panel-card__body--table {
+    padding: 0;
+    max-height: calc(100vh - 220px);
+    overflow: auto;
+  }
+  .panel-card__body--table::-webkit-scrollbar { width: 6px; height: 6px; }
+  .panel-card__body--table::-webkit-scrollbar-track { background: var(--border-light); }
+  .panel-card__body--table::-webkit-scrollbar-thumb { background: var(--navy-400); border-radius: 3px; }
+
+  .lec-form { display: flex; flex-direction: column; gap: 16px; }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Mobile card view */
+  .lec-cards { display: none; padding: 14px; gap: 12px; flex-direction: column; }
+
+  .lec-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+
+  .lec-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border-light);
+    gap: 8px;
+    font-size: 13.5px;
+  }
+  .lec-card-row:last-of-type { border-bottom: none; }
+
+  .lec-card-label {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .lec-card-value { color: var(--text); text-align: right; }
+
+  .lec-card-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .lec-card-actions .btn { flex: 1; justify-content: center; }
+
+  @media (max-width: 1024px) { .lec-main { grid-template-columns: 1fr 1.5fr; } }
+
+  @media (max-width: 768px) {
+    .lec-main { grid-template-columns: 1fr; padding: 12px; gap: 14px; }
+    .panel-card__body { max-height: none; }
+    .panel-card__body--table { max-height: 55vh; }
+    .form-row-2 { grid-template-columns: 1fr; }
+    .desktop-table { display: none; }
+    .lec-cards { display: flex; }
+  }
+
+  @media (max-width: 480px) { .lec-main { padding: 8px; } }
+  @media print { .actions, .btn { display: none !important; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

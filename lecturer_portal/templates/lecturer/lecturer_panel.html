@@ -1,0 +1,398 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecturer_portal_lecturer_lecturer_panel.css' %}">
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecturer_panel2.css' %}">
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecturer_portal_lecturer_panel.css' %}">
+{% endblock page_css %}
+
+{% block title %}Lecturer Management — Chuka University{% endblock title %}
+
+{% block page_title %}Lecturer Management{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+<div class="lec-main">
+
+ <!-- LEFT: Add / Edit Form -->
+ <section class="panel-card">
+ <div class="panel-card__head">
+ <h2><i class="fas fa-user-plus"></i> Add Lecturer</h2>
+ </div>
+ <div class="panel-card__body">
+ <form id="lecturerForm" class="lec-form">
+ {% csrf_token %}
+ <input type="hidden" name="id" id="lecId">
+
+ <div class="form-row-2">
+ <div class="form-group">
+ <label class="form-label">Payroll Number</label>
+ <input type="text" class="form-control" name="payroll_number" id="payroll_number" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Full Name</label>
+ <input type="text" class="form-control" name="name" id="name" required>
+ </div>
+ </div>
+
+ <div class="form-row-2">
+ <div class="form-group">
+ <label class="form-label">Email</label>
+ <input type="email" class="form-control" name="email" id="email" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Designation</label>
+ <select class="form-control" name="designation" id="designation" required>
+ <option value="">— Select —</option>
+ <option value="Prof">Prof.</option>
+ <option value="Dr">Dr.</option>
+ <option value="Mr">Mr.</option>
+ <option value="Ms">Ms.</option>
+ <option value="Mrs">Mrs.</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Department</label>
+ <select class="form-control" name="department" id="department">
+ <option value="">— Select Department —</option>
+ {% for dept in departments %}
+ <option value="{{ dept.id }}">{{ dept.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div style="display:flex;gap:10px;">
+ <button type="submit" class="btn btn-primary" style="flex:1;">
+ <i class="fas fa-save"></i> Save Lecturer
+ </button>
+ <button type="button" class="btn btn-outline" id="clearFormBtn">
+ <i class="fas fa-times"></i> Clear
+ </button>
+ </div>
+ </form>
+ </div>
+ </section>
+
+ <!-- RIGHT: Lecturers Table -->
+ <section class="panel-card">
+ <div class="panel-card__head">
+ <h2><i class="fas fa-users"></i> All Lecturers</h2>
+ </div>
+
+ <!-- Desktop Table -->
+ <div class="panel-card__body--table desktop-table">
+ <table class="data-table" id="lecturerTable">
+ <thead>
+ <tr>
+ <th>Payroll No</th>
+ <th>Name</th>
+ <th>Email</th>
+ <th>Designation</th>
+ <th>Department</th>
+ <th>Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for lec in lecturers %}
+ <tr data-id="{{ lec.id }}" data-department="{{ lec.department.id }}" data-searchable>
+ <td>{{ lec.payroll_number }}</td>
+ <td>{{ lec.name }}</td>
+ <td>{{ lec.email }}</td>
+ <td>{{ lec.designation }}</td>
+ <td>{{ lec.department.name|default:"N/A" }}</td>
+ <td>
+ <div class="actions">
+ <button class="btn btn-sm btn-accent editBtn">
+ <i class="fas fa-pencil-alt"></i> Edit
+ </button>
+ <button class="btn btn-sm btn-danger deleteBtn">
+ <i class="fas fa-trash"></i> Delete
+ </button>
+ </div>
+ </td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="6" class="text-center" style="padding:40px;color:var(--text-muted);">
+ <i class="fas fa-users" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+ No lecturers found
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ <!-- Mobile Card View -->
+ <div class="lec-cards" id="lecCards">
+ {% for lec in lecturers %}
+ <div class="lec-card" data-id="{{ lec.id }}" data-department="{{ lec.department.id }}">
+ <div class="lec-card-row">
+ <span class="lec-card-label">Payroll No</span>
+ <span class="lec-card-value">{{ lec.payroll_number }}</span>
+ </div>
+ <div class="lec-card-row">
+ <span class="lec-card-label">Name</span>
+ <span class="lec-card-value">{{ lec.name }}</span>
+ </div>
+ <div class="lec-card-row">
+ <span class="lec-card-label">Email</span>
+ <span class="lec-card-value">{{ lec.email }}</span>
+ </div>
+ <div class="lec-card-row">
+ <span class="lec-card-label">Designation</span>
+ <span class="lec-card-value">{{ lec.designation }}</span>
+ </div>
+ <div class="lec-card-row">
+ <span class="lec-card-label">Department</span>
+ <span class="lec-card-value">{{ lec.department.name|default:"N/A" }}</span>
+ </div>
+ <div class="lec-card-actions">
+ <button class="btn btn-sm btn-accent editBtn">
+ <i class="fas fa-pencil-alt"></i> Edit
+ </button>
+ <button class="btn btn-sm btn-danger deleteBtn">
+ <i class="fas fa-trash"></i> Delete
+ </button>
+ </div>
+ </div>
+ {% empty %}
+ <div class="text-center text-muted" style="padding:30px;">No lecturers found.</div>
+ {% endfor %}
+ </div>
+
+ </section>
+</div><!-- /.lec-main -->
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * lecturer_portal_lecturer_lecturer_panel.js
+ * Extracted inline JS from: lecturer_portal/templates/lecturer/lecturer_panel.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+$(function () {
+
+  /* ── Wire base search to filter table rows ── */
+  window.onSearch = function (q) {
+    const $rows = $('#lecturerTable tbody tr');
+    $rows.find('mark.search-hit').each(function () { $(this).replaceWith($(this).text()); });
+    if (!q) { $rows.show(); return; }
+    const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    $rows.each(function () {
+      const $tr = $(this);
+      if ($tr.text().toLowerCase().includes(q)) {
+        $tr.show();
+        $tr.find('td').each(function () {
+          const $td = $(this);
+          const raw = $td.text();
+          if (raw.toLowerCase().includes(q)) {
+            $td.html(raw.replace(pattern, m => `<mark class="search-hit">${m}</mark>`));
+          }
+        });
+      } else {
+        $tr.hide();
+      }
+    });
+  };
+
+  window.onSearchClear = function () { $('#lecturerTable tbody tr').show(); };
+
+  /* ── CREATE / UPDATE ── */
+  $('#lecturerForm').submit(function (e) {
+    e.preventDefault();
+    const id = $('#lecId').val();
+    const action = id ? 'update' : 'create';
+    $.post("{% url 'lecturer_api' %}", {
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+      action,
+      id,
+      payroll_number: $('#payroll_number').val(),
+      name:           $('#name').val(),
+      email:          $('#email').val(),
+      designation:    $('#designation').val(),
+      department:     $('#department').val(),
+    }, function (resp) {
+      if (resp.status === 'success') {
+        location.reload();
+      } else {
+        alert(resp.message || 'Error saving lecturer');
+      }
+    });
+  });
+
+  /* ── CLEAR FORM ── */
+  $('#clearFormBtn').click(function () {
+    $('#lecId').val('');
+    $('#lecturerForm')[0].reset();
+  });
+
+  /* ── EDIT ── */
+  $(document).on('click', '.editBtn', function () {
+    const row = $(this).closest('tr, .lec-card');
+    let id, payroll, name, email, designation, dept;
+
+    if (row.is('tr')) {
+      id          = row.data('id');
+      payroll     = row.find('td:eq(0)').text().trim();
+      name        = row.find('td:eq(1)').text().trim();
+      email       = row.find('td:eq(2)').text().trim();
+      designation = row.find('td:eq(3)').text().trim();
+      dept        = row.data('department');
+    } else {
+      id          = row.data('id');
+      payroll     = row.find('.lec-card-row:eq(0) .lec-card-value').text().trim();
+      name        = row.find('.lec-card-row:eq(1) .lec-card-value').text().trim();
+      email       = row.find('.lec-card-row:eq(2) .lec-card-value').text().trim();
+      designation = row.find('.lec-card-row:eq(3) .lec-card-value').text().trim();
+      dept        = row.data('department');
+    }
+
+    $('#lecId').val(id);
+    $('#payroll_number').val(payroll);
+    $('#name').val(name);
+    $('#email').val(email);
+    $('#designation').val(designation);
+    $('#department').val(dept);
+
+    $('html, body').animate({ scrollTop: $('#lecturerForm').closest('.panel-card').offset().top - 80 }, 400);
+  });
+
+  /* ── DELETE ── */
+  $(document).on('click', '.deleteBtn', function () {
+    if (!confirm('Delete this lecturer?')) return;
+    const row = $(this).closest('tr, .lec-card');
+    const id  = row.data('id');
+    $.post("{% url 'lecturer_api' %}", {
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+      action: 'delete',
+      id
+    }, function (resp) {
+      if (resp.status === 'success') {
+        $(`tr[data-id="${id}"], .lec-card[data-id="${id}"]`).fadeOut(300, function () { $(this).remove(); });
+      } else {
+        alert(resp.message || 'Error deleting lecturer');
+      }
+    });
+  });
+
+});
+</script>
+<script>
+/* lecturer_panel.js */
+$(function () {
+
+  /* ── Wire base search to filter table rows ── */
+  window.onSearch = function (q) {
+    const $rows = $('#lecturerTable tbody tr');
+    $rows.find('mark.search-hit').each(function () { $(this).replaceWith($(this).text()); });
+    if (!q) { $rows.show(); return; }
+    const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    $rows.each(function () {
+      const $tr = $(this);
+      if ($tr.text().toLowerCase().includes(q)) {
+        $tr.show();
+        $tr.find('td').each(function () {
+          const $td = $(this);
+          const raw = $td.text();
+          if (raw.toLowerCase().includes(q)) {
+            $td.html(raw.replace(pattern, m => `<mark class="search-hit">${m}</mark>`));
+          }
+        });
+      } else {
+        $tr.hide();
+      }
+    });
+  };
+
+  window.onSearchClear = function () { $('#lecturerTable tbody tr').show(); };
+
+  /* ── CREATE / UPDATE ── */
+  $('#lecturerForm').submit(function (e) {
+    e.preventDefault();
+    const id = $('#lecId').val();
+    const action = id ? 'update' : 'create';
+    $.post("{% url 'lecturer_api' %}", {
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+      action,
+      id,
+      payroll_number: $('#payroll_number').val(),
+      name:           $('#name').val(),
+      email:          $('#email').val(),
+      designation:    $('#designation').val(),
+      department:     $('#department').val(),
+    }, function (resp) {
+      if (resp.status === 'success') {
+        location.reload();
+      } else {
+        alert(resp.message || 'Error saving lecturer');
+      }
+    });
+  });
+
+  /* ── CLEAR FORM ── */
+  $('#clearFormBtn').click(function () {
+    $('#lecId').val('');
+    $('#lecturerForm')[0].reset();
+  });
+
+  /* ── EDIT ── */
+  $(document).on('click', '.editBtn', function () {
+    const row = $(this).closest('tr, .lec-card');
+    let id, payroll, name, email, designation, dept;
+
+    if (row.is('tr')) {
+      id          = row.data('id');
+      payroll     = row.find('td:eq(0)').text().trim();
+      name        = row.find('td:eq(1)').text().trim();
+      email       = row.find('td:eq(2)').text().trim();
+      designation = row.find('td:eq(3)').text().trim();
+      dept        = row.data('department');
+    } else {
+      id          = row.data('id');
+      payroll     = row.find('.lec-card-row:eq(0) .lec-card-value').text().trim();
+      name        = row.find('.lec-card-row:eq(1) .lec-card-value').text().trim();
+      email       = row.find('.lec-card-row:eq(2) .lec-card-value').text().trim();
+      designation = row.find('.lec-card-row:eq(3) .lec-card-value').text().trim();
+      dept        = row.data('department');
+    }
+
+    $('#lecId').val(id);
+    $('#payroll_number').val(payroll);
+    $('#name').val(name);
+    $('#email').val(email);
+    $('#designation').val(designation);
+    $('#department').val(dept);
+
+    $('html, body').animate({ scrollTop: $('#lecturerForm').closest('.panel-card').offset().top - 80 }, 400);
+  });
+
+  /* ── DELETE ── */
+  $(document).on('click', '.deleteBtn', function () {
+    if (!confirm('Delete this lecturer?')) return;
+    const row = $(this).closest('tr, .lec-card');
+    const id  = row.data('id');
+    $.post("{% url 'lecturer_api' %}", {
+      csrfmiddlewaretoken: '{{ csrf_token }}',
+      action: 'delete',
+      id
+    }, function (resp) {
+      if (resp.status === 'success') {
+        $(`tr[data-id="${id}"], .lec-card[data-id="${id}"]`).fadeOut(300, function () { $(this).remove(); });
+      } else {
+        alert(resp.message || 'Error deleting lecturer');
+      }
+    });
+  });
+
+});
+</script>
+{% endblock extra_js %}

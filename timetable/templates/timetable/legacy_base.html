@@ -1,0 +1,95 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <title>{% block title %}{{ site_settings.university_name|default:"Chuka University" }} · Timetabling &amp; Exams{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ site_settings.tagline|default:"Directorate of Timetabling & Examinations" }} — {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}">
+  <meta name="theme-color" content="#005a48">
+  <link rel="icon" type="image/png" href="{% url 'site_logo' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  {% block page_css %}{% endblock %}
+  {% block extra_css %}{% endblock %}
+  <style>:root{--uni-name:"{{ site_settings.university_name|default:'Chuka University'|escapejs }}"}</style>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{% block navbar %}
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="{% url 'homepage' %}" class="nav-logo" aria-label="{{ site_settings.university_name|default:'Chuka University' }} home">
+    <img src="{% url 'site_logo' %}"
+         alt="{{ site_settings.university_name|default:'Chuka University' }} crest"
+         onerror="this.style.display='none';var f=document.getElementById('nlf');if(f)f.style.display='flex';"
+         class="nav-logo-img">
+    <span class="nav-logo-fallback" id="nlf" aria-hidden="true">{{ site_settings.university_name|default:"CU"|slice:":2"|upper }}</span>
+    <span class="nav-logo-text">
+      <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+      <small>{{ site_settings.tagline|default:"Timetabling &amp; Examinations" }}</small>
+    </span>
+  </a>
+  <div class="nav-links" role="menubar">
+    {% block nav_links %}
+      <a href="{% url 'student_portal' %}" role="menuitem">Programs Timetables</a>
+      <a href="{% url 'staff_portal' %}" class="nav-badge" role="menuitem">
+        <i class="fas fa-lock-open" aria-hidden="true"></i> Staff Login
+      </a>
+    {% endblock %}
+  </div>
+</nav>
+{% endblock navbar %}
+
+{% block content %}{% endblock %}
+{% block quick_bar %}{% endblock %}
+
+{% block footer %}
+<footer class="footer-dark" role="contentinfo">
+  <div class="footer-content">
+
+    <div class="footer-col">
+      <h4>{{ site_settings.university_name|default:"Chuka University" }}</h4>
+      <p>{{ site_settings.tagline|default:"Directorate of Timetabling &amp; Examinations" }} — ensuring academic excellence through efficient planning and examination administration.</p>
+      <div class="social-links" aria-label="Social media">
+        <a href="{{ site_settings.twitter_url|default:'#' }}" {% if site_settings.twitter_url %}target="_blank" rel="noopener"{% endif %} aria-label="Twitter"><i class="fab fa-twitter" aria-hidden="true"></i></a>
+        <a href="{{ site_settings.facebook_url|default:'#' }}" {% if site_settings.facebook_url %}target="_blank" rel="noopener"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f" aria-hidden="true"></i></a>
+        <a href="{{ site_settings.linkedin_url|default:'#' }}" {% if site_settings.linkedin_url %}target="_blank" rel="noopener"{% endif %} aria-label="LinkedIn"><i class="fab fa-linkedin-in" aria-hidden="true"></i></a>
+        {% if site_settings.youtube_url %}<a href="{{ site_settings.youtube_url }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="fab fa-youtube" aria-hidden="true"></i></a>{% endif %}
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Quick Links</h4>
+      <ul>
+        {% block footer_links %}
+          <li><a href="{% url 'student_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Student Portal</a></li>
+          <li><a href="{% url 'staff_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Staff Portal</a></li>
+          <li><a href="/download/latest/regular/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Regular PDF</a></li>
+          <li><a href="/download/latest/exam/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Exam PDF</a></li>
+        {% endblock %}
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4>Contact Us</h4>
+      <ul class="contact-info">
+        <li><i class="fas fa-map-pin" aria-hidden="true"></i> {{ site_settings.contact_location|default:"Science Complex (S102), Main Campus" }}</li>
+        {% if site_settings.contact_email %}<li><i class="fas fa-envelope" aria-hidden="true"></i> <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+        {% if site_settings.contact_phone %}<li><i class="fas fa-phone" aria-hidden="true"></i> {{ site_settings.contact_phone }}</li>{% endif %}
+        <li><i class="fas fa-clock" aria-hidden="true"></i> Mon – Fri: 8:00 AM – 5:00 PM</li>
+      </ul>
+    </div>
+
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Directorate of Timetabling &amp; Examinations.</p>
+    {% if site_settings.website_url %}<a href="{{ site_settings.website_url }}" target="_blank" rel="noopener"><i class="fas fa-globe" aria-hidden="true"></i> Main University Website</a>{% endif %}
+  </div>
+</footer>
+{% endblock footer %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

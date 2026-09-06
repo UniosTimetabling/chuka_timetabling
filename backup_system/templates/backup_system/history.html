@@ -1,0 +1,112 @@
+{% extends "backup_system/base.html" %}
+{% block title %}Backup History{% endblock %}
+{% block breadcrumb_current %}Backup History{% endblock %}
+
+{% block backup_content %}
+
+<div class="bk-header">
+  <h1>Backup History</h1>
+  <p>Browse all backup jobs with filtering by type and status.</p>
+</div>
+
+<div class="bk-card">
+  <div class="bk-card-head">All Backups</div>
+  <div class="bk-card-body">
+
+    <!-- Filters -->
+    <form method="get" style="margin-bottom:1.2rem;">
+      <div class="bk-grid-2" style="max-width:560px;">
+        <div>
+          <label class="bk-label">Type</label>
+          <select name="type" class="bk-select" onchange="this.form.submit()">
+            <option value="">All Types</option>
+            <option value="database" {% if request.GET.type == 'database' %}selected{% endif %}>Database</option>
+            <option value="files"    {% if request.GET.type == 'files'    %}selected{% endif %}>Files</option>
+            <option value="full"     {% if request.GET.type == 'full'     %}selected{% endif %}>Full</option>
+            <option value="config"   {% if request.GET.type == 'config'   %}selected{% endif %}>Configuration</option>
+          </select>
+        </div>
+        <div>
+          <label class="bk-label">Status</label>
+          <select name="status" class="bk-select" onchange="this.form.submit()">
+            <option value="">All Statuses</option>
+            <option value="success" {% if request.GET.status == 'success' %}selected{% endif %}>Success</option>
+            <option value="failed"  {% if request.GET.status == 'failed'  %}selected{% endif %}>Failed</option>
+            <option value="running" {% if request.GET.status == 'running' %}selected{% endif %}>Running</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    <div class="bk-table-wrap">
+      <table class="bk-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Size</th>
+            <th>Checksum</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ job.backup_type }}</td>
+            <td>
+              {% if job.status == 'success' %}<span class="bk-badge bk-badge-success">Success</span>
+              {% elif job.status == 'failed'  %}<span class="bk-badge bk-badge-failed">Failed</span>
+              {% elif job.status == 'running' %}<span class="bk-badge bk-badge-running">Running</span>
+              {% else %}<span class="bk-badge bk-badge-pending">{{ job.status }}</span>{% endif %}
+            </td>
+            <td>{{ job.compressed_size|filesizeformat }}</td>
+            <td><code>{{ job.checksum_sha256|slice:":12" }}...</code></td>
+            <td>
+              {% if job.status == 'success' %}
+                <a href="{% url 'backup_system:download_backup' job.id %}" class="bk-btn bk-btn-secondary bk-btn-sm">Download</a>
+                <button class="bk-btn bk-btn-secondary bk-btn-sm" onclick="verifyBackup({{ job.id }}, this)">Verify</button>
+                {% if can_restore %}
+                <form method="post" action="{% url 'backup_system:restore_backup' job.id %}" style="display:inline;"
+                  onsubmit="return confirm('Restore from this backup? This operation is logged and cannot be undone.');">
+                  {% csrf_token %}
+                  <button class="bk-btn bk-btn-primary bk-btn-sm">Restore</button>
+                </form>
+                <form method="post" action="{% url 'backup_system:delete_backup' job.id %}" style="display:inline;"
+                  onsubmit="return confirm('Permanently delete this backup file?');">
+                  {% csrf_token %}
+                  <button class="bk-btn bk-btn-danger bk-btn-sm">Delete</button>
+                </form>
+                {% endif %}
+              {% else %}
+                <span class="muted" style="font-size:.78rem;">{{ job.error_message|truncatechars:40 }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="muted" style="padding:1.2rem .9rem;">No backup records found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function verifyBackup(id, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+  fetch(`/backup/history/${id}/verify/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''}
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert(data.message);
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+  });
+}
+</script>
+{% endblock %}

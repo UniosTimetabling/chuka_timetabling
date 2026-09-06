@@ -1,0 +1,311 @@
+/*
+ * odel_system_odel_system_allocation_page.css
+ * Extracted from: odel_system/templates/odel_system/allocation_page.html
+ */
+
+/* ═══════════════════════════════════════
+     ODEL PAGE — LOCAL STYLES
+     (all base tokens & components inherited)
+  ═══════════════════════════════════════ */
+
+  /* Main two-column layout */
+  .odel-main {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    padding: 20px;
+    flex: 1;
+    width: 100%;
+    align-items: start;
+  }
+
+  /* Scrollable panel cards */
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 220px);
+    min-height: 500px;
+    overflow: hidden;
+  }
+
+  .panel-card__head {
+    padding: 14px 20px;
+    border-bottom: 2px solid var(--border-light);
+    background: linear-gradient(100deg, var(--navy-50), var(--green-20));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .panel-card__head h2 {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--navy-700);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-card__body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .panel-card__body::-webkit-scrollbar { width: 6px; }
+  .panel-card__body::-webkit-scrollbar-track { background: var(--border-light); border-radius: 3px; }
+  .panel-card__body::-webkit-scrollbar-thumb { background: var(--navy-400); border-radius: 3px; }
+  .panel-card__body::-webkit-scrollbar-thumb:hover { background: var(--navy-600); }
+
+  /* ── Submission / Bulk Bar ── */
+  .submission-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin: 16px 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .submission-title {
+    font-weight: 700;
+    color: var(--navy-700);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+
+  .toggle-container {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+  }
+
+  .toggle-item label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--text-mid);
+    margin: 0;
+  }
+
+  .toggle-item input[type="checkbox"] {
+    width: 16px; height: 16px;
+    cursor: pointer;
+    accent-color: var(--navy-500);
+  }
+
+  .toggle-item .count {
+    background: var(--navy-100);
+    color: var(--navy-600);
+    border: 1px solid var(--navy-300);
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .toggle-all-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: var(--green-50);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--green-300);
+  }
+
+  .toggle-all-checkbox label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--green-600);
+    margin: 0;
+  }
+
+  .toggle-all-checkbox input[type="checkbox"] {
+    width: 16px; height: 16px;
+    cursor: pointer;
+    accent-color: var(--green-500);
+  }
+
+  .toggle-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  /* ── Selection Info Bar ── */
+  .selection-info {
+    background: var(--green-50);
+    border: 1px solid var(--green-200);
+    border-radius: var(--radius-sm);
+    padding: 9px 20px;
+    margin: 10px 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+  }
+
+  .selection-count { font-weight: 700; color: var(--green-600); }
+
+  .clear-selection {
+    color: var(--danger);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.85rem;
+  }
+  .clear-selection:hover { color: #8b1a12; }
+
+  /* ── Form styling (inside panel) ── */
+  .odel-form { display: flex; flex-direction: column; gap: 16px; }
+
+  .odel-form .form-group { margin-bottom: 0; }
+
+  /* ── Stats strip (inside form panel) ── */
+  .stats-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .stat-mini {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    
+  }
+
+  .stat-mini.orange { border-top-color: var(--orange-400); }
+  .stat-mini.navy   { border-top-color: var(--navy-400); }
+  .stat-mini.red    { border-top-color: var(--danger); }
+
+  .stat-mini small {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-muted);
+  }
+
+  .stat-mini h4 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--navy-700);
+    line-height: 1;
+    margin: 4px 0 0;
+  }
+
+  .stat-mini.orange h4 { color: var(--orange-500); }
+  .stat-mini.navy h4   { color: var(--navy-500); }
+  .stat-mini.red h4    { color: var(--danger); }
+
+  /* ── Filter row (above table) ── */
+  .filter-row {
+    padding: 0 20px 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--surface);
+  }
+
+  /* ── Table overrides using base data-table ── */
+  .table-container {
+    overflow-x: auto;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-top: 12px;
+  }
+
+  /* Status badges — use base .badge classes but add ODEL-specific variants */
+  .status-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .02em;
+  }
+
+  .status-pending   { background: #fef3c7; color: #92400e; }
+  .status-approved  { background: var(--green-100); color: var(--green-600); border: 1px solid var(--green-200); }
+  .status-rejected  { background: #fff0ee; color: var(--danger); border: 1px solid #f5b5b0; }
+  .status-timetable { background: var(--navy-100); color: var(--navy-500); border: 1px solid #a4c0e8; }
+
+  /* Checkbox column */
+  .checkbox-column { width: 40px; text-align: center; }
+  .row-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--navy-500); }
+
+  /* Search hit highlight */
+  mark.search-hit {
+    background: var(--orange-100);
+    color: var(--orange-600);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+
+  .scroll-target { outline: 3px solid var(--navy-400); transition: outline 0.6s ease; }
+
+  /* ── Modal overrides to match base theme ── */
+  .modal-content { border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+  .modal-header {
+    background: var(--navy-800);
+    color: #fff;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 3px solid var(--orange-400);
+  }
+
+  .modal-header .btn-close { filter: brightness(0) invert(1); }
+  .modal-footer { border-top: 1px solid var(--border-light); }
+
+  /* ── Responsive ── */
+  @media (max-width: 1200px) {
+    .odel-main { grid-template-columns: 1fr 1.5fr; }
+  }
+
+  @media (max-width: 1024px) {
+    .odel-main { grid-template-columns: 1fr; }
+    .panel-card { height: auto; max-height: 60vh; min-height: 400px; }
+  }
+
+  @media (max-width: 768px) {
+    .odel-main { padding: 10px; gap: 12px; }
+    .submission-bar { margin: 10px; flex-direction: column; align-items: flex-start; }
+    .toggle-actions { margin-left: 0; width: 100%; }
+    .toggle-actions .btn { flex: 1; }
+  }

@@ -1,0 +1,682 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Student Portal · {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}
+
+{% block body_class %}page-public page-student{% endblock %}
+
+{% block nav_links %}
+ <a href="{% url 'view_timetable' %}">Timetables</a>
+ <a href="{% url 'view_timetable' %}">Examinations</a>
+ <a href="/classrep/login/">Class Reps</a>
+ <a href="/feedback/" class="nav-badge">Feedback</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ══════════════════════════════════════════════════════════
+   FIXED/STICKY LEFT SIDEBAR (desktop only)
+   ══════════════════════════════════════════════════════════ */
+@media(min-width:1025px){
+  .page-student .sidebar-brand{
+    position:fixed;
+    top:24px;
+    left:1.8rem;
+    z-index:220;
+    margin:0;
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .page-student.hy-nav-scrolled .sidebar-brand{
+    opacity:0;
+    transform:translateY(-6px);
+    pointer-events:none;
+  }
+  .page-student .portal-sidebar--left{
+    padding-top:110px;
+  }
+  .sidebar-sticky-inner{
+    position:sticky;
+    top:176px;
+    max-height:calc(100vh - 176px);
+    overflow-y:auto;
+    scrollbar-width:thin;
+    padding-bottom:1.5rem;
+  }
+  .sidebar-sticky-inner .sidebar-links a:not(.sidebar-link--cta){
+    padding: clamp(9px, 1.6vh, 14px) 0;
+  }
+  .sidebar-sticky-inner .sidebar-links-title{margin-bottom:clamp(.5rem,1.4vh,.9rem);}
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCROLL-AWARE FLOATING NAVBAR (desktop only)
+   ══════════════════════════════════════════════════════════ */
+@media(min-width:1025px){
+  .page-student .navbar{
+    transition: margin .4s cubic-bezier(.4,0,.2,1), width .4s cubic-bezier(.4,0,.2,1),
+                top .4s cubic-bezier(.4,0,.2,1), border-radius .4s cubic-bezier(.4,0,.2,1),
+                box-shadow .4s cubic-bezier(.4,0,.2,1), background-color .4s ease;
+  }
+  .page-student .navbar.navbar--floating{
+    top:14px;
+    margin-left:284px;
+    margin-right:24px;
+    width:calc(100% - 284px - 24px);
+    border-radius:999px;
+    border-bottom-color:transparent;
+    box-shadow:0 10px 30px rgba(20,40,38,.14);
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(10px);
+    justify-content:space-between;
+  }
+  .page-student .navbar.navbar--floating .nav-logo{
+    display:flex !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   YELLOW/INK PALETTE — matching homepage
+   ══════════════════════════════════════════════════════════ */
+.page-student{
+  --hy-yellow: #f4e04d;
+  --hy-yellow-deep: #e6cf2e;
+  --hy-ink: #15130f;
+  --hy-paper: #f3f2ec;
+  --hy-line: #e6e3d8;
+  --hy-muted: #6f6a5e;
+}
+body.page-student{ background:var(--hy-paper); }
+
+/* ── Navbar ── */
+.page-student .navbar{ background:#fff; border-bottom:1px solid var(--hy-line); box-shadow:none; }
+.page-student .navbar.navbar--floating{ background:rgba(255,255,255,.96); }
+.page-student .nav-links a{ color:var(--hy-ink); font-weight:600; }
+.page-student .nav-links a:not(.nav-badge):hover{ color:var(--hy-yellow-deep); }
+.page-student .nav-badge{
+  background:var(--hy-yellow) !important; color:var(--hy-ink) !important;
+  border-radius:999px; padding:.65rem 1.5rem; font-weight:800; border:none;
+}
+.page-student .nav-badge:hover{ background:var(--hy-yellow-deep) !important; }
+
+/* ── Left sidebar ── */
+.page-student .portal-sidebar--left{ background:#fff; border-color:var(--hy-line); }
+.page-student .sidebar-brand strong{ color:var(--hy-ink); }
+.page-student .sidebar-tagline{ color:var(--hy-muted); font-weight:600; }
+.page-student .sidebar-links-title{ color:var(--hy-ink); }
+.page-student .sidebar-links a:not(.sidebar-link--cta){
+  color:var(--hy-ink); text-decoration:none; border-bottom:1px solid var(--hy-line); font-weight:700;
+}
+.page-student .sidebar-links a:not(.sidebar-link--cta):hover{
+  color:var(--hy-yellow-deep); padding-left:4px; border-bottom-color:var(--hy-yellow);
+}
+.page-student .sidebar-links a.sidebar-link--cta{ background:var(--hy-ink); color:#fff; border-radius:999px; }
+.page-student .sidebar-links a.sidebar-link--cta:hover{ background:var(--hy-yellow); color:var(--hy-ink); }
+.sidebar-links a .sidebar-link-pdf{ color:#e2211c; font-size:.95em; margin-right:8px; width:1em; text-align:center; }
+
+/* ── Hero: split copy/visual layout matching homepage ── */
+.page-student .hero-full--with-bar{
+  background:var(--hy-paper); padding:3rem 3rem 2rem;
+  display:block !important; min-height:0 !important; max-height:none !important;
+}
+.hy-hero-grid{
+  display:grid; grid-template-columns:minmax(320px,460px) 1fr; gap:3rem; align-items:stretch;
+  max-width:1280px; margin:0 auto; position:relative;
+}
+.hy-hero-label{
+  font-size:.74rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--hy-yellow-deep); margin-bottom:1rem; display:block;
+}
+.hy-hero-title{
+  font-family:var(--font-display); font-weight:800; font-size:clamp(2.6rem,5vw,3.6rem);
+  line-height:1.05; color:var(--hy-ink); margin-bottom:1.4rem;
+}
+.hy-hero-sub{ font-size:1.02rem; color:var(--hy-muted); line-height:1.6; max-width:420px; margin-bottom:2rem; }
+.hy-hero-buttons{ display:flex; align-items:center; gap:1.4rem; flex-wrap:wrap; }
+.hy-hero-buttons .hy-btn-fill{
+  background:var(--hy-yellow) !important; color:var(--hy-ink) !important; border:none !important;
+  padding:1rem 1.8rem; border-radius:10px; font-weight:800;
+}
+.hy-hero-buttons .hy-btn-fill:hover{ background:var(--hy-yellow-deep) !important; }
+.hy-hero-buttons .hy-btn-link{
+  background:none !important; border:none !important; color:var(--hy-ink) !important;
+  text-decoration:underline; text-underline-offset:4px; font-weight:700; padding:0 !important;
+  display:inline-flex; align-items:center; gap:8px;
+}
+.hy-hero-visual{ position:relative; height:100%; min-height:280px; }
+.hy-hero-visual .hero-carousel, .hy-hero-visual .hero-static{
+  position:absolute !important; inset:0 !important; top:0 !important; right:0 !important;
+  bottom:0 !important; left:0 !important; width:100% !important; height:100% !important;
+  border-radius:28px; border:5px solid var(--hy-yellow);
+  overflow:hidden !important;
+}
+.hy-hero-visual .hero-slide::before,
+.hy-hero-visual .hero-static::before{ content:none; display:none; }
+.hy-hero-bite{
+  position:absolute; z-index:4;
+  width:52%; height:52%; border-radius:50%;
+  background:var(--hy-paper);
+  pointer-events:none;
+}
+.hy-hero-bite--tl{ top:-14%; left:-14%; }
+.hy-hero-bite--tr{ top:-14%; right:-14%; }
+@media(max-width:640px){
+  .hy-hero-bite{ width:40%; height:40%; }
+  .hy-hero-bite--tl,.hy-hero-bite--tr{ top:-10%; }
+  .hy-hero-bite--tl{ left:-10%; }
+  .hy-hero-bite--tr{ right:-10%; }
+}
+@media(max-width:1024px){
+  .hy-hero-grid{ grid-template-columns:1fr; }
+  .hy-hero-visual{ min-height:340px; height:340px; margin-top:1.5rem; }
+}
+@media(max-width:640px){
+  .page-student .hero-full--with-bar{ padding:2rem 1.2rem 1.5rem; }
+  .hy-hero-title{ font-size:2.1rem; }
+}
+
+/* ── Quick access grid ── */
+.page-student .quick-access-row{ 
+  background:#fff; 
+  border-bottom:1px solid var(--hy-line);
+  margin:0 !important;
+  position:relative !important;
+  z-index:auto !important;
+  padding:1.5rem;
+}
+.page-student .quick-card-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:12px;
+  max-width:1200px;
+  margin:0 auto;
+}
+.page-student .quick-btn-grid-item {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:12px 16px;
+  font-size:0.88rem;
+  font-weight:600;
+  text-decoration:none !important;
+  border-radius:8px;
+  transition:all 0.2s ease;
+  text-align:center;
+}
+.page-student .quick-btn-main{ background:var(--hy-ink); color:#fff !important; }
+.page-student .quick-btn-main:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink) !important; }
+.page-student .quick-btn-secondary{ background:#fff; color:var(--hy-ink) !important; border:1px solid var(--hy-line); }
+.page-student .quick-btn-secondary:hover{ background:var(--hy-paper); border-color:var(--hy-yellow); }
+.page-student .quick-btn-warning{ background:var(--hy-yellow); color:var(--hy-ink) !important; border:none; }
+.page-student .quick-btn-warning:hover{ background:var(--hy-yellow-deep); }
+
+/* ── Resources section ── */
+.page-student .resource-section { background:#fff; padding:4rem 0; }
+.page-student .resource-section-inner { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+.page-student .resource-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+  gap:1.5rem;
+}
+.page-student .theme-card {
+  background:var(--hy-paper);
+  border-radius:12px;
+  padding:1.8rem;
+  border:1px solid var(--hy-line);
+  transition:transform .2s ease, box-shadow .2s ease;
+  display:flex;
+  flex-direction:column;
+  height:100%;
+}
+.page-student .theme-card:hover {
+  transform:translateY(-4px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.08);
+}
+.page-student .theme-card h4{ color:var(--hy-ink); margin-top:0; }
+.page-student .theme-card p{ color:var(--hy-muted); font-size:.92rem; line-height:1.5; flex:1; }
+.page-student .card-min-icon {
+  background:var(--hy-yellow);
+  color:var(--hy-ink);
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.2rem;
+  margin-bottom:1rem;
+}
+.page-student .btn-card {
+  display:block;
+  padding:10px 16px;
+  border-radius:8px;
+  font-weight:600;
+  font-size:.9rem;
+  text-decoration:none;
+  color:#fff;
+  background:var(--hy-ink);
+  border:none;
+  transition:background .2s ease;
+}
+.page-student .btn-card:hover { background:var(--hy-yellow-deep); color:var(--hy-ink); }
+
+/* ── Section eyebrow ── */
+.page-student .section-eyebrow {
+  display:block;
+  font-size:.74rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--hy-yellow-deep);
+  margin-bottom:.5rem;
+}
+.page-student .section-title { color:var(--hy-ink); font-size:2rem; font-weight:800; margin-bottom:1.5rem; }
+.page-student .section-title--center { text-align:center; }
+.page-student .section-title--light { color:#fff; }
+
+/* ── About section ── */
+.page-student .about-section { background:#fff; padding:4rem 0; border-top:1px solid var(--hy-line); }
+.page-student .about-section-inner { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+.page-student .about-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:3rem;
+  align-items:center;
+}
+.page-student .about-text .lead { font-size:1.1rem; color:var(--hy-muted); }
+.page-student .about-text p { color:var(--hy-muted); line-height:1.7; }
+.page-student .about-image img {
+  width:100%;
+  height:320px;
+  object-fit:cover;
+  border-radius:16px;
+  border:4px solid var(--hy-yellow);
+}
+@media(max-width:768px){ .page-student .about-grid{ grid-template-columns:1fr; } }
+
+/* ── Feedback blue wrapper ── */
+.page-student .wrapper-feedback-blue { background:var(--hy-ink); padding:4rem 0; }
+.page-student .wrapper-feedback-blue .container-custom { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+.page-student .feedback-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+  gap:2rem;
+}
+.page-student .feedback-item {
+  background:#fff;
+  border-radius:12px;
+  padding:2rem 1.5rem;
+  text-align:center;
+  border:1px solid var(--hy-line);
+  transition:transform .2s ease;
+}
+.page-student .feedback-item:hover { transform:translateY(-4px); }
+.page-student .feedback-item h4{ color:var(--hy-ink); margin:1rem 0 .5rem; }
+.page-student .feedback-item p{ color:var(--hy-muted); font-size:.9rem; line-height:1.5; }
+.page-student .feedback-item-icon {
+  background:var(--hy-yellow);
+  color:var(--hy-ink);
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.2rem;
+  margin:0 auto;
+}
+.page-student .btn-feedback-blue { background:var(--hy-yellow); color:var(--hy-ink); border:none; padding:10px 24px; border-radius:8px; font-weight:600; text-decoration:none; display:inline-block; transition:background .2s ease; }
+.page-student .btn-feedback-blue:hover { background:var(--hy-yellow-deep); }
+.page-student .btn-blue { background:var(--hy-yellow); color:var(--hy-ink); border:none; padding:12px 36px; border-radius:8px; font-weight:700; text-decoration:none; display:inline-block; transition:background .2s ease; }
+.page-student .btn-blue:hover { background:var(--hy-yellow-deep); }
+
+/* ── Feedback sidebar ── */
+.page-student .portal-sidebar--right{ background:#fff; border-color:var(--hy-line); }
+.page-student .portal-sidebar--right h3{ color:var(--hy-ink); }
+.page-student .btn-sidebar-feedback{ background:var(--hy-ink); color:#fff; padding:10px 20px; border-radius:8px; text-decoration:none; display:inline-block; font-weight:600; transition:background .2s ease; }
+.page-student .btn-sidebar-feedback:hover{ background:var(--hy-yellow); color:var(--hy-ink); }
+.page-student .sidebar-contact-list{ list-style:none; padding:0; }
+.page-student .sidebar-contact-list li{ padding:6px 0; color:var(--hy-muted); display:flex; align-items:center; gap:10px; }
+.page-student .sidebar-contact-list i{ color:var(--hy-yellow-deep); width:20px; text-align:center; }
+
+/* ── Quick downloads bottom bar ── */
+.page-student .quick-group,.page-student .download-flex{ background:#fff; border-color:var(--hy-line); }
+.page-student .quick-item,.page-student .download-item{ background:var(--hy-paper); border-color:var(--hy-line); color:var(--hy-ink); font-weight:600; }
+.page-student .quick-item:hover,.page-student .download-item:hover{ background:var(--hy-paper); border-color:var(--hy-yellow); color:var(--hy-yellow-deep); }
+
+/* ── Footer ── */
+.page-student footer.footer-dark{
+  background:var(--hy-ink) !important;
+  border-top:4px solid var(--hy-yellow) !important;
+}
+.page-student footer.footer-dark::before{ background:var(--hy-yellow) !important; height:4px; }
+.page-student .footer-col h4{ color:#fff; border-bottom:2px solid var(--hy-yellow); padding-bottom:14px; font-weight:800; }
+.page-student .footer-col p{ color:rgba(255,255,255,.68); }
+.page-student .footer-col ul li a i{ color:var(--hy-yellow); }
+.page-student .footer-col ul li a:hover{ color:var(--hy-yellow); }
+.page-student .footer-links-list li{ border-bottom:1px solid rgba(255,255,255,.12); }
+.page-student .footer-col ul.contact-info li i{ color:var(--hy-yellow); }
+.page-student .social-links a{ border-radius:999px; width:38px; height:38px; background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14); }
+.page-student .social-links a:hover{ background:var(--hy-yellow) !important; color:var(--hy-ink) !important; border-color:var(--hy-yellow) !important; }
+.page-student .footer-bottom{ border-top-color:rgba(255,255,255,.12); color:rgba(255,255,255,.4); }
+.page-student .footer-bottom a:hover{ color:var(--hy-yellow); }
+
+/* ── Floating widget ── */
+.page-student #cu-feedback-widget .cu-fb-trigger{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-trigger:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-header{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-msg-icon{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-msg.user .cu-fb-msg-icon{ background:var(--hy-yellow); color:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-msg.bot .cu-fb-bubble{ background:var(--hy-paper); border-color:var(--hy-line); color:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-msg.user .cu-fb-bubble{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-input:focus{ border-color:var(--hy-yellow-deep); }
+.page-student #cu-feedback-widget .cu-fb-send{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-send:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-contact-form{ background:var(--hy-paper); border-color:var(--hy-line); }
+.page-student #cu-feedback-widget .cu-fb-contact-form input:focus,
+.page-student #cu-feedback-widget .cu-fb-contact-form textarea:focus{ border-color:var(--hy-yellow-deep); }
+.page-student #cu-feedback-widget .cu-fb-submit-btn{ background:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-submit-btn:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-student #cu-feedback-widget .cu-fb-typing span{ background:var(--hy-yellow-deep); }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="portal-shell">
+
+<aside class="portal-sidebar portal-sidebar--left" aria-label="Student quick links">
+ <a href="{% url 'homepage' %}" class="sidebar-brand" aria-label="{{ site_settings.university_name|default:'Chuka University' }} home">
+  <img src="{% url 'site_logo' %}" alt="{{ site_settings.university_name|default:'Chuka University' }} crest"
+   onerror="this.style.display='none';">
+  <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+  <span class="sidebar-tagline">Excellence in Learning</span>
+ </a>
+ <div class="sidebar-sticky-inner">
+ <nav class="sidebar-links">
+  <span class="sidebar-links-title">Quick Downloads</span>
+  <a href="{% url 'latest_download_redirect' 'regular' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Regular Timetable</a>
+  <a href="{% url 'latest_download_redirect' 'exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Exam Timetable</a>
+  <a href="{% url 'latest_download_redirect' 'campus_class' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Campus Regular</a>
+  <a href="{% url 'latest_download_redirect' 'campus_exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Campus Exam</a>
+  <a href="{% url 'latest_download_redirect' 'odel_class' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> ODEL Regular</a>
+  <a href="{% url 'latest_download_redirect' 'odel_exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> ODEL Exam</a>
+  <a href="{% url 'latest_download_redirect' 'resit' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Resit Timetable</a>
+  <a href="/classrep/login/" class="sidebar-link--cta"><i class="fas fa-id-badge" aria-hidden="true"></i> Class Rep Login</a>
+ </nav>
+ </div>
+</aside>
+
+<div class="portal-main">
+
+<!-- PORTAL HERO -->
+<section class="hero-full hero-full--with-bar hy-hero" aria-label="Student portal hero">
+<div class="hy-hero-grid">
+
+ <div class="hy-hero-copy">
+  <h1 class="hy-hero-title">Student Timetabling &amp; Examinations</h1>
+  <div class="hero-buttons hy-hero-buttons">
+   <a href="{% url 'view_timetable' %}" class="btn-white hy-btn-fill">View Interactive Timetable</a>
+   <a href="/classrep/login/" class="btn-outline-white hy-btn-link"><i class="fas fa-id-badge" aria-hidden="true"></i> Class Rep Login</a>
+  </div>
+ </div>
+
+ <div class="hy-hero-visual">
+{% if carousel_photos %}
+ {% with carousel_photos|first as hp %}{% if hp.id %}
+ <div class="hero-static js-slide"
+ data-src="/site/photo/{{ hp.id }}/"
+ data-fallback="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1950&q=80"></div>
+ {% else %}
+ <div class="hero-static" style="background-image: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1950&q=80'); background-size: cover; background-position: center;"></div>
+ {% endif %}{% endwith %}
+{% else %}
+ <div class="hero-static" style="background-image: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1950&q=80'); background-size: cover; background-position: center;"></div>
+{% endif %}
+  <div class="hy-hero-bite hy-hero-bite--tl" aria-hidden="true"></div>
+  <div class="hy-hero-bite hy-hero-bite--tr" aria-hidden="true"></div>
+ </div>
+
+</div>
+
+<!-- QUICK ACCESS GRID -->
+<div class="quick-access-row">
+ <div class="quick-card-grid">
+  <a href="{% url 'view_timetable' %}" class="quick-btn-grid-item quick-btn-main">
+    <i class="fas fa-calendar-alt"></i> Interactive Matrix
+  </a>
+  <a href="{% url 'latest_download_redirect' 'regular' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-file-pdf"></i> Regular Timetable PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'exam' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-file-invoice"></i> Exam Timetable PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'campus_class' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-building"></i> Campus Regular PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'campus_exam' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-building"></i> Campus Exam PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'odel_class' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-laptop"></i> ODEL Regular PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'odel_exam' %}" class="quick-btn-grid-item quick-btn-secondary">
+    <i class="fas fa-desktop"></i> ODEL Exam PDF
+  </a>
+  <a href="{% url 'latest_download_redirect' 'resit' %}" class="quick-btn-grid-item quick-btn-warning">
+    <i class="fas fa-redo-alt"></i> Resit Timetable PDF
+  </a>
+ </div>
+</div>
+
+</section>
+
+<!-- RESOURCES SECTION -->
+<div class="resource-section">
+ <div class="resource-section-inner">
+ <span class="section-eyebrow">Student Services</span>
+ <h2 class="section-title">Timetabling Resources</h2>
+ <div class="resource-grid">
+
+ <div class="theme-card">
+ <div class="card-min-icon"><i class="fas fa-table" aria-hidden="true"></i></div>
+ <h4>Programme Timetables</h4>
+ <p>Undergraduate and postgraduate teaching schedules for all main campus and branch departments, updated each semester.</p>
+ <div style="display:flex; flex-direction:column; gap:8px; margin-top:auto;">
+   <a href="{% url 'latest_download_redirect' 'regular' %}" class="btn-card" style="background:var(--hy-ink); text-align:center;"><i class="fas fa-download"></i> Main Campus PDF</a>
+   <a href="{% url 'latest_download_redirect' 'campus_class' %}" class="btn-card" style="background:var(--hy-ink); text-align:center;"><i class="fas fa-download"></i> Branches PDF</a>
+ </div>
+ </div>
+
+ <div class="theme-card">
+ <div class="card-min-icon"><i class="fas fa-pen-to-square" aria-hidden="true"></i></div>
+ <h4>Examination Timetables</h4>
+ <p>Semester exam dates, venues, and allocations. Download the combined lists or specialized resit files below.</p>
+ <div style="display:flex; flex-direction:column; gap:8px; margin-top:auto;">
+   <a href="{% url 'latest_download_redirect' 'exam' %}" class="btn-card" style="background:var(--hy-ink); text-align:center;"><i class="fas fa-download"></i> Regular Exam PDF</a>
+   <a href="{% url 'latest_download_redirect' 'resit' %}" class="btn-card" style="background:var(--hy-yellow); color:var(--hy-ink); text-align:center;"><i class="fas fa-redo-alt"></i> Resit Exam PDF</a>
+ </div>
+ </div>
+
+ <div class="theme-card">
+ <div class="card-min-icon"><i class="fas fa-laptop" aria-hidden="true"></i></div>
+ <h4>ODEL E-Learning Portals</h4>
+ <p>Specialized teaching plans and online examination metrics mapped out specifically for distance learning schedules.</p>
+ <div style="display:flex; flex-direction:column; gap:8px; margin-top:auto;">
+   <a href="{% url 'latest_download_redirect' 'odel_class' %}" class="btn-card" style="background:var(--hy-ink); text-align:center;"><i class="fas fa-download"></i> ODEL Teaching PDF</a>
+   <a href="{% url 'latest_download_redirect' 'odel_exam' %}" class="btn-card" style="background:var(--hy-ink); text-align:center;"><i class="fas fa-download"></i> ODEL Exam PDF</a>
+ </div>
+ </div>
+
+ <div class="theme-card">
+ <div class="card-min-icon"><i class="fas fa-users" aria-hidden="true"></i></div>
+ <h4>Class Rep Tools</h4>
+ <p>Submit feedback, flag class conflicts, verify room double-bookings, and coordinate updates with the office directly.</p>
+ <a href="/classrep/login/" class="btn-card" style="text-align:center; margin-top:auto;"><i class="fas fa-id-badge"></i> Rep Dashboard Login</a>
+ </div>
+
+ </div>
+ </div>
+</div>
+
+</div><!-- /.portal-main -->
+
+<aside class="portal-sidebar portal-sidebar--right" aria-label="Feedback">
+ <div>
+  <h3>Questions or Feedback?</h3>
+  <p>Report a timetable clash, ask about exam arrangements, or reach the Class Rep desk.</p>
+  <a href="/feedback/" class="btn-sidebar-feedback"><i class="fas fa-paper-plane" aria-hidden="true"></i> Submit Feedback</a>
+ </div>
+ <div class="sidebar-divider"></div>
+ <div>
+  <h3 style="font-size:1rem;">Need Help?</h3>
+  <ul class="sidebar-contact-list">
+   <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i>{{ site_settings.contact_location|default:"Science Complex (S102), Main Campus" }}</li>
+   {% if site_settings.contact_email %}<li><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:{{ site_settings.contact_email }}" style="color:inherit;">{{ site_settings.contact_email }}</a></li>{% endif %}
+   <li><i class="fas fa-clock" aria-hidden="true"></i>Mon – Fri, 8:00 AM – 5:00 PM</li>
+  </ul>
+ </div>
+</aside>
+
+</div><!-- /.portal-shell -->
+
+<!-- ABOUT SECTION -->
+<div class="about-section" id="aboutSection">
+ <div class="about-section-inner">
+ <div class="about-grid">
+ <div class="about-text">
+ <h2 class="section-title" style="text-align:left;">About the Timetabling Portal</h2>
+ <p class="lead">Designed to give students quick access to accurate scheduling information.</p>
+ <p>The Directorate of Timetabling &amp; Examinations ensures all teaching and examination schedules are planned efficiently. This portal provides personalised timetables, examination updates, and a direct channel to class representatives for any scheduling concerns.</p>
+ </div>
+ <div class="about-image">
+ {% if carousel_photos|length >= 2 and carousel_photos.1.id %}
+ <img src="/site/photo/{{ carousel_photos.1.id }}/"
+ alt="{{ carousel_photos.1.alt_text|default:'Students at the university' }}"
+ onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1350&q=80';">
+ {% elif carousel_photos|length >= 1 and carousel_photos.0.id %}
+ <img src="/site/photo/{{ carousel_photos.0.id }}/"
+ alt="{{ carousel_photos.0.alt_text|default:'Students at the university' }}"
+ onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1350&q=80';">
+ {% else %}
+ <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1350&q=80"
+ alt="Students planning their schedule">
+ {% endif %}
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- FEEDBACK SECTION -->
+<div class="wrapper-feedback-blue">
+ <div class="container-custom">
+ <span class="section-eyebrow" style="display:block;text-align:center;color:var(--hy-yellow);">Support</span>
+ <h2 class="section-title section-title--center section-title--light">Feedback &amp; Support</h2>
+ <div class="feedback-grid">
+
+ <div class="feedback-item">
+ <div class="feedback-item-icon"><i class="fas fa-flag" aria-hidden="true"></i></div>
+ <h4>Timetable Issue</h4>
+ <p>Report collisions, missing lectures, or venue conflicts to the timetabling office.</p>
+ <a href="/feedback/?type=timetable" class="btn-feedback-blue">Report</a>
+ </div>
+
+ <div class="feedback-item">
+ <div class="feedback-item-icon"><i class="fas fa-question" aria-hidden="true"></i></div>
+ <h4>Exam Inquiry</h4>
+ <p>Questions about exam scheduling, clashes, or special needs arrangements.</p>
+ <a href="/feedback/?type=exam" class="btn-feedback-blue">Ask</a>
+ </div>
+
+ <div class="feedback-item">
+ <div class="feedback-item-icon"><i class="fas fa-comment" aria-hidden="true"></i></div>
+ <h4>General Feedback</h4>
+ <p>Suggestions to improve the timetabling portal and the overall student experience.</p>
+ <a href="/feedback/" class="btn-feedback-blue">Share</a>
+ </div>
+
+ </div>
+ <div style="text-align:center;margin-top:3.5rem;">
+ <a href="/feedback/" class="btn-blue" style="font-size:.96rem;padding:.9rem 3rem;">Contact Timetabling Office</a>
+ </div>
+ </div>
+</div>
+
+{% endblock content %}
+
+{% block quick_bar %}
+<div class="quick-downloads">
+ <div class="download-flex">
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'regular' %}">Regular PDF</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'exam' %}">Exam PDF</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'campus_class' %}">Campus Regular</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'campus_exam' %}">Campus Exam</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'odel_class' %}">ODEL Regular</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'odel_exam' %}">ODEL Exam</a></span>
+ <span class="download-item"><a href="{% url 'latest_download_redirect' 'resit' %}">Resit PDF</a></span>
+ <span class="download-item"><a href="{% url 'student_portal' %}">Student Portal</a></span>
+ <span class="download-item"><a href="/classrep/login/">Class Rep</a></span>
+ </div>
+</div>
+{% endblock %}
+
+{% block footer_links %}
+ <li><a href="{% url 'view_timetable' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Student Timetable</a></li>
+ <li><a href="/classrep/login/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Class Rep Login</a></li>
+ <li><a href="/feedback/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Feedback</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'regular' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Regular PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'exam' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Exam PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'resit' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Resit PDF</a></li>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'dashboards/js/dashboards_dashboard_student_portal.js' %}"></script>
+<script>
+// ========== SCROLL-AWARE FLOATING NAVBAR ==========
+(function() {
+    const navbar = document.querySelector('.navbar');
+    const marker = document.getElementById('aboutSection');
+    if (!navbar) return;
+
+    function isDesktop() {
+        return window.innerWidth >= 1025;
+    }
+
+    function updateNavbar() {
+        if (!isDesktop()) {
+            navbar.classList.remove('navbar--floating', 'navbar--wide');
+            document.body.classList.remove('hy-nav-scrolled');
+            return;
+        }
+        const scrolled = window.scrollY > 24;
+        navbar.classList.toggle('navbar--floating', scrolled);
+        document.body.classList.toggle('hy-nav-scrolled', scrolled);
+
+        let near = false;
+        if (marker) {
+            const rect = marker.getBoundingClientRect();
+            near = rect.top < window.innerHeight * 0.85;
+        }
+        navbar.classList.toggle('navbar--wide', near);
+    }
+
+    let ticking = false;
+    function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function() {
+            updateNavbar();
+            ticking = false;
+        });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    updateNavbar();
+})();
+</script>
+{% endblock %}
+{% block dashboard_js %}
+<script src="{% static 'dashboards/js/feedback-widget.js' %}"></script>
+{% endblock dashboard_js %}

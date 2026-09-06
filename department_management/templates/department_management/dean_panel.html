@@ -1,0 +1,109 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Departments Management - Chuka University{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'department_management/css/department_management_department_management_dean_panel.css' %}">
+<link rel="stylesheet" href="{% static 'department_management/css/dean_panel.css' %}">
+{% endblock page_css %}
+
+
+{% block header_title %}<i class="fas fa-sitemap" aria-hidden="true"></i> Departments Management{% endblock %}
+
+{% block navbar_extra %}
+<a href="{% url 'dean_allocations_dashboard' %}" class="panel-header-btn panel-header-btn--outline" title="Allocation Reports — every department, Main/ODeL/Campus/Resit"><i class="fas fa-file-pdf" aria-hidden="true"></i> Allocation Reports (All Depts)</a>
+<a href="{% url 'course_list_pdf' %}" class="panel-header-btn panel-header-btn--outline" title="All Allocations" target="_blank"><i class="fas fa-list" aria-hidden="true"></i> course allocation list</a>
+<a href="{% url 'published_timetables' %}" class="panel-header-btn panel-header-btn--outline" title="View & Export Allocations"><i class="fas fa-print" aria-hidden="true"></i> published timetables</a>
+{% endblock navbar_extra %}
+
+{% block panel_content %}
+
+<div class="toolbar">
+ <h2>Departments</h2>
+ <button id="add-dept-btn" class="add-btn">
+ <span></span> Add Department
+ </button>
+</div>
+
+<ul id="dept-list">
+ {% for d in departments %}
+ <li class="dept-card" data-id="{{ d.id }}">
+ <div class="dept-header">
+ <span class="dept-name">{{ d.name }}</span>
+ <span class="dept-faculty">{{ d.faculty.name }}</span>
+ </div>
+ <div class="dept-body">
+ <p class="dept-description">{{ d.description }}</p>
+ <p class="dept-leader"><strong>COD:</strong> {% if d.leader %}{{ d.leader.username }}{% else %}None{% endif %}</p>
+ </div>
+ <div class="dept-actions">
+ <button class="edit-btn">️ Edit</button>
+ <button class="delete-btn"> Delete</button>
+ </div>
+ </li>
+ {% empty %}
+ <li class="empty-state">
+ <h3>No departments found</h3>
+ <p>Click "Add Department" to create your first department</p>
+ </li>
+ {% endfor %}
+</ul>
+
+<!-- Modal -->
+<div id="dept-modal" class="modal">
+ <div class="modal-content">
+ <span class="close">&times;</span>
+ <h2 id="modal-title">Add Department</h2>
+ <form id="dept-form">
+ {% csrf_token %}
+ <input type="hidden" name="id" id="dept-id">
+ 
+ <div class="form-group">
+ <label for="dept-name">Department Name</label>
+ <input type="text" name="name" id="dept-name" required>
+ </div>
+ 
+ <div class="form-group">
+ <label for="dept-desc">Description</label>
+ <textarea name="description" id="dept-desc"></textarea>
+ </div>
+ 
+ <div class="form-group">
+ <label for="dept-faculty">Faculty</label>
+ <select name="faculty_id" id="dept-faculty">
+ {% for f in faculties %}
+ <option value="{{ f.id }}">{{ f.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ 
+ <div class="form-group">
+ <label for="dept-leader">COD (Chair of Department)</label>
+ <select name="leader_option" id="dept-leader">
+ <option value="none">-- None --</option>
+ {% for u in users %}
+ <option value="{{ u.id }}">{{ u.username }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ 
+ <div id="new-cod-name-container" class="form-group" style="display:none;">
+ <label for="new-cod-name">New COD Full Name</label>
+ <input type="text" name="new_cod_name" id="new-cod-name">
+ </div>
+ 
+ <button type="submit" class="submit-btn"> Save Department</button>
+ </form>
+ </div>
+</div>
+
+
+</div><!-- /dean-panel-body -->
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'department_management/js/department_management_department_management_dean_panel.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,82 @@
+/* admins_sudo_manage_accounts.css — extracted from sudo_manage_accounts.html */
+.section-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 24px;
+}
+.section-card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #f8f9fa;
+}
+.section-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-card-title::before {
+  content: none;
+}
+.section-card-body { padding: 0; }
+.action-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+.empty-state { text-align: center; padding: 30px; color: #6c757d; }
+
+/* Modal */
+.accounts-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.accounts-modal.open { display: flex; }
+.accounts-modal-box {
+  background: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+.accounts-modal-header {
+  background: #0b1f4a;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.accounts-modal-title { font-size: 16px; font-weight: 700; }
+.accounts-modal-close {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+}
+.accounts-modal-body { padding: 20px; }
+.accounts-modal-body .form-group { margin-bottom: 15px; }
+.accounts-modal-body label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 600; 
+  margin-bottom: 5px; 
+}

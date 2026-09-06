@@ -1,0 +1,384 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Lab Venue Management{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'room_management/css/room_management_rooms_lab_venues.css' %}">
+<link rel="stylesheet" href="{% static 'room_management/css/room_lab_venues.css' %}">
+{% endblock page_css %}
+
+{% block header_title %}<i class="fas fa-flask" aria-hidden="true"></i> Lab Venue Management{% endblock %}
+
+{% block navbar_extra %}
+<a href="{% url 'timetable_dashboard' %}" class="panel-header-btn panel-header-btn--outline" title="Back to Dashboard"><i class="fas fa-arrow-left" aria-hidden="true"></i> Dashboard</a>
+{% endblock navbar_extra %}
+
+{% block panel_content %}
+
+ <form id="venueForm" method="post" action="javascript:void(0);">
+ {% csrf_token %}
+ <input type="hidden" id="venueId" name="id">
+
+ <label for="venueCode">Venue Code</label>
+ <input id="venueCode" name="code" type="text" required placeholder="Enter venue code">
+
+ <label for="venueCapacity">Capacity</label>
+ <input id="venueCapacity" name="capacity" type="number" min="0" placeholder="Enter capacity">
+
+ <label for="venueDescription">Description</label>
+ <textarea id="venueDescription" name="description" rows="2" placeholder="Enter venue description"></textarea>
+
+ <label for="venueEquipment">Equipment (comma separated)</label>
+ <textarea id="venueEquipment" name="equipment" rows="2" placeholder="Enter equipment list"></textarea>
+
+ <div class="form-actions">
+ <button type="submit" class="btn btn-save"> Save Venue</button>
+ <button type="button" id="cancelEdit" class="btn btn-cancel">Cancel</button>
+ </div>
+ </form>
+
+ <div class="table-container">
+ <table>
+ <thead>
+ <tr>
+ <th>Code</th>
+ <th>Capacity</th>
+ <th>Description</th>
+ <th>Equipment</th>
+ <th>Actions</th>
+ </tr>
+ </thead>
+ <tbody id="venuesTable">
+ {% for v in venues %}
+ <tr id="venue-{{ v.id }}">
+ <td class="code">{{ v.code }}</td>
+ <td class="capacity">{{ v.capacity }}</td>
+ <td class="description">{{ v.description }}</td>
+ <td class="equipment">{{ v.equipment }}</td>
+ <td class="actions">
+ <button class="btn btn-edit" onclick="editVenue({{ v.id }})">️ Edit</button>
+ <button class="btn btn-delete" onclick="deleteVenue({{ v.id }})"> Delete</button>
+ </td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+ No venues found. Add your first venue using the form above.
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/* room_lab_venues.js — extracted from lab_venues.html */
+document.addEventListener("DOMContentLoaded", function() {
+      const csrftoken = document.cookie.split('; ').find(r => r.trim().startsWith('csrftoken='))?.split('=')[1];
+      const endpoint = "{% url 'lab_venues' %}";
+
+      const form = document.getElementById("venueForm");
+      const idField = document.getElementById("venueId");
+      const codeField = document.getElementById("venueCode");
+      const capacityField = document.getElementById("venueCapacity");
+      const descField = document.getElementById("venueDescription");
+      const equipField = document.getElementById("venueEquipment");
+      const cancelBtn = document.getElementById("cancelEdit");
+
+      function resetForm() {
+        idField.value = "";
+        form.reset();
+        cancelBtn.style.display = 'none';
+      }
+
+      function showCancelButton() {
+        cancelBtn.style.display = 'inline-block';
+      }
+
+      cancelBtn.addEventListener("click", resetForm);
+
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const data = new FormData();
+        const isUpdate = !!idField.value;
+        data.append("action", isUpdate ? "update" : "create");
+        if (isUpdate) data.append("id", idField.value);
+        data.append("code", codeField.value.trim());
+        data.append("capacity", capacityField.value);
+        data.append("description", descField.value.trim());
+        data.append("equipment", equipField.value.trim());
+
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '⏳ Saving...';
+        submitBtn.disabled = true;
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": csrftoken
+          },
+          body: data
+        }).then(resp => resp.json()).then(json => {
+          if (json.status === "success" && json.venue) {
+            const v = json.venue;
+            let row = document.getElementById("venue-" + v.id);
+            if (!row) {
+              row = document.createElement("tr");
+              row.id = "venue-" + v.id;
+              document.getElementById("venuesTable").appendChild(row);
+              
+              // Remove empty message if it exists
+              const emptyRow = document.querySelector('#venuesTable tr:only-child');
+              if (emptyRow && emptyRow.cells.length === 1) {
+                emptyRow.remove();
+              }
+            }
+            row.innerHTML = `
+              <td class="code">${v.code}</td>
+              <td class="capacity">${v.capacity === null ? '' : v.capacity}</td>
+              <td class="description">${v.description || ''}</td>
+              <td class="equipment">${v.equipment || ''}</td>
+              <td class="actions">
+                <button class="btn btn-edit" onclick="editVenue(${v.id})">✏️ Edit</button>
+                <button class="btn btn-delete" onclick="deleteVenue(${v.id})">🗑 Delete</button>
+              </td>
+            `;
+            resetForm();
+          } else {
+            alert(json.message || "Failed to save venue");
+          }
+        }).catch(err => {
+          console.error(err);
+          alert("Network error - please check your connection and try again");
+        }).finally(() => {
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        });
+      });
+
+      window.editVenue = function(id) {
+        const data = new FormData();
+        data.append("action","detail");
+        data.append("id", id);
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken},
+          body: data
+        }).then(r=>r.json()).then(json=>{
+          if (json.status === "success" && json.venue) {
+            const v = json.venue;
+            idField.value = v.id;
+            codeField.value = v.code;
+            capacityField.value = v.capacity === null ? "" : v.capacity;
+            descField.value = v.description || "";
+            equipField.value = v.equipment || "";
+            showCancelButton();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            alert(json.message || "Failed to load venue");
+          }
+        });
+      };
+
+      window.deleteVenue = function(id) {
+        if (!confirm("Are you sure you want to delete this venue? This action cannot be undone.")) return;
+        
+        const data = new FormData();
+        data.append("action","delete");
+        data.append("id", id);
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken},
+          body: data
+        }).then(r=>r.json()).then(json=>{
+          if (json.status === "success") {
+            const row = document.getElementById("venue-"+id);
+            if (row) row.remove();
+            
+            // Show empty message if no venues left
+            if (document.getElementById('venuesTable').children.length === 0) {
+              document.getElementById('venuesTable').innerHTML = `
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+                    No venues found. Add your first venue using the form above.
+                  </td>
+                </tr>
+              `;
+            }
+          } else {
+            alert(json.message || "Failed to delete venue");
+          }
+        });
+      };
+
+      // Initialize cancel button state
+      resetForm();
+    });
+</script>
+<script>
+/*
+ * room_management_rooms_lab_venues.js
+ * Extracted inline JS from: room_management/templates/rooms/lab_venues.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+document.addEventListener("DOMContentLoaded", function() {
+      const csrftoken = document.cookie.split('; ').find(r => r.trim().startsWith('csrftoken='))?.split('=')[1];
+      const endpoint = "{% url 'lab_venues' %}";
+
+      const form = document.getElementById("venueForm");
+      const idField = document.getElementById("venueId");
+      const codeField = document.getElementById("venueCode");
+      const capacityField = document.getElementById("venueCapacity");
+      const descField = document.getElementById("venueDescription");
+      const equipField = document.getElementById("venueEquipment");
+      const cancelBtn = document.getElementById("cancelEdit");
+
+      function resetForm() {
+        idField.value = "";
+        form.reset();
+        cancelBtn.style.display = 'none';
+      }
+
+      function showCancelButton() {
+        cancelBtn.style.display = 'inline-block';
+      }
+
+      cancelBtn.addEventListener("click", resetForm);
+
+      form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const data = new FormData();
+        const isUpdate = !!idField.value;
+        data.append("action", isUpdate ? "update" : "create");
+        if (isUpdate) data.append("id", idField.value);
+        data.append("code", codeField.value.trim());
+        data.append("capacity", capacityField.value);
+        data.append("description", descField.value.trim());
+        data.append("equipment", equipField.value.trim());
+
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '⏳ Saving...';
+        submitBtn.disabled = true;
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "X-CSRFToken": csrftoken
+          },
+          body: data
+        }).then(resp => resp.json()).then(json => {
+          if (json.status === "success" && json.venue) {
+            const v = json.venue;
+            let row = document.getElementById("venue-" + v.id);
+            if (!row) {
+              row = document.createElement("tr");
+              row.id = "venue-" + v.id;
+              document.getElementById("venuesTable").appendChild(row);
+              
+              // Remove empty message if it exists
+              const emptyRow = document.querySelector('#venuesTable tr:only-child');
+              if (emptyRow && emptyRow.cells.length === 1) {
+                emptyRow.remove();
+              }
+            }
+            row.innerHTML = `
+              <td class="code">${v.code}</td>
+              <td class="capacity">${v.capacity === null ? '' : v.capacity}</td>
+              <td class="description">${v.description || ''}</td>
+              <td class="equipment">${v.equipment || ''}</td>
+              <td class="actions">
+                <button class="btn btn-edit" onclick="editVenue(${v.id})">✏️ Edit</button>
+                <button class="btn btn-delete" onclick="deleteVenue(${v.id})">🗑 Delete</button>
+              </td>
+            `;
+            resetForm();
+          } else {
+            alert(json.message || "Failed to save venue");
+          }
+        }).catch(err => {
+          console.error(err);
+          alert("Network error - please check your connection and try again");
+        }).finally(() => {
+          // Restore button state
+          submitBtn.innerHTML = originalText;
+          submitBtn.disabled = false;
+        });
+      });
+
+      window.editVenue = function(id) {
+        const data = new FormData();
+        data.append("action","detail");
+        data.append("id", id);
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken},
+          body: data
+        }).then(r=>r.json()).then(json=>{
+          if (json.status === "success" && json.venue) {
+            const v = json.venue;
+            idField.value = v.id;
+            codeField.value = v.code;
+            capacityField.value = v.capacity === null ? "" : v.capacity;
+            descField.value = v.description || "";
+            equipField.value = v.equipment || "";
+            showCancelButton();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else {
+            alert(json.message || "Failed to load venue");
+          }
+        });
+      };
+
+      window.deleteVenue = function(id) {
+        if (!confirm("Are you sure you want to delete this venue? This action cannot be undone.")) return;
+        
+        const data = new FormData();
+        data.append("action","delete");
+        data.append("id", id);
+
+        fetch(endpoint, {
+          method: "POST",
+          headers: {"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken},
+          body: data
+        }).then(r=>r.json()).then(json=>{
+          if (json.status === "success") {
+            const row = document.getElementById("venue-"+id);
+            if (row) row.remove();
+            
+            // Show empty message if no venues left
+            if (document.getElementById('venuesTable').children.length === 0) {
+              document.getElementById('venuesTable').innerHTML = `
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+                    No venues found. Add your first venue using the form above.
+                  </td>
+                </tr>
+              `;
+            }
+          } else {
+            alert(json.message || "Failed to delete venue");
+          }
+        });
+      };
+
+      // Initialize cancel button state
+      resetForm();
+    });
+</script>
+{% endblock %}

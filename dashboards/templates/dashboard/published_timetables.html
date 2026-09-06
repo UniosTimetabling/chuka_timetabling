@@ -1,0 +1,474 @@
+{% extends 'dashboard/dashboard_base.html' %}
+{% load static %}
+
+{% block title %}Published Timetables · Dashboard{% endblock %}
+
+{% block admin_css %}
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboards_published_timetables.css' %}">
+<style>
+/* ── PDF Registry Styles ────────────────────────────────────────── */
+.pt-page { padding: 1.5rem 2rem 3rem; }
+
+/* Hero */
+.pt-hero {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem; margin-bottom: 1.75rem;
+}
+.pt-hero h1 { margin: 0 0 .3rem; font-size: 1.45rem; display: flex; align-items: center; gap: .5rem; }
+.pt-hero-sub { margin: 0; color: var(--text-muted, #6b7280); font-size: .875rem; }
+.pt-hero-meta { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding-top: .25rem; }
+
+/* Chips */
+.chip { display: inline-flex; align-items: center; gap: .35rem;
+        padding: .3rem .7rem; border-radius: 20px; font-size: .78rem; font-weight: 500; }
+.chip-blue  { background: #dbeafe; color: #1d4ed8; }
+.chip-grey  { background: #f1f5f9; color: #475569; }
+
+/* Tabs */
+.pt-tabs {
+  display: flex; flex-wrap: wrap; gap: .4rem;
+  margin-bottom: 1.5rem; border-bottom: 2px solid var(--border, #e5e7eb);
+  padding-bottom: .6rem;
+}
+.pt-tab {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .45rem .9rem; border-radius: 6px; font-size: .83rem; font-weight: 500;
+  color: var(--text-muted, #6b7280); text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.pt-tab:hover  { background: var(--surface-hover, #f1f5f9); color: var(--text, #111827); }
+.pt-tab.active { background: var(--primary, #2563eb); color: #fff; }
+.pt-tab .badge {
+  background: rgba(255,255,255,.25); color: inherit;
+  font-size: .7rem; padding: .1rem .4rem; border-radius: 10px;
+}
+.pt-tab:not(.active) .badge { background: var(--border, #e5e7eb); color: var(--text-muted, #6b7280); }
+
+/* Section header */
+.pt-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem; flex-wrap: wrap; gap: .6rem;
+}
+.pt-section-head h2 {
+  margin: 0; font-size: 1.05rem;
+  display: flex; align-items: center; gap: .45rem;
+}
+.pt-section-head .count-badge {
+  background: var(--surface, #f8fafc); border: 1px solid var(--border, #e5e7eb);
+  color: var(--text-muted, #6b7280); font-size: .78rem; font-weight: 500;
+  padding: .2rem .65rem; border-radius: 12px;
+}
+
+/* PDF card grid */
+.pdf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+/* Individual PDF card */
+.pdf-card {
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 1.1rem 1.2rem 1rem;
+  display: flex; flex-direction: column; gap: .7rem;
+  transition: box-shadow .15s;
+}
+.pdf-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+
+.pdf-card-top {
+  display: flex; align-items: flex-start; gap: .75rem;
+}
+.pdf-icon {
+  flex-shrink: 0; width: 40px; height: 40px;
+  background: #fee2e2; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; color: #dc2626;
+}
+.pdf-card-info { flex: 1; min-width: 0; }
+.pdf-card-title {
+  font-size: .9rem; font-weight: 600;
+  color: var(--text, #111827);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin: 0 0 .2rem;
+}
+.pdf-card-sub {
+  font-size: .78rem; color: var(--text-muted, #6b7280); margin: 0;
+}
+
+/* Status badges */
+.status-pill {
+  display: inline-flex; align-items: center; gap: .25rem;
+  font-size: .72rem; font-weight: 600; padding: .18rem .55rem; border-radius: 10px;
+}
+.status-PUBLISHED { background: #dcfce7; color: #166534; }
+.status-DRAFT     { background: #fef3c7; color: #92400e; }
+.status-ARCHIVED  { background: #f1f5f9; color: #475569; }
+.status-SUPERSEDED{ background: #fce7f3; color: #9d174d; }
+.status-latest    { background: #dbeafe; color: #1e40af; }
+.status-old       { background: #f1f5f9; color: #6b7280; }
+
+/* Meta row */
+.pdf-meta {
+  display: flex; flex-wrap: wrap; gap: .4rem .9rem;
+  font-size: .775rem; color: var(--text-muted, #6b7280);
+}
+.pdf-meta span { display: flex; align-items: center; gap: .25rem; }
+
+/* Actions */
+.pdf-actions { display: flex; gap: .5rem; margin-top: auto; padding-top: .2rem; }
+.pdf-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center;
+  gap: .4rem; padding: .5rem .8rem; border-radius: 7px;
+  font-size: .8rem; font-weight: 500; text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.pdf-btn-primary {
+  background: var(--primary, #2563eb); color: #fff; border: none;
+}
+.pdf-btn-primary:hover { background: #1d4ed8; color: #fff; }
+.pdf-btn-outline {
+  background: transparent; color: var(--primary, #2563eb);
+  border: 1.5px solid var(--primary, #2563eb);
+}
+.pdf-btn-outline:hover { background: #eff6ff; }
+.pdf-btn-disabled {
+  background: var(--surface, #f1f5f9); color: #9ca3af;
+  border: 1.5px solid var(--border, #e5e7eb);
+  cursor: not-allowed; pointer-events: none;
+}
+
+/* Notes / description */
+.pdf-notes {
+  font-size: .775rem; color: var(--text-muted, #6b7280);
+  border-top: 1px solid var(--border, #e5e7eb);
+  padding-top: .6rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Empty state */
+.pt-empty {
+  text-align: center; padding: 3rem 1rem;
+  color: var(--text-muted, #9ca3af);
+}
+.pt-empty i { font-size: 2.5rem; display: block; margin-bottom: .75rem; }
+.pt-empty p { margin: 0; font-size: .9rem; }
+
+/* Error banner */
+.pt-error {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+  padding: .8rem 1rem; color: #991b1b; font-size: .85rem;
+  display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem;
+}
+</style>
+{% endblock %}
+
+{# ── Sidebar: only a Back link ── #}
+{% block sidebar_links %}
+  <span class="sidebar-section-label">Navigation</span>
+  <a href="#" class="sidebar-item" id="sidebarBackBtn">
+    <i class="fas fa-arrow-left" aria-hidden="true"></i> Back
+  </a>
+{% endblock %}
+
+{% block breadcrumb %}
+  <a href="#" id="breadcrumbBackBtn"
+     style="display:inline-flex;align-items:center;gap:5px;">
+    <i class="fas fa-arrow-left" style="font-size:.8rem;"></i> Back
+  </a>
+  <span class="sep" aria-hidden="true">›</span>
+  <span>Published Timetables</span>
+{% endblock %}
+
+{% block dash_content %}
+<div class="pt-page">
+
+  {# ── Page header ── #}
+  <div class="pt-hero">
+    <div>
+      <h1><i class="fas fa-file-pdf"></i> Published Timetables</h1>
+      <p class="pt-hero-sub">Download or view published PDF timetables from every sub-system.</p>
+    </div>
+    <div class="pt-hero-meta">
+      <span class="chip chip-blue"><i class="fas fa-file-pdf"></i> {{ row_count }} PDF{{ row_count|pluralize }}</span>
+      <span class="chip chip-grey"><i class="fas fa-clock"></i> {{ now|date:"d M Y · H:i" }}</span>
+    </div>
+  </div>
+
+  {# ── Tab navigation ── #}
+  <nav class="pt-tabs" role="tablist">
+    {% for key, label, icon in sections %}
+    <a href="?section={{ key }}"
+       class="pt-tab {% if section == key %}active{% endif %}"
+       data-section="{{ key }}"
+       role="tab">
+      <i class="fas {{ icon }}"></i>
+      <span>{{ label }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  {# ── Error banner ── #}
+  {% if error %}
+  <div class="pt-error">
+    <i class="fas fa-exclamation-triangle"></i>
+    Could not load PDFs for this section: {{ error }}
+  </div>
+  {% endif %}
+
+  {# ── Section heading ── #}
+  <div class="pt-section-head">
+    <h2>
+      {% for key, label, icon in sections %}{% if section == key %}<i class="fas {{ icon }}"></i> {{ label }} Timetables{% endif %}{% endfor %}
+    </h2>
+    <span class="count-badge">{{ row_count }} document{{ row_count|pluralize }}</span>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════════════════ #}
+  {#  PDF CARDS                                                                 #}
+  {# ══════════════════════════════════════════════════════════════════════════ #}
+
+  {% if rows %}
+  <div class="pdf-grid">
+
+    {# ── REGULAR ── #}
+    {% if section == "regular" or section == "exam" %}
+    {% for r in rows %}
+    <div class="pdf-card">
+      <div class="pdf-card-top">
+        <div class="pdf-icon"><i class="fas fa-file-pdf"></i></div>
+        <div class="pdf-card-info">
+          <p class="pdf-card-title" title="{{ r.title }}">{{ r.title }}</p>
+          <p class="pdf-card-sub">{{ r.academic_year }} &nbsp;·&nbsp; {{ r.semester }}</p>
+        </div>
+      </div>
+
+      <div class="pdf-meta">
+        <span><i class="fas fa-code-branch"></i> v{{ r.version }}</span>
+        <span><i class="fas fa-user"></i> {{ r.uploaded_by }}</span>
+        <span><i class="fas fa-calendar-alt"></i> {{ r.uploaded_at }}</span>
+        {% if r.file_size %}<span><i class="fas fa-hdd"></i> {{ r.file_size }}</span>{% endif %}
+      </div>
+
+      <div>
+        {% if r.status_key == "PUBLISHED" %}
+          <span class="status-pill status-PUBLISHED"><i class="fas fa-check-circle"></i> Published</span>
+        {% elif r.status_key == "DRAFT" %}
+          <span class="status-pill status-DRAFT"><i class="fas fa-pencil-alt"></i> Draft</span>
+        {% elif r.status_key == "ARCHIVED" %}
+          <span class="status-pill status-ARCHIVED"><i class="fas fa-archive"></i> Archived</span>
+        {% elif r.status_key == "SUPERSEDED" %}
+          <span class="status-pill status-SUPERSEDED"><i class="fas fa-history"></i> Superseded</span>
+        {% endif %}
+        {% if r.is_latest %}
+          &nbsp;<span class="status-pill status-latest"><i class="fas fa-star"></i> Latest</span>
+        {% endif %}
+      </div>
+
+      {% if r.description %}
+      <p class="pdf-notes" title="{{ r.description }}"><i class="fas fa-info-circle"></i> {{ r.description }}</p>
+      {% endif %}
+
+      <div class="pdf-actions">
+        {% if r.download_url %}
+          <a href="{{ r.download_url }}" target="_blank" class="pdf-btn pdf-btn-primary">
+            <i class="fas fa-eye"></i> View
+          </a>
+          <a href="{{ r.download_url }}" download class="pdf-btn pdf-btn-outline">
+            <i class="fas fa-download"></i> Download
+          </a>
+        {% else %}
+          <span class="pdf-btn pdf-btn-disabled"><i class="fas fa-ban"></i> File unavailable</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# ── RESIT ── #}
+    {% if section == "resit" %}
+    {% for r in rows %}
+    <div class="pdf-card">
+      <div class="pdf-card-top">
+        <div class="pdf-icon" style="background:#fce7f3;color:#be185d;"><i class="fas fa-file-pdf"></i></div>
+        <div class="pdf-card-info">
+          <p class="pdf-card-title" title="{{ r.title }}">{{ r.title }}</p>
+          <p class="pdf-card-sub">{{ r.academic_year }} &nbsp;·&nbsp; {{ r.semester }}</p>
+        </div>
+      </div>
+
+      <div class="pdf-meta">
+        <span><i class="fas fa-code-branch"></i> v{{ r.version }}</span>
+        <span><i class="fas fa-list-ol"></i> {{ r.total_entries }} entries</span>
+        <span><i class="fas fa-user"></i> {{ r.published_by }}</span>
+        <span><i class="fas fa-calendar-alt"></i> {{ r.published_at }}</span>
+        {% if r.file_size %}<span><i class="fas fa-hdd"></i> {{ r.file_size }}</span>{% endif %}
+      </div>
+
+      {% if r.notes %}
+      <p class="pdf-notes" title="{{ r.notes }}"><i class="fas fa-info-circle"></i> {{ r.notes }}</p>
+      {% endif %}
+
+      <div class="pdf-actions">
+        {% if r.download_url %}
+          <a href="{{ r.download_url }}" target="_blank" class="pdf-btn pdf-btn-primary">
+            <i class="fas fa-eye"></i> View
+          </a>
+          <a href="{{ r.download_url }}" download class="pdf-btn pdf-btn-outline">
+            <i class="fas fa-download"></i> Download
+          </a>
+        {% else %}
+          <span class="pdf-btn pdf-btn-disabled"><i class="fas fa-ban"></i> File unavailable</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# ── ODEL CLASS / ODEL EXAM ── #}
+    {% if section == "odel_class" or section == "odel_exam" %}
+    {% for r in rows %}
+    <div class="pdf-card">
+      <div class="pdf-card-top">
+        <div class="pdf-icon" style="background:#e0f2fe;color:#0369a1;"><i class="fas fa-file-pdf"></i></div>
+        <div class="pdf-card-info">
+          <p class="pdf-card-title" title="{{ r.title }}">{{ r.title }}</p>
+          <p class="pdf-card-sub">
+            {% if r.is_latest %}<span class="status-pill status-latest" style="font-size:.7rem;"><i class="fas fa-star"></i> Latest</span>{% else %}<span class="status-pill status-old" style="font-size:.7rem;">Older version</span>{% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="pdf-meta">
+        <span><i class="fas fa-code-branch"></i> v{{ r.version }}</span>
+        <span><i class="fas fa-calendar-alt"></i> {{ r.published_at }}</span>
+      </div>
+
+      <div class="pdf-actions">
+        {% if r.download_url %}
+          <a href="{{ r.download_url }}" target="_blank" class="pdf-btn pdf-btn-primary">
+            <i class="fas fa-eye"></i> View
+          </a>
+          <a href="{{ r.download_url }}" download class="pdf-btn pdf-btn-outline">
+            <i class="fas fa-download"></i> Download
+          </a>
+        {% else %}
+          <span class="pdf-btn pdf-btn-disabled"><i class="fas fa-ban"></i> File unavailable</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    {# ── CAMPUS CLASS / CAMPUS EXAM ── #}
+    {% if section == "campus_class" or section == "campus_exam" %}
+    {% for r in rows %}
+    <div class="pdf-card">
+      <div class="pdf-card-top">
+        <div class="pdf-icon" style="background:#ecfdf5;color:#065f46;"><i class="fas fa-file-pdf"></i></div>
+        <div class="pdf-card-info">
+          <p class="pdf-card-title" title="{{ r.title }}">{{ r.title }}</p>
+          <p class="pdf-card-sub"><i class="fas fa-map-marker-alt"></i> {{ r.campus }}</p>
+        </div>
+      </div>
+
+      <div class="pdf-meta">
+        <span><i class="fas fa-code-branch"></i> v{{ r.version }}</span>
+        <span><i class="fas fa-user"></i> {{ r.published_by }}</span>
+        <span><i class="fas fa-calendar-alt"></i> {{ r.published_at }}</span>
+        {% if r.file_size %}<span><i class="fas fa-hdd"></i> {{ r.file_size }}</span>{% endif %}
+        {% if r.download_count %}<span><i class="fas fa-download"></i> {{ r.download_count }}×</span>{% endif %}
+      </div>
+
+      <div>
+        {% if r.is_latest %}
+          <span class="status-pill status-latest"><i class="fas fa-star"></i> Latest</span>
+        {% else %}
+          <span class="status-pill status-old"><i class="fas fa-history"></i> Older</span>
+        {% endif %}
+      </div>
+
+      {% if r.description %}
+      <p class="pdf-notes" title="{{ r.description }}"><i class="fas fa-info-circle"></i> {{ r.description }}</p>
+      {% endif %}
+
+      <div class="pdf-actions">
+        {% if r.download_url %}
+          <a href="{{ r.download_url }}" target="_blank" class="pdf-btn pdf-btn-primary">
+            <i class="fas fa-eye"></i> View
+          </a>
+          <a href="{{ r.download_url }}" download class="pdf-btn pdf-btn-outline">
+            <i class="fas fa-download"></i> Download
+          </a>
+        {% else %}
+          <span class="pdf-btn pdf-btn-disabled"><i class="fas fa-ban"></i> File unavailable</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+  </div>{# /pdf-grid #}
+
+  {% else %}
+  {# ── Empty state ── #}
+  <div class="pt-empty">
+    <i class="fas fa-folder-open"></i>
+    <p>
+      {% if error %}
+        Error loading documents for this section.
+      {% else %}
+        No published PDFs found for this section yet.
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+</div>{# /pt-page #}
+<script>
+(function () {
+  var STORAGE_KEY = 'pt_origin_url';
+  var pageBase = window.location.origin + window.location.pathname;
+
+  // Only update the stored origin if the referrer is NOT this same page.
+  // When the user clicks a tab, document.referrer becomes ?section=xxx on
+  // this same page — we must ignore that and keep the real origin intact.
+  var ref = document.referrer;
+  var refIsThisPage = ref && ref.split('?')[0] === pageBase;
+
+  if (!refIsThisPage) {
+    // Arriving fresh (from another page entirely) — save the real origin.
+    // Use referrer if present, otherwise fall back to the server-supplied value.
+    var origin = (ref && ref !== pageBase) ? ref : '{{ back_url|escapejs }}';
+    if (origin) {
+      sessionStorage.setItem(STORAGE_KEY, origin);
+    }
+  }
+  // If refIsThisPage → a tab switch brought us here; leave sessionStorage alone.
+
+  // ── Back buttons always go to the stored real origin ──────────────────────
+  function goBack(e) {
+    e.preventDefault();
+    var dest = sessionStorage.getItem(STORAGE_KEY) || '{{ back_url|escapejs }}' || '/';
+    sessionStorage.removeItem(STORAGE_KEY);
+    window.location.href = dest;
+  }
+  var sidebar    = document.getElementById('sidebarBackBtn');
+  var breadcrumb = document.getElementById('breadcrumbBackBtn');
+  if (sidebar)    sidebar.addEventListener('click', goBack);
+  if (breadcrumb) breadcrumb.addEventListener('click', goBack);
+
+  // ── Tab clicks: normal navigation (history pushes are fine here) ───────────
+  // We don't try to suppress history — we let the browser work normally.
+  // Our Back buttons bypass browser history entirely and go straight to the
+  // stored origin, so the user is never trapped cycling through tabs.
+  document.querySelectorAll('.pt-tab[data-section]').forEach(function (tab) {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      window.location.href = pageBase + '?section=' + this.dataset.section;
+    });
+  });
+})();
+</script>
+{% endblock dash_content %}

@@ -1,0 +1,92 @@
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_export_timetable_exam_main_pdf.css' %}">
+{% endblock page_css %}
+<link rel="stylesheet" href="{% static 'export_import/css/tt_exam_pdf.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_timetable_exam_main_pdf.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>{{ header_data.title }}</title>
+</head>
+<body>
+ <!-- HEADER SECTION - DYNAMIC -->
+ <header>
+ <img src="{{ header_data.logo_url }}" alt="{{ header_data.university_name }} Logo">
+ <h1>{{ header_data.university_name|upper }}</h1>
+ <h2>Knowledge is Wealth ({{ header_data.motto_latin }}) — {{ header_data.motto_swahili }}</h2>
+ <p><strong>{{ header_data.directorate_name }}</strong><br>
+ Telephones: {{ header_data.telephone }} | Email: <b>{{ header_data.email }}</b><br>
+ {{ header_data.address }} | Website: {{ header_data.website }}
+ </p>
+ <p><b>Ref:</b> {{ reference_number }}<br>
+ <b>Date:</b> {{ now|date:"d M Y" }}</p>
+ <h2>{{ header_data.title }}</h2>
+ </header>
+
+ <!-- PAGE HEADER - DYNAMIC -->
+ <div class="page-header">
+ {{ page_header }}
+ </div>
+
+ {% if not timeslots %}
+ <p>No timetable timeslots available.</p>
+ {% else %}
+ {% for dd in day_date_pairs %}
+ <h2 class="day-title">{{ dd.day }} — {{ dd.date|date:"d M Y" }}</h2>
+ <table>
+ <thead>
+ <tr>
+ <th>Venue \ Time</th>
+ {% for slot in timeslots %}
+ <th>{{ slot.start }} - {{ slot.end }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in matrix %}
+ <tr>
+ <td class="venue-col">{{ row.venue_key }}</td>
+ {% for cell in row.cells %}
+ <td class="slot-cell">
+ {% for pd in cell.per_day %}
+ {% if pd.day == dd.day and pd.date == dd.date %}
+ {% if pd.entries %}
+ {% for en in pd.entries %}
+ <div class="entry {% if en.category == 'Lab Exam' %}lab-exam{% elif 'Merged' in en.category %}merged-exam{% else %}regular-exam{% endif %}">
+ <strong>{{ en.course_code }}</strong>
+ 
+ </div>
+ {% endfor %}
+ {% else %}
+ <div class="empty-cell">&nbsp;</div>
+ {% endif %}
+ {% endif %}
+ {% endfor %}
+ </td>
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+{% endfor %}
+
+ {% endif %}
+
+ <!-- FOOTER SECTION - DYNAMIC -->
+ <div class="footer">
+ <div class="footer-section">
+ <p>{{ footer_data.notes|linebreaks }}</p>
+ <p>{{ footer_data.key_section|linebreaks }}</p>
+ </div>
+
+ <div class="signature">
+ {{ footer_data.prepared_by_label }} <b>{{ footer_data.prepared_by }}</b><br>
+ {{ footer_data.director_label }}<br>
+ <small>Generated on {{ now|date:"d M Y, H:i" }} — {{ footer_data.signature }}</small>
+ </div>
+ </div>
+</body>
+</html>

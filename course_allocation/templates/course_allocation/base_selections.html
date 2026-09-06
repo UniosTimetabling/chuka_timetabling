@@ -1,0 +1,1037 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Course Combinations{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+    <span class="dept-badge">{{ department.name }}</span>
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .combinations-container {
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .card {
+        background: white;
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #e5e9e0;
+        overflow: hidden;
+        width: 100%;
+    }
+    
+    .card-header {
+        padding: 1rem 1.5rem;
+        background: #fafbf8;
+        border-bottom: 1px solid #e5e9e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e4620;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+        margin-bottom: 1.25rem;
+        background: #fefef9;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #eef2e8;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex: 1;
+        min-width: 180px;
+    }
+    
+    .filter-group label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #5b6e53;
+    }
+    
+    .filter-group select {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #cfdec5;
+        background: white;
+        font-size: 0.85rem;
+        width: 100%;
+        cursor: pointer;
+    }
+    
+    .selected-program-badge {
+        background: #e1ecd9;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1.5rem;
+        font-size: 0.8rem;
+        color: #1e4620;
+        font-weight: 500;
+        display: inline-block;
+    }
+    
+    .course-multiselect {
+        width: 100%;
+        border: 1px solid #d4e2cb;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        background: #fff;
+        font-size: 0.85rem;
+        min-height: 200px;
+    }
+    
+    .course-multiselect option {
+        padding: 0.5rem;
+        border-bottom: 1px solid #f0f5ec;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        text-decoration: none;
+    }
+    
+    .btn-primary {
+        background: #1f6e2f;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #145a24;
+    }
+    
+    .btn-secondary {
+        background: #eef3ea;
+        border-color: #c8dbc0;
+        color: #2a5e2a;
+    }
+    
+    .btn-secondary:hover {
+        background: #e2ecdb;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.7rem;
+    }
+    
+    .btn-icon {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 1rem;
+        transition: all 0.1s;
+    }
+    
+    .btn-icon.edit:hover { background: #e8f0e4; color: #1f6e2f; }
+    .btn-icon.delete:hover { background: #fee8e7; color: #c73e2b; }
+    .btn-icon.add:hover { background: #e8f0e4; color: #1f6e2f; }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: auto;
+    }
+    
+    .data-table th {
+        text-align: left;
+        padding: 0.75rem 0.5rem;
+        font-weight: 600;
+        color: #3a5c33;
+        border-bottom: 2px solid #e6ede1;
+        font-size: 0.8rem;
+    }
+    
+    .data-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #eff3ea;
+        vertical-align: middle;
+    }
+    
+    .courses-badge {
+        background: #e1ecd9;
+        padding: 0.2rem 0.6rem;
+        border-radius: 1rem;
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #2b6e2b;
+        display: inline-block;
+        margin: 0.15rem;
+    }
+    
+    .courses-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #8ba07f;
+        font-style: italic;
+    }
+    
+    .toast-notify {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #1e3a1e;
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        z-index: 1100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 0.75rem;
+        max-width: 500px;
+        width: 90%;
+        padding: 1.5rem;
+        box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%;
+        padding: 0.6rem;
+        border-radius: 0.375rem;
+        border: 1px solid #ccc;
+        font-size: 0.85rem;
+    }
+    
+    .text-muted {
+        color: #6f8f66;
+        font-size: 0.7rem;
+    }
+    
+    hr {
+        margin: 1rem 0;
+        border-color: #e6ede1;
+    }
+    
+    .loading-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid #e1ecd9;
+        border-top-color: #1f6e2f;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+        margin-right: 8px;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .expand-icon {
+        cursor: pointer;
+        transition: transform 0.2s;
+        display: inline-block;
+        font-size: 0.9rem;
+        color: #5b8c4e;
+        width: 24px;
+        text-align: center;
+    }
+    
+    .expand-icon:hover {
+        color: #1f6e2f;
+    }
+    
+    .hidden-row {
+        display: none;
+    }
+    
+    .info-note {
+        background: #eef3ea;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.75rem;
+        color: #2a5e2a;
+    }
+    
+    .badge-count {
+        background: #e1ecd9;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #2b6e2b;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .combinations-container {
+            padding: 0.5rem;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .data-table {
+            font-size: 0.75rem;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem 0.25rem;
+        }
+        
+        .courses-list {
+            max-width: 200px;
+        }
+        
+        .filter-group {
+            min-width: 100%;
+        }
+    }
+    
+    /* Scrollable table container for overflow */
+    .table-responsive {
+        overflow-x: auto;
+        width: 100%;
+    }
+</style>
+
+<div class="combinations-container">
+    
+    <!-- Create New Combination Group -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-plus-circle"></i> Create New Course Combination</h2>
+            <span class="text-muted">Students who choose this group take ALL courses listed below</span>
+        </div>
+        <div class="card-body">
+            <form id="createGroupForm">
+                {% csrf_token %}
+                
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label>Select Program for this Combination</label>
+                        <select id="filterProgramId" required>
+                            <option value="">-- Select a Program --</option>
+                            {% for p in programs %}
+                            <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Filter by Year (Optional)</label>
+                        <select id="filterYear">
+                            <option value="">All Years</option>
+                            {% for y in years %}
+                            <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>Year {{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Select Courses for this Combination (Ctrl/Cmd + click for multiple)</label>
+                    <select name="program_course_ids" id="programCoursesSelect" multiple size="8" class="course-multiselect" required>
+                        <option disabled>Select a program first</option>
+                    </select>
+                    <div id="coursesLoading" style="display: none; text-align: center; padding: 1rem;">
+                        <span class="loading-spinner"></span> Loading courses...
+                    </div>
+                    <small class="text-muted">Students who select this combination will take ALL these courses together</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Combination Name</label>
+                    <input type="text" id="groupNameInput" placeholder="e.g., 'Data Science Specialization', 'Software Engineering Track'" required style="width: 100%;">
+                </div>
+                
+                <div class="info-note">
+                    <i class="fas fa-info-circle"></i> This combination will be created for <strong id="selectedProgramName">the selected program</strong>. 
+                    All courses must belong to this program.
+                </div>
+                
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Create Combination
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Existing Course Combinations -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-layer-group"></i> Course Combinations</h2>
+            <span class="badge-count">{{ selection_groups|length }} combination{{ selection_groups|length|pluralize }}</span>
+        </div>
+        <div class="card-body">
+            {% if selection_groups %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"></th>
+                            <th>Combination Name</th>
+                            <th style="width: 180px;">Program</th>
+                            <th>Courses</th>
+                            <th style="width: 100px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in selection_groups %}
+                        <tr id="group-row-{{ group.id }}" data-group-id="{{ group.id }}">
+                            <td style="text-align: center;">
+                                {% if group.courses.all %}
+                                <span class="expand-icon" onclick="toggleGroupCourses({{ group.id }})">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ group.name }}</strong>
+                            </td>
+                            <td>
+                                {% if group.program %}
+                                    <span class="selected-program-badge">{{ group.program.name|truncatechars:25 }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="courses-list">
+                                    {% for ca in group.courses.all|slice:":5" %}
+                                    <span class="courses-badge">
+                                        {{ ca.course_code }}
+                                    </span>
+                                    {% endfor %}
+                                    {% if group.courses.count > 5 %}
+                                    <span class="courses-badge">+{{ group.courses.count|add:"-5" }} more</span>
+                                    {% endif %}
+                                    {% if group.courses.count == 0 %}
+                                    <span class="text-muted">No courses</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <button class="btn-icon add" onclick="showAddCoursesModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.program.id|default:'null' }})" title="Add Courses">
+                                    <i class="fas fa-plus-circle"></i>
+                                </button>
+                                <button class="btn-icon edit" onclick="showEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}')" title="Edit Name">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if group.program %}
+                                <button class="btn-icon" onclick="showMapGroupsModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.program.id }})" title="Map to Student Group(s)" style="color:#00695c;">
+                                    <i class="fas fa-users"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn-icon delete" onclick="deleteGroup({{ group.id }})" title="Delete">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="group-courses-{{ group.id }}" class="hidden-row">
+                            <td colspan="5" style="background: #fafbf8; padding: 1rem;">
+                                <div style="padding: 0.5rem;">
+                                    <h4 style="margin-bottom: 0.75rem; color: #1e4620; font-size: 1rem;">
+                                        <i class="fas fa-book"></i> Courses in "{{ group.name }}"
+                                    </h4>
+                                    {% if group.courses.all %}
+                                    <div class="table-responsive">
+                                        <table style="width: 100%; border-collapse: collapse;">
+                                            <thead>
+                                                <tr style="border-bottom: 1px solid #d4e2cb;">
+                                                    <th style="text-align: left; padding: 0.5rem;">Course Code</th>
+                                                    <th style="text-align: left; padding: 0.5rem;">Course Name</th>
+                                                    <th style="text-align: left; padding: 0.5rem;">Year/Semester</th>
+                                                    <th style="text-align: left; padding: 0.5rem; width: 80px;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for ca in group.courses.all %}
+                                                <tr>
+                                                    <td style="padding: 0.5rem;"><code>{{ ca.course_code }}</code></td>
+                                                    <td style="padding: 0.5rem;">{{ ca.course_name|truncatechars:50 }}</td>
+                                                    <td style="padding: 0.5rem;">Y{{ ca.program_course.year }} S{{ ca.program_course.semester }}</td>
+                                                    <td style="padding: 0.5rem;">
+                                                        <button class="btn-icon delete" onclick="removeCourse({{ group.id }}, {{ ca.id }})" title="Remove from combination" style="font-size: 0.9rem;">
+                                                            <i class="fas fa-times-circle"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {% else %}
+                                    <p class="text-muted">No courses in this combination yet.</p>
+                                    {% endif %}
+                                    <div style="margin-top: 1rem;">
+                                        <button class="btn btn-secondary btn-sm" onclick="showAddCoursesModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.program.id|default:'null' }})">
+                                            <i class="fas fa-plus"></i> Add More Courses
+                                        </button>
+                                        {% if group.program %}
+                                        <button class="btn btn-secondary btn-sm" onclick="showMapGroupsModal({{ group.id }}, '{{ group.name|escapejs }}', {{ group.program.id }})">
+                                            <i class="fas fa-users"></i> Map to Student Group(s)
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.5;"></i>
+                <p>No course combinations created yet. Create one above!</p>
+                <p class="text-muted">A combination is a set of courses that students take together as a package.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Edit Group Modal (Only Name - Program is fixed from creation) -->
+<div id="editGroupModal" style="display: none;" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>Edit Combination Name</span>
+            <button onclick="closeModal('editGroupModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <form id="editGroupForm">
+            <input type="hidden" id="editGroupId">
+            <div class="form-group">
+                <label>Combination Name</label>
+                <input type="text" id="editGroupName" required>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editGroupModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Courses Modal -->
+<div id="addCoursesModal" style="display: none;" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <span>Add Courses to <span id="addGroupName"></span></span>
+            <button onclick="closeModal('addCoursesModal')" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+        <form id="addCoursesForm">
+            <input type="hidden" id="addGroupId">
+            <input type="hidden" id="addGroupProgramId">
+            <div class="form-group">
+                <label>Select Courses to Add (Ctrl/Cmd + click for multiple)</label>
+                <select id="addCoursesSelect" multiple size="8" class="course-multiselect">
+                    <option disabled>Loading courses...</option>
+                </select>
+                <div id="addCoursesLoading" style="display: none; text-align: center; padding: 1rem;">
+                    <span class="loading-spinner"></span> Loading...
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addCoursesModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Selected Courses</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Map Elective Group to Student Group(s) Modal -->
+<div id="mapGroupsModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <span>Map <span id="mapGroupsGroupName"></span> to Student Group(s)</span>
+            <button onclick="closeModal('mapGroupsModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <input type="hidden" id="mapGroupsGroupId">
+        <p class="text-muted" style="margin-bottom:0.75rem;">
+            Tick which Student Group(s) may choose electives from this pool. Leave everything unticked to keep it open/shared to every group.
+        </p>
+        <div id="mapGroupsList" style="max-height:280px; overflow-y:auto; border:1px solid #e6ede1; border-radius:0.5rem; padding:0.5rem 0.75rem;">
+            <span class="text-muted">Loading groups...</span>
+        </div>
+        <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('mapGroupsModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="mapGroupsSaveBtn" onclick="saveMapGroups()">Save Mapping</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentGroupIdForAdd = null;
+    
+    function toggleGroupCourses(groupId) {
+        const coursesRow = document.getElementById(`group-courses-${groupId}`);
+        const icon = document.querySelector(`#group-row-${groupId} .expand-icon i`);
+        
+        if (coursesRow.classList.contains('hidden-row')) {
+            coursesRow.classList.remove('hidden-row');
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-down');
+        } else {
+            coursesRow.classList.add('hidden-row');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-right');
+        }
+    }
+    
+    function showToast(message, type = 'success') {
+        let toast = document.createElement('div');
+        toast.className = 'toast-notify';
+        toast.style.background = type === 'error' ? '#b33a2e' : '#1e6b2c';
+        toast.innerHTML = message;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 3500);
+    }
+    
+    // Auto-refresh courses when program or year changes
+    const programCoursesSelect = document.getElementById('programCoursesSelect');
+    const filterProgram = document.getElementById('filterProgramId');
+    const filterYear = document.getElementById('filterYear');
+    const coursesLoading = document.getElementById('coursesLoading');
+    const selectedProgramNameSpan = document.getElementById('selectedProgramName');
+    
+    async function refreshCourses() {
+        const programId = filterProgram.value;
+        const year = filterYear.value;
+        
+        if (!programId) {
+            programCoursesSelect.innerHTML = '<option disabled>Select a program first</option>';
+            if (selectedProgramNameSpan) selectedProgramNameSpan.innerText = 'the selected program';
+            return;
+        }
+        
+        // Update program name display
+        const selectedOption = filterProgram.options[filterProgram.selectedIndex];
+        if (selectedOption && selectedProgramNameSpan) {
+            selectedProgramNameSpan.innerText = selectedOption.text;
+        }
+        
+        programCoursesSelect.style.display = 'none';
+        coursesLoading.style.display = 'block';
+        
+        let url = '/ajax/get-program-courses/';
+        const params = new URLSearchParams();
+        params.append('program_id', programId);
+        if (year && year !== '') params.append('year', year);
+        url += '?' + params.toString();
+        
+        try {
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const courses = await resp.json();
+            
+            programCoursesSelect.innerHTML = '';
+            if (courses.length === 0) {
+                const option = document.createElement('option');
+                option.disabled = true;
+                option.textContent = 'No courses available for this program';
+                programCoursesSelect.appendChild(option);
+            } else {
+                courses.forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.course_code} — ${c.course_name} (Y${c.year} S${c.semester})`;
+                    programCoursesSelect.appendChild(opt);
+                });
+            }
+        } catch(e) {
+            console.error('Failed to fetch courses:', e);
+            programCoursesSelect.innerHTML = '<option disabled>Error loading courses</option>';
+        } finally {
+            programCoursesSelect.style.display = '';
+            coursesLoading.style.display = 'none';
+        }
+    }
+    
+    if (filterProgram) filterProgram.addEventListener('change', refreshCourses);
+    if (filterYear) filterYear.addEventListener('change', refreshCourses);
+    
+    // Initial load if program is pre-selected
+    if (filterProgram.value) {
+        refreshCourses();
+    }
+    
+    // Create group
+    document.getElementById('createGroupForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const programId = filterProgram.value;
+        if (!programId) {
+            showToast('Please select a program first', 'error');
+            return;
+        }
+        
+        const selectedOptions = Array.from(programCoursesSelect.selectedOptions);
+        const pcIds = selectedOptions.map(opt => opt.value).filter(v => v && v !== '');
+        
+        if (pcIds.length === 0) {
+            showToast('Please select at least one course for this combination', 'error');
+            return;
+        }
+        
+        const groupName = document.getElementById('groupNameInput').value.trim();
+        if (!groupName) {
+            showToast('Please enter a combination name', 'error');
+            return;
+        }
+        
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const formData = new FormData();
+        pcIds.forEach(id => formData.append('program_course_ids', id));
+        formData.append('group_name', groupName);
+        formData.append('group_program_id', programId);
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="loading-spinner" style="border-top-color: white;"></span> Creating...';
+        submitBtn.disabled = true;
+        
+        try {
+            const response = await fetch('/cod/base-selections/add/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf },
+                body: formData
+            });
+            const data = await response.json();
+            if (data.status === 'success') {
+                showToast(`✅ ${data.message}`);
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast('❌ ' + (data.message || 'Error creating combination'), 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        } catch (err) {
+            showToast('Network error. Try again.', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+    
+    // Delete group
+    async function deleteGroup(groupId) {
+        if (!confirm('Delete this course combination? All courses will remain available individually.')) return;
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const resp = await fetch(`/selection-group/delete/${groupId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Delete failed', 'error');
+            }
+        } catch(e) {
+            showToast('Error deleting', 'error');
+        }
+    }
+    
+    // Show edit modal (only name)
+    function showEditGroupModal(id, name) {
+        document.getElementById('editGroupId').value = id;
+        document.getElementById('editGroupName').value = name;
+        document.getElementById('editGroupModal').style.display = 'flex';
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+    
+    document.getElementById('editGroupForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const groupId = document.getElementById('editGroupId').value;
+        const newName = document.getElementById('editGroupName').value;
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        try {
+            const resp = await fetch(`/selection-group/update/${groupId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast('Combination updated');
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Update failed', 'error');
+            }
+        } catch(e) {
+            showToast('Error updating', 'error');
+        }
+        closeModal('editGroupModal');
+    });
+    
+    // Show add courses modal - only show courses from the same program
+    async function showAddCoursesModal(groupId, groupName, programId) {
+        document.getElementById('addGroupId').value = groupId;
+        document.getElementById('addGroupName').innerText = groupName;
+        document.getElementById('addGroupProgramId').value = programId;
+        document.getElementById('addCoursesModal').style.display = 'flex';
+        
+        const select = document.getElementById('addCoursesSelect');
+        const loading = document.getElementById('addCoursesLoading');
+        select.style.display = 'none';
+        loading.style.display = 'block';
+        
+        let url = '/ajax/get-program-courses/';
+        if (programId && programId !== 'null') {
+            url += '?program_id=' + programId;
+        }
+        
+        try {
+            const resp = await fetch(url);
+            const courses = await resp.json();
+            
+            select.innerHTML = '';
+            if (courses.length === 0) {
+                select.innerHTML = '<option disabled>No courses available for this program</option>';
+            } else {
+                courses.forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.course_code} — ${c.course_name} (Y${c.year} S${c.semester})`;
+                    select.appendChild(opt);
+                });
+            }
+        } catch(e) {
+            select.innerHTML = '<option disabled>Error loading courses</option>';
+        } finally {
+            select.style.display = '';
+            loading.style.display = 'none';
+        }
+    }
+    
+    document.getElementById('addCoursesForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const groupId = document.getElementById('addGroupId').value;
+        const selectedOptions = Array.from(document.getElementById('addCoursesSelect').selectedOptions);
+        const pcIds = selectedOptions.map(opt => opt.value).filter(v => v && v !== '');
+        
+        if (pcIds.length === 0) {
+            showToast('Please select courses to add', 'error');
+            return;
+        }
+        
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const formData = new FormData();
+        pcIds.forEach(id => formData.append('program_course_ids', id));
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="loading-spinner"></span> Adding...';
+        submitBtn.disabled = true;
+        
+        try {
+            const resp = await fetch(`/selection-group/add-courses/${groupId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf },
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Failed to add courses', 'error');
+            }
+        } catch(e) {
+            showToast('Error adding courses', 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+        closeModal('addCoursesModal');
+    });
+    
+    async function removeCourse(groupId, courseId) {
+        if (!confirm('Remove this course from the combination?')) return;
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const resp = await fetch(`/selection-group/remove-course/${groupId}/${courseId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast('Course removed');
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast('Remove failed', 'error');
+            }
+        } catch(e) {
+            showToast('Error', 'error');
+        }
+    }
+
+    // ── Map Elective (Selection) Group to Student Group(s) ─────────────────
+    async function showMapGroupsModal(groupId, groupName, programId) {
+        document.getElementById('mapGroupsGroupId').value = groupId;
+        document.getElementById('mapGroupsGroupName').innerText = groupName;
+        document.getElementById('mapGroupsModal').style.display = 'flex';
+
+        const list = document.getElementById('mapGroupsList');
+        list.innerHTML = '<span class="text-muted">Loading groups...</span>';
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const formData = new FormData();
+            formData.append('action', 'list_student_groups');
+            const resp = await fetch("{% url 'cod_panel' %}", {
+                method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status !== 'success') { list.innerHTML = '<span class="text-muted">Could not load groups.</span>'; return; }
+            const groups = (data.groups || []).filter(g => String(g.program_id) === String(programId));
+            if (!groups.length) { list.innerHTML = '<span class="text-muted">No student groups exist yet for this program.</span>'; return; }
+
+            const treeResp = await fetch(`/ajax/selection-groups/?program_id=${programId}`);
+            let mappedIds = [];
+            if (treeResp.ok) {
+                const treeData = await treeResp.json();
+                const match = (Array.isArray(treeData) ? treeData : []).find(g => g.id === Number(groupId));
+                if (match && match.mapped_group_ids) mappedIds = match.mapped_group_ids;
+            }
+
+            list.innerHTML = groups.map(g => `
+                <label style="display:block; padding:0.3rem 0;">
+                    <input type="checkbox" value="${g.id}" class="map-groups-cb" ${mappedIds.includes(g.id) ? 'checked' : ''}>
+                    ${g.name} — Y${g.year} S${g.semester} (${g.intake})
+                </label>
+            `).join('');
+        } catch (e) {
+            list.innerHTML = '<span class="text-muted">Error loading groups.</span>';
+        }
+    }
+
+    async function saveMapGroups() {
+        const groupId = document.getElementById('mapGroupsGroupId').value;
+        const checked = Array.from(document.querySelectorAll('.map-groups-cb:checked')).map(cb => cb.value);
+        const btn = document.getElementById('mapGroupsSaveBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="loading-spinner" style="border-top-color:white;"></span> Saving...';
+        btn.disabled = true;
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        try {
+            const formData = new FormData();
+            checked.forEach(id => formData.append('group_ids', id));
+            const resp = await fetch(`/selection-group/map-groups/${groupId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrf }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                closeModal('mapGroupsModal');
+            } else {
+                showToast(data.message || 'Error saving mapping', 'error');
+            }
+        } catch (e) {
+            showToast('Network error saving mapping', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+        const editModal = document.getElementById('editGroupModal');
+        const addModal = document.getElementById('addCoursesModal');
+        const mapModal = document.getElementById('mapGroupsModal');
+        if (event.target === editModal) closeModal('editGroupModal');
+        if (event.target === addModal) closeModal('addCoursesModal');
+        if (event.target === mapModal) closeModal('mapGroupsModal');
+    };
+</script>
+{% endblock %}

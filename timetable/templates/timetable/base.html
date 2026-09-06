@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}panel-page{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_base.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="{% static 'timetable/css/panel.css' %}">
+{% block panel_css %}{% endblock %}
+{% block extra_css %}{% endblock %}
+<link rel="stylesheet" href="{% static 'css/workspace_unified.css' %}">
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   FLAT DESIGN SYSTEM OVERRIDES
+   1. Remove all box-shadows from cards, panels, popups
+   2. Notification action buttons (flat, class-driven)
+   3. Modal / dialog / slide-over card shadow reset
+═══════════════════════════════════════════════════════════ */
+
+/* ── 1. Strip shadows from all card/surface components ── */
+.card,
+.card-body,
+.panel,
+.panel-card,
+.widget,
+.widget-card,
+.dash-card,
+.stat-card,
+.info-card,
+.summary-card,
+.detail-card,
+.list-card,
+.grid-card,
+.badge-card,
+.section-header,
+.form-card,
+.form-section,
+.download-section,
+.conflict-panel,
+.table-wrapper,
+.workspace-card,
+.timetable-card,
+#notification-popup,
+.notification-panel,
+.toast,
+.alert {
+  box-shadow: none !important;
+  border-image: none !important;
+  filter: none !important;
+}
+
+.card:hover,
+.dash-card:hover,
+.stat-card:hover,
+.widget-card:hover,
+.panel-card:hover {
+  box-shadow: none !important;
+}
+
+/* ── 2. Notification action buttons — flat, no shadow ── */
+.notif-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: background .16s ease;
+  color: #fff !important;
+  line-height: 1.4;
+}
+/* Primary — navy, for view/navigate actions */
+.notif-btn--primary {
+  background: #1a3260;
+}
+.notif-btn--primary:hover { background: #1e3d75; }
+
+/* Download — orange, for file download actions */
+.notif-btn--download {
+  background: #f47c20;
+}
+.notif-btn--download:hover { background: #d96512; }
+
+/* Unread badge on bell icon */
+.notif-unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #e53935;
+  color: #fff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: .6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* ── 3. Modal / dialog / slide-over — all card interiors flat ── */
+dialog .card, dialog .dash-card, dialog .form-card, dialog .form-section,
+dialog .download-section, dialog .conflict-panel, dialog .section-header,
+dialog .table-wrapper, dialog .panel-card, dialog .workspace-card,
+[role="dialog"] .card, [role="dialog"] .dash-card, [role="dialog"] .form-card,
+[role="dialog"] .form-section, [role="dialog"] .download-section,
+[role="dialog"] .conflict-panel, [role="dialog"] .section-header,
+[role="dialog"] .table-wrapper, [role="dialog"] .panel-card,
+[role="dialog"] .workspace-card,
+.modal .card, .modal .dash-card, .modal .form-card, .modal .form-section,
+.modal .download-section, .modal .conflict-panel, .modal .section-header,
+.modal .table-wrapper, .modal .panel-card, .modal .workspace-card,
+.modal-body .card, .modal-body .dash-card, .modal-body .form-card,
+.modal-body .form-section, .modal-body .download-section,
+.modal-body .conflict-panel, .modal-body .section-header,
+.modal-body .table-wrapper, .modal-body .panel-card,
+.slide-over .card, .slide-over .dash-card, .slide-over .form-card,
+.slide-over .form-section, .slide-over .download-section,
+.slide-over .conflict-panel, .slide-over .section-header,
+.slide-over .table-wrapper, .slide-over .panel-card {
+  box-shadow: none !important;
+}
+</style>
+{% endblock page_css %}
+
+{% block robots %}noindex, nofollow{% endblock %}
+{% block navbar %}{% endblock navbar %}
+
+{% block content %}
+
+<div id="pageTransition" aria-hidden="true">
+ <div class="pt-logo">
+ <img src="{% url 'site_logo' %}" alt="University logo">
+ </div>
+ <div class="pt-text">Loading…</div>
+</div>
+
+<header class="panel-header" role="banner">
+ <a href="/timetable/dashboard/" class="panel-header-logo" aria-label="Timetabling dashboard">
+ <img src="{% url 'site_logo' %}" alt="{{ site_settings.university_name|default:'CU' }} logo"
+ onerror="this.style.display='none'">
+ <span class="panel-header-logo-text">
+ <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+ <small>Timetabling System</small>
+ </span>
+ </a>
+
+ <div class="panel-header-title">
+ {% block header_title %}<i class="bi bi-calendar3" aria-hidden="true"></i> Timetable Management{% endblock %}
+ </div>
+
+ <div class="panel-header-actions" role="toolbar">
+ 
+ <button class="panel-header-btn panel-header-btn--outline" id="notification-icon"
+ aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+ <i class="bi bi-bell" aria-hidden="true"></i>
+ </button>
+
+ {% block navbar_extra %}{% endblock navbar_extra %}
+
+ <a href="{% url 'logout' %}" class="panel-header-btn panel-header-btn--danger" aria-label="Logout">
+ <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+ <span class="d-none-xs">Logout</span>
+ </a>
+ </div>
+</header>
+
+<div id="notification-popup" role="dialog" aria-label="Notifications" aria-hidden="true"
+ style="display:none;position:fixed;top:70px;right:1rem;width:340px;max-height:450px;background:#fff;border-radius:14px;box-shadow:none;border:1px solid #dde6f5;z-index:950;overflow-y:auto;">
+ <div style="padding:.85rem 1.1rem;border-bottom:1px solid #dde6f5;font-weight:700;font-size:.88rem;color:#0d1b3e;display:flex;justify-content:space-between;align-items:center;">
+ Notifications
+ <button onclick="document.getElementById('notification-popup').style.display='none'" style="background:none;border:none;cursor:pointer;color:#697aa3;font-size:1.1rem;" aria-label="Close notifications">×</button>
+ </div>
+ <div id="notification-list" style="padding:.4rem;">
+ <p style="padding:.8rem;text-align:center;color:#697aa3;font-size:.84rem;"><i class="bi bi-inbox" style="display:block;font-size:2rem;opacity:.4;margin-bottom:6px;"></i>No new notifications</p>
+ </div>
+</div>
+
+<div class="panel-toast-container" id="toastContainer" role="alert" aria-live="polite"></div>
+
+<main class="panel-body" role="main" id="main-content">
+ {% block panel_content %}{% endblock panel_content %}
+</main>
+
+{% block content_extra %}{% endblock %}
+
+<footer style="background:var(--panel-navy);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.85rem;border-top:1px solid var(--panel-navy-border);" role="contentinfo">
+ &copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations
+</footer>
+{% endblock content %}
+
+{% block footer %}{% endblock footer %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+<script src="{% static 'timetable/js/panel.js' %}"></script>
+
+{% block panel_js %}{% endblock panel_js %}
+<script>
+/* Subnav offset layout sizing adjustments */
+(function(){
+  var subnav = document.querySelector('.panel-subnav');
+  var body   = document.getElementById('main-content');
+  if (!subnav || !body) return;
+  if (subnav.children.length > 0 || subnav.textContent.trim() !== '') {
+    body.style.paddingTop = 'calc(var(--panel-header-h) + var(--panel-subnav-h))';
+  }
+})();
+
+/* Notification popup logic */
+(function(){
+  var bell  = document.getElementById('notification-icon');
+  var popup = document.getElementById('notification-popup');
+  if(!bell||!popup) return;
+  bell.addEventListener('click', function(e){
+    e.stopPropagation();
+    var show = popup.style.display === 'none';
+    popup.style.display = show ? 'block' : 'none';
+    popup.setAttribute('aria-hidden', !show);
+    bell.setAttribute('aria-expanded', show);
+  });
+  document.addEventListener('click', function(e){
+    if(!popup.contains(e.target) && e.target!==bell){
+      popup.style.display='none';
+      popup.setAttribute('aria-hidden','true');
+      bell.setAttribute('aria-expanded','false');
+    }
+  });
+
+  {% if user.is_authenticated %}
+  fetch('/api/notifications/', {credentials:'same-origin'})
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(data){
+      if(!data||!data.notifications||!data.notifications.length) return;
+      var list = document.getElementById('notification-list');
+      if(!list) return;
+
+      /* ── URL detector: ignores already-attributed href/src values ── */
+      var urlRegex = /(?<!href=["']|src=["'])(https?:\/\/[^\s<"'`]+)/g;
+
+      list.innerHTML = data.notifications.slice(0,10).map(function(n){
+        var msg = n.html && n.html.length ? n.html : (n.message||'');
+        var actionBtnHtml = '';
+
+        if (msg) {
+          var foundUrls = msg.match(urlRegex);
+          if (foundUrls && foundUrls.length > 0) {
+            var actualUrl = foundUrls[0];
+
+            /* Strip the raw URL and any residual label text from the message */
+            msg = msg
+              .replace(actualUrl, '')
+              .replace(/Download full report:\s*/gi, '')
+              .replace(/View (?:report|link|file|document):\s*/gi, '')
+              .trim();
+
+            /* ── Contextual button label based on URL/file type ── */
+            var urlLower = actualUrl.toLowerCase();
+            var btnLabel, btnClass;
+
+            if (/\.pdf/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-file-earmark-pdf-fill"></i> Download PDF Report';
+              btnClass = 'notif-btn notif-btn--download';
+            } else if (/\.xlsx?|\.csv/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-file-earmark-spreadsheet-fill"></i> Download Spreadsheet';
+              btnClass = 'notif-btn notif-btn--download';
+            } else if (/\.docx?/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-file-earmark-word-fill"></i> Download Document';
+              btnClass = 'notif-btn notif-btn--download';
+            } else if (/download|export/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-cloud-arrow-down-fill"></i> Download File';
+              btnClass = 'notif-btn notif-btn--download';
+            } else if (/report/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-bar-chart-fill"></i> View Report';
+              btnClass = 'notif-btn notif-btn--primary';
+            } else if (/timetable|schedule/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-calendar3"></i> View Timetable';
+              btnClass = 'notif-btn notif-btn--primary';
+            } else if (/exam/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-journal-check"></i> View Exam Details';
+              btnClass = 'notif-btn notif-btn--primary';
+            } else if (/result/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-clipboard-data"></i> View Results';
+              btnClass = 'notif-btn notif-btn--primary';
+            } else if (/upload/i.test(urlLower)) {
+              btnLabel = '<i class="bi bi-upload"></i> Go to Upload';
+              btnClass = 'notif-btn notif-btn--primary';
+            } else {
+              btnLabel = '<i class="bi bi-box-arrow-up-right"></i> Open Link';
+              btnClass = 'notif-btn notif-btn--primary';
+            }
+
+            actionBtnHtml = '<div style="margin-top:8px;">' +
+              '<a href="' + actualUrl + '" target="_blank" rel="noopener noreferrer" class="' + btnClass + '">' +
+              btnLabel + '</a></div>';
+          }
+        }
+
+        return '<div style="padding:.75rem .9rem;border-bottom:1px solid #e8edf2;background:#fff;word-break:break-word;">' +
+          '<div style="font-weight:700;font-size:.83rem;color:#0d1b3e;">' + (n.title||'Notification') + '</div>' +
+          '<div style="font-size:.78rem;color:#4e5d7c;margin-top:3px;line-height:1.45;">' + msg + '</div>' +
+          actionBtnHtml +
+          '</div>';
+      }).join('');
+
+      /* ── Unread badge ── */
+      var badge = document.createElement('span');
+      badge.textContent = Math.min(data.notifications.length, 9);
+      badge.className = 'notif-unread-badge';
+      bell.style.position = 'relative';
+      bell.appendChild(badge);
+    }).catch(function(err){ console.error('[Notifications]', err); });
+  {% endif %}
+})();
+</script>
+{% endblock extra_js %}

@@ -1,0 +1,1273 @@
+/* ============================================================
+   website.css  —  Public pages
+   Hero: light overlay — photos show through, text still readable
+   Images: background-position top so faces/heads are never cut
+   Page flow: green sections at top, blue at bottom
+   Contact/feedback: clean white card, not dark green bg
+   ============================================================ */
+
+/* ══════════════════════════════════════════════════════════
+   HERO
+   ══════════════════════════════════════════════════════════ */
+.hero-full{
+  position:relative;width:100%;
+  /* No overflow:hidden — that clips the access bar on the homepage */
+}
+/* Homepage variant: flex column, takes part of the viewport (not full-screen) */
+.hero-full--with-bar{
+  display:flex;flex-direction:column;
+  min-height:52vh;
+}
+/* The carousel wrapper: flex:1 so it fills remaining space after access bar */
+.hero-full--with-bar .hero-carousel{
+  flex:1 1 0;
+  min-height:0;
+}
+/* Stand-alone carousel (student/staff portals) */
+.hero-carousel{
+  position:relative;
+  min-height:72vh;
+  height:72vh;
+}
+/* Track fills carousel */
+.hero-carousel-track{
+  position:absolute;inset:0;
+  display:flex;width:100%;height:100%;
+  transition:transform .8s cubic-bezier(.4,0,.2,1);
+}
+
+/* Every slide fills track */
+.hero-slide{
+  flex:0 0 100%;
+  height:100%;
+  position:relative;
+  background-size:cover;
+  background-position:center top;
+  animation:kenburns 20s ease-in-out infinite alternate;
+}
+@keyframes kenburns{
+  0%  {background-size:100%;background-position:center top;}
+  100%{background-size:104%;background-position:center 8%;}
+}
+/* ── Standalone slide (student/staff portal — no .hero-carousel wrapper) ── */
+.hero-full > .hero-slide,
+.hero-full > .hero-slide--standalone{
+  width:100%;height:72vh;min-height:72vh;
+  display:block;position:relative;
+  background-size:cover;background-position:center top;
+  animation:kenburns 20s ease-in-out infinite alternate;
+}
+
+
+/*
+  LIGHT overlay — a gentle gradient dark-at-bottom, light-in-middle.
+  - Bottom is darkest so the text sitting there is legible.
+  - Middle/top is mostly clear so the photo breathes.
+  No flat opaque layer that kills the photo.
+*/
+.hero-slide::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,.18)  0%,    /* light at very top — sky/buildings show */
+      rgba(0,0,0,.48)  35%,   /* darkens toward text area                */
+      rgba(0,0,0,.52)  65%,   /* centre — text readable                  */
+      rgba(0,0,0,.28)  100%   /* lightens again at bottom                */
+    );
+  z-index:1;
+}
+/* Text left-aligned in the hero */
+.hero-overlay-text{
+  position:absolute;inset:0;z-index:10;
+  /* for direct children of hero-static that are display:flex */
+  max-width:1380px;margin:0 auto;left:0;right:0;
+  padding:clamp(80px,10vh,130px) clamp(20px,3vw,40px) clamp(28px,4vh,56px);
+  display:flex;flex-direction:column;align-items:flex-start;text-align:left;color:#fff;
+  justify-content:flex-end;
+  width:100%;
+}
+
+/* Static fallback — same principle */
+.hero-static{
+  width:100%;
+  height:72vh;min-height:72vh;
+  background-color:var(--green-900);
+  background-image:url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1950&q=80');
+  background-size:cover;
+  background-position:center top;
+  display:flex;align-items:flex-end;
+  position:relative;
+  animation:kenburns 20s ease-in-out infinite alternate;
+}
+/* Inside with-bar: static hero grows to fill */
+.hero-full--with-bar .hero-static{
+  flex:1 0 0;height:auto;
+}
+.hero-static::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(0,0,0,.18) 0%,rgba(0,0,0,.48) 35%,rgba(0,0,0,.52) 65%,rgba(0,0,0,.28) 100%);
+}
+.hero-static.hero-no-image{background-image:none!important;background:var(--green-900)!important;animation:none!important;}
+.hero-static.hero-no-image::before{background:none;}
+
+/* Blue hero variant */
+.hero-static.hero-blue{background-color:var(--blue-900);}
+.hero-slide.hero-slide-blue::before{
+  background:linear-gradient(to bottom,rgba(0,10,30,.10) 0%,rgba(0,10,30,.14) 40%,rgba(0,10,30,.52) 70%,rgba(0,10,30,.74) 100%);
+}
+
+.hero-label{
+  font-size:.74rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.78);margin-bottom:1rem;display:block;
+}
+.hero-overlay-text h1{
+  font-family:var(--font-display);
+  font-size:clamp(1.9rem,4vw,3.2rem);
+  font-weight:700;line-height:1.12;
+  margin-bottom:1rem;max-width:720px;color:#fff;
+  /* Strong text shadow so it pops against any photo */
+  text-shadow:0 1px 4px rgba(0,0,0,.5), 0 4px 20px rgba(0,0,0,.4);
+}
+.hero-sub{
+  font-size:clamp(.9rem,1.6vw,1.05rem);
+  color:rgba(255,255,255,.88);
+  margin-bottom:2rem;max-width:560px;
+  font-weight:400;line-height:1.75;
+  text-shadow:0 1px 6px rgba(0,0,0,.45);
+}
+.hero-buttons{
+  display:flex;
+  gap:1rem;
+  flex-wrap:wrap;
+  justify-content:flex-start;
+  align-items:center;
+  margin-top:.5rem;
+  margin-bottom:.25rem;
+}
+
+/* Ensure both hero buttons have consistent vertical alignment */
+.hero-buttons .btn-white,
+.hero-buttons .btn-outline-white,
+.hero-buttons .btn-white--blue {
+  align-self:center;
+  flex-shrink:0;
+}
+
+.hero-scroll-cue{
+  position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);
+  z-index:20;color:rgba(255,255,255,.5);font-size:.7rem;
+  letter-spacing:.1em;text-transform:uppercase;
+  animation:scrollcue 2.4s ease-in-out infinite;
+}
+@keyframes scrollcue{0%,100%{opacity:.5;transform:translateX(-50%) translateY(0);}50%{opacity:.82;transform:translateX(-50%) translateY(8px);}}
+
+/* carousel prev/next buttons removed */
+.carousel-btn{display:none!important;}
+.carousel-dots{position:absolute;bottom:calc(var(--access-bar-height,120px) + 1rem);left:50%;transform:translateX(-50%);z-index:20;display:flex;gap:8px;}
+.carousel-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.35);cursor:pointer;transition:var(--ease);padding:0;}
+.carousel-dot.active{background:#fff;width:26px;border-radius:4px;}
+
+/* ══════════════════════════════════════════════════════════
+   HERO ACCESS BAR
+   Horizontal pane anchored at the bottom of .hero-full
+   One unified glass panel — two columns (green / blue)
+   Links shown as individual pill-chips in a flex row
+   ══════════════════════════════════════════════════════════ */
+
+:root{--access-bar-height:auto;}
+
+.hero-access-bar{
+  /* sits inside .hero-full (flex column), so it's at the very bottom */
+  position:relative;z-index:30;
+  width:100%;
+  background:rgba(10,20,10,.82);
+  backdrop-filter:blur(18px) saturate(1.4);
+  -webkit-backdrop-filter:blur(18px) saturate(1.4);
+  border-top:1px solid rgba(255,255,255,.10);
+  /* Allow natural height — chips may wrap to 2 rows on medium screens */
+  height:auto;
+  overflow:visible;
+}
+.hero-access-inner{
+  max-width:1380px;margin:0 auto;
+  display:flex;align-items:stretch;
+  padding:0;
+  min-height:0;
+}
+
+/* ── column (green / blue) ── */
+.access-col{
+  flex:1;
+  display:flex;flex-direction:row;align-items:center;
+  gap:16px;
+  padding:18px 28px;
+}
+.access-col--green{border-right:1px solid rgba(255,255,255,.08);}
+.access-col--blue{}
+
+/* label section: icon + title */
+.access-col-header{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex-shrink:0;min-width:60px;
+}
+.access-col-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;
+  color:rgba(255,255,255,.9);font-size:1rem;
+  flex-shrink:0;
+}
+.access-col-icon--blue{background:rgba(18,69,168,.35);}
+.access-col-title{
+  font-size:.68rem;font-weight:700;text-transform:uppercase;
+  letter-spacing:.08em;color:rgba(255,255,255,.6);
+  white-space:nowrap;
+}
+
+/* divider between columns */
+.access-sep{
+  width:1px;background:rgba(255,255,255,.08);
+  flex-shrink:0;align-self:stretch;
+}
+
+/* row of chips */
+.access-cards-row{
+  display:flex;flex-wrap:wrap;gap:8px;
+  flex:1;align-items:center;
+}
+
+/* individual chip */
+.access-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.88);
+  padding:.46rem 1rem;
+  border-radius:var(--r-pill,50px);
+  font-size:.82rem;font-weight:500;
+  white-space:nowrap;
+  transition:background .18s,border-color .18s,transform .18s,color .18s;
+  text-decoration:none;
+}
+.access-chip i{font-size:.75rem;opacity:.8;flex-shrink:0;}
+.access-chip:hover{
+  background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.32);
+  color:#fff;
+  transform:translateY(-2px);
+}
+
+/* green-tinted chip */
+.access-chip--cta-green{
+  background:var(--cu-green,#1b7a3e);
+  border-color:var(--cu-green,#1b7a3e);
+  color:#fff;font-weight:700;
+}
+.access-chip--cta-green:hover{background:var(--green-600,#166432);border-color:var(--green-600,#166432);}
+
+/* ODEL chip — teal/amber accent to stand out as a distinct programme type */
+.access-chip--odel{
+  background:rgba(13,148,136,.18);
+  border-color:rgba(13,148,136,.35);
+  color:rgba(255,255,255,.92);
+}
+.access-chip--odel:hover{
+  background:rgba(13,148,136,.38);
+  border-color:rgba(13,148,136,.65);
+  color:#fff;
+}
+.access-chip--odel-blue{
+  background:rgba(13,148,136,.15);
+  border-color:rgba(13,148,136,.30);
+}
+.access-chip--odel-blue:hover{
+  background:rgba(13,148,136,.32);
+  border-color:rgba(13,148,136,.55);
+}
+
+/* blue-tinted chip */
+.access-chip--blue{
+  background:rgba(18,69,168,.22);
+  border-color:rgba(18,69,168,.38);
+  color:rgba(255,255,255,.9);
+}
+.access-chip--blue:hover{background:rgba(18,69,168,.40);border-color:rgba(18,69,168,.6);color:#fff;}
+.access-chip--cta-blue{
+  background:var(--cu-blue,#1245a8);
+  border-color:var(--cu-blue,#1245a8);
+  color:#fff;font-weight:700;
+}
+.access-chip--cta-blue:hover{background:var(--blue-600,#0e389c);border-color:var(--blue-600,#0e389c);}
+
+/* With more chips, always allow wrapping so none get clipped */
+.access-cards-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+/* ── RESPONSIVE ── */
+
+/* Large desktop ≥ 1200px — default (all chips in one row) */
+
+/* Medium desktop 1024–1199px — chips may wrap naturally */
+@media(max-width:1199px){
+  .access-col{padding:16px 20px;gap:12px;}
+  .access-chip{font-size:.8rem;padding:.42rem .9rem;}
+}
+
+/* Tablet landscape 900–1023px — tighter */
+@media(max-width:1023px){
+  .hero-access-bar{overflow:hidden;}
+  .access-col{padding:14px 16px;gap:10px;}
+  .access-chip{font-size:.78rem;padding:.38rem .8rem;}
+  .access-col-title{font-size:.62rem;}
+  .access-col-icon{width:34px;height:34px;font-size:.9rem;}
+}
+
+/* Tablet portrait 768–899px — stack the two columns vertically */
+@media(max-width:899px){
+  /* hero-full: flex column — let flex drive height, no override needed */
+  .hero-access-inner{flex-direction:column;}
+  .access-sep{width:100%;height:1px;align-self:auto;}
+  .access-col--green{border-right:none;border-bottom:1px solid rgba(255,255,255,.08);}
+  .access-col{padding:14px 20px;gap:10px;flex-direction:row;align-items:center;}
+  .access-col-header{flex-direction:row;gap:8px;min-width:auto;}
+  .access-col-title{font-size:.72rem;}
+}
+
+/* Mobile large 600–767px */
+@media(max-width:767px){
+  .hero-carousel,.hero-static{min-height:56vw;height:56vw;}
+  .hero-full--with-bar .hero-carousel{min-height:48vw;height:auto;}
+  .hero-overlay-text{padding:24px 20px 20px;}
+  .hero-overlay-text h1{font-size:clamp(1.3rem,5vw,2rem);}
+  .hero-sub{font-size:.88rem;margin-bottom:0;}
+  .hero-access-inner{flex-direction:column;}
+  .access-col{padding:12px 16px;gap:8px;flex-wrap:wrap;}
+  .access-col-header{min-width:auto;flex-direction:row;align-items:center;}
+  .access-cards-row{gap:6px;}
+  .access-chip{font-size:.76rem;padding:.36rem .78rem;}
+}
+
+/* Mobile medium 480–599px */
+@media(max-width:599px){
+  .access-col{padding:10px 14px;gap:6px;}
+  .access-chip{font-size:.74rem;padding:.32rem .7rem;}
+  .access-col-icon{width:30px;height:30px;font-size:.8rem;}
+  .access-col-title{font-size:.62rem;}
+}
+
+/* Mobile small ≤ 479px — chips wrap freely, full-width feel */
+@media(max-width:479px){
+  .hero-access-bar{overflow:visible;}
+  .access-col{padding:10px 12px;gap:6px;flex-direction:column;align-items:flex-start;}
+  .access-col-header{flex-direction:row;gap:8px;}
+  .access-cards-row{gap:5px;}
+  .access-chip{font-size:.72rem;padding:.3rem .65rem;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   QUICK ACCESS
+   ══════════════════════════════════════════════════════════ */
+.quick-access-row{max-width:1080px;margin:-28px auto 64px;padding:0 40px;position:relative;z-index:20;}
+.quick-card{background:var(--white);border-radius:var(--r-xl);box-shadow:var(--shadow-xl);padding:1.8rem 2.4rem;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;border:1px solid var(--cu-border);}
+.quick-btn{background:var(--cu-green);color:#fff;padding:.72rem 1.9rem;border-radius:var(--r-pill);font-weight:600;font-size:.9rem;display:inline-flex;align-items:center;gap:8px;transition:var(--ease);white-space:nowrap;}
+.quick-btn:hover{background:var(--green-600);transform:translateY(-1px);}
+.quick-btn.quick-btn--blue{background:var(--cu-blue);}
+.quick-btn.quick-btn--blue:hover{background:var(--blue-600);}
+.quick-btn-outline{background:transparent;border:1.5px solid var(--cu-border);color:var(--cu-text);padding:.72rem 1.9rem;border-radius:var(--r-pill);font-weight:500;font-size:.9rem;display:inline-flex;align-items:center;gap:8px;transition:var(--ease);white-space:nowrap;}
+.quick-btn-outline:hover{background:var(--cu-green-light);border-color:var(--cu-green);color:var(--cu-green);}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIBILITY CARDS
+   Parallax bg photo (fetched), 3-D card lift on hover
+   ══════════════════════════════════════════════════════════ */
+.responsibilities-wrapper{
+  background-color:var(--grey-800);
+  background-size:cover;
+  background-position:center top;   /* no head cropping */
+  background-attachment:fixed;
+  padding:9rem 40px;
+  width:100%;min-height:90vh;
+  display:flex;align-items:center;
+  position:relative;
+}
+.responsibilities-wrapper::before{
+  content:'';position:absolute;inset:0;
+  /* Gentle overlay — lighter than hero, still readable */
+  background:rgba(0,0,0,.48);
+  z-index:0;
+}
+.responsibilities-section{max-width:1380px;margin:0 auto;width:100%;position:relative;z-index:1;}
+.responsibilities-section .section-title{color:#fff;}
+.responsibilities-section .section-title::after{background:rgba(255,255,255,.45);}
+
+.resp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;perspective:1200px;}
+
+.resp-card{
+  background:rgba(255,255,255,.97);
+  border-radius:var(--r-xl);
+  padding:2.6rem 2rem;
+  box-shadow:var(--shadow-3d);
+  border:none;
+  transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s ease;
+  min-height:340px;
+  display:flex;flex-direction:column;
+  transform:translateZ(0);
+}
+.resp-card:hover{transform:translateY(-12px) rotateX(3deg) scale(1.02);box-shadow:14px 30px 60px rgba(0,0,0,.24),0 4px 12px rgba(0,0,0,.10);}
+
+.resp-icon{width:54px;height:54px;background:var(--cu-green-light);border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--cu-green);font-size:1.25rem;margin-bottom:1.3rem;transition:var(--ease);}
+.resp-card:hover .resp-icon{background:var(--cu-green);color:#fff;}
+.resp-card h3{font-family:var(--font-display);font-size:1.08rem;font-weight:700;color:var(--cu-heading);margin-bottom:.9rem;line-height:1.3;}
+.resp-list{display:flex;flex-direction:column;gap:7px;flex:1;}
+.resp-list li{font-size:.87rem;color:var(--cu-text);padding-left:1rem;position:relative;line-height:1.6;}
+.resp-list li::before{content:'—';position:absolute;left:0;color:var(--cu-green);font-size:.7rem;top:4px;}
+
+/* ══════════════════════════════════════════════════════════
+   GREEN section (dark) — directorate intro
+   ══════════════════════════════════════════════════════════ */
+.wrapper-green{background:var(--green-900);padding:7rem 40px;width:100%;}
+.wrapper-green .lead{font-size:1.08rem;font-weight:500;color:rgba(255,255,255,.92);margin-bottom:1rem;}
+.wrapper-green p{font-size:.92rem;color:rgba(255,255,255,.60);line-height:1.82;max-width:780px;}
+
+/* ══════════════════════════════════════════════════════════
+   BLUE section (dark) — directorate / info
+   ══════════════════════════════════════════════════════════ */
+.wrapper-blue{background:var(--blue-900);padding:7rem 40px;width:100%;}
+.wrapper-blue .lead{font-size:1.08rem;font-weight:500;color:rgba(255,255,255,.92);margin-bottom:1rem;}
+.wrapper-blue p{font-size:.92rem;color:rgba(255,255,255,.60);line-height:1.82;max-width:780px;}
+.wrapper-blue .section-title{color:#fff;}
+.wrapper-blue .section-title::after{background:rgba(255,255,255,.4);}
+
+/* ══════════════════════════════════════════════════════════
+   SUPPORT CARDS — white section
+   ══════════════════════════════════════════════════════════ */
+.wrapper-support{background:var(--white);padding:8rem 40px;width:100%;}
+.support-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.support-item{background:var(--grey-50);border-radius:var(--r-xl);padding:2.8rem 2.4rem;text-align:center;border:1px solid var(--cu-border);box-shadow:var(--shadow-sm);transition:var(--ease-out);display:flex;flex-direction:column;gap:1rem;min-height:260px;}
+.support-item:hover{transform:translateY(-5px);box-shadow:var(--shadow-lg);}
+.support-item h4{font-family:var(--font-display);color:var(--cu-heading);font-size:1.08rem;font-weight:700;}
+.support-item p{font-size:.9rem;color:var(--cu-text);line-height:1.7;flex:1;}
+.btn-support{display:inline-block;background:var(--cu-green);color:#fff;padding:.62rem 1.8rem;border-radius:var(--r-pill);font-weight:600;font-size:.88rem;transition:var(--ease);}
+.btn-support:hover{background:var(--green-600);transform:translateY(-1px);}
+
+/* ══════════════════════════════════════════════════════════
+   RESOURCE CARDS (student) — 3-D on hover, green
+   ══════════════════════════════════════════════════════════ */
+.resource-section{padding:8rem 40px;background:var(--white);width:100%;}
+.resource-section-inner{max-width:1380px;margin:0 auto;}
+.resource-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;perspective:1000px;}
+.theme-card{background:var(--grey-50);border-radius:var(--r-xl);padding:2.8rem 2.4rem;border:1px solid var(--cu-border);box-shadow:var(--shadow-md);transition:transform .35s cubic-bezier(.22,1,.36,1),box-shadow .35s ease;display:flex;flex-direction:column;gap:1rem;min-height:320px;}
+.theme-card:hover{transform:translateY(-10px) rotateX(2deg) scale(1.015);box-shadow:10px 24px 48px rgba(0,0,0,.16);}
+.card-min-icon{width:62px;height:62px;background:var(--cu-green-light);border-radius:16px;display:flex;align-items:center;justify-content:center;color:var(--cu-green);font-size:1.4rem;transition:var(--ease);}
+.theme-card:hover .card-min-icon{background:var(--cu-green);color:#fff;}
+.theme-card h4{font-family:var(--font-display);font-size:1.15rem;font-weight:700;color:var(--cu-green-deep);}
+.theme-card p{font-size:.9rem;color:var(--cu-text);line-height:1.75;flex:1;}
+.btn-card{background:var(--cu-green);color:#fff;padding:.62rem 1.7rem;border-radius:var(--r-pill);font-weight:600;font-size:.9rem;display:inline-flex;align-items:center;gap:8px;transition:var(--ease);margin-top:auto;width:fit-content;}
+.btn-card:hover{background:var(--green-600);transform:translateY(-1px);}
+
+/* ══════════════════════════════════════════════════════════
+   ABOUT — grey section with fetched image
+   ══════════════════════════════════════════════════════════ */
+.about-section{padding:7rem 40px;background:var(--grey-50);width:100%;}
+.about-section-inner{max-width:1380px;margin:0 auto;}
+.about-grid{display:flex;flex-wrap:wrap;gap:5rem;align-items:center;}
+.about-text{flex:1 1 340px;}
+.about-text .lead{color:var(--cu-green);font-weight:600;font-size:1.1rem;margin-bottom:1rem;}
+.about-text p{font-size:.93rem;color:var(--cu-text);line-height:1.82;}
+.about-image{flex:1 1 340px;}
+.about-image img{
+  width:100%;border-radius:var(--r-xl);box-shadow:var(--shadow-xl);
+  object-fit:cover;
+  /* Crop from bottom, not top — preserves heads/faces */
+  object-position:center top;
+  aspect-ratio:4/3;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CONTACT/FEEDBACK — white card on light grey bg
+   Replaced the dark green block — clean, modern, open
+   ══════════════════════════════════════════════════════════ */
+.wrapper-contact{
+  background:var(--grey-100);
+  padding:7rem 40px;
+  width:100%;
+}
+.contact-card{
+  background:var(--white);
+  border-radius:var(--r-xl);
+  padding:3.4rem 3.8rem;
+  display:flex;flex-direction:column;gap:2rem;
+  max-width:1000px;margin:0 auto;
+  box-shadow:var(--shadow-lg);
+  border:1px solid var(--cu-border);
+}
+.contact-inner{display:flex;align-items:flex-start;gap:2.4rem;flex-wrap:wrap;}
+.contact-icon-box{
+  width:64px;height:64px;
+  background:var(--cu-green);
+  border-radius:16px;color:#fff;font-size:1.4rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.contact-details h3{font-family:var(--font-display);font-size:1.4rem;font-weight:700;color:var(--cu-heading);margin-bottom:.8rem;}
+.contact-details p{font-size:.92rem;color:var(--cu-text);display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;line-height:1.65;}
+.contact-details p i{color:var(--cu-green);margin-top:3px;flex-shrink:0;width:14px;}
+.contact-details strong{color:var(--cu-heading);}
+.contact-details a{color:var(--cu-green);}
+.contact-details a:hover{color:var(--green-600);}
+.btn-contact-green{display:inline-flex;align-items:center;gap:9px;background:var(--cu-green);color:#fff;padding:.82rem 2.4rem;border-radius:var(--r-pill);font-weight:700;font-size:.94rem;transition:var(--ease);width:fit-content;}
+.btn-contact-green:hover{background:var(--green-600);transform:translateY(-1px);}
+
+/* ══════════════════════════════════════════════════════════
+   FEEDBACK BLUE — pure blue section (student bottom)
+   ══════════════════════════════════════════════════════════ */
+.wrapper-feedback-blue{background:var(--blue-900);padding:8rem 40px;width:100%;}
+.feedback-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+.feedback-item{background:rgba(255,255,255,.97);border-radius:var(--r-xl);padding:2.8rem 2.2rem;text-align:center;transition:.35s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;align-items:center;gap:1rem;min-height:260px;box-shadow:var(--shadow-md);}
+.feedback-item:hover{transform:translateY(-8px) rotateX(2deg);box-shadow:10px 24px 48px rgba(0,0,0,.18);}
+.feedback-item-icon{width:58px;height:58px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:var(--cu-blue-light);color:var(--cu-blue);transition:var(--ease);}
+.feedback-item:hover .feedback-item-icon{background:var(--cu-blue);color:#fff;}
+.feedback-item h4{font-family:var(--font-display);color:var(--cu-blue-deep);font-size:1.1rem;font-weight:700;}
+.feedback-item p{font-size:.88rem;color:var(--cu-muted);line-height:1.65;flex:1;}
+.btn-feedback-blue{display:inline-block;background:var(--cu-blue);color:#fff;padding:.64rem 1.9rem;border-radius:var(--r-pill);font-weight:600;font-size:.88rem;transition:var(--ease);margin-top:auto;}
+.btn-feedback-blue:hover{background:var(--blue-600);transform:translateY(-1px);}
+
+/* ══════════════════════════════════════════════════════════
+   QUICK DOWNLOADS BAR
+   ══════════════════════════════════════════════════════════ */
+.quick-bar,.quick-downloads{max-width:1380px;margin:28px auto 20px;padding:0 40px;}
+.quick-group,.download-flex{background:var(--white);border-radius:var(--r-pill);padding:.72rem 1.8rem;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;border:1px solid var(--cu-border);box-shadow:var(--shadow-xs);}
+.quick-item,.download-item{background:var(--grey-50);border-radius:var(--r-pill);padding:.38rem 1.2rem;color:var(--cu-text);display:inline-flex;align-items:center;gap:7px;border:1px solid var(--cu-border);font-size:.84rem;white-space:nowrap;font-weight:400;transition:var(--ease);}
+.quick-item:hover,.download-item:hover{background:var(--cu-green-light);border-color:var(--cu-green);color:var(--cu-green);}
+.quick-item a,.download-item a{color:inherit;}
+.quick-item.accent-blue,.download-item.accent-blue{background:var(--blue-50);border-color:rgba(18,69,168,.18);color:var(--cu-blue);}
+.quick-item.accent-blue:hover,.download-item.accent-blue:hover{background:var(--cu-blue-light);border-color:var(--cu-blue);}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+@media(max-width:1200px){.resp-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:1024px){
+  .support-grid{grid-template-columns:repeat(2,1fr);}
+  .resource-grid{grid-template-columns:repeat(2,1fr);}
+  .feedback-grid{grid-template-columns:repeat(2,1fr);}
+  .resp-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:768px){
+  .hero-overlay-text{padding:20px 16px 16px;}
+  .responsibilities-wrapper{background-attachment:scroll;padding:5rem 20px;min-height:auto;}
+  .contact-inner{flex-direction:column;}
+  .about-grid{flex-direction:column;}
+  .wrapper-green,.wrapper-blue,.wrapper-support,.wrapper-feedback-blue,.wrapper-contact,.resource-section,.about-section{padding-left:20px;padding-right:20px;}
+  .quick-access-row,.quick-bar,.quick-downloads{padding:0 20px;}
+  .contact-card{padding:2.2rem 1.8rem;}
+}
+@media(max-width:640px){
+  .resp-grid,.support-grid,.resource-grid,.feedback-grid{grid-template-columns:1fr;}
+  .hero-buttons{flex-direction:column;align-items:stretch;}
+  .btn-white,.btn-outline-hero,.btn-outline-white{justify-content:center;}
+  .quick-card{flex-direction:column;align-items:stretch;}
+  .quick-btn,.quick-btn-outline{width:100%;justify-content:center;}
+  .quick-group,.download-flex{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none;}
+  .quick-group::-webkit-scrollbar,.download-flex::-webkit-scrollbar{display:none;}
+  .carousel-btn{display:none;}
+  .resp-card,.theme-card,.feedback-item{min-height:auto;}
+}
+.hero-full,.hero-carousel,.responsibilities-wrapper,
+.wrapper-green,.wrapper-blue,.wrapper-feedback-blue,.wrapper-contact,.wrapper-support{overflow-x:hidden;}
+/* ═══════════════════════════════════════════════════════════
+   MOBILE HAMBURGER & NAV (added in restructure v2.0)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .nav-links.nav-open {
+    display: flex !important;
+    flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border-top: 2px solid var(--cu-green);
+    padding: 1rem 5%;
+    gap: .7rem;
+    box-shadow: var(--shadow-md);
+    z-index: 199;
+  }
+  .nav-links.nav-open a {
+    border-bottom: none !important;
+    padding: .5rem 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PORTAL HERO FIX — v2.1
+   Make student/staff portal pages show hero + quick-access
+   bar fully visible on desktop without scrolling.
+   ══════════════════════════════════════════════════════════ */
+
+/* Portal hero sections: use flex-column so bar docks at bottom */
+.hero-full--portal {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  width: 100%;
+  overflow: visible;
+}
+
+/* The slide/carousel inside portal hero: grow to fill remaining space */
+.hero-full--portal .hero-slide,
+.hero-full--portal .hero-static,
+.hero-full--portal .hero-carousel {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+  /* Cap so the quick-access bar below is always within the viewport */
+  max-height: calc(100vh - 120px);
+}
+
+/* Quick-access row: when it's the bar at the bottom of portal hero */
+.hero-full--portal .quick-access-row {
+  position: relative;
+  z-index: 30;
+  margin: 0;
+  padding: 0;
+  background: rgba(10,20,10,.82);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-top: 1px solid rgba(255,255,255,.10);
+  width: 100%;
+}
+
+.hero-full--portal .quick-access-row .quick-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  max-width: 1380px;
+  margin: 0 auto;
+  padding: 18px 40px;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.hero-full--portal .quick-access-row .quick-btn,
+.hero-full--portal .quick-access-row .quick-btn-outline {
+  font-size: .88rem;
+  padding: .56rem 1.6rem;
+}
+
+.hero-full--portal .quick-access-row .quick-btn-outline {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.22);
+  color: rgba(255,255,255,.88);
+}
+
+.hero-full--portal .quick-access-row .quick-btn-outline:hover {
+  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.38);
+  color: #fff;
+}
+
+/* Staff portal blue bar */
+.hero-full--portal-blue .quick-access-row {
+  background: rgba(5,15,40,.85);
+}
+
+/* ══════════════════════════════════════════════════════════
+   HOMEPAGE: ensure access bar is always fully visible
+   on desktop without any cut-off
+   ══════════════════════════════════════════════════════════ */
+
+/* Homepage hero: a partial-height banner, not a full-screen hero.
+   NOTE: no template in this project actually includes a
+   .hero-access-bar element (it was part of a removed feature) — so
+   the photo/carousel simply fills the entire hero height, no
+   reserved space needed. */
+.hero-full--with-bar {
+  min-height: 52vh;
+  max-height: 560px;
+  padding-bottom: 0;
+  overflow: visible;
+}
+
+.hero-full--with-bar .hero-carousel,
+.hero-full--with-bar .hero-static {
+  min-height: 0;
+  flex: 1 1 auto;
+  max-height: none;
+}
+
+/* On short screens, shrink further so the hero never dominates the view */
+@media (max-height: 700px) {
+  .hero-full--with-bar {
+    min-height: 46vh;
+  }
+}
+
+/* On very short screens allow scrolling */
+@media (max-height: 600px) {
+  .hero-full--with-bar {
+    min-height: auto;
+  }
+  .hero-full--with-bar .hero-carousel,
+  .hero-full--with-bar .hero-static {
+    min-height: 44vh;
+    max-height: none;
+  }
+}
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE PORTAL HERO
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 899px) {
+  .hero-full--portal .quick-access-row .quick-card {
+    padding: 14px 20px;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-full--portal .quick-access-row .quick-card {
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .hero-full--portal .quick-access-row .quick-btn,
+  .hero-full--portal .quick-access-row .quick-btn-outline {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PORTAL HERO TEXT POSITIONING
+   Text pushed up so bar has full room at bottom
+   ══════════════════════════════════════════════════════════ */
+
+/* Inside portal hero, text is vertically centered (not bottom-docked) */
+.hero-full--portal .hero-overlay-text {
+  justify-content: center; /* center vertically in slide */
+  padding-top: clamp(60px, 8vh, 100px);
+  padding-bottom: clamp(20px, 3vh, 40px);
+}
+
+/* Tighten sub on portal pages */
+.hero-full--portal .hero-sub {
+  margin-bottom: 1.5rem;
+}
+
+/* Homepage: text anchored near the top, below the navbar — not bottom-docked.
+   Bottom padding is a bit larger than the generic default so the space
+   below the hero buttons reads as a deliberate gap, not leftover padding. */
+.hero-full--with-bar .hero-overlay-text {
+  justify-content: flex-start;
+  padding-top: clamp(40px, 6vh, 80px);
+  padding-bottom: clamp(36px, 5vh, 64px);
+}
+
+/* ══════════════════════════════════════════════════════════
+   HERO SLIDE HEIGHT INSIDE PORTAL — override standalone height
+   ══════════════════════════════════════════════════════════ */
+
+/* Override the standalone hero-slide fixed heights when inside portal wrapper */
+.hero-full--portal > .hero-slide,
+.hero-full--portal > .hero-slide--standalone,
+.hero-full--portal .hero-slide.js-slide {
+  height: auto !important;
+  min-height: 0 !important;
+  flex: 1 0 0;
+}
+
+.hero-full--portal > .hero-static {
+  height: auto !important;
+  min-height: 0 !important;
+  flex: 1 0 0;
+}
+
+/* Same overrides for the homepage --with-bar wrapper */
+.hero-full--with-bar > .hero-slide,
+.hero-full--with-bar > .hero-slide--standalone,
+.hero-full--with-bar .hero-slide.js-slide {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.hero-full--with-bar > .hero-static {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   HOMEPAGE ACCESS BAR: chips never clip on common resolutions
+   Ensure bar height is bounded so hero photo has room
+   ══════════════════════════════════════════════════════════ */
+
+/* Cap access bar and prevent it from pushing hero off screen */
+.hero-access-bar {
+  flex-shrink: 0; /* never shrink, always fully shown */
+}
+
+/* Ensure chips row wraps gracefully at medium widths — extra chips need space */
+@media (min-width: 900px) and (max-width: 1280px) {
+  .access-cards-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    row-gap: 5px;
+  }
+  .access-chip {
+    font-size: .79rem;
+    padding: .38rem .82rem;
+  }
+  /* Give bar slightly more vertical room for 2-row chips */
+  .hero-full--with-bar:has(.hero-access-bar) .hero-carousel,
+  .hero-full--with-bar:has(.hero-access-bar) .hero-static {
+    max-height: calc(100vh - 220px);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PORTAL: inner hero-full section should grow to fill space
+   ══════════════════════════════════════════════════════════ */
+.hero-full--portal > section.hero-full {
+  flex: 1 0 0;
+  min-height: 0;
+  /* remove the overflow:hidden that clips the section */
+  overflow: visible;
+}
+
+/* The .hero-full section normally has no height — give it 100% of parent */
+.hero-full--portal > section.hero-full,
+.hero-full--portal > section.hero-full .hero-carousel,
+.hero-full--portal > section.hero-full .hero-slide,
+.hero-full--portal > section.hero-full .hero-static {
+  height: 100%;
+  min-height: 0;
+}
+
+/* Standalone slide inside section.hero-full inside portal wrapper */
+.hero-full--portal > section.hero-full > .hero-slide--standalone,
+.hero-full--portal > section.hero-full .js-slide {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+/* ══════════════════════════════════════════════════════════
+   MOTIVATIONAL TICKER — below the hero access panel
+   Sits between the hero section and the responsibilities section.
+   Fully visible at any desktop viewport height.
+   ══════════════════════════════════════════════════════════ */
+
+.motivation-ticker-wrapper {
+  background: linear-gradient(90deg, #003d2b 0%, #005a3f 45%, #007a52 100%);
+  border-top: 4px solid #c0392b;
+  border-bottom: 4px solid #c0392b;
+  padding: 0;
+  overflow: hidden;           /* CRITICAL: clips the scrolling track */
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 4px 18px rgba(0,0,0,.22);
+  width: 100%;                /* fill viewport width */
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
+/* Inner flex row: icon + scrolling text */
+.motivation-ticker-inner {
+  display: flex;
+  align-items: stretch;
+  height: 52px;               /* slightly taller for legibility */
+  width: 100%;
+  overflow: hidden;           /* belt-and-braces clip */
+}
+
+/* Fixed left badge */
+.motivation-ticker-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  background: rgba(244,124,32,.95);
+  color: #fff;
+  font-weight: 700;
+  font-size: .78rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-right: 2px solid rgba(255,255,255,.18);
+  min-width: 0;
+}
+
+.motivation-ticker-badge i {
+  font-size: 1rem;
+  animation: tickerPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes tickerPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.18); opacity: .82; }
+}
+
+/* Scrolling viewport — MUST be overflow:hidden and flex:1 with min-width:0 */
+.motivation-ticker-track-wrap {
+  flex: 1 1 0;
+  min-width: 0;               /* CRITICAL: allows flex child to shrink */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 3%, #000 97%, transparent 100%);
+}
+
+/* The animated track — inline-flex keeps items on ONE line */
+.motivation-ticker-track {
+  display: inline-flex;       /* inline-flex: never wraps to next line */
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;             /* never compress the track */
+  animation: tickerScroll 300s linear infinite;
+  will-change: transform;
+}
+
+.motivation-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Individual quote item */
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 32px;
+  color: #fff;
+  font-size: .86rem;
+  font-style: italic;
+  letter-spacing: .01em;
+}
+
+.ticker-item .ticker-quote {
+  font-weight: 400;
+  opacity: .95;
+}
+
+.ticker-item .ticker-author {
+  font-weight: 700;
+  font-style: normal;
+  opacity: .72;
+  font-size: .76rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.ticker-item .ticker-sep {
+  color: rgba(244,124,32,.8);
+  font-size: 1.1rem;
+  font-style: normal;
+}
+
+/* Right mute button */
+.motivation-ticker-mute {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  background: none;
+  border: none;
+  border-left: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.55);
+  cursor: pointer;
+  font-size: .85rem;
+  flex-shrink: 0;
+  transition: color .2s;
+}
+.motivation-ticker-mute:hover { color: #fff; }
+
+/* Mobile: reduce height slightly */
+@media (max-width: 600px) {
+  .motivation-ticker-inner { height: 42px; }
+  .motivation-ticker-badge { padding: 0 12px; font-size: .72rem; }
+  .ticker-item { font-size: .8rem; padding: 0 22px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   ODEL DOWNLOADS SECTION
+   ══════════════════════════════════════════════════════════ */
+.odel-downloads-section {
+  background: #f8faf9;
+  padding: 64px 0 56px;
+  border-top: 1px solid #dde8e3;
+}
+.odel-downloads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  margin-top: 36px;
+}
+.odel-download-card {
+  background: #fff;
+  border: 1px solid #c9ddd6;
+  border-radius: 14px;
+  padding: 36px 28px 28px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,90,72,.07);
+  transition: transform .22s, box-shadow .22s;
+}
+.odel-download-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(0,90,72,.13);
+}
+.odel-download-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #005a48 0%, #007a60 100%);
+  color: #fff;
+  font-size: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  box-shadow: 0 4px 12px rgba(0,90,72,.22);
+}
+.odel-download-card h3 {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #003d2b;
+  margin: 0 0 10px;
+}
+.odel-download-card p {
+  font-size: .88rem;
+  color: #5a7a6e;
+  margin: 0 0 22px;
+  line-height: 1.55;
+}
+.btn-odel-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #005a48;
+  color: #fff;
+  padding: .55rem 1.4rem;
+  border-radius: 8px;
+  font-size: .87rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .2s, transform .18s;
+}
+.btn-odel-download:hover {
+  background: #003d2b;
+  transform: translateY(-2px);
+  color: #fff;
+  text-decoration: none;
+}
+.odel-note {
+  margin-top: 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #e8f5f1;
+  border: 1px solid #b8d9ce;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: .85rem;
+  color: #2d6b57;
+  line-height: 1.5;
+}
+.odel-note i {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PORTAL SHELL — sidebar-flanked layout (matches Figma design)
+   Teal left/right sidebars flanking a grey content column.
+   Used on the homepage, staff portal, and student portal.
+   ══════════════════════════════════════════════════════════ */
+:root{
+  --cu-teal:       #2f9e94;
+  --cu-teal-deep:  #14524c;
+  --cu-teal-pale:  #c9ece7;
+  --cu-teal-pale-blue: #cfe4ec;
+  --cu-navbar-height: 66px; /* approx height of .navbar, used to let the sidebar brand span up into it */
+}
+
+.portal-shell{
+  display:grid;
+  grid-template-columns: 260px minmax(0,1fr) 260px;
+  align-items:stretch;
+  background:var(--grey-50);
+}
+.portal-main{min-width:0;}
+
+/* ── Homepage: hero spans the main+right columns on row 1, so the
+   right sidebar no longer sits stretched alongside an empty gap next
+   to a full-viewport-height hero. Left sidebar spans both rows. ── */
+.page-home .portal-shell{
+  grid-template-areas:
+    "sbleft hero hero"
+    "sbleft main sbright";
+  grid-template-rows:auto 1fr;
+}
+.page-home .portal-sidebar--left{grid-area:sbleft;}
+.page-home .hero-full--with-bar{grid-area:hero;}
+.page-home .portal-main{grid-area:main;}
+.page-home .portal-sidebar--right{grid-area:sbright;}
+
+.portal-sidebar{
+  background:var(--cu-teal-pale);
+  padding:2.6rem 1.8rem;
+  display:flex;flex-direction:column;gap:1.7rem;
+}
+.portal-sidebar--left{border-right:1px solid rgba(0,0,0,.06);}
+.portal-sidebar--right{border-left:1px solid rgba(0,0,0,.06);background:var(--cu-teal-pale-blue);}
+
+.sidebar-brand{display:flex;flex-direction:column;align-items:flex-start;gap:.5rem;text-decoration:none;}
+.sidebar-brand img{height:56px;width:56px;object-fit:contain;}
+.sidebar-brand strong{font-family:var(--font-display);font-size:1.05rem;color:var(--cu-teal-deep);line-height:1.3;}
+.sidebar-tagline{font-weight:800;color:#c0392b;font-size:.92rem;letter-spacing:.01em;}
+
+/* ── Unified brand block ──────────────────────────────────────
+   The logo + university name must appear ONCE, spanning from the
+   top navbar down into the left sidebar (per Figma) — not once in
+   the navbar AND again in the sidebar. On the public portal pages
+   (homepage, student portal, staff portal) we hide the small
+   navbar logo and let the sidebar brand visually bridge the two
+   regions instead. */
+.page-public .navbar .nav-logo{display:none;}
+@media(min-width:601px){
+  .page-public .navbar{justify-content:flex-end;}
+}
+
+@media(min-width:1025px){
+  .page-public .portal-sidebar--left{overflow:visible;}
+  .page-public .sidebar-brand{
+    position:relative;
+    z-index:250; /* sits above the sticky navbar (z-index:200) so it visibly spans over it */
+    margin-top:calc(-1 * var(--cu-navbar-height));
+  }
+  .page-public .sidebar-brand img{height:72px;width:72px;}
+}
+
+.sidebar-links-title{
+  font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cu-teal-deep);margin-bottom:.9rem;display:block;
+}
+.sidebar-links{display:flex;flex-direction:column;gap:0;}
+.sidebar-links a:not(.sidebar-link--cta){
+  color:#0d3733;font-weight:600;font-size:.87rem;text-decoration:underline;
+  text-underline-offset:4px;text-decoration-color:#c0392b;transition:var(--ease);
+  padding:14px 0;
+  border-bottom:3px solid #c0392b;
+}
+.sidebar-links a:not(.sidebar-link--cta):hover{color:var(--cu-teal-deep);text-decoration-color:#a8302a;padding-left:3px;}
+.sidebar-links a.sidebar-link--cta{
+  text-decoration:none;font-weight:700;color:#fff;background:var(--cu-teal-deep);
+  padding:.5rem 1rem;border-radius:var(--r-pill);display:inline-flex;align-items:center;gap:8px;
+  width:fit-content;margin-top:1.2rem;
+}
+.sidebar-links a.sidebar-link--cta:hover{background:var(--green-700);}
+
+.portal-sidebar--right h3{font-family:var(--font-display);font-size:1.18rem;color:#0d3733;margin-bottom:.5rem;}
+.portal-sidebar--right p{font-size:.86rem;color:#274744;line-height:1.65;margin-bottom:.4rem;}
+.sidebar-divider{height:1px;background:rgba(13,55,51,.14);width:100%;}
+.btn-sidebar-feedback{
+  background:var(--cu-green);color:#fff;padding:.7rem 1.6rem;border-radius:var(--r-pill);
+  font-weight:700;font-size:.87rem;display:inline-flex;align-items:center;gap:8px;
+  width:fit-content;transition:var(--ease);
+}
+.btn-sidebar-feedback:hover{background:var(--green-600);transform:translateY(-1px);}
+.sidebar-contact-list{display:flex;flex-direction:column;gap:.5rem;font-size:.82rem;color:#274744;}
+.sidebar-contact-list i{width:14px;color:var(--cu-teal-deep);margin-right:6px;}
+
+/* Grey content panel for responsibilities inside the shell (matches wireframe) */
+.responsibilities--solid-bg{
+  background-color:var(--grey-100) !important;
+  background-image:none !important;
+}
+.resp-card--sharp h3, .resp-card h3{position:relative;padding-bottom:.7rem;}
+.resp-card--sharp h3::after, .resp-card h3::after{
+  content:'';position:absolute;left:0;bottom:0;width:36px;height:3px;background:var(--cu-teal-deep);
+}
+
+/* ── Responsive: stack shell on tablets/mobile ── */
+@media(max-width:1024px){
+  .portal-shell{grid-template-columns:1fr;}
+  .page-home .portal-shell{grid-template-areas:none;grid-template-rows:none;}
+  .portal-sidebar{flex-direction:row;flex-wrap:wrap;padding:1.5rem 1.3rem;order:1;}
+  .portal-sidebar--left{border-right:none;border-bottom:1px solid rgba(0,0,0,.08);}
+  .portal-sidebar--right{border-left:none;border-top:1px solid rgba(0,0,0,.08);order:4;}
+  .page-home .hero-full--with-bar{order:2;}
+  .portal-main{order:3;}
+  .sidebar-links{flex-direction:row;flex-wrap:wrap;gap:.7rem 1.4rem;}
+  .sidebar-links a:not(.sidebar-link--cta){border-bottom:none;padding:0;}
+  .sidebar-brand{flex:1 1 100%;}
+}
+@media(max-width:640px){
+  .portal-sidebar{flex-direction:column;}
+  .sidebar-links{flex-direction:column;gap:0;}
+  .sidebar-links a:not(.sidebar-link--cta){border-bottom:3px solid #c0392b;padding:14px 0;}
+}
+
+/* ══════════════════════════════════════════════════════════
+   RED FOOTER DIVIDER (public pages)
+   ══════════════════════════════════════════════════════════ */
+body.page-public footer.footer-dark{border-top:4px solid #c0392b;}
+
+/* ══════════════════════════════════════════════════════════
+   DIRECTORATE LEADERSHIP / WORKING STRUCTURE SECTION
+   ══════════════════════════════════════════════════════════ */
+.leadership-section{
+  background:linear-gradient(180deg,#eef4fb 0%,#e3ecf9 100%);
+  padding:6rem 40px;border-top:1px solid #dbe6f6;border-bottom:1px solid #dbe6f6;
+}
+.leadership-section .section-eyebrow{color:#1245a8;text-align:center;display:block;}
+.leadership-section .section-subtitle{text-align:center;margin-bottom:3rem;max-width:640px;margin-left:auto;margin-right:auto;}
+.leadership-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:28px;max-width:1100px;margin:0 auto;
+}
+.leadership-card{
+  background:#fff;border-radius:16px;padding:2.4rem 1.8rem;text-align:center;
+  border:1px solid #dbe6f6;box-shadow:0 2px 10px rgba(18,69,168,.06);
+  transition:transform .22s ease,box-shadow .22s ease;
+}
+.leadership-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(18,69,168,.14);}
+.leadership-avatar{
+  width:68px;height:68px;border-radius:50%;margin:0 auto 1.1rem;
+  background:linear-gradient(135deg,#1245a8 0%,#1a56db 100%);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:700;
+}
+.leadership-card h4{font-size:1.02rem;font-weight:700;color:#0d2f6e;margin-bottom:.3rem;}
+.leadership-card .leadership-role{
+  display:block;font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:#1245a8;margin-bottom:.7rem;
+}
+.leadership-card p{font-size:.86rem;color:#5a6a85;line-height:1.6;}
+
+.section-eyebrow{
+  display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:#198754;margin-bottom:.6rem;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SUPPORT CARD ICON BADGES (staff portal)
+   ══════════════════════════════════════════════════════════ */
+.support-item{position:relative;}
+.support-icon{
+  width:54px;height:54px;border-radius:14px;
+  background:var(--cu-blue-light);color:var(--cu-blue);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  margin:0 auto 1.1rem;transition:var(--ease);
+}
+.support-item:hover .support-icon{background:var(--cu-blue);color:#fff;}

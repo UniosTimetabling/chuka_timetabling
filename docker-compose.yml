@@ -1,0 +1,212 @@
+# ──────────────────────────────────────────────────────────────
+# docker-compose.yml — Chuka University Timetabling System
+#
+# Services:
+#   db             — MySQL 8.0 database
+#   redis          — Celery broker/result backend (background imports,
+#                     scheduled backups, etc. — see university_timetable_system/celery.py)
+#   web            — Django + Gunicorn application
+#   celery_worker  — Runs background tasks (Program Course CSV import,
+#                     backup/sync jobs). Without this running, ImportJobs
+#                     stay PENDING forever (or, outside Docker, fall back
+#                     to an in-process thread — see program_management/tasks.py)
+#   celery_beat    — Periodic task scheduler (see celery.py beat_schedule)
+#   nginx          — Reverse proxy, serves static/media files
+#
+# Quick start:
+#   cp .env.example .env        # fill in your values
+#   docker compose up --build
+#
+# GUNICORN_WORKERS / GUNICORN_TIMEOUT (below, under `web`):
+#   Program Course CSV imports no longer run inside the Gunicorn request
+#   (see program_management/tasks.py) — a Gunicorn worker is only ever
+#   busy for as long as a normal page/API request takes. That freed
+#   capacity is why the worker count default dropped from 3 to 2 (2
+#   workers now comfortably cover the same request concurrency, since
+#   none of them get tied up for minutes on an import). GUNICORN_TIMEOUT
+#   went up to 900s as a generous ceiling for the *other* slow synchronous
+#   endpoints in this project (PDF generation, xlsx export, auto-allocation)
+#   that still run inline — it is intentionally NOT what bounds import
+#   duration any more; a huge CSV just takes longer in the Celery worker
+#   without holding a Gunicorn worker or the browser connection open.
+#   Both remain overridable via .env without touching this file.
+# ──────────────────────────────────────────────────────────────
+
+version: "3.9"
+
+services:
+
+  # ── MySQL 8.0 Database ──────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: chuka_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE:      ${DB_NAME:-timetabling_db}
+      MYSQL_USER:          ${DB_USER:-timetabling_user}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-changeme}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootchangeme}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/conf.d:/etc/mysql/conf.d:ro   # optional custom my.cnf
+    # ports:
+    #   - "127.0.0.1:3306:3306"   # not published to the host — chuka_web reaches chuka_db over the
+    #                             # internal Docker network, so this isn't needed for the app to work.
+    #                             # Uncomment only if you need a MySQL client on the host itself, and
+    #                             # first make sure nothing else on the host is already bound to 3306.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost",
+             "-u", "${DB_USER:-timetabling_user}",
+             "-p${DB_PASSWORD:-changeme}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  # ── Redis (Celery broker + result backend) ──────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: chuka_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    # Not published to the host — web/celery_worker/celery_beat reach it
+    # over the internal Docker network as `redis://redis:6379/0` (see
+    # CELERY_BROKER_URL / CELERY_RESULT_BACKEND in .env / settings.py).
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # ── Django + Gunicorn Application ───────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: chuka_web:${IMAGE_TAG:-latest}   # named + tagged so rollback.sh can re-point it
+    container_name: chuka_web
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db        # override host to use the compose service name
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      # See the note at the top of this file for why these defaults changed.
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-900}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health/')\" || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 300s   # covers first-time migrations (24 apps) + collectstatic + media seed on a fresh DB
+
+  # ── Celery Worker (background imports, backups, sync jobs) ──
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: chuka_web:${IMAGE_TAG:-latest}   # same image as `web` — just a different process
+    container_name: chuka_celery_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - media_volume:/app/media   # uploaded CSVs (ImportJob.uploaded_file) live under MEDIA_ROOT
+    # --concurrency: number of rows processed per chunk is already bounded
+    # (see program_management/tasks.py DEFAULT_CHUNK_SIZE), so a modest
+    # concurrency here is enough; raise CELERY_WORKER_CONCURRENCY in .env
+    # if multiple large imports run at the same time in practice.
+    command: >
+      celery -A university_timetable_system worker
+      -l "${CELERY_LOG_LEVEL:-info}"
+      --concurrency="${CELERY_WORKER_CONCURRENCY:-2}"
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A university_timetable_system inspect ping -d celery@$$HOSTNAME || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Celery Beat (periodic tasks — backups, sync retries, etc.) ──
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: chuka_web:${IMAGE_TAG:-latest}
+    container_name: chuka_celery_beat
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: db
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # NOTE: django_celery_beat is listed in requirements.txt but is not
+    # currently in INSTALLED_APPS (no migrations for it exist in this
+    # project), so this intentionally uses Celery's default file-based
+    # scheduler rather than --scheduler django_celery_beat.schedulers:DatabaseScheduler.
+    # The periodic schedule itself is defined in-code in
+    # university_timetable_system/celery.py (app.conf.beat_schedule).
+    # If django_celery_beat is added to INSTALLED_APPS + migrated later,
+    # add --scheduler django_celery_beat.schedulers:DatabaseScheduler here.
+    command: >
+      celery -A university_timetable_system beat
+      -l "${CELERY_LOG_LEVEL:-info}"
+
+  # ── Nginx Reverse Proxy ─────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: chuka_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      # Loopback-only target for Tailscale Funnel (see
+      # scripts/z_omega_deployment_script/11_tailscale_setup.sh and the
+      # dedicated `listen 8088` server block in docker/nginx/default.conf).
+      # Bound to 127.0.0.1 so it's reachable from tailscaled on this host
+      # only — never from the LAN or the public internet directly.
+      - "127.0.0.1:8088:8088"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+      - ./docker/nginx/certs:/etc/nginx/certs:ro   # place your SSL certs here
+      - ./docker/nginx/maintenance:/etc/nginx/maintenance:ro   # "be right back" page + maintenance.flag toggle (see deploy_production_webserver.sh)
+    depends_on:
+      - web
+
+# ── Named Volumes ──────────────────────────────────────────────
+volumes:
+  db_data:
+  redis_data:
+  static_volume:
+  media_volume:

@@ -1,0 +1,40 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Archive & Delete Timetable{% endblock title %}
+
+{% block panel_content %}
+<div class="container mt-5 p-5 bg-white shadow rounded text-center" style="max-width:600px;">
+ <h3 class="text-danger mb-3">️ Archive & Delete All Timetable Entries</h3>
+ <p class="text-muted">
+ Please confirm the academic year and semester before archiving.<br>
+ This action <b>cannot be undone</b>.
+ </p>
+
+ {% if messages %}
+ {% for message in messages %}
+ <div class="alert alert-{{ message.tags }} mt-2">{{ message }}</div>
+ {% endfor %}
+ {% endif %}
+
+ <form method="POST">
+ {% csrf_token %}
+ <div class="mb-3 text-start">
+ <label class="form-label fw-bold">Academic Year</label>
+ <input type="text" name="academic_year" class="form-control" placeholder="e.g. 2024/2025" required>
+ </div>
+
+ <div class="mb-3 text-start">
+ <label class="form-label fw-bold">Semester</label>
+ <select name="semester" class="form-select" required>
+ <option value="">-- Select Semester --</option>
+ <option value="1">1st Semester</option>
+ <option value="2">2nd Semester</option>
+ </select>
+ </div>
+
+ <button type="submit" class="btn btn-danger w-100 mb-2">Archive & Delete</button>
+ <a href="{% url 'timetable_panel' %}" class="btn btn-secondary w-100">Cancel</a>
+ </form>
+</div>
+{% endblock panel_content %}

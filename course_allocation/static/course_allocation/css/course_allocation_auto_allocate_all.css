@@ -1,0 +1,96 @@
+/* course_allocation_auto_allocate_all.css — extracted from auto_allocate_all.html */
+/* ── Info bar ── */
+  .infobar {
+    background: var(--navy-50);
+    border-bottom: 1px solid var(--border);
+    padding: 7px 20px;
+    font-size: 12.5px;
+    color: var(--text-mid);
+  }
+
+  /* ── Alerts ── */
+  .msgs { padding: 10px 20px 0; }
+  .alert { padding: 9px 13px; border-radius: var(--radius-sm); margin-bottom: 7px; font-size: 12.5px;  }
+  .alert-success { background: var(--green-50);  border-color: var(--green-400);  color: var(--green-600); }
+  .alert-error,
+  .alert-danger   { background: #ffebee; border-color: var(--danger); color: var(--danger); }
+  .alert-warning  { background: var(--orange-50); border-color: var(--orange-400); color: var(--orange-600); }
+  .alert-info     { background: var(--navy-50);   border-color: var(--navy-400);   color: var(--navy-600); }
+
+  /* ── Stat boxes ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; margin-bottom: 14px; }
+  .sbox {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .sval { font-size: 26px; font-weight: 800; color: var(--navy-700); line-height: 1.2; }
+  .slbl { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+
+  /* ── Cards ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow-sm); }
+  .ch { background: var(--navy-800); color: #fff; padding: 9px 15px; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--orange-400); }
+  .cb { padding: 14px; }
+
+  /* ── Controls ── */
+  .ctrl-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+  .cg { display: flex; flex-direction: column; gap: 4px; }
+  .cg label { font-size: 12px; font-weight: 600; color: var(--text-mid); }
+  .cg select,
+  .cg input[type=text] { padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; min-width: 200px; background: var(--surface); color: var(--text); font-family: inherit; }
+  .cg select:focus,
+  .cg input:focus { outline: none; border-color: var(--green-400); box-shadow: 0 0 0 2px rgba(46,204,113,.15); }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border: none; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; transition: var(--transition); white-space: nowrap; font-family: inherit; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-g  { background: var(--green-500);  color: #fff; } .btn-g:hover:not(:disabled)  { background: var(--green-600); }
+  .btn-b  { background: var(--navy-500);   color: #fff; } .btn-b:hover:not(:disabled)  { background: var(--navy-600); }
+  .btn-gr { background: #616161; color: #fff; }           .btn-gr:hover:not(:disabled) { background: #424242; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* ── Progress ── */
+  .prog-bar { display: none; background: var(--green-50); border: 1px solid var(--green-200); border-radius: var(--radius-sm); padding: 9px 13px; margin-top: 10px; font-size: 12px; color: var(--green-600); align-items: center; gap: 9px; }
+  .prog-bar.on { display: flex; }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--green-200); border-top-color: var(--green-500); border-radius: 50%; animation: rot .7s linear infinite; flex-shrink: 0; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* ── Result bar ── */
+  .res-bar { display: none; background: var(--green-50);  border-radius: var(--radius-sm); padding: 9px 13px; margin-bottom: 10px; font-size: 12px; color: var(--green-600); }
+  .res-bar.on { display: block; }
+
+  /* ── Table toolbar ── */
+  .ttbar { display: flex; align-items: center; gap: 9px; padding: 9px 14px; border-bottom: 1px solid var(--border-light); background: var(--green-20); flex-wrap: wrap; }
+  .ttbar input,
+  .ttbar select { padding: 6px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; font-family: inherit; background: var(--surface); color: var(--text); }
+  .ttbar input { width: 200px; }
+  .ttbar input:focus,
+  .ttbar select:focus { outline: none; border-color: var(--green-400); }
+  .tcnt { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+  /* ── Table ── */
+  .tscroll { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+  thead tr { background: var(--navy-700); }
+  thead th { padding: 8px 11px; text-align: left; font-weight: 600; white-space: nowrap; color: #fff;  position: sticky; top: 0; z-index: 1; }
+  thead th:last-child { border-right: none; }
+  tbody tr { border-bottom: 1px solid var(--border-light); }
+  tbody tr:hover { background: var(--green-20); }
+  tbody td { padding: 7px 11px; vertical-align: middle; }
+  .erow td { text-align: center; color: var(--text-muted); padding: 32px; font-style: italic; }
+  code { background: var(--navy-50); color: var(--navy-700); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  /* ── Badges ── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .b-pend { background: var(--orange-100); color: var(--orange-600); }
+  .b-sub  { background: var(--green-100);  color: var(--green-600); }
+  .b-appr { background: var(--navy-100);   color: var(--navy-600); }
+  .b-unas { background: #fafafa; color: #999; border: 1px solid #ddd; }
+  .new-row { animation: flash 2s ease; }
+  @keyframes flash { 0% { background: var(--green-100); } 100% { background: transparent; } }
+
+  @media(max-width:700px) { .ctrl-row { flex-direction: column; } .cg select, .cg input { min-width: 100%; } }

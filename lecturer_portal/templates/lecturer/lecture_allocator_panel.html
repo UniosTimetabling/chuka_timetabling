@@ -1,0 +1,257 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecturer_portal_lecturer_lecture_allocator_panel.css' %}">
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecture_alloc2.css' %}">
+<link rel="stylesheet" href="{% static 'lecturer_portal/css/lecturer_portal_lecture_allocator_panel.css' %}">
+{% endblock page_css %}
+
+{% block title %}Lecture Allocator Panel — Chuka University{% endblock %}
+
+{% block page_title %}Lecture Allocator Panel{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block header_controls %}
+ <div class="dept-pill">
+ <i class="fas fa-building"></i>
+ Dept: <strong>{{ detected_dept.name }}</strong>
+ </div>
+{% endblock %}
+
+{% block allocation_content %}
+<div class="alloc-main">
+ <section class="panel-card">
+ <div class="panel-card__head">
+ <h2><i class="fas fa-book-open"></i> Course Allocations</h2>
+ </div>
+
+ <!-- Desktop Table View -->
+ <div class="table-wrapper desktop-table">
+ <table class="data-table" id="allocTable">
+ <thead>
+ <tr>
+ <th>ID</th>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Origin Department</th>
+ <th>Lecturer</th>
+ <th>Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for a in allocations %}
+ <tr data-searchable>
+ <td>{{ a.id }}</td>
+ <td><strong>{{ a.course_code }}</strong></td>
+ <td>{{ a.course_name }}</td>
+ <td>{{ a.origin_department.name|default:"—" }}</td>
+ <td>
+ {% if a.lecturer %}
+ {{ a.lecturer.display_name }}
+ {% else %}
+ <span class="text-muted">Unassigned</span>
+ {% endif %}
+ </td>
+ <td>
+ <button class="btn btn-sm btn-accent"
+ onclick="openEditModal('{{ a.id }}', '{{ a.course_code }}', '{{ a.course_name }}', '{{ a.lecturer.id|default:'' }}')">
+ <i class="fas fa-pencil-alt"></i> Edit
+ </button>
+ </td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="6" class="text-center" style="padding:40px;color:var(--text-muted);">
+ <i class="fas fa-inbox" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+ No allocations found for your department.
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ <!-- Mobile Card View -->
+ <div class="alloc-cards" id="allocCards">
+ {% for a in allocations %}
+ <div class="alloc-card">
+ <div class="alloc-card-row">
+ <span class="alloc-card-label">ID</span>
+ <span class="alloc-card-value">{{ a.id }}</span>
+ </div>
+ <div class="alloc-card-row">
+ <span class="alloc-card-label">Course Code</span>
+ <span class="alloc-card-value">{{ a.course_code }}</span>
+ </div>
+ <div class="alloc-card-row">
+ <span class="alloc-card-label">Course Name</span>
+ <span class="alloc-card-value">{{ a.course_name }}</span>
+ </div>
+ <div class="alloc-card-row">
+ <span class="alloc-card-label">Origin Dept</span>
+ <span class="alloc-card-value">{{ a.origin_department.name|default:"—" }}</span>
+ </div>
+ <div class="alloc-card-row">
+ <span class="alloc-card-label">Lecturer</span>
+ <span class="alloc-card-value">{{ a.lecturer.display_name|default:"Unassigned" }}</span>
+ </div>
+ <div class="alloc-card-actions">
+ <button class="btn btn-sm btn-accent"
+ onclick="openEditModal('{{ a.id }}', '{{ a.course_code }}', '{{ a.course_name }}', '{{ a.lecturer.id|default:'' }}')">
+ <i class="fas fa-pencil-alt"></i> Edit Allocation
+ </button>
+ </div>
+ </div>
+ {% empty %}
+ <div class="text-center text-muted" style="padding:30px;">No allocations found for your department.</div>
+ {% endfor %}
+ </div>
+
+ </section>
+</div><!-- /.alloc-main -->
+
+<!-- 
+ EDIT MODAL
+= -->
+<div id="editModal" class="alloc-modal" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+ <div class="alloc-modal__content">
+
+ <div class="alloc-modal__head">
+ <h3 id="editModalTitle">
+ <i class="fas fa-pencil-alt" style="margin-right:8px;opacity:.8;"></i>Edit Course Allocation
+ </h3>
+ <button class="alloc-modal__close" onclick="closeEditModal()" aria-label="Close"></button>
+ </div>
+
+ <form method="post" action="{% url 'lecture_allocator_panel' %}">
+ {% csrf_token %}
+ <input type="hidden" name="id" id="allocId">
+
+ <div class="alloc-modal__body">
+ <div class="form-group">
+ <label class="form-label">Course Code</label>
+ <input type="text" class="form-control" name="course_code" id="allocCode" required>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Course Name</label>
+ <input type="text" class="form-control" name="course_name" id="allocName" required>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Lecturer</label>
+ <select class="form-control" name="lecturer_id" id="lectSelect">
+ <option value="">— Unassigned —</option>
+ {% for l in lecturers %}
+ <option value="{{ l.id }}">{{ l.display_name }}</option>
+ {% endfor %}
+ <option value="__new__"> Add New Lecturer</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="alloc-modal__foot">
+ <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+ <button type="submit" class="btn btn-primary">
+ <i class="fas fa-save"></i> Save Changes
+ </button>
+ </div>
+ </form>
+
+ </div>
+</div>
+{% endblock allocation_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * lecturer_portal_lecturer_lecture_allocator_panel.js
+ * Extracted inline JS from: lecturer_portal/templates/lecturer/lecture_allocator_panel.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+(function () {
+  "use strict";
+
+  /* ── Wire base search to filter table rows ── */
+  window.onSearch = function (q) {
+    const $rows = $('#allocTable tbody tr');
+    $rows.find('mark.search-hit').each(function () { $(this).replaceWith($(this).text()); });
+    if (!q) { $rows.show(); return; }
+    const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    $rows.each(function () {
+      const $tr = $(this);
+      if ($tr.text().toLowerCase().includes(q)) {
+        $tr.show();
+        $tr.find('td').each(function () {
+          const $td = $(this);
+          const raw = $td.text();
+          if (raw.toLowerCase().includes(q)) {
+            $td.html(raw.replace(pattern, m => `<mark class="search-hit">${m}</mark>`));
+          }
+        });
+      } else {
+        $tr.hide();
+      }
+    });
+  };
+
+  window.onSearchClear = function () { $('#allocTable tbody tr').show(); };
+
+  /* ── Open / Close edit modal ── */
+  window.openEditModal = function (id, code, name, lecturerId) {
+    document.getElementById('allocId').value    = id;
+    document.getElementById('allocCode').value  = code;
+    document.getElementById('allocName').value  = name;
+    document.getElementById('lectSelect').value = lecturerId || '';
+    document.getElementById('editModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeEditModal = function () {
+    document.getElementById('editModal').classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  /* Close on backdrop click */
+  document.getElementById('editModal').addEventListener('click', function (e) {
+    if (e.target === this) closeEditModal();
+  });
+
+  /* Close on Escape */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeEditModal();
+  });
+
+  /* ── Handle "Add New Lecturer" option ── */
+  document.getElementById('lectSelect').addEventListener('change', function () {
+    if (this.value === '__new__') {
+      alert('Redirecting to Add New Lecturer page…');
+      window.location.href = "{% url 'lecturer_panel' %}";
+    }
+  });
+
+  /* ── Responsive view switching ── */
+  function updateView() {
+    const tableEl = document.querySelector('.desktop-table');
+    const cardsEl = document.getElementById('allocCards');
+    if (!tableEl || !cardsEl) return;
+    if (window.innerWidth < 768) {
+      tableEl.style.display = 'none';
+      cardsEl.style.display = 'flex';
+    } else {
+      tableEl.style.display = '';
+      cardsEl.style.display = 'none';
+    }
+  }
+
+  updateView();
+  window.addEventListener('resize', updateView);
+
+})();
+</script>
+{% endblock extra_js %}

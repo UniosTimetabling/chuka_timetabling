@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<title>We'll be right back — Chuka University Timetabling System</title>
+<style>
+  :root{
+    --green-900:#002b20; --green-800:#004033; --green-700:#005a48;
+    --gold:#b38a4a; --gold-light:#f4e8d0;
+    --grey-50:#f8f9f8; --grey-600:#4a504c;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%; margin:0;
+    font-family:'Segoe UI', Inter, Roboto, Arial, sans-serif;
+    background:radial-gradient(ellipse at top, var(--green-700) 0%, var(--green-900) 70%);
+    color:var(--grey-50);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .wrap{
+    text-align:center; padding:32px; max-width:560px; width:100%;
+  }
+  .stage{
+    width:100%; max-width:420px; margin:0 auto 8px;
+  }
+  h1{
+    font-size:1.6rem; margin:18px 0 6px; letter-spacing:.2px;
+    color:#fff;
+  }
+  p.sub{
+    color:var(--gold-light); font-size:1rem; margin:0 0 22px; line-height:1.5;
+  }
+  .status{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
+    padding:9px 18px; border-radius:100px; font-size:.85rem; color:var(--grey-50);
+  }
+  .dot{
+    width:8px;height:8px;border-radius:50%; background:var(--gold);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:.35; transform:scale(.85);}
+    50%{opacity:1; transform:scale(1.15);}
+  }
+  footer{
+    margin-top:26px; font-size:.75rem; color:rgba(248,249,248,0.5);
+  }
+
+  /* ---- Gate ---- */
+  .gate-post{ fill:var(--gold); }
+  .gate-bar{ fill:var(--gold); }
+  .gate-glow{ opacity:.55; }
+
+  /* ---- Mechanic ---- */
+  .mech-body{ fill:var(--grey-50); }
+  .mech-overalls{ fill:var(--green-700); }
+  .mech-skin{ fill:#e0b48a; }
+
+  #wrench{
+    transform-origin:100px 150px;
+    animation:turnWrench 1.1s ease-in-out infinite;
+  }
+  @keyframes turnWrench{
+    0%{transform:rotate(-28deg);}
+    50%{transform:rotate(18deg);}
+    100%{transform:rotate(-28deg);}
+  }
+
+  #gear{
+    transform-origin:305px 150px;
+    animation:spinGear 4s linear infinite;
+  }
+  @keyframes spinGear{ to{ transform:rotate(360deg); } }
+
+  .spark{ opacity:0; }
+  .spark.s1{ animation: spark 1.1s ease-out infinite; }
+  .spark.s2{ animation: spark 1.1s ease-out .35s infinite; }
+  .spark.s3{ animation: spark 1.1s ease-out .7s infinite; }
+  @keyframes spark{
+    0%{opacity:0; transform:translate(0,0) scale(.4);}
+    15%{opacity:1;}
+    100%{opacity:0; transform:translate(var(--dx,10px),var(--dy,-14px)) scale(1);}
+  }
+
+  .mech-armswing{
+    transform-origin:96px 108px;
+    animation:armswing 1.1s ease-in-out infinite;
+  }
+  @keyframes armswing{
+    0%,100%{transform:rotate(0deg);}
+    50%{transform:rotate(-14deg);}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage">
+      <svg viewBox="0 0 420 230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A mechanic fixing the university gate">
+        <!-- glow behind the gate -->
+        <ellipse class="gate-glow" cx="210" cy="185" rx="150" ry="18" fill="var(--gold)" opacity="0.18"/>
+
+        <!-- Gate structure -->
+        <rect class="gate-post" x="70"  y="30" width="14" height="150" rx="3"/>
+        <rect class="gate-post" x="336" y="30" width="14" height="150" rx="3"/>
+        <path class="gate-bar" d="M70 40 Q210 4 350 40 L350 54 Q210 20 70 54 Z"/>
+        <rect class="gate-bar" x="88" y="70"  width="244" height="8" rx="2" opacity="0.85"/>
+        <rect class="gate-bar" x="88" y="96"  width="244" height="8" rx="2" opacity="0.7"/>
+        <!-- one bar left loose/off — the thing being fixed -->
+        <rect class="gate-bar" x="88" y="122" width="150" height="8" rx="2" opacity="0.55" transform="rotate(-7 88 126)"/>
+
+        <!-- rotating gear icon, purely decorative -->
+        <g id="gear" opacity="0.5">
+          <circle cx="305" cy="150" r="16" fill="none" stroke="var(--gold)" stroke-width="4"/>
+          <g stroke="var(--gold)" stroke-width="4">
+            <line x1="305" y1="128" x2="305" y2="136"/>
+            <line x1="305" y1="164" x2="305" y2="172"/>
+            <line x1="283" y1="150" x2="291" y2="150"/>
+            <line x1="319" y1="150" x2="327" y2="150"/>
+            <line x1="290" y1="135" x2="295" y2="140"/>
+            <line x1="315" y1="160" x2="320" y2="165"/>
+            <line x1="320" y1="135" x2="315" y2="140"/>
+            <line x1="295" y1="160" x2="290" y2="165"/>
+          </g>
+        </g>
+
+        <!-- Mechanic figure -->
+        <g transform="translate(30,40)">
+          <!-- legs -->
+          <rect class="mech-overalls" x="80" y="150" width="14" height="34" rx="4"/>
+          <rect class="mech-overalls" x="104" y="150" width="14" height="34" rx="4"/>
+          <!-- torso -->
+          <rect class="mech-overalls" x="72" y="108" width="56" height="48" rx="10"/>
+          <!-- head -->
+          <circle class="mech-skin" cx="100" cy="94" r="16"/>
+          <!-- cap -->
+          <path fill="var(--green-800)" d="M84 90 a16 16 0 0 1 32 0 Z"/>
+          <rect fill="var(--green-800)" x="82" y="88" width="36" height="6" rx="3"/>
+          <!-- static arm -->
+          <rect class="mech-overalls" x="122" y="112" width="12" height="34" rx="6"/>
+          <!-- swinging arm + wrench -->
+          <g class="mech-armswing">
+            <rect class="mech-overalls" x="64" y="112" width="12" height="30" rx="6"/>
+            <circle class="mech-skin" cx="70" cy="146" r="7"/>
+            <g id="wrench">
+              <rect x="66" y="140" width="8" height="34" rx="3" fill="var(--gold)"/>
+              <circle cx="70" cy="140" r="7" fill="none" stroke="var(--gold)" stroke-width="4"/>
+            </g>
+          </g>
+
+          <!-- sparks near the wrench tip -->
+          <g fill="var(--gold)">
+            <circle class="spark s1" style="--dx:14px;--dy:-18px" cx="70" cy="174" r="2.4"/>
+            <circle class="spark s2" style="--dx:-10px;--dy:-16px" cx="70" cy="174" r="2"/>
+            <circle class="spark s3" style="--dx:6px;--dy:-22px" cx="70" cy="174" r="2.2"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <h1>We're doing a little maintenance</h1>
+    <p class="sub">We're updating the Chuka University Timetabling System.<br>Back in just a few minutes — thanks for your patience.</p>
+
+    <div class="status">
+      <span class="dot"></span>
+      <span id="status-text">Checking again automatically…</span>
+    </div>
+
+    <footer>Chuka University Timetabling System</footer>
+  </div>
+
+<script>
+  // Poll the real site quietly in the background; the moment it responds
+  // with something other than our own maintenance 503, reload for real.
+  const CHECK_EVERY_MS = 8000;
+  const statusEl = document.getElementById('status-text');
+  let ticks = 0;
+
+  async function checkIfBack() {
+    try {
+      const res = await fetch('/', { method: 'HEAD', cache: 'no-store' });
+      if (res.status !== 503) {
+        statusEl.textContent = 'Back online — reloading…';
+        window.location.reload();
+        return;
+      }
+    } catch (e) {
+      // network hiccup mid-deploy — just try again on the next tick
+    }
+    ticks += 1;
+    statusEl.textContent = 'Checking again automatically…';
+  }
+
+  setInterval(checkIfBack, CHECK_EVERY_MS);
+</script>
+</body>
+</html>

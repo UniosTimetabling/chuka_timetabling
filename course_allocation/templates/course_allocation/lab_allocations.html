@@ -1,0 +1,780 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab &amp; Workshop Allocations</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100vh; width: 100vw; overflow: hidden;
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px; line-height: 1.5;
+    }
+    body { display: flex; flex-direction: column; }
+
+    /* ── HEADER ── */
+    header {
+      background: #004d26; padding: 0 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid #007a3d;
+      flex-shrink: 0; height: 62px; overflow: hidden;
+    }
+    .hdr-left  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .hdr-center { display: flex; align-items: center; flex: 1; min-width: 0; }
+    .hdr-center h1 { font-size: 1.1rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hdr-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    header .logo { height: 36px; border-radius: 5px; background:#fff; padding:2px; }
+
+    .nav-toggle {
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 5px; padding: 6px 12px; cursor: pointer;
+      font-size: 14px; font-weight: 600; height: 36px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .nav-toggle:hover { background: rgba(255,255,255,0.28); }
+
+    .notif-btn {
+      position: relative; background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 5px; color: #fff; cursor: pointer;
+      padding: 0 12px; font-size: 18px; height: 36px;
+      display: flex; align-items: center;
+    }
+    .notif-btn:hover { background: rgba(255,255,255,0.28); }
+    .notif-badge {
+      position: absolute; top: 2px; right: 2px;
+      background: #e53935; color: #fff; font-size: 9px; font-weight: 800;
+      border-radius: 50%; min-width: 15px; height: 15px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid #004d26;
+    }
+    .notif-badge.hidden { display: none; }
+
+    /* ── SIDE NAV ── */
+    .side-nav {
+      position: fixed; top: 0; left: -310px; width: 296px; height: 100vh;
+      background: #fff; border-right: 2px solid #c4ddc8;
+      box-shadow: 5px 0 24px rgba(0,50,20,0.14); z-index: 1000;
+      transition: left 0.28s ease; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .side-nav.active { left: 0; }
+    .nav-header { padding: 14px 18px; background: #004d26; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007a3d; flex-shrink: 0; }
+    .nav-header h3 { color: #fff; font-size: 1rem; font-weight: 700; }
+    .nav-close { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: #fff; font-size: 1.1rem; cursor: pointer; padding: 3px 8px; border-radius: 4px; font-weight: 700; }
+    .nav-content { flex: 1; overflow-y: auto; padding: 6px 10px 16px; }
+    .nav-cat { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; padding: 12px 8px 4px; color: #1565c0; border-top: 1px solid #eef2ef; margin-top: 4px; }
+    .nav-cat:first-child { border-top: none; padding-top: 8px; }
+    .nav-btn { display: block; text-decoration: none; padding: 7px 12px; margin: 2px 0; border-radius: 5px; font-size: 13.5px; font-weight: 500; color: #1a3a22; background: #f4f9f5; border: 1px solid #d0e8d4; transition: all 0.16s; }
+    .nav-btn:hover { background: #004d26; color: #fff; border-color: #004d26; }
+    .nav-btn.danger { color: #b71c1c; background: #fff5f5; border-color: #f5c0c0; }
+    .nav-btn.danger:hover { background: #b71c1c; color: #fff; }
+    .nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.42); z-index: 999; opacity: 0; visibility: hidden; transition: all 0.28s; }
+    .nav-overlay.active { opacity: 1; visibility: visible; }
+
+    /* ── MAIN 2-COLUMN LAYOUT ── */
+    .page-body {
+      flex: 1; min-height: 0;
+      display: grid;
+      grid-template-columns: 376px 1fr;
+      gap: 13px; padding: 13px;
+      overflow: hidden;
+    }
+    @media (max-width: 1280px) { .page-body { grid-template-columns: 340px 1fr; } }
+    @media (max-width: 1024px) { .page-body { grid-template-columns: 300px 1fr; } }
+    @media (max-width: 768px)  { .page-body { grid-template-columns: 1fr; height: auto; overflow: auto; } }
+
+    /* ── PANELS ── */
+    .form-section, .list-section {
+      background: #fff; border-radius: 10px;
+      border: 1px solid #ccddd0; box-shadow: 0 2px 10px rgba(0,50,20,0.07);
+      display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+    }
+    .panel-head { color: #004d26; padding: 11px 16px; border-bottom: 2px solid #e4efe6; font-size: 1rem; font-weight: 700; flex-shrink: 0; background: #f7fbf8; }
+
+    /* ── FORM PANEL ── */
+    .type-toggle {
+      display: flex; margin: 10px 16px 0; border-radius: 6px; overflow: hidden;
+      border: 2px solid #1e4275; background: #edf4fc; flex-shrink: 0;
+    }
+    .type-toggle-btn {
+      flex: 1; padding: 7px; background: transparent; border: none; cursor: pointer;
+      font-size: 13px; font-weight: 700; color: #1e4275; transition: all 0.2s;
+    }
+    .type-toggle-btn.active-lab { background: #1e4275; color: #fff; }
+    .type-toggle-btn.active-workshop { background: #7b2d8b; color: #fff; }
+
+    .workshop-bar { display: none; margin: 8px 16px 0; padding: 6px 10px; background: #f3e8f7; color: #7b2d8b; font-weight: 700; font-size: 13px; border-radius: 5px; flex-shrink: 0; }
+    .workshop-bar.visible { display: block; }
+
+    .form-scroll { flex: 1; overflow-y: auto; padding: 10px 16px 16px; }
+    .form-scroll::-webkit-scrollbar { width: 5px; }
+    .form-scroll::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 3px; }
+
+    label.field-label { display: block; margin-top: 10px; margin-bottom: 4px; font-weight: 700; color: #0f2040; font-size: 13px; }
+    input, select {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc;
+      border-radius: 5px; font-size: 13.5px; font-family: inherit; background: #fff;
+    }
+    input:focus, select:focus { outline: none; border-color: #0f2040; box-shadow: 0 0 0 2px rgba(15,32,64,0.1); }
+
+    .multi-select-wrapper {
+      border: 1px solid #ccc; border-radius: 5px; padding: 8px 10px;
+      max-height: 120px; overflow-y: auto; background: #fafafa;
+    }
+    .multi-select-wrapper label { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-weight: normal; font-size: 13px; cursor: pointer; margin-top: 0; }
+    .multi-select-wrapper input[type="checkbox"] { width: auto; }
+    .multi-select-hint { font-size: 11px; color: #888; margin-top: 3px; }
+
+    .btn-save {
+      background: linear-gradient(135deg, #30d175, #1c9448); color: #fff;
+      border: none; padding: 11px; border-radius: 7px; cursor: pointer;
+      font-size: 15px; font-weight: 700; margin-top: 12px; width: 100%; transition: all 0.2s;
+    }
+    .btn-save:hover { background: linear-gradient(135deg, #27b861, #16783b); transform: translateY(-1px); }
+    .btn-save.workshop-save { background: linear-gradient(135deg, #9c4dcc, #7b2d8b); }
+
+    /* ── LIST PANEL ── */
+    .list-tabs { display: flex; padding: 8px 16px; gap: 6px; flex-shrink: 0; border-bottom: 1px solid #e4efe6; }
+    .list-tab { padding: 5px 14px; border: 1px solid #c4d8c8; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 600; background: #f4f9f5; color: #1a3a22; }
+    .list-tab.active { background: #0f2040; color: #fff; border-color: #0f2040; }
+    .list-tab.active-ws { background: #7b2d8b; color: #fff; border-color: #7b2d8b; }
+
+    .list-scroll { flex: 1; overflow: auto; }
+    .list-scroll::-webkit-scrollbar { width: 5px; }
+    .list-scroll::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 3px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 600px; }
+    th {
+      background: linear-gradient(to bottom, #eff7f1, #e3eee5);
+      color: #1a3a22; font-weight: 700; padding: 10px 10px;
+      border: 1px solid #c8ddc8; text-align: left; white-space: nowrap;
+      position: sticky; top: 0; z-index: 5;
+    }
+    td { padding: 9px 10px; border: 1px solid #d8e8da; vertical-align: middle; }
+    tr:hover td { background: #f4fbf5; }
+
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+    .badge-lab      { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+    .badge-workshop { background: #f3e8f7; color: #7b2d8b; border: 1px solid #ce93d8; }
+
+    .btn-action { border: none; border-radius: 5px; padding: 4px 9px; cursor: pointer; font-size: 12px; font-weight: 700; transition: all 0.15s; }
+    .btn-edit   { background: #f59e0b; color: #fff; }
+    .btn-edit:hover { background: #d97706; }
+    .btn-delete { background: #e53935; color: #fff; margin-left: 3px; }
+    .btn-delete:hover { background: #c62828; }
+    .btn-sr { background: #eceff1; color: #455a64; margin-left: 3px; }
+    .btn-sr:hover { background: #cfd8dc; }
+    .btn-sr.has-sr { background: #fff3e0; color: #e65100; }
+
+    .empty-state { text-align: center; padding: 30px; color: #aaa; }
+
+    /* mobile cards (hidden on desktop) */
+    .allocations-grid { display: none; }
+    @media (max-width: 768px) {
+      .list-scroll table { display: none; }
+      .allocations-grid { display: grid; grid-template-columns: 1fr; gap: 10px; padding: 10px; }
+      .allocation-card { background: #fff; border: 1px solid #ccddd0; border-radius: 8px; padding: 12px; }
+      .card-row { display: flex; gap: 8px; margin-bottom: 4px; font-size: 13px; }
+      .card-label { font-weight: 700; min-width: 70px; color: #1a3a22; }
+      .card-actions { display: flex; gap: 6px; margin-top: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="hdr-left">
+    <button class="nav-toggle" id="navToggle">&#9776;&nbsp; Menu</button>
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="logo">
+  </div>
+  <div class="hdr-center">
+    <h1>&#128300; Lab &amp; Workshop Allocations</h1>
+  </div>
+  <div class="hdr-right">
+    <button class="notif-btn" id="autoAllocateBtn" title="Auto-Allocate Labs" style="background:#1b5e20;color:#fff;border-radius:6px;padding:0 14px;width:auto;font-size:13px;font-weight:700;">
+      <i class="fas fa-robot"></i>&nbsp;Auto-Allocate
+    </button>
+    <button class="notif-btn" id="notifBell" title="Notifications">
+      <i class="fas fa-bell"></i>
+      <span class="notif-badge hidden" id="notifBadge">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- SIDE NAV -->
+<nav class="side-nav" id="sideNav">
+  <div class="nav-header">
+    <h3>Navigation</h3>
+    <button class="nav-close" id="navClose">&times;</button>
+  </div>
+  <div class="nav-content">
+    <div class="nav-cat">Allocations</div>
+    <a href="/cod/" class="nav-btn">Home (COD)</a>
+    <a href="{% url 'lab_allocations' %}" class="nav-btn active-link">Lab Allocations</a>
+    <a href="{% url 'lab_safe_undo_page' %}" class="nav-btn">&#128737;&#65039; Lab Safe Undo</a>
+    <a href="/panel/" class="nav-btn"> Campus Allocations</a>
+    <a href="/odel/allocations/" class="nav-btn">ODEL Allocations</a>
+     <a href="{% url 'resit_cod_panel' %}" class="nav-btn">Resits Allocations panel</a>
+    <div class="nav-cat">Account</div>
+    <a href="{% url 'logout' %}" class="nav-btn danger">Logout</a>
+  </div>
+</nav>
+<div class="nav-overlay" id="navOverlay"></div>
+
+<!-- MAIN 2-COLUMN LAYOUT -->
+<div class="page-body">
+
+  <!-- LEFT: FORM -->
+  <section class="form-section">
+    <div class="panel-head" id="formHeading">&#43; Allocate Lab</div>
+    <div class="type-toggle">
+      <button class="type-toggle-btn active-lab" id="tabLab" onclick="setType('lab')">&#128300; Lab</button>
+      <button class="type-toggle-btn" id="tabWorkshop" onclick="setType('workshop')">&#128295; Workshop</button>
+    </div>
+    <div class="workshop-bar" id="workshopBar">&#128295; Creating a Workshop Course allocation</div>
+    <div class="form-scroll">
+      <form id="labForm" method="post" action="javascript:void(0);">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="labId">
+        <input type="hidden" name="is_workshop_course" id="isWorkshopHidden" value="false">
+
+        <label class="field-label">Program:</label>
+        <select name="program_id" id="programSelect" required>
+          <option value="">-- Select Program --</option>
+          {% for p in programs %}
+          <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+
+        <label class="field-label">Primary Course Code:</label>
+        <select name="program_course_id" id="courseSelect" required>
+          <option value="">-- Select Course --</option>
+          {% for c in courses %}
+          <option value="{{ c.id }}" data-program="{{ c.program.id }}">
+            {{ c.course_code }} - {{ c.course_name }} (Y{{ c.year }}S{{ c.semester }})
+          </option>
+          {% endfor %}
+        </select>
+
+        <label class="field-label">Candidate Venues <span style="color:#e53935">*</span>:</label>
+        <div class="multi-select-wrapper" id="venuesBox">
+          {% for v in venues %}
+          <label>
+            <input type="checkbox" name="venue_ids[]" value="{{ v.id }}" data-capacity="{{ v.capacity|default:0 }}">
+            {{ v.code }} ({{ v.capacity|default:"?" }} seats)
+          </label>
+          {% endfor %}
+        </div>
+        <p class="multi-select-hint">Tick one or more venues. The scheduler picks the best available one.</p>
+
+        <label class="field-label">Lecturer:</label>
+        <select name="lecturer_id" id="lecturerSelect">
+          <option value="">-- None / Unassigned --</option>
+          {% for l in lecturers %}
+          <option value="{{ l.id }}">{{ l.display_name }}</option>
+          {% endfor %}
+        </select>
+
+        <label class="field-label">Number of Students:</label>
+        <input type="number" name="number_of_students" id="numStudents" min="0" value="0" required>
+
+        <button type="submit" class="btn-save" id="saveBtn">&#10003; Save Allocation</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- RIGHT: TABLE -->
+  <section class="list-section">
+    <div class="panel-head">&#128203; Allocations</div>
+    <div class="list-tabs">
+      <button class="list-tab active" onclick="filterList('all',this)">All</button>
+      <button class="list-tab" onclick="filterList('lab',this)">&#128300; Labs</button>
+      <button class="list-tab" onclick="filterList('workshop',this)">&#128295; Workshops</button>
+    </div>
+    <div class="list-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Type</th><th>Courses</th><th>Program</th><th>Venues</th>
+            <th>Lecturer</th><th>Students</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="labTable">
+          {% for a in lab_allocations %}
+          <tr id="lab-{{ a.id }}" data-type="{% if a.is_workshop_course %}workshop{% else %}lab{% endif %}">
+            <td>{% if a.is_workshop_course %}<span class="badge badge-workshop">Workshop</span>{% else %}<span class="badge badge-lab">Lab</span>{% endif %}</td>
+            <td>{{ a.all_course_codes }}</td>
+            <td>{{ a.program_course.program.name }}</td>
+            <td>{% for v in a.venues.all %}{{ v.code }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+            <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<em>Unassigned</em>{% endif %}</td>
+            <td>{{ a.number_of_students }}</td>
+            <td>
+              <button class="btn-action btn-edit" onclick="editLab({{ a.id }})">&#9998; Edit</button>
+              <button class="btn-action btn-delete" onclick="deleteLab({{ a.id }})">&#128465;</button>
+              <button type="button" id="sr-btn-{{ a.id }}" class="btn-action btn-sr" title="Special Request (SR)"
+                      onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.all_course_codes|escapejs }}&quot;)">SR &#9662;</button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr id="emptyRow"><td colspan="7" class="empty-state">No allocations yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Mobile cards -->
+      <div class="allocations-grid" id="allocationsGrid">
+        {% for a in lab_allocations %}
+        <div class="allocation-card {% if a.is_workshop_course %}is-workshop{% endif %}" id="lab-card-{{ a.id }}" data-type="{% if a.is_workshop_course %}workshop{% else %}lab{% endif %}">
+          <div class="card-row"><span class="card-label">Type:</span><span>{% if a.is_workshop_course %}<span class="badge badge-workshop">Workshop</span>{% else %}<span class="badge badge-lab">Lab</span>{% endif %}</span></div>
+          <div class="card-row"><span class="card-label">Courses:</span><span>{{ a.all_course_codes }}</span></div>
+          <div class="card-row"><span class="card-label">Program:</span><span>{{ a.program_course.program.name }}</span></div>
+          <div class="card-row"><span class="card-label">Venues:</span><span>{% for v in a.venues.all %}{{ v.code }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</span></div>
+          <div class="card-row"><span class="card-label">Lecturer:</span><span>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<em>Unassigned</em>{% endif %}</span></div>
+          <div class="card-row"><span class="card-label">Students:</span><span>{{ a.number_of_students }}</span></div>
+          <div class="card-actions">
+            <button class="btn-action btn-edit" onclick="editLab({{ a.id }})">&#9998; Edit</button>
+            <button class="btn-action btn-delete" onclick="deleteLab({{ a.id }})">&#128465; Delete</button>
+            <button type="button" id="sr-btn-card-{{ a.id }}" class="btn-action btn-sr" title="Special Request (SR)"
+                    onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.all_course_codes|escapejs }}&quot;)">SR &#9662;</button>
+          </div>
+        </div>
+        {% empty %}
+        <div class="empty-state" id="emptyCard">No allocations yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+</div><!-- .page-body -->
+
+<!-- ── Auto-Allocate Modal ─────────────────────────────────────────── -->
+<div id="autoAllocateModal" class="aa-modal-overlay" style="display:none;">
+  <div class="aa-modal">
+    <div class="aa-modal__head">
+      <h2><i class="fas fa-robot"></i> Lab Auto-Allocate</h2>
+      <button type="button" class="aa-close" id="aaCloseBtn">&times;</button>
+    </div>
+
+    <div class="aa-modal__body">
+      <div class="aa-sidebar">
+        <div class="aa-sidebar-title">Filters</div>
+
+        {% if is_lab_admin %}
+        <div class="aa-field">
+          <label class="field-label">Department</label>
+          <select id="aaDeptSelect">
+            <option value="">Select Department</option>
+            {% for d in all_departments %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input type="hidden" id="aaDeptSelect" value="{{ detected_dept.id }}">
+        {% endif %}
+
+        <div class="aa-field">
+          <label class="field-label">Type</label>
+          <select id="aaIsWorkshop">
+            <option value="false">Lab</option>
+            <option value="true">Workshop</option>
+          </select>
+        </div>
+
+        <div class="aa-field">
+          <label class="field-label">Semester(s)</label>
+          <div class="aa-sem-checks aa-sem-checks--stacked">
+            <label><input type="checkbox" class="aaSemCheck" value="1" checked> Semester 1</label>
+            <label><input type="checkbox" class="aaSemCheck" value="2" checked> Semester 2</label>
+          </div>
+          <small class="aa-hint">Tick both to allocate Semester 1 and Semester 2 together in one run.</small>
+        </div>
+
+        <button type="button" class="btn-save aa-load-btn" id="aaLoadTreeBtn">
+          <i class="fas fa-sync-alt"></i> Load Courses
+        </button>
+
+        <div class="aa-sidebar-divider"></div>
+
+        <label class="aa-overwrite-toggle">
+          <input type="checkbox" id="aaOverwrite"> Re-allocate courses already allocated
+        </label>
+
+        <div class="aa-selected-count" id="aaSelectedCount">0 selected</div>
+      </div>
+
+      <div id="aaTreeContainer" class="aa-table-wrap">
+        <table class="aa-table">
+          <thead>
+            <tr>
+              <th class="aa-col-check"><input type="checkbox" id="aaSelectAllMaster" title="Select all courses shown"></th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Program</th>
+              <th>Cohort</th>
+              <th>Sem</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="aaTreeBody">
+            <tr><td colspan="7" class="aa-empty-hint">Pick a department, then click "Load Courses".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="aa-modal__foot">
+      <button type="button" class="btn-action btn-delete" id="aaCancelBtn">Cancel</button>
+      <button type="button" class="btn-save" id="aaRunBtn" style="width:auto;padding:8px 18px;" disabled>
+        <i class="fas fa-robot"></i> Auto-Allocate Selected
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Auto-Allocate: full-screen, flat, spreadsheet-style layout ───────── */
+  .aa-modal-overlay { position: fixed; inset: 0; background: #fff; z-index: 9500; display: flex; flex-direction: column; }
+  .aa-modal { background: #fff; border-radius: 0; width: 100%; flex: 1 1 auto; max-width: none; max-height: none; display: flex; flex-direction: column; overflow: hidden; box-shadow: none; }
+  .aa-modal__head { background: #1b5e20; color: #fff; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
+  .aa-modal__head h2 { font-size: 15px; margin: 0; font-weight: 700; }
+  .aa-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+  .aa-modal__body { padding: 0; overflow: hidden; flex: 1 1 auto; display: flex; flex-direction: row; min-height: 0; }
+  .aa-modal__foot { padding: 8px 14px; border-top: 1px solid #ccc; display: flex; justify-content: flex-end; gap: 8px; flex: 0 0 auto; background: #fafafa; }
+
+  /* ── Left sidebar: filters / form ─────────────────────────────────── */
+  .aa-sidebar { flex: 0 0 260px; width: 260px; border-right: 1px solid #ccc; background: #fafafa; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .aa-sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1b5e20; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .aa-sidebar-divider { border-top: 1px solid #ddd; margin: 2px 0; }
+  .aa-field { display: flex; flex-direction: column; gap: 3px; }
+  .aa-field select, .aa-field input[type=text] { width: 100%; height: 30px; padding: 4px 6px; border-radius: 0; border: 1px solid #999; font-size: 12.5px; background: #fff; }
+  .aa-field .field-label { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 1px; text-transform: uppercase; letter-spacing: .3px; }
+  .aa-sem-checks--stacked { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .aa-hint { display: block; color: #666; font-size: 10.5px; margin-top: 4px; }
+  .aa-load-btn { width: 100%; padding: 8px 10px; }
+  .aa-overwrite-toggle { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; font-weight: 600; color: #333; }
+  .aa-selected-count { font-size: 12px; font-weight: 700; color: #1b5e20; border-top: 1px solid #ddd; padding-top: 10px; }
+
+  /* ── Right panel: flat, column-lined data table (scrolls at the outer edge) ── */
+  .aa-table-wrap { flex: 1 1 auto; overflow: auto; min-height: 0; background: #fff; }
+  .aa-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .aa-table thead th { position: sticky; top: 0; z-index: 2; background: #f3f3f3; border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: #333; }
+  .aa-table thead th.aa-col-check { width: 34px; text-align: center; }
+  .aa-table tbody td { border: 1px solid #eee; padding: 4px 8px; vertical-align: middle; }
+  .aa-table tbody td.aa-col-check { text-align: center; }
+  .aa-empty-hint { padding: 24px; text-align: center; color: #777; font-size: 13px; border: none !important; }
+  .aa-group-row td { background: #eaeaea; font-weight: 700; font-size: 12px; color: #1b5e20; border: 1px solid #ccc; padding: 5px 8px; }
+  .aa-cohort-row td { background: #f7f7f7; font-weight: 600; font-size: 11.5px; color: #333; border: 1px solid #eee; padding: 4px 8px 4px 22px; }
+  .aa-cohort-row .cohort-badge { color: #0d47a1; font-size: 10.5px; font-weight: 700; margin-left: 4px; }
+  .aa-course-row:nth-child(even) { background: #fafafa; }
+  .aa-course-row:hover { background: #eef6ff; }
+  .aa-course-row.aa-already td.aa-col-status { color: #2e7d32; font-weight: 600; }
+  .aa-course-row.aa-locked { opacity: 0.55; }
+  .aa-course-row.aa-locked td.aa-col-status { color: #b71c1c; font-weight: 600; }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const AA_TREE_URL = "{% url 'api_lab_auto_allocate_tree' %}";
+  const AA_RUN_URL  = "{% url 'api_lab_auto_allocate_run' %}";
+
+  function aaGetCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function aaOpen() {
+    document.getElementById('autoAllocateModal').style.display = 'flex';
+    // Department is already known for regular COD/COD Admin accounts (server
+    // detected it and pre-filled the hidden field) -- auto-load their courses
+    // immediately instead of making them click "Load Courses", same as /cod/.
+    const deptId = $('#aaDeptSelect').val();
+    const isAdminPicker = $('#aaDeptSelect').is('select');
+    if (deptId && !isAdminPicker) {
+      aaLoadTree();
+    }
+  }
+  function aaClose() { document.getElementById('autoAllocateModal').style.display = 'none'; }
+
+  document.getElementById('autoAllocateBtn').addEventListener('click', aaOpen);
+  document.getElementById('aaCloseBtn').addEventListener('click', aaClose);
+  document.getElementById('aaCancelBtn').addEventListener('click', aaClose);
+
+  function aaSelectedIds() {
+    return $('#aaTreeContainer .aa-course-check:checked:not(:disabled)')
+      .map(function () { return parseInt($(this).val(), 10); }).get();
+  }
+
+  function aaUpdateCount() {
+    const n = aaSelectedIds().length;
+    $('#aaSelectedCount').text(n + ' selected');
+    $('#aaRunBtn').prop('disabled', n === 0);
+  }
+
+  function aaRenderTree(data) {
+    const $tbody = $('#aaTreeBody');
+    if (!data.programs || !data.programs.length) {
+      $tbody.html('<tr><td colspan="7" class="aa-empty-hint">No courses found for this department/semester selection.</td></tr>');
+      aaUpdateCount();
+      return;
+    }
+    let html = '';
+    data.programs.forEach(function (prog) {
+      html += `<tr class="aa-group-row">
+        <td colspan="7"><label><input type="checkbox" class="aa-select-program" data-program="${prog.program_id}"> ${prog.program_name}</label></td>
+      </tr>`;
+      (prog.cohorts || []).forEach(function (cohort) {
+        html += `<tr class="aa-cohort-row">
+          <td colspan="7"><label><input type="checkbox" class="aa-select-cohort" data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"> Cohort ${cohort.entry_year} — Year ${cohort.year_of_study} <span class="cohort-badge">${cohort.students} students</span></label></td>
+        </tr>`;
+        cohort.courses.forEach(function (c) {
+          const already = c.already_allocated;
+          const locked = c.locked;
+          let status = already ? ('Already: ' + (c.lecturer || 'Unassigned')) : '—';
+          if (locked) status += ' — in a shared lab slot, skipped';
+          html += `<tr class="aa-course-row ${already ? 'aa-already' : ''} ${locked ? 'aa-locked' : ''}">
+            <td class="aa-col-check"><input type="checkbox" class="aa-course-check"
+                   value="${c.program_course_id}" ${locked ? 'disabled' : ''}
+                   data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"></td>
+            <td>${c.course_code}</td>
+            <td>${c.course_name}</td>
+            <td>${prog.program_name}</td>
+            <td>${cohort.entry_year} (Yr ${cohort.year_of_study})</td>
+            <td>Sem ${c.semester}</td>
+            <td class="aa-col-status">${status}</td>
+          </tr>`;
+        });
+      });
+    });
+    $tbody.html(html);
+    aaUpdateCount();
+  }
+
+  function aaLoadTree() {
+    const deptId = $('#aaDeptSelect').val();
+    if (!deptId) { alert('Select a department first.'); return; }
+    const semesters = $('.aaSemCheck:checked').map(function () { return $(this).val(); }).get();
+    if (!semesters.length) { alert('Select at least one semester.'); return; }
+
+    $('#aaTreeBody').html('<tr><td colspan="7" class="aa-empty-hint">Loading…</td></tr>');
+    $.ajax({
+      url: AA_TREE_URL,
+      type: 'GET',
+      data: { department_id: deptId, semesters: semesters.join(',') },
+      success: function (r) {
+        if (r.success) { aaRenderTree(r); }
+        else { alert(r.error || 'Failed to load courses.'); }
+      },
+      error: function (xhr) {
+        alert((xhr.responseJSON && xhr.responseJSON.error) || 'Failed to load courses.');
+      }
+    });
+  }
+
+  $('#aaLoadTreeBtn').on('click', aaLoadTree);
+
+  $(document).on('change', '#aaSelectAllMaster', function () {
+    const checked = $(this).is(':checked');
+    $('#aaTreeContainer .aa-course-check:not(:disabled), #aaTreeContainer .aa-select-cohort, #aaTreeContainer .aa-select-program')
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-select-program', function () {
+    const programId = $(this).data('program');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"]:not(:disabled), .aa-select-cohort[data-program="${programId}"]`)
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-select-cohort', function () {
+    const programId = $(this).data('program');
+    const cohort = $(this).data('cohort');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"][data-cohort="${cohort}"]:not(:disabled)`).prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-course-check', aaUpdateCount);
+
+  $('#aaRunBtn').on('click', function () {
+    const ids = aaSelectedIds();
+    if (!ids.length) return;
+    const deptId = $('#aaDeptSelect').val();
+    const overwrite = $('#aaOverwrite').is(':checked');
+    const msg = overwrite
+      ? `Auto-allocate ${ids.length} course(s)? Any already allocated will be re-picked.`
+      : `Auto-allocate ${ids.length} course(s)? Courses already allocated will be skipped.`;
+    if (!confirm(msg)) return;
+
+    $('#aaRunBtn').prop('disabled', true).text('Running…');
+    $.ajax({
+      url: AA_RUN_URL,
+      type: 'POST',
+      headers: { 'X-CSRFToken': aaGetCookie('csrftoken') },
+      contentType: 'application/json',
+      data: JSON.stringify({
+        program_course_ids: ids,
+        department_id: deptId,
+        is_workshop_course: $('#aaIsWorkshop').val() === 'true',
+        overwrite: overwrite,
+      }),
+      success: function (r) {
+        if (r.success) {
+          alert(r.message);
+          aaClose();
+          location.reload();
+        } else {
+          alert(r.error || 'Auto-allocation failed.');
+        }
+      },
+      error: function (xhr) {
+        alert((xhr.responseJSON && xhr.responseJSON.error) || 'Auto-allocation failed.');
+      },
+      complete: function () {
+        $('#aaRunBtn').prop('disabled', false).html('<i class="fas fa-robot"></i> Auto-Allocate Selected');
+      }
+    });
+  });
+
+})();
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const csrftoken = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+  const labUrl = "{% url 'lab_allocations' %}";
+
+  // ── NAV ──
+  const navToggle  = document.getElementById('navToggle');
+  const navClose   = document.getElementById('navClose');
+  const sideNav    = document.getElementById('sideNav');
+  const navOverlay = document.getElementById('navOverlay');
+  function openNav()  { sideNav.classList.add('active'); navOverlay.classList.add('active'); document.body.style.overflow='hidden'; }
+  function closeNav() { sideNav.classList.remove('active'); navOverlay.classList.remove('active'); document.body.style.overflow=''; }
+  navToggle.addEventListener('click', openNav);
+  navClose.addEventListener('click', closeNav);
+  navOverlay.addEventListener('click', closeNav);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
+
+  // ── TYPE SWITCHER ──
+  window.setType = function(type) {
+    const isWS = type === 'workshop';
+    document.getElementById('isWorkshopHidden').value = isWS ? 'true' : 'false';
+    document.getElementById('workshopBar').classList.toggle('visible', isWS);
+    document.getElementById('formHeading').textContent = isWS ? '🔧 Allocate Workshop' : '➕ Allocate Lab';
+    document.getElementById('saveBtn').classList.toggle('workshop-save', isWS);
+    document.getElementById('tabLab').className      = isWS ? 'type-toggle-btn' : 'type-toggle-btn active-lab';
+    document.getElementById('tabWorkshop').className = isWS ? 'type-toggle-btn active-workshop' : 'type-toggle-btn';
+    try { localStorage.setItem('labAllocType', type); } catch(e){}
+  };
+
+  // ── PROGRAM FILTER ──
+  document.getElementById("programSelect").addEventListener("change", function() {
+    const progId = this.value;
+    document.querySelectorAll("#courseSelect option").forEach(opt => {
+      if (!opt.value) return;
+      opt.hidden = opt.dataset.program !== progId;
+    });
+    document.getElementById("courseSelect").value = "";
+  });
+
+  // ── FORM SUBMIT ──
+  document.getElementById("labForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const venueIds = [...document.querySelectorAll("#venuesBox input:checked")].map(c => c.value);
+    if (venueIds.length === 0) { alert("Please select at least one venue."); return; }
+    const body = new URLSearchParams();
+    body.append("action", "create_lab");
+    body.append("id", fd.get("id")||"");
+    body.append("program_course_id", fd.get("program_course_id"));
+    body.append("lecturer_id", fd.get("lecturer_id")||"");
+    body.append("number_of_students", fd.get("number_of_students")||"0");
+    body.append("is_workshop_course", fd.get("is_workshop_course")||"false");
+    venueIds.forEach(v => body.append("venue_ids[]", v));
+    fetch(labUrl, {method:"POST", headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken}, body})
+      .then(r=>r.json()).then(json => {
+        if (json.status !== "success") { alert(json.message||"Error saving allocation."); return; }
+        const isWS = json.is_workshop===true||json.is_workshop==="true";
+        const typeLabel = isWS ? '<span class="badge badge-workshop">Workshop</span>' : '<span class="badge badge-lab">Lab</span>';
+        const dataType  = isWS ? "workshop" : "lab";
+        let tr = document.getElementById("lab-"+json.id);
+        if (!tr) {
+          document.getElementById("emptyRow")?.remove();
+          tr = document.createElement("tr"); tr.id="lab-"+json.id;
+          document.getElementById("labTable").appendChild(tr);
+        }
+        tr.dataset.type = dataType;
+        tr.innerHTML = `<td>${typeLabel}</td><td>${json.course_codes}</td><td>${json.program_name}</td><td>${json.venue_codes}</td><td>${json.lecturer_name||"<em>Unassigned</em>"}</td><td>${json.num_students}</td><td><button class="btn-action btn-edit" onclick="editLab(${json.id})">✏️ Edit</button><button class="btn-action btn-delete" onclick="deleteLab(${json.id})">🗑</button></td>`;
+        resetForm();
+      });
+  });
+
+  // ── EDIT ──
+  window.editLab = function(id) {
+    fetch(labUrl, {method:"POST", headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken}, body:new URLSearchParams({action:"lab_detail",id})})
+      .then(r=>r.json()).then(json => {
+        if (json.status !== "success") return;
+        const a = json.lab;
+        document.getElementById("labId").value = a.id;
+        document.getElementById("programSelect").value = a.program_id;
+        document.getElementById("programSelect").dispatchEvent(new Event("change"));
+        document.getElementById("courseSelect").value = a.program_course_id;
+        document.getElementById("lecturerSelect").value = a.lecturer_id||"";
+        document.getElementById("numStudents").value = a.number_of_students;
+        document.querySelectorAll("#venuesBox input[type='checkbox']").forEach(cb => {
+          cb.checked = a.venue_ids.includes(parseInt(cb.value));
+        });
+        setType(a.is_workshop_course ? "workshop" : "lab");
+        document.querySelector('.form-section').scrollIntoView({behavior:'smooth'});
+      });
+  };
+
+  // ── DELETE ──
+  window.deleteLab = function(id) {
+    if (!confirm("Delete this allocation?")) return;
+    fetch(labUrl, {method:"POST", headers:{"X-Requested-With":"XMLHttpRequest","X-CSRFToken":csrftoken}, body:new URLSearchParams({action:"delete_lab",id})})
+      .then(r=>r.json()).then(json => {
+        if (json.status === "success") {
+          document.getElementById("lab-"+id)?.remove();
+          document.getElementById("lab-card-"+id)?.remove();
+        }
+      });
+  };
+
+  // ── FILTER ──
+  window.filterList = function(type, btn) {
+    document.querySelectorAll('.list-tab').forEach(b => b.className='list-tab');
+    btn.className = 'list-tab '+(type==='workshop'?'active-ws':'active');
+    document.querySelectorAll('#labTable tr[id]').forEach(tr => { tr.style.display=(type==='all'||tr.dataset.type===type)?'':'none'; });
+    document.querySelectorAll('#allocationsGrid .allocation-card[id]').forEach(card => { card.style.display=(type==='all'||card.dataset.type===type)?'':'none'; });
+  };
+
+  // ── RESET ──
+  function resetForm() {
+    document.getElementById("labForm").reset();
+    document.getElementById("labId").value="";
+    document.querySelectorAll("#venuesBox input").forEach(cb => cb.checked=false);
+    setType("lab");
+    try { localStorage.removeItem('labAllocType'); } catch(e){}
+  }
+
+  // Restore saved type
+  try { const s=localStorage.getItem('labAllocType'); if(s==='workshop') setType('workshop'); } catch(e){}
+});
+</script>
+{% url 'lab_allocations' as sr_action_url %}
+{% include "special_requests/sr_widget.html" with sr_action_url=sr_action_url %}
+</body>
+</html>

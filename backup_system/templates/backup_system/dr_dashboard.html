@@ -1,0 +1,130 @@
+{% extends "backup_system/base.html" %}
+{% block title %}Disaster Recovery{% endblock %}
+{% block breadcrumb_current %}Disaster Recovery{% endblock %}
+
+{% block backup_content %}
+
+<div class="bk-header">
+  <h1>Disaster Recovery</h1>
+  <p>Configure database replication, failover behaviour, and health monitoring.</p>
+</div>
+
+<!-- Replication Configuration -->
+<div class="bk-card">
+  <div class="bk-card-head">Replication &amp; Failover Configuration</div>
+  <div class="bk-card-body">
+    <form method="post" action="{% url 'backup_system:configure_dr' %}">
+      {% csrf_token %}
+      <div class="bk-grid-3">
+        <div>
+          <div style="font-size:.8rem; font-weight:700; color:#0b1f4a; margin-bottom:.8rem; text-transform:uppercase; letter-spacing:.04em;">Primary Database</div>
+          <label class="bk-label">Host</label>
+          <input type="text" name="primary_host" value="{{ dr_config.primary_host }}" required class="bk-input">
+          <label class="bk-label">Port</label>
+          <input type="number" name="primary_port" value="{{ dr_config.primary_port|default:3306 }}" required class="bk-input">
+          <label class="bk-label">Database Name</label>
+          <input type="text" name="primary_db_name" value="{{ dr_config.primary_db_name }}" required class="bk-input">
+        </div>
+        <div>
+          <div style="font-size:.8rem; font-weight:700; color:#0b1f4a; margin-bottom:.8rem; text-transform:uppercase; letter-spacing:.04em;">Replica Database</div>
+          <label class="bk-checkbox-row" style="margin-bottom:.8rem;"><input type="checkbox" name="replica_enabled" id="replica_enabled" {% if dr_config.replica_enabled %}checked{% endif %}> Enable Replica</label>
+          <label class="bk-label">Host</label>
+          <input type="text" name="replica_host" value="{{ dr_config.replica_host }}" class="bk-input">
+          <label class="bk-label">Port</label>
+          <input type="number" name="replica_port" value="{{ dr_config.replica_port|default:3306 }}" class="bk-input">
+          <label class="bk-label">Database Name</label>
+          <input type="text" name="replica_db_name" value="{{ dr_config.replica_db_name }}" class="bk-input">
+        </div>
+        <div>
+          <div style="font-size:.8rem; font-weight:700; color:#0b1f4a; margin-bottom:.8rem; text-transform:uppercase; letter-spacing:.04em;">Replication Behaviour</div>
+          <label class="bk-label">Mode</label>
+          <select name="replication_mode" class="bk-select">
+            <option value="async" {% if dr_config.replication_mode == 'async' %}selected{% endif %}>Async (recommended)</option>
+            <option value="sync"  {% if dr_config.replication_mode == 'sync'  %}selected{% endif %}>Sync (stronger guarantee)</option>
+          </select>
+          <label class="bk-label">Health Check Interval (seconds)</label>
+          <input type="number" name="health_check_interval" value="{{ dr_config.health_check_interval|default:30 }}" class="bk-input">
+          <label class="bk-checkbox-row"><input type="checkbox" name="health_check_enabled" id="hc" {% if dr_config.health_check_enabled %}checked{% endif %}> Enable health checks</label>
+          <label class="bk-checkbox-row"><input type="checkbox" name="auto_failover" id="af" {% if dr_config.auto_failover %}checked{% endif %}> Auto failover (alerts only — manual promotion required)</label>
+        </div>
+      </div>
+      <div class="bk-actions">
+        <button type="submit" class="bk-btn bk-btn-primary">Save Configuration</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if dr_config %}
+<!-- Replica Status -->
+<div class="bk-card">
+  <div class="bk-card-head">Replica Status</div>
+  <div class="bk-card-body">
+    <div class="bk-stat-row">
+      <div class="bk-stat">
+        <strong>
+          {% if dr_config.replica_status == 'online' %}<span class="bk-badge bk-badge-online">Online</span>
+          {% elif dr_config.replica_status == 'syncing' %}<span class="bk-badge bk-badge-running">Syncing</span>
+          {% else %}<span class="bk-badge bk-badge-offline">Offline</span>{% endif %}
+        </strong>
+        <span>Replica Status</span>
+      </div>
+      <div class="bk-stat">
+        <strong style="font-size:.9rem;">{{ dr_config.last_health_check|default:"Never" }}</strong>
+        <span>Last Health Check</span>
+      </div>
+      <div class="bk-stat">
+        <strong style="font-size:.9rem;">{{ dr_config.last_sync_time|default:"Never" }}</strong>
+        <span>Last Sync</span>
+      </div>
+    </div>
+    <div class="bk-actions">
+      <button class="bk-btn bk-btn-secondary bk-btn-sm" onclick="checkHealth(this)">Check Health Now</button>
+      <span id="health-result" style="font-size:.8rem; color:#5a6a82;"></span>
+    </div>
+
+    {% if can_failover %}
+    <div class="bk-danger-zone" style="margin-top:1.2rem;">
+      <div class="bk-danger-zone-title">Manual Failover</div>
+      <p style="font-size:.83rem; color:#5a6a82; margin:0 0 .8rem;">Promotes the replica to primary. Only use if the primary database is genuinely unreachable. This action is logged with your user ID, timestamp, and IP address.</p>
+      <div style="display:flex; gap:.6rem; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="failover-confirm-text" placeholder="Type CONFIRM_FAILOVER to proceed" class="bk-input" style="max-width:320px; margin-bottom:0;">
+        <button class="bk-btn bk-btn-danger bk-btn-sm" onclick="triggerFailover()">Trigger Failover</button>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+function checkHealth(btn) {
+  const resultEl = document.getElementById('health-result');
+  btn.disabled = true;
+  btn.textContent = 'Checking...';
+  fetch("{% url 'backup_system:check_replica_health' %}", {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+  })
+  .then(r => r.json())
+  .then(data => {
+    resultEl.textContent = `Status: ${data.status} (checked ${data.last_check || 'now'})`;
+    btn.disabled = false;
+    btn.textContent = 'Check Health Now';
+  });
+}
+
+function triggerFailover() {
+  if (document.getElementById('failover-confirm-text').value !== 'CONFIRM_FAILOVER') {
+    alert('Type CONFIRM_FAILOVER exactly to proceed.');
+    return;
+  }
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = "{% url 'backup_system:trigger_failover' %}";
+  form.innerHTML = `{% csrf_token %}<input type="hidden" name="confirm" value="CONFIRM_FAILOVER">`;
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}

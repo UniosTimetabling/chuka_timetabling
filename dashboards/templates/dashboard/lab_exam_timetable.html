@@ -1,0 +1,1003 @@
+{% load static %}
+{% load dict_filters %}
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Exam Timetable - Excel Workspace</title>
+  <style>
+    /* ===== EXCEL RIGID FLAT GREEN THEME ===== */
+    :root {
+      --excel-green: #107c41;
+      --excel-green-dark: #0a4d28;
+      --excel-green-light: #e1dfdd;
+      --grid-border: #d1d1d1;
+      --cell-bg: #ffffff;
+      --header-bg: #f3f2f1;
+      --text-main: #323130;
+      --text-muted: #605e5c;
+      --danger-red: #a80000;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      transition: none !important;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f3f2f1;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      line-height: 1.3;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== TOP APPLICATION FRAME ===== */
+    .excel-ribbon-frame {
+      background: var(--excel-green);
+      color: #ffffff;
+      padding: 6px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--excel-green-dark);
+    }
+    .excel-ribbon-frame h2 { font-size: 1rem; font-weight: 600; }
+
+    /* ===== NAV & ENGINE ACTION ROW ===== */
+    .action-nav-bar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--grid-border);
+      padding: 4px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .nav-links-group { display: flex; align-items: center; gap: 8px; }
+
+    .btn-flat {
+      background: #ffffff;
+      border: 1px solid var(--grid-border);
+      color: var(--text-main);
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+    }
+    .btn-flat:hover { background: #f3f2f1 !important; color: var(--text-main) !important; }
+    .btn-flat-primary {
+      background: var(--excel-green);
+      border: 1px solid var(--excel-green-dark);
+      color: #ffffff;
+    }
+    .btn-flat-primary:hover { background: var(--excel-green-dark) !important; color: #ffffff !important; }
+
+    .scheduler-engine-box {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--excel-green);
+      background: #ffffff;
+      margin-left: auto;
+    }
+    .scheduler-engine-box select {
+      border: none; padding: 4px 8px; font-size: 0.8rem;
+      color: var(--text-main); outline: none; background: transparent;
+    }
+    .scheduler-engine-box button {
+      background: var(--excel-green); color: #ffffff; border: none;
+      padding: 5px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .scheduler-engine-box button:hover { background: var(--excel-green-dark); }
+
+    /* ===== CONFIG STRIP ===== */
+    .config-strip {
+      background: #ffffff;
+      border-bottom: 1px solid var(--grid-border);
+      padding: 6px 12px;
+    }
+    .config-form-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    }
+    .config-item { display: flex; align-items: center; gap: 6px; }
+    .config-item label { font-weight: 600; color: var(--excel-green); white-space: nowrap; }
+
+    .config-input {
+      border: 1px solid var(--grid-border);
+      padding: 2px 6px; font-size: 0.8rem;
+      color: var(--text-main); background: #ffffff; height: 24px;
+    }
+    .config-input:focus { outline: 1px solid var(--excel-green); }
+
+    /* Date display override — show DD/MM/YYYY as plain text beside the date picker */
+    .date-display-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-style: italic;
+    }
+
+    .meta-status-strip {
+      border-top: 1px dashed var(--grid-border);
+      margin-top: 4px; padding-top: 4px;
+      display: flex; align-items: center; gap: 12px;
+      color: var(--text-muted); font-size: 0.78rem; flex-wrap: wrap;
+    }
+    .vertical-rule { width: 1px; background: var(--grid-border); height: 12px; }
+
+    .excluded-days-badge {
+      background: #fff3cd; border: 1px solid #ffc107;
+      padding: 2px 8px; font-size: 0.72rem; color: #856404;
+      max-width: 500px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ===== MAIN WORKSPACE ===== */
+    .workspace-wrapper {
+      display: flex; flex: 1; overflow: hidden; position: relative;
+    }
+
+    /* Left nav rail */
+    .navigation-rail {
+      width: 45px; background: var(--header-bg);
+      border-right: 1px solid var(--grid-border);
+      display: flex; flex-direction: column;
+      align-items: center; padding-top: 8px; gap: 4px; z-index: 5;
+      overflow-y: auto;
+    }
+    .rail-anchor {
+      width: 32px; height: 32px; border: 1px solid var(--grid-border);
+      background: #ffffff; color: var(--excel-green);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 0.75rem; cursor: pointer; text-decoration: none;
+      flex-shrink: 0;
+    }
+    .rail-anchor:hover { background: var(--excel-green-light); }
+
+    /* Panels */
+    .left-form-panel {
+      width: 280px; background: #ffffff;
+      border-right: 2px solid var(--excel-green);
+      padding: 12px; overflow-y: auto; height: 100%;
+    }
+    .right-grid-panel {
+      flex: 1; background: #ffffff;
+      padding: 12px; overflow: auto; height: 100%;
+      position: relative;
+    }
+
+    /* ===== FORM CONTROLS ===== */
+    .section-title-flat {
+      font-size: 0.85rem; font-weight: 700; color: #ffffff;
+      background: var(--excel-green); padding: 4px 8px;
+      margin-bottom: 10px; border: 1px solid var(--excel-green-dark);
+    }
+    .form-field-flat { margin-bottom: 10px; }
+    .form-field-flat label { display: block; font-weight: 600; margin-bottom: 3px; color: var(--text-main); }
+    .control-flat {
+      width: 100%; border: 1px solid var(--grid-border);
+      padding: 4px 6px; font-size: 0.8rem;
+      background: #ffffff; color: var(--text-main);
+    }
+    .control-flat:focus { outline: 1px solid var(--excel-green); }
+
+    .venue-list-flat { margin-top: 12px; border: 1px solid var(--grid-border); }
+    .venue-list-item-flat {
+      padding: 4px 8px; border-bottom: 1px solid var(--grid-border);
+      background: var(--header-bg);
+    }
+    .venue-list-item-flat:last-child { border-bottom: none; }
+
+    /* ===== TIMETABLE GRID ===== */
+    .day-block-container { margin-bottom: 25px; }
+    .day-title-strip {
+      background: var(--excel-green-light);
+      border-left: 4px solid var(--excel-green);
+      padding: 4px 8px; font-weight: 700; font-size: 0.85rem;
+      color: var(--excel-green-dark); margin-bottom: 4px;
+    }
+    .excel-table { width: 100%; border-collapse: collapse; background: #ffffff; }
+    .excel-table th, .excel-table td {
+      border: 1px solid var(--grid-border) !important;
+      padding: 6px 8px; text-align: left; font-size: 0.82rem; vertical-align: top;
+    }
+    .excel-table th {
+      background: var(--header-bg) !important;
+      color: var(--text-main); font-weight: 600; text-align: center;
+    }
+    .excel-table tr:hover td, .excel-table td:hover {
+      background: #ffffff !important; transform: none !important;
+    }
+    .excel-table tr { background: #ffffff !important; }
+    .venue-descriptor-cell {
+      background: var(--header-bg) !important; font-weight: 700;
+      color: var(--text-main); width: 110px; text-align: center;
+    }
+    .excel-cell-text-block {
+      background: transparent !important; border: none !important;
+      padding: 0 !important; margin-bottom: 6px;
+      color: var(--text-main); font-size: 0.8rem; line-height: 1.2;
+    }
+    .excel-cell-entry-code { font-weight: 700; color: #000000; }
+    .excel-action-del {
+      color: var(--danger-red); background: transparent; border: none;
+      cursor: pointer; font-size: 0.72rem; padding: 0;
+      margin-top: 2px; display: inline-block; text-decoration: underline;
+    }
+    .excel-action-del:hover { color: #ff0000; }
+
+    /* ===== AUTOSCHEDULER MODAL ===== */
+    .system-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.4);
+      z-index: 1000; align-items: center; justify-content: center;
+    }
+    .system-modal-box {
+      width: 600px; background: #ffffff;
+      border: 2px solid var(--excel-green); padding: 16px;
+    }
+    .system-modal-header {
+      font-weight: 700; font-size: 0.9rem; color: var(--excel-green-dark);
+      border-bottom: 1px solid var(--grid-border);
+      padding-bottom: 6px; margin-bottom: 12px;
+    }
+    .progress-track-flat {
+      width: 100%; background: var(--header-bg);
+      border: 1px solid var(--grid-border); height: 20px;
+      margin-bottom: 6px; position: relative;
+    }
+    .progress-fill-flat { width: 0%; height: 100%; background: #ffc107; }
+    .status-text-flat { font-weight: 700; margin-bottom: 12px; font-size: 0.8rem; }
+    .terminal-log-shell {
+      background: #000000; color: #00ff00;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.75rem; padding: 8px; height: 150px;
+      overflow-y: auto; border: 1px solid var(--grid-border);
+    }
+
+    /* ===== EXCLUDED DAYS PANEL ===== */
+    .excluded-info-box {
+      margin-top: 12px; padding: 8px;
+      background: var(--header-bg); border: 1px solid var(--grid-border);
+    }
+    .excluded-info-box .lbl {
+      font-weight: 700; font-size: 0.75rem; color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .btn-excluded-days {
+      background: #fff3cd; border: 1px solid #ffc107;
+      color: #856404; font-size: 0.75rem; font-weight: 600;
+      cursor: pointer; padding: 4px 10px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-excluded-days:hover { background: #ffe69c !important; }
+    .excl-count-badge {
+      background: #856404; color: #fff3cd;
+      font-size: 0.68rem; padding: 1px 5px; font-weight: 700;
+    }
+
+    /* ===== EXCLUDED DAYS MODAL ===== */
+    #excl-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.45);
+      z-index: 1100; align-items: center; justify-content: center;
+    }
+    #excl-modal-overlay.open { display: flex; }
+    .excl-modal-box {
+      width: 560px; max-width: 95vw; background: #ffffff;
+      border: 2px solid var(--excel-green);
+      display: flex; flex-direction: column; max-height: 85vh;
+    }
+    .excl-modal-header {
+      background: var(--excel-green); color: #fff;
+      padding: 8px 12px; font-weight: 700; font-size: 0.9rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-shrink: 0;
+    }
+    .excl-modal-header button {
+      background: transparent; border: 1px solid rgba(255,255,255,0.5);
+      color: #fff; cursor: pointer; padding: 2px 8px; font-size: 0.8rem;
+    }
+    .excl-modal-header button:hover { background: var(--excel-green-dark) !important; }
+    .excl-modal-legend {
+      background: var(--header-bg); border-bottom: 1px solid var(--grid-border);
+      padding: 6px 12px; font-size: 0.75rem; color: var(--text-muted);
+      display: flex; gap: 14px; flex-wrap: wrap; flex-shrink: 0;
+    }
+    .excl-legend-item { display: flex; align-items: center; gap: 5px; }
+    .excl-legend-swatch {
+      width: 12px; height: 12px; border: 1px solid var(--grid-border);
+    }
+    .excl-modal-body {
+      overflow-y: auto; padding: 10px 12px; flex: 1;
+    }
+    .excl-week-group { margin-bottom: 10px; }
+    .excl-week-label {
+      font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--grid-border); padding-bottom: 3px;
+      margin-bottom: 5px;
+    }
+    .excl-days-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .excl-day-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 8px; border: 1px solid var(--grid-border);
+      font-size: 0.75rem; cursor: pointer; user-select: none; width: 148px;
+    }
+    .excl-day-chip.is-weekend {
+      background: #f3f2f1; color: var(--text-muted); cursor: not-allowed;
+    }
+    .excl-day-chip.is-excluded:not(.is-weekend) {
+      background: #fff3cd; border-color: #ffc107; color: #856404;
+    }
+    .excl-day-chip.is-working {
+      background: #ffffff; color: var(--text-main);
+    }
+    .excl-day-chip.is-working:hover { background: #f3f2f1 !important; }
+    .excl-day-chip input[type="checkbox"] { cursor: pointer; margin: 0; }
+    .excl-day-chip.is-weekend input[type="checkbox"] { cursor: not-allowed; }
+    .excl-day-chip .chip-date { font-weight: 600; }
+    .excl-day-chip .chip-day { font-size: 0.68rem; color: inherit; opacity: 0.75; }
+    .excl-modal-footer {
+      border-top: 1px solid var(--grid-border); padding: 8px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0; background: var(--header-bg); font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    #excl-save-status { font-weight: 600; color: var(--excel-green); min-height: 1em; }
+
+    @media (max-width: 768px) {
+      body { overflow: auto; height: auto; }
+      .workspace-wrapper { flex-direction: column; height: auto; overflow: visible; }
+      .left-form-panel, .right-grid-panel { width: 100%; height: auto; overflow: visible; }
+      .navigation-rail { display: none; }
+    }
+  </style>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+  <div class="excel-ribbon-frame">
+    <h2>{{ heading }} — Schedule Analysis Workspace</h2>
+    <div>System Status: Connected</div>
+  </div>
+
+  <div class="action-nav-bar">
+    <div class="nav-links-group">
+      <a href="{% url 'timetable_dashboard' %}" class="btn-flat">⬅ Return Dashboard</a>
+      <div class="vertical-rule"></div>
+      <button class="btn-flat" onclick="window.print();">🖨 Print Worksheet</button>
+    </div>
+    <div class="scheduler-engine-box">
+      <select id="engine-strategy-select">
+        <option value="standard">Standard Sequential Engine</option>
+        <option value="backtrack">Constraint Backtracking Routine</option>
+        <option value="heuristic">Heuristic Fit Optimization</option>
+      </select>
+      <button onclick="triggerEngineExecution()">Run AutoScheduler</button>
+    </div>
+  </div>
+
+  <section class="config-strip">
+    <form id="config-form">
+      {% csrf_token %}
+      <div class="config-form-row">
+
+        <div class="config-item">
+          <label>Start Date:</label>
+          {# type="date" value MUST be YYYY-MM-DD; browser renders in locale format #}
+          {# We show an explicit DD/MM/YYYY read-only label next to the picker        #}
+          <input type="date" id="id_start_date" name="start_date"
+                 value="{{ cfg.start_date|date:'Y-m-d' }}"
+                 class="config-input" required>
+          <span class="date-display-label" id="disp_start_date"></span>
+        </div>
+
+        <div class="config-item">
+          <label>Max Exam Days:</label>
+          <input type="number" name="max_exam_days"
+                 value="{{ cfg.max_exam_days }}"
+                 min="1" max="60" class="config-input" required>
+        </div>
+
+        <div class="config-item">
+          <label>Start Time:</label>
+          <input type="time" name="start_time"
+                 value="{{ cfg.start_time|time:'H:i' }}"
+                 class="config-input" required>
+        </div>
+
+        <div class="config-item">
+          <label>End Time:</label>
+          <input type="time" name="end_time"
+                 value="{{ cfg.end_time|time:'H:i' }}"
+                 class="config-input" required>
+        </div>
+
+        <div class="config-item">
+          <label>Slot Size (hrs):</label>
+          <input type="number" name="slot_size"
+                 value="{{ cfg.slot_size }}"
+                 min="1" max="12" class="config-input" required>
+        </div>
+
+        <button type="submit" class="btn-flat btn-flat-primary">💾 Save Parameters</button>
+      </div>
+
+      <div class="meta-status-strip">
+        <span>Exam Period Start: <strong id="meta_start_date">{{ cfg.start_date|date:'d/m/Y' }}</strong></span>
+        <div class="vertical-rule"></div>
+        <span>Working Days: <strong>{{ cfg.max_exam_days }}</strong></span>
+        <div class="vertical-rule"></div>
+        <span>Slot: <strong>{{ cfg.start_time|time:'H:i' }} – {{ cfg.end_time|time:'H:i' }}</strong> ({{ cfg.slot_size }}h blocks)</span>
+        <div class="vertical-rule"></div>
+        <span>Weekends: EXCLUDED</span>
+        <div class="vertical-rule"></div>
+        <button type="button" class="btn-excluded-days" id="btn-open-excl-modal">
+          📅 Excluded Days
+          <span class="excl-count-badge" id="excl-count-badge">
+            {{ excluded_days_count }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <div class="workspace-wrapper">
+
+    <div class="navigation-rail">
+      {% for date_str, day in date_range %}
+        <a href="#" class="rail-anchor"
+           data-target="day-anchor-{{ date_str }}"
+           title="{{ day }} {{ date_str }}">{{ day|slice:":2" }}</a>
+      {% endfor %}
+    </div>
+
+    <div class="left-form-panel">
+      <div class="section-title-flat">Input Matrix Criteria</div>
+      <form id="allocation-form">
+        {% csrf_token %}
+
+        <div class="form-field-flat">
+          <label>Target Course Allocation:</label>
+          <select name="allocation_id" class="control-flat" required>
+            {% for alloc in all_allocations %}
+              <option value="{{ alloc.id }}">
+                {{ alloc.all_course_codes }}{% if alloc.is_workshop_course %} [WS]{% endif %}
+                – {{ alloc.lecturer.display_name|default:"Unassigned" }} ({{ alloc.number_of_students }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field-flat">
+          <label>Target Destination Laboratory:</label>
+          <select name="venue" class="control-flat" required>
+            {% for v in venues %}
+              <option value="{{ v.code }}">{{ v.code }} (Cap: {{ v.capacity }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field-flat">
+          <label>Matrix Day Value:</label>
+          <select name="date" class="control-flat" required>
+            {% for date_str, day in date_range %}
+              {# Display as DD/MM/YYYY in the option label #}
+              <option value="{{ date_str }}">{{ day }} [{{ date_str|slice:"8:10" }}/{{ date_str|slice:"5:7" }}/{{ date_str|slice:":4" }}]</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-field-flat">
+          <label>Target Timeslot Window:</label>
+          <select name="start_time" class="control-flat" required>
+            {% for st, lbl in time_slots %}
+              <option value="{{ st }}">{{ lbl }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn-flat btn-flat-primary"
+                style="width:100%;margin-top:6px;justify-content:center;">
+          ➕ Insert Entry Row
+        </button>
+      </form>
+
+      <div class="venue-list-flat">
+        <div style="background:var(--excel-green);color:#fff;padding:2px 6px;font-weight:700;">
+          Asset Inventory (Venues)
+        </div>
+        {% for v in venues %}
+          <div class="venue-list-item-flat">{{ v.code }} (Capacity: {{ v.capacity }})</div>
+        {% empty %}
+          <div class="venue-list-item-flat">No active lab assets discovered.</div>
+        {% endfor %}
+      </div>
+
+      <div class="excluded-info-box">
+        <div class="lbl">Excluded Dates (weekends + holidays):</div>
+        <button type="button" class="btn-excluded-days" id="btn-open-excl-modal-2"
+                style="width:100%;justify-content:space-between;">
+          <span>Manage Excluded Days</span>
+          <span class="excl-count-badge" id="excl-count-badge-2">
+            {{ excluded_days_count }}
+          </span>
+        </button>
+      </div>
+    </div><!-- /left-form-panel -->
+
+    <div class="right-grid-panel" id="right-grid-panel-container">
+      {% for date_str, day in date_range %}
+        <div class="day-block-container" id="day-anchor-{{ date_str }}">
+          {# DD/MM/YYYY display in day title #}
+          <div class="day-title-strip">
+            {{ day|upper }} — {{ date_str|slice:"8:10" }}/{{ date_str|slice:"5:7" }}/{{ date_str|slice:":4" }}
+          </div>
+
+          <table class="excel-table">
+            <thead>
+              <tr>
+                <th style="width:120px;">Laboratory Asset</th>
+                {% for st, lbl in time_slots %}
+                  <th>{{ lbl }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in venues %}
+                <tr>
+                  <td class="venue-descriptor-cell">{{ v.code }}</td>
+                  {% for st, lbl in time_slots %}
+                    <td>
+                      {% with day_entries=timetables_by_date|get_item:date_str %}
+                        {% if day_entries %}
+                          {% for t in day_entries %}
+                            {% if t.start_time|time:"H:i" == st and t.lab_venue.id == v.id %}
+                              <div class="excel-cell-text-block">
+                                <span class="excel-cell-entry-code">{{ t.lab_allocation.all_course_codes }}</span>
+                                {% if t.lab_allocation.is_workshop_course %}<strong> [WS]</strong>{% endif %}<br>
+                                <button class="excel-action-del" data-id="{{ t.id }}">Clear Cell</button>
+                              </div>
+                            {% endif %}
+                          {% endfor %}
+                        {% endif %}
+                      {% endwith %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% empty %}
+        <div style="padding:20px;color:var(--text-muted);text-align:center;">
+          No valid exam dates found. Check Start Date and Max Exam Days configuration.
+        </div>
+      {% endfor %}
+    </div><!-- /right-grid-panel -->
+
+  </div><!-- /workspace-wrapper -->
+
+  <!-- ===== EXCLUDED DAYS MODAL ===== -->
+  <div id="excl-modal-overlay">
+    <div class="excl-modal-box">
+      <div class="excl-modal-header">
+        <span>📅 Manage Excluded Days</span>
+        <button id="btn-close-excl-modal">✕ Close</button>
+      </div>
+      <div class="excl-modal-legend">
+        <div class="excl-legend-item">
+          <div class="excl-legend-swatch" style="background:#f3f2f1;"></div> Weekend (auto-excluded)
+        </div>
+        <div class="excl-legend-item">
+          <div class="excl-legend-swatch" style="background:#fff3cd;border-color:#ffc107;"></div> Excluded (holiday / manual)
+        </div>
+        <div class="excl-legend-item">
+          <div class="excl-legend-swatch" style="background:#fff;"></div> Working day
+        </div>
+      </div>
+      <div class="excl-modal-body" id="excl-modal-body">
+        <!-- Populated by JS -->
+      </div>
+      <div class="excl-modal-footer">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="excl-save-status"></span>
+          <button type="button" id="btn-clear-all-excl"
+                  style="background:#a80000;border:1px solid #7a0000;color:#fff;
+                         font-size:0.75rem;font-weight:600;padding:3px 10px;cursor:pointer;">
+            🗑 Clear All Manual Exclusions
+          </button>
+        </div>
+        <span style="font-size:0.72rem;color:var(--text-muted);">Click to exclude / include. Saves instantly.</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="scheduler-modal-overlay" class="system-modal-overlay">
+    <div class="system-modal-box">
+      <div id="modal-phase-header" class="system-modal-header">Initialization Sequence...</div>
+      <div class="progress-track-flat">
+        <div id="modal-progress-bar" class="progress-fill-flat"></div>
+      </div>
+      <div id="modal-status-text" class="status-text-flat">Phase 1: Analyzing validation rules...</div>
+      <div style="font-weight:700;margin-bottom:4px;">System Standard Log Terminal Stream:</div>
+      <div id="modal-terminal-log" class="terminal-log-shell"></div>
+    </div>
+  </div>
+
+  <script>
+  // ── Utility: format an ISO date string (YYYY-MM-DD) as DD/MM/YYYY ──────────
+  function isoToDMY(iso) {
+    if (!iso) return "";
+    var parts = iso.split("-");
+    if (parts.length !== 3) return iso;
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+  }
+
+  $(function(){
+
+    // ── Render DD/MM/YYYY label beside the start-date picker on load ──────
+    function updateDateLabels() {
+      var startVal = $("#id_start_date").val();
+      $("#disp_start_date").text(startVal ? "(" + isoToDMY(startVal) + ")" : "");
+    }
+    updateDateLabels();
+    $("#id_start_date").on("change", updateDateLabels);
+
+    // ── Navigation rail scroll ────────────────────────────────────────────
+    $(".rail-anchor").on("click", function(e){
+      e.preventDefault();
+      var targetId  = $(this).data("target");
+      var el        = document.getElementById(targetId);
+      var container = document.getElementById("right-grid-panel-container");
+      if (!el || !container) return;
+
+      // getBoundingClientRect() values are viewport-relative and computed fresh
+      // at click time, so they correctly account for the current scroll position.
+      // elRect.top - containerRect.top = pixels between top of container viewport
+      // and top of the target element as currently visible (can be negative if
+      // the element is above the fold).
+      // Adding container.scrollTop converts that into an absolute scroll target.
+      var elRect        = el.getBoundingClientRect();
+      var containerRect = container.getBoundingClientRect();
+      container.scrollTop = container.scrollTop + (elRect.top - containerRect.top) - 12;
+    });
+
+    // ── Config form save ──────────────────────────────────────────────────
+    $("#config-form").on("submit", function(e){
+      e.preventDefault();
+      var formData = $(this).serialize() + "&action=update_config";
+      $.post("{% url 'lab_exam_timetable_api' %}", formData)
+        .done(function(resp){
+          if (resp.status === "success") {
+            location.reload();
+          } else {
+            alert("Configuration error: " + resp.message);
+          }
+        })
+        .fail(function(xhr){
+          var msg = "Pipeline error saving configuration.";
+          try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e){}
+          alert(msg);
+        });
+    });
+
+    // ── Allocation entry insert ───────────────────────────────────────────
+    $("#allocation-form").on("submit", function(e){
+      e.preventDefault();
+      var formData = $(this).serialize() + "&action=create_entry";
+      $.post("{% url 'lab_exam_timetable_api' %}", formData)
+        .done(function(resp){
+          if (resp.status === "success") {
+            location.reload();
+          } else {
+            alert("Error: " + resp.message);
+          }
+        })
+        .fail(function(xhr){
+          var msg = "Grid collision error or invalid entry parameter.";
+          try { msg = JSON.parse(xhr.responseText).message || msg; } catch(e){}
+          alert(msg);
+        });
+    });
+
+    // ── Cell delete ───────────────────────────────────────────────────────
+    $(document).on("click", ".excel-action-del", function(){
+      if (!confirm("Clear this timetable entry?")) return;
+      $.post("{% url 'lab_exam_timetable_api' %}", {
+        csrfmiddlewaretoken: "{{ csrf_token }}",
+        action: "delete_entry",
+        entry_id: $(this).data("id")
+      })
+      .done(function(resp){
+        if (resp.status === "success") {
+          location.reload();
+        } else {
+          alert("Error: " + resp.message);
+        }
+      })
+      .fail(function(){ alert("Eviction pipeline failure."); });
+    });
+
+    // ── Excluded Days Modal ───────────────────────────────────────────────
+
+    // Full calendar window — every date in the exam period including weekends
+    // and currently excluded days. Populated by Django from full_calendar_window.
+    var CALENDAR_WINDOW = [
+      {% for d in full_calendar_window %}
+        { iso: "{{ d.iso }}", day: "{{ d.day_name }}", isWeekend: {{ d.is_weekend|yesno:"true,false" }}, isExcluded: {{ d.is_excluded|yesno:"true,false" }} }{% if not forloop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    // Live excluded set — initialised from server state, kept in sync by AJAX.
+    var excludedSet = new Set(
+      CALENDAR_WINDOW.filter(function(d){ return d.isExcluded; }).map(function(d){ return d.iso; })
+    );
+
+    function isoToDMYShort(iso) {
+      var p = iso.split("-");
+      return p[2] + "/" + p[1]; // DD/MM short
+    }
+
+    function getWeekKey(iso) {
+      // Group by ISO week Mon–Sun header label
+      var d = new Date(iso + "T00:00:00");
+      // Get Monday of that week
+      var day = d.getDay(); // 0=Sun
+      var diff = (day === 0) ? -6 : 1 - day;
+      var mon = new Date(d); mon.setDate(d.getDate() + diff);
+      var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      function fmt(dt) {
+        var dd = String(dt.getDate()).padStart(2,"0");
+        var mm = String(dt.getMonth()+1).padStart(2,"0");
+        return dd + "/" + mm + "/" + dt.getFullYear();
+      }
+      return "Week of " + fmt(mon) + " – " + fmt(sun);
+    }
+
+    function renderExclModal() {
+      var $body = $("#excl-modal-body");
+      $body.empty();
+
+      // Group dates by week
+      var weeks = [];
+      var weekMap = {};
+      CALENDAR_WINDOW.forEach(function(d) {
+        var wk = getWeekKey(d.iso);
+        if (!weekMap[wk]) { weekMap[wk] = []; weeks.push(wk); }
+        weekMap[wk].push(d);
+      });
+
+      weeks.forEach(function(wk) {
+        var $grp = $('<div class="excl-week-group"></div>');
+        $grp.append('<div class="excl-week-label">' + wk + '</div>');
+        var $row = $('<div class="excl-days-row"></div>');
+
+        weekMap[wk].forEach(function(d) {
+          var weekend  = d.isWeekend;
+          var excluded = excludedSet.has(d.iso);
+          var cls = "excl-day-chip ";
+          if (weekend)         cls += "is-weekend";
+          else if (excluded)   cls += "is-excluded";
+          else                 cls += "is-working";
+
+          var checked  = (weekend || excluded) ? "checked" : "";
+          var disabled = weekend ? "disabled" : "";
+
+          var $chip = $('<label class="' + cls + '" data-iso="' + d.iso + '">' +
+            '<input type="checkbox" ' + checked + ' ' + disabled + '>' +
+            '<span>' +
+              '<span class="chip-date">' + isoToDMYShort(d.iso) + '</span> ' +
+              '<span class="chip-day">' + d.day.slice(0,3) + '</span>' +
+            '</span>' +
+          '</label>');
+
+          if (!weekend) {
+            $chip.find("input").on("change", function() {
+              var add = $(this).is(":checked");
+              toggleExcludedDay(d.iso, add, $chip);
+            });
+          }
+          $row.append($chip);
+        });
+        $grp.append($row);
+        $body.append($grp);
+      });
+
+      updateExclBadges();
+    }
+
+    function updateExclBadges() {
+      // Badge shows total excluded (weekends are always excluded but shown separately).
+      // We count only manual (non-weekend) excluded days for the badge number.
+      var manualCount = 0;
+      excludedSet.forEach(function(iso) {
+        var found = CALENDAR_WINDOW.find(function(d){ return d.iso === iso; });
+        if (!found || !found.isWeekend) manualCount++;
+      });
+      $("#excl-count-badge, #excl-count-badge-2").text(excludedSet.size);
+    }
+
+    function toggleExcludedDay(iso, add, $chip) {
+      var $status = $("#excl-save-status");
+      $status.text("Saving…").css("color", "var(--text-muted)");
+
+      if (add) excludedSet.add(iso);
+      else     excludedSet.delete(iso);
+
+      // Rebuild excluded_days string from set
+      var newVal = Array.from(excludedSet).sort().join(", ");
+
+      $.post("{% url 'lab_exam_timetable_api' %}", {
+        csrfmiddlewaretoken: "{{ csrf_token }}",
+        action: "update_excluded_days",
+        excluded_days: newVal
+      })
+      .done(function(resp) {
+        if (resp.status === "success") {
+          $status.text("✔ Saved").css("color", "var(--excel-green)");
+          // Update chip appearance
+          $chip.removeClass("is-excluded is-working");
+          $chip.addClass(add ? "is-excluded" : "is-working");
+          updateExclBadges();
+          setTimeout(function(){ $status.text(""); }, 2000);
+        } else {
+          $status.text("Error: " + resp.message).css("color", "var(--danger-red)");
+          // Revert set
+          if (add) excludedSet.delete(iso);
+          else     excludedSet.add(iso);
+          $chip.find("input").prop("checked", !add);
+        }
+      })
+      .fail(function() {
+        $status.text("Save failed — network error.").css("color", "var(--danger-red)");
+        if (add) excludedSet.delete(iso);
+        else     excludedSet.add(iso);
+        $chip.find("input").prop("checked", !add);
+      });
+    }
+
+    function openExclModal() {
+      renderExclModal();
+      $("#excl-modal-overlay").addClass("open");
+    }
+
+    $("#btn-open-excl-modal, #btn-open-excl-modal-2").on("click", openExclModal);
+
+    $("#btn-close-excl-modal").on("click", function() {
+      $("#excl-modal-overlay").removeClass("open");
+    });
+
+    // Close on backdrop click
+    $("#excl-modal-overlay").on("click", function(e) {
+      if (e.target === this) $(this).removeClass("open");
+    });
+
+    // ── Clear all manual exclusions ───────────────────────────────────────
+    $("#btn-clear-all-excl").on("click", function() {
+      if (!confirm("Remove all manually excluded dates? Weekends remain excluded automatically.")) return;
+
+      // Keep only weekend dates in the set
+      var weekendDates = new Set();
+      CALENDAR_WINDOW.forEach(function(d) {
+        if (d.isWeekend) weekendDates.add(d.iso);
+      });
+
+      var $status = $("#excl-save-status");
+      $status.text("Saving…").css("color", "var(--text-muted)");
+
+      // Send only the weekend dates (weekends are always persisted)
+      var newVal = Array.from(weekendDates).sort().join(", ");
+
+      $.post("{% url 'lab_exam_timetable_api' %}", {
+        csrfmiddlewaretoken: "{{ csrf_token }}",
+        action: "update_excluded_days",
+        excluded_days: newVal
+      })
+      .done(function(resp) {
+        if (resp.status === "success") {
+          // Update live set — keep weekends, drop manual exclusions
+          excludedSet = weekendDates;
+          $status.text("✔ Cleared").css("color", "var(--excel-green)");
+          renderExclModal(); // re-render chips
+          setTimeout(function(){ $status.text(""); }, 2000);
+        } else {
+          $status.text("Error: " + resp.message).css("color", "var(--danger-red)");
+        }
+      })
+      .fail(function() {
+        $status.text("Save failed — network error.").css("color", "var(--danger-red)");
+      });
+    });
+
+  }); // end document ready
+
+  // ── AutoScheduler modal + execution ──────────────────────────────────────
+  function triggerEngineExecution() {
+    if (!confirm("This engine routine clears all current lab exam entries and regenerates them. Confirm execution?")) return;
+
+    var $overlay = $("#scheduler-modal-overlay");
+    var $bar     = $("#modal-progress-bar");
+    var $header  = $("#modal-phase-header");
+    var $status  = $("#modal-status-text");
+    var $log     = $("#modal-terminal-log");
+
+    $overlay.css("display", "flex");
+    $log.empty();
+    $bar.css("width", "0%");
+
+    var currentPct = 0;
+    var logStatements = [
+      "SYSTEM: Fetching active scheduler configuration...",
+      "CRITERIA: Excluded dates and constraints evaluated.",
+      "ENGINE: Scanning venue capacity and availability...",
+      "MATRIX: Program-level conflict rules parsed.",
+      "ALLOCATION: Beginning iterative placement passes...",
+      "CONFLICT RESOLUTION: Lecturer clash checks complete.",
+      "ENGINE: Writing confirmed allocations to database...",
+      "WORKFLOW: Optimising slot distribution...",
+      "SYSTEM: Flushing staging buffers...",
+      "SUCCESS: Autoscheduler execution confirmed."
+    ];
+
+    var intervalTimer = setInterval(function(){
+      currentPct += 2;
+      $bar.css("width", currentPct + "%");
+
+      if (currentPct % 10 === 0) {
+        var idx = Math.floor(currentPct / 10) - 1;
+        if (logStatements[idx]) {
+          $log.append("<div>" + logStatements[idx] + "</div>");
+          $log.scrollTop($log[0].scrollHeight);
+        }
+      }
+
+      if (currentPct < 35) {
+        $bar.css("background-color", "#ffc107");
+        $header.text("EXECUTION RUNTIME: Phase 1 (Initialization)");
+        $status.text("Phase 1: Analysing rules & resolving venue spaces... [" + currentPct + "%]");
+      } else if (currentPct <= 85) {
+        $bar.css("background-color", "#0d6efd");
+        $header.text("EXECUTION RUNTIME: Phase 2 (Allocation Processing)");
+        $status.text("Phase 2: Executing bulk allocation & processing course matrices... [" + currentPct + "%]");
+      } else {
+        $bar.css("background-color", "#198754");
+        $header.text("EXECUTION RUNTIME: Phase 3 (Matrix Optimisation)");
+        $status.text("Phase 3: Final optimisation routines & conflict check passes... [" + currentPct + "%]");
+      }
+
+      if (currentPct >= 100) {
+        clearInterval(intervalTimer);
+        fetch("{% url 'run_lab_exam_autoscheduler' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        })
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          $overlay.css("display", "none");
+          alert(data.message);
+          location.reload();
+        })
+        .catch(function(){
+          $overlay.css("display", "none");
+          alert("Error executing autoscheduler. Please try again.");
+        });
+      }
+    }, 60);
+  }
+  </script>
+</body>
+</html>

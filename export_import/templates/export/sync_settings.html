@@ -1,0 +1,535 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+
+{% block title %}Host / Remote Sync{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+  <h1>Host / Remote Data Sync</h1>
+  <p>Mirror this system's data to a remote installation, or receive it from a host.</p>
+  <div class="header-bar"></div>
+</div>
+
+{% if messages %}
+  {% for message in messages %}
+    <div style="background:#e6f6ec; border:1px solid #b6e6c9; color:#1a7a3c; padding:10px 15px; border-radius:6px; margin-bottom:15px;">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<div class="card mb-3" id="connectionStatusCard">
+  <div class="card-header">Connection Status</div>
+  <div class="card-body">
+    <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+      <span id="connStatusPill" style="display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:999px; font-weight:700; font-size:.85rem; background:#f3f4f6; color:#555;">
+        <span id="connStatusDot" style="width:10px; height:10px; border-radius:50%; background:#9aa3b8; flex-shrink:0;"></span>
+        <span id="connStatusLabel">{{ connection.label }}</span>
+      </span>
+      <button id="testConnectionBtn" class="btn btn-secondary" type="button">
+        {% if node.is_host %}🔄 Test Connection Now{% else %}🔄 Refresh Status{% endif %}
+      </button>
+      {% if node.is_host %}
+      <button id="testPushBtn" class="btn btn-secondary" type="button" {% if not node.remote_url or not has_token %}disabled title="Set a Remote URL and shared token first"{% endif %}>
+        📤 Send Test Record
+      </button>
+      {% endif %}
+      <span id="connStatusChecking" style="display:none; color:#888; font-size:.85rem;">Checking…</span>
+    </div>
+    <p id="connStatusDetail" style="color:#666; font-size:13px; margin-top:10px; margin-bottom:0;">{{ connection.detail }}</p>
+    {% if node.is_remote %}
+    <p style="color:#999; font-size:12px; margin-top:6px; margin-bottom:0;">
+      A remote installation can't check outbound connectivity itself — this reflects the last time a host successfully reached it.
+    </p>
+    {% endif %}
+    {% if node.is_host %}
+    <p style="color:#999; font-size:12px; margin-top:10px; margin-bottom:0;">
+      <strong>Test Connection</strong> only checks reachability (a ping, no data). <strong>Send Test Record</strong> actually
+      pushes one small fake record through the real encrypted pipeline and confirms the remote saved it — the fastest way
+      to prove both sides genuinely work, without waiting for a full sync.
+    </p>
+    <div id="testPushResult" style="margin-top:12px; font-size:13px; display:none;"></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Mode &amp; Connection</div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div style="display:grid; grid-template-columns:1fr 2fr; gap:12px; align-items:center; max-width:700px;">
+
+        <label>Mode</label>
+        <select name="mode" class="form-control">
+          <option value="host" {% if node.mode == "host" %}selected{% endif %}>Host — this machine sends data out</option>
+          <option value="remote" {% if node.mode == "remote" %}selected{% endif %}>Remote — this machine receives data</option>
+        </select>
+
+        <label>Sync enabled</label>
+        <div>
+          <input type="checkbox" name="is_enabled" id="is_enabled" {% if node.is_enabled %}checked{% endif %}>
+          <label for="is_enabled" style="font-weight:normal;">On (leave off until both sides share the same token)</label>
+        </div>
+
+        <label>Remote URL <span style="font-weight:normal; color:#888;">(host only)</span></label>
+        <input type="url" name="remote_url" class="form-control" value="{{ node.remote_url }}" placeholder="https://backup.example.ac.ke">
+
+        <label>Verify SSL <span style="font-weight:normal; color:#888;">(host only)</span></label>
+        <div>
+          <input type="checkbox" name="verify_ssl" id="verify_ssl" {% if node.verify_ssl %}checked{% endif %}>
+          <label for="verify_ssl" style="font-weight:normal;">Verify the remote's TLS certificate</label>
+          <div style="color:#a05a00; font-size:12px; margin-top:2px;">
+            Ignored once a certificate is pinned below (pinning is the stronger check, and takes over). Without a pin,
+            uncheck this only for a staging/intranet-only remote with a self-signed certificate — unchecking removes
+            protection against a spoofed remote, so the shared token becomes the only thing authenticating the connection.
+          </div>
+        </div>
+
+        <label>Shared token</label>
+        <input type="text" name="shared_token" class="form-control" placeholder="{% if has_token %}•••••••• (leave blank to keep){% else %}set a shared secret{% endif %}">
+
+        <label>Delay between models</label>
+        <input type="number" step="0.5" min="0" name="sync_batch_delay_seconds" class="form-control" value="{{ node.sync_batch_delay_seconds }}">
+
+        <label>Also resync every (minutes), even while connected <span style="font-weight:normal; color:#888;">(host only)</span></label>
+        <input type="number" step="1" min="0" name="auto_sync_interval_minutes" class="form-control" value="{{ node.auto_sync_interval_minutes }}">
+        <div style="color:#666; font-size:12px; margin-top:2px;">
+          As long as sync is Enabled and configured above, this installation already syncs
+          automatically the moment it notices the remote came back online — that always
+          happens in the background, with no browser tab needed. This field is only for
+          <em>additionally</em> resyncing on a fixed schedule even while the connection never
+          drops (e.g. every 15 or 60 minutes) — leave it at 0 if reconnect-triggered syncing plus
+          manual "Sync Now" is enough for you.
+        </div>
+      </div>
+
+      <p style="color:#666; font-size:13px; margin-top:10px;">
+        The shared token authenticates every push and must be <strong>identical</strong> on the host and the remote.
+        On the remote installation, set mode to "Remote", enable sync, and paste the same token here — you don't need a remote URL there.
+      </p>
+
+      <button type="submit" class="btn btn-success" style="margin-top:10px;">Save Settings</button>
+    </form>
+  </div>
+</div>
+
+{% if node.is_host %}
+<div class="card mb-3" id="certPinningCard">
+  <div class="card-header">Certificate Pinning <span style="font-weight:normal; color:#888; font-size:.8em;">(recommended for a self-signed remote)</span></div>
+  <div class="card-body">
+    <p style="color:#666; font-size:13px;">
+      The stronger alternative to turning off "Verify SSL" above. Fetch the remote's current certificate, confirm its
+      fingerprint matches what the remote actually presents (e.g. run
+      <code>openssl x509 -in cert.pem -noout -fingerprint -sha256</code> directly on the remote machine, or check its
+      web server config), then pin it. Every sync request after that re-checks the live certificate against this pin
+      and refuses to send data if it ever changes unexpectedly.
+    </p>
+
+    <div style="margin-bottom:10px;">
+      <strong>Currently pinned:</strong>
+      <span id="pinnedFingerprintLabel" style="font-family:monospace; font-size:12.5px;">
+        {% if pinned_fingerprint_display %}{{ pinned_fingerprint_display }}{% else %}<span style="color:#999;">none</span>{% endif %}
+      </span>
+    </div>
+
+    <button id="fetchCertBtn" type="button" class="btn btn-secondary" {% if not node.remote_url %}disabled title="Set a Remote URL first"{% endif %}>Fetch Remote Certificate</button>
+    <button id="pinCertBtn" type="button" class="btn btn-primary" style="display:none;">Pin This Certificate</button>
+    <button id="clearPinBtn" type="button" class="btn btn-secondary" {% if not node.pinned_cert_fingerprint %}style="display:none;"{% endif %}>Forget Pinned Certificate</button>
+
+    <div id="certFetchResult" style="margin-top:12px; font-size:13px;"></div>
+  </div>
+</div>
+{% endif %}
+
+{% if node.is_host %}
+<div class="card mb-3">
+  <div class="card-header">Sync Now</div>
+  <div class="card-body">
+    <p>Sends every model that has changed since the last successful sync to the remote, in dependency order (departments, then programs, then program courses, then course allocations / lecturer-program mappings, and so on) so nothing is sent before what it depends on. Runs in the background with a short pause between each model, so it won't lock up the site while it runs.</p>
+    <button id="sync-now-btn" class="btn btn-primary" {% if not node.is_enabled %}disabled title="Enable sync first"{% endif %}>Sync Now</button>
+    <span id="sync-now-status" style="margin-left:12px; font-weight:600;"></span>
+
+    <div id="sync-progress-wrap" style="display:none; margin-top:15px;">
+      <div style="background:#eef1f6; border-radius:6px; height:18px; overflow:hidden; max-width:500px;">
+        <div id="sync-progress-bar" style="background:#28a745; height:100%; width:0%; transition:width .3s;"></div>
+      </div>
+      <div id="sync-progress-text" style="margin-top:6px; font-size:13px; color:#555;"></div>
+      <div id="sync-progress-log" style="margin-top:10px; max-height:220px; overflow-y:auto; font-family:monospace; font-size:12px; background:#0b1f4a; color:#dbe6ff; padding:10px; border-radius:6px;"></div>
+    </div>
+
+    {% if sync_plan_preview %}
+    <details style="margin-top:15px;">
+      <summary style="cursor:pointer; color:#0b1f4a; font-weight:600;">Send order ({{ sync_plan_preview|length }} models)</summary>
+      <ol style="columns:2; font-size:13px; color:#555;">
+        {% for label in sync_plan_preview %}<li>{{ label }}</li>{% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header">Recent Sync Runs</div>
+  <div class="card-body">
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; min-width:700px;">
+        <thead>
+          <tr style="background:#0b1f4a; color:white;">
+            <th style="padding:10px; text-align:left;">Started</th>
+            <th style="padding:10px; text-align:left;">Status</th>
+            <th style="padding:10px; text-align:left;">Models</th>
+            <th style="padding:10px; text-align:left;">Records Sent</th>
+            <th style="padding:10px; text-align:left;">Triggered By</th>
+            <th style="padding:10px; text-align:left;">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in recent_runs %}
+          <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:10px;">{{ run.started_at|date:"Y-m-d H:i:s" }}</td>
+            <td style="padding:10px;">
+              <span style="padding:2px 8px; border-radius:10px; font-size:12px;
+                {% if run.status == 'success' %}background:#e6f6ec; color:#1a7a3c;
+                {% elif run.status == 'running' %}background:#fff6e0; color:#a67c00;
+                {% elif run.status == 'partial' %}background:#fff0e0; color:#b35c00;
+                {% else %}background:#fde8e8; color:#c0392b;{% endif %}">
+                {{ run.get_status_display }}
+              </span>
+            </td>
+            <td style="padding:10px;">{{ run.models_completed }} / {{ run.total_models }}</td>
+            <td style="padding:10px;">{{ run.records_sent }}</td>
+            <td style="padding:10px;">{{ run.triggered_by.username|default:"—" }}</td>
+            <td style="padding:10px;"><a href="{% url 'sync_run_detail' run.id %}">View log</a></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" style="padding:20px; text-align:center;">No sync runs yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock sudo_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function() {
+  const btn = document.getElementById('sync-now-btn');
+  if (!btn) return;
+  const statusEl = document.getElementById('sync-now-status');
+  const progressWrap = document.getElementById('sync-progress-wrap');
+  const bar = document.getElementById('sync-progress-bar');
+  const text = document.getElementById('sync-progress-text');
+  const logEl = document.getElementById('sync-progress-log');
+  let pollTimer = null;
+
+  function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  }
+
+  function renderLogs(logs) {
+    logEl.innerHTML = logs.map(l => {
+      const tag = l.status === 'sent' ? 'SENT' : (l.status === 'skipped' ? 'SKIP' : 'FAIL');
+      return `[${String(l.order).padStart(3,'0')}] ${tag}  ${l.app_label}.${l.model_name}  (${l.records_changed}/${l.records_total} changed)` +
+             (l.error_message ? `  — ${l.error_message}` : '');
+    }).join('\n');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function poll(runId) {
+    fetch(`{% url 'sync_status' %}?run_id=${runId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        const pct = data.total_models ? Math.round((data.models_completed / data.total_models) * 100) : 0;
+        bar.style.width = pct + '%';
+        text.textContent = `${data.models_completed}/${data.total_models} models — ${data.records_sent} record(s) sent`;
+        renderLogs(data.logs || []);
+
+        if (data.status === 'running') {
+          pollTimer = setTimeout(() => poll(runId), 1500);
+        } else {
+          statusEl.textContent = data.status === 'success' ? 'Sync complete.' :
+                                  data.status === 'partial' ? 'Sync finished with some errors — see log below.' :
+                                  'Sync failed: ' + (data.error_message || '');
+          btn.disabled = false;
+          btn.textContent = 'Sync Now';
+        }
+      });
+  }
+
+  btn.addEventListener('click', function() {
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+    statusEl.textContent = '';
+    progressWrap.style.display = 'block';
+    bar.style.width = '0%';
+    text.textContent = 'Starting sync...';
+    logEl.textContent = '';
+
+    fetch('{% url "trigger_sync" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) {
+          statusEl.textContent = 'Error: ' + data.error;
+          btn.disabled = false;
+          btn.textContent = 'Sync Now';
+          return;
+        }
+        btn.textContent = 'Syncing...';
+        poll(data.run_id);
+      })
+      .catch(err => {
+        statusEl.textContent = 'Network error: ' + err.message;
+        btn.disabled = false;
+        btn.textContent = 'Sync Now';
+      });
+  });
+})();
+
+// ── Connection Status card ──────────────────────────────────────────
+(function() {
+  const pill = document.getElementById('connStatusPill');
+  const dot = document.getElementById('connStatusDot');
+  const label = document.getElementById('connStatusLabel');
+  const detail = document.getElementById('connStatusDetail');
+  const btn = document.getElementById('testConnectionBtn');
+  const checking = document.getElementById('connStatusChecking');
+  if (!pill) return;
+
+  const COLORS = {
+    connected:    { bg: '#e6f6ec', fg: '#1a7a3c', dot: '#2ecc71' },
+    disconnected: { bg: '#fde8e8', fg: '#c0392b', dot: '#e74c3c' },
+    unknown:      { bg: '#fff6e0', fg: '#a67c00', dot: '#f5a623' },
+    unconfigured: { bg: '#f3f4f6', fg: '#555',    dot: '#9aa3b8' },
+    disabled:     { bg: '#f3f4f6', fg: '#555',    dot: '#9aa3b8' },
+  };
+
+  function applyState(state, lbl, det) {
+    const c = COLORS[state] || COLORS.unknown;
+    pill.style.background = c.bg;
+    pill.style.color = c.fg;
+    dot.style.background = c.dot;
+    if (lbl !== undefined) label.textContent = lbl;
+    if (det !== undefined) detail.textContent = det;
+  }
+
+  function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  }
+
+  function refreshStatus() {
+    fetch('{% url "sync_connection_status_api" %}')
+      .then(r => r.json())
+      .then(data => { if (data.success) applyState(data.state, data.label, data.detail); })
+      .catch(() => {});
+  }
+
+  function testNow() {
+    btn.disabled = true;
+    checking.style.display = 'inline';
+    fetch('{% url "sync_test_connection_api" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        btn.disabled = false;
+        checking.style.display = 'none';
+        if (data.success) applyState(data.state, data.label, data.detail);
+      })
+      .catch(() => {
+        btn.disabled = false;
+        checking.style.display = 'none';
+      });
+  }
+
+  btn.addEventListener('click', testNow);
+
+  // Actively verify right away on open — never just trust whatever was
+  // last recorded, since that could be stale from before a network drop
+  // or a pause/resume. Then keep it fresh while the page stays open.
+  testNow();
+  setInterval(refreshStatus, 20000);
+})();
+
+// ── Send Test Record button ─────────────────────────────────────────
+(function() {
+  const btn = document.getElementById('testPushBtn');
+  if (!btn) return;
+  const resultEl = document.getElementById('testPushResult');
+
+  function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  }
+
+  function render(ok, html) {
+    resultEl.style.display = 'block';
+    resultEl.style.background = ok ? '#e6f6ec' : '#fde8e8';
+    resultEl.style.color = ok ? '#1a7a3c' : '#c0392b';
+    resultEl.style.border = '1px solid ' + (ok ? '#b6e6c9' : '#f5c6c6');
+    resultEl.style.borderRadius = '6px';
+    resultEl.style.padding = '10px 14px';
+    resultEl.innerHTML = html;
+  }
+
+  btn.addEventListener('click', function() {
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    resultEl.style.display = 'none';
+
+    fetch('{% url "sync_test_push_api" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    })
+      .then(r => r.json().then(data => ({ status: r.status, data })))
+      .then(({ status, data }) => {
+        btn.disabled = false;
+        btn.textContent = '📤 Send Test Record';
+
+        if (data.stage === 'network') {
+          render(false, `<strong>Could not reach the remote at all.</strong><br>${data.error}<br>` +
+            `<span style="color:#888;">This means the remote is unreachable at the configured URL right now — check it's ` +
+            `actually running, the URL/port are correct, and nothing is blocking the connection.</span>`);
+          return;
+        }
+        if (data.stage === 'tls' || data.stage === 'encrypt') {
+          render(false, `<strong>Failed before reaching the network (${data.stage}).</strong><br>${data.error}`);
+          return;
+        }
+
+        const remote = data.remote_response || {};
+        if (data.success) {
+          render(true, `<strong>✅ Success — the remote received and saved the test record.</strong><br>` +
+            `HTTP ${data.http_status} · saved=${remote.saved} · marker=<code>${data.test_marker}</code><br>` +
+            `<span style="color:#888;">Both sides genuinely work end to end. If your real sync still isn't sending data, ` +
+            `the issue is in configuration/scheduling (auto-sync interval, whether a real run is actually being triggered), ` +
+            `not connectivity or encryption.</span>`);
+        } else if (status === 401) {
+          render(false, `<strong>Rejected: invalid or missing token.</strong><br>The shared token on this HOST doesn't match the REMOTE's. Re-check both.`);
+        } else if (status === 403) {
+          render(false, `<strong>Rejected: remote isn't accepting pushes.</strong><br>On the REMOTE, confirm mode="Remote" and sync is Enabled.`);
+        } else if (data.error && data.error.toLowerCase().includes('decrypt')) {
+          render(false, `<strong>Remote couldn't decrypt the payload.</strong><br>Almost always a token mismatch between HOST and REMOTE.`);
+        } else {
+          render(false, `<strong>Push failed.</strong><br>HTTP ${data.http_status || status}<br><code>${JSON.stringify(remote)}</code>`);
+        }
+      })
+      .catch(err => {
+        btn.disabled = false;
+        btn.textContent = '📤 Send Test Record';
+        render(false, 'Network error talking to this server itself: ' + err.message);
+      });
+  });
+})();
+
+// ── Certificate Pinning card ────────────────────────────────────────
+(function() {
+  const fetchBtn = document.getElementById('fetchCertBtn');
+  if (!fetchBtn) return;
+  const pinBtn = document.getElementById('pinCertBtn');
+  const clearBtn = document.getElementById('clearPinBtn');
+  const resultEl = document.getElementById('certFetchResult');
+  const pinnedLabel = document.getElementById('pinnedFingerprintLabel');
+  let lastFetchedFingerprint = null;
+
+  function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  }
+
+  function showResult(html, color) {
+    resultEl.innerHTML = html;
+    resultEl.style.color = color || '#333';
+  }
+
+  fetchBtn.addEventListener('click', function() {
+    fetchBtn.disabled = true;
+    pinBtn.style.display = 'none';
+    showResult('Fetching…', '#888');
+
+    fetch('{% url "sync_fetch_remote_cert" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        fetchBtn.disabled = false;
+        if (!data.success) {
+          showResult('Error: ' + data.error, '#c0392b');
+          return;
+        }
+        lastFetchedFingerprint = data.fingerprint;
+        if (data.matches_pinned === true) {
+          showResult('Fingerprint: <code>' + data.fingerprint_display + '</code><br>Matches the currently pinned certificate. Nothing to do.', '#1a7a3c');
+        } else if (data.matches_pinned === false) {
+          showResult('Fingerprint: <code>' + data.fingerprint_display + '</code><br><strong>Different from the currently pinned certificate.</strong> Confirm this is expected (e.g. a renewed cert) before re-pinning.', '#a05a00');
+          pinBtn.style.display = 'inline-block';
+        } else {
+          showResult('Fingerprint: <code>' + data.fingerprint_display + '</code><br>Nothing pinned yet. Verify this matches the remote before pinning it.', '#333');
+          pinBtn.style.display = 'inline-block';
+        }
+      })
+      .catch(err => {
+        fetchBtn.disabled = false;
+        showResult('Network error: ' + err.message, '#c0392b');
+      });
+  });
+
+  pinBtn.addEventListener('click', function() {
+    if (!lastFetchedFingerprint) return;
+    pinBtn.disabled = true;
+    fetch('{% url "sync_pin_remote_cert" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'fingerprint=' + encodeURIComponent(lastFetchedFingerprint),
+    })
+      .then(r => r.json())
+      .then(data => {
+        pinBtn.disabled = false;
+        if (!data.success) {
+          showResult('Error: ' + data.error, '#c0392b');
+          return;
+        }
+        pinBtn.style.display = 'none';
+        clearBtn.style.display = 'inline-block';
+        pinnedLabel.textContent = data.fingerprint_display;
+        showResult('Pinned. Every sync request will now check the remote against this fingerprint.', '#1a7a3c');
+      })
+      .catch(err => {
+        pinBtn.disabled = false;
+        showResult('Network error: ' + err.message, '#c0392b');
+      });
+  });
+
+  clearBtn.addEventListener('click', function() {
+    if (!confirm('Forget the pinned certificate? Sync will fall back to the "Verify SSL" setting above.')) return;
+    clearBtn.disabled = true;
+    fetch('{% url "sync_pin_remote_cert" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'action=clear',
+    })
+      .then(r => r.json())
+      .then(data => {
+        clearBtn.disabled = false;
+        if (!data.success) {
+          showResult('Error: ' + data.error, '#c0392b');
+          return;
+        }
+        clearBtn.style.display = 'none';
+        pinBtn.style.display = 'none';
+        pinnedLabel.textContent = 'none';
+        showResult('Pinned certificate forgotten.', '#333');
+      })
+      .catch(err => {
+        clearBtn.disabled = false;
+        showResult('Network error: ' + err.message, '#c0392b');
+      });
+  });
+})();
+</script>
+{% endblock extra_js %}

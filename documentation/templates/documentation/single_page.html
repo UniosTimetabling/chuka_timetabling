@@ -1,0 +1,748 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{% if view_type == 'page_detail' %}{{ page.title }} - 
+ {% elif view_type == 'category' %}{{ category.name }} - 
+ {% elif view_type == 'search' %}Search Results - 
+ {% elif view_type == 'list' %}All Documentation - 
+ {% endif %}Internal Documentation System{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'documentation/css/documentation_documentation_single_page.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<!-- Header -->
+ <header class="system-header" style="display:none!important">
+ <div class="container">
+ <!-- Logo and Mobile Menu -->
+ <div class="d-flex align-items-center">
+ <button class="btn btn-outline-light d-lg-none me-2 mobile-menu-btn" id="mobileMenuBtn">
+ <i class="fas fa-bars"></i>
+ </button>
+ <a href="{% url 'documentation:home' %}" class="logo">
+ <i class="fas fa-book-open logo-icon"></i>
+ <span>Internal Docs</span>
+ </a>
+ </div>
+ 
+ <!-- Search -->
+ <div class="search-box">
+ <form action="{% url 'documentation:search' %}" method="get" class="d-flex" id="searchForm">
+ <input type="text" 
+ class="form-control" 
+ placeholder="Search documentation..." 
+ name="q"
+ id="searchInput"
+ value="{% if view_type == 'search' %}{{ query }}{% endif %}"
+ autocomplete="off">
+ <button type="submit" class="btn btn-outline-light ms-2">
+ <i class="fas fa-search"></i>
+ </button>
+ </form>
+ <div class="search-results" id="searchResults"></div>
+ </div>
+ 
+ <!-- User Menu -->
+ <div class="dropdown">
+ <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+ <i class="fas fa-user-circle me-1"></i>
+ {{ user.get_full_name|default:user.username }}
+ </button>
+ <ul class="dropdown-menu dropdown-menu-end">
+ <li><a class="dropdown-item" href="#">
+ <i class="fas fa-user me-2"></i>Profile
+ </a></li>
+ {% if user.is_staff %}
+ <li><a class="dropdown-item" href="{% url 'admin:index' %}">
+ <i class="fas fa-lock me-2"></i>Admin Panel
+ </a></li>
+ {% endif %}
+ <li><hr class="dropdown-divider"></li>
+ <li><a class="dropdown-item" href="{% url 'logout' %}?next={% url 'documentation:home' %}">
+ <i class="fas fa-sign-out-alt me-2"></i>Logout
+ </a></li>
+ </ul>
+ </div>
+ </div>
+ </header>
+
+ <!-- Main Container -->
+ <div class="main-container">
+ <!-- Sidebar -->
+ <aside class="sidebar" id="sidebar">
+ <div class="sidebar-content">
+ <!-- Navigation -->
+ <div class="sidebar-section">
+ <h6 class="sidebar-title">Navigation</h6>
+ <ul class="category-list">
+ <li class="category-item">
+ <a href="{% url 'documentation:home' %}" 
+ class="category-link {% if view_type == 'home' %}active{% endif %}">
+ <i class="fas fa-home category-icon"></i>
+ Dashboard
+ </a>
+ </li>
+ <li class="category-item">
+ <a href="{% url 'documentation:list' %}" 
+ class="category-link {% if view_type == 'list' %}active{% endif %}">
+ <i class="fas fa-list category-icon"></i>
+ All Documents
+ <span class="category-count">{{ total_pages }}</span>
+ </a>
+ </li>
+ </ul>
+ </div>
+ 
+ <!-- Categories -->
+ <div class="sidebar-section">
+ <h6 class="sidebar-title">Categories</h6>
+ <ul class="category-list">
+ {% for category in categories %}
+ <li class="category-item">
+ <a href="{% url 'documentation:category' slug=category.slug %}" 
+ class="category-link {% if view_type == 'category' and category.slug == current_category.slug %}active{% endif %}">
+ <i class="{{ category.icon|default:'fas fa-folder' }} category-icon"></i>
+ {{ category.name }}
+ <span class="category-count">{{ category.page_count }}</span>
+ </a>
+ </li>
+ {% empty %}
+ <li class="category-item">
+ <span class="category-link text-muted">
+ <i class="fas fa-folder category-icon"></i>
+ No categories
+ </span>
+ </li>
+ {% endfor %}
+ </ul>
+ </div>
+ 
+ <!-- Recent Activity -->
+ <div class="sidebar-section">
+ <h6 class="sidebar-title">Recent Updates</h6>
+ <ul class="category-list">
+ {% for page in recent_updates %}
+ <li class="category-item">
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="category-link">
+ <i class="fas fa-file-alt category-icon"></i>
+ <span>{{ page.title|truncatechars:25 }}</span>
+ </a>
+ </li>
+ {% empty %}
+ <li class="category-item">
+ <span class="category-link text-muted">
+ <i class="fas fa-file-alt category-icon"></i>
+ No recent updates
+ </span>
+ </li>
+ {% endfor %}
+ </ul>
+ </div>
+ </div>
+ </aside>
+
+ <!-- Main Content -->
+ <main class="main-content">
+ <!-- Loading Spinner -->
+ <div class="loading" id="loadingSpinner">
+ <div class="spinner"></div>
+ <p>Loading content...</p>
+ </div>
+ 
+ <!-- Dynamic Content Area -->
+ <div id="contentArea" class="fade-in">
+ {% if view_type == 'home' %}
+ <!-- Home Page Content -->
+ <div class="mb-4">
+ <h1 class="page-title">Documentation Dashboard</h1>
+ <p class="lead">Welcome to the internal documentation system</p>
+ </div>
+ 
+ <div class="dashboard-grid">
+ <div class="dashboard-card">
+ <i class="fas fa-book card-icon"></i>
+ <h3 class="card-title">{{ total_pages }} Documents</h3>
+ <p class="text-muted">Total available documentation</p>
+ </div>
+ 
+ <div class="dashboard-card">
+ <i class="fas fa-folder card-icon"></i>
+ <h3 class="card-title">{{ total_categories }} Categories</h3>
+ <p class="text-muted">Organized by department and function</p>
+ </div>
+ 
+ <div class="dashboard-card">
+ <i class="fas fa-eye card-icon"></i>
+ <h3 class="card-title">{{ user_view_count|default:0 }} Views</h3>
+ <p class="text-muted">Your total document views</p>
+ </div>
+ </div>
+ 
+ <!-- Quick Access -->
+ <div class="mt-5">
+ <h3 class="mb-4">Quick Access</h3>
+ {% if quick_links %}
+ <div class="quick-links-grid">
+ {% for page in quick_links %}
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="quick-link">
+ <div class="d-flex align-items-center mb-2">
+ <span class="badge-type badge-type-{{ page.page_type }} me-2">
+ {{ page.get_page_type_display }}
+ </span>
+ <small class="text-muted">{{ page.category.name }}</small>
+ </div>
+ <h6>{{ page.title }}</h6>
+ <p class="text-muted small mb-0">{{ page.short_description|truncatechars:80 }}</p>
+ </a>
+ {% endfor %}
+ </div>
+ {% else %}
+ <div class="alert alert-info">
+ <i class="fas fa-info-circle me-2"></i>
+ No quick links available. Documents will appear here as you use the system.
+ </div>
+ {% endif %}
+ </div>
+ 
+ <!-- Recently Viewed -->
+ {% if recently_viewed %}
+ <div class="mt-5">
+ <h3 class="mb-4">Recently Viewed</h3>
+ <div class="quick-links-grid">
+ {% for page in recently_viewed %}
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="quick-link">
+ <h6>{{ page.title }}</h6>
+ <p class="text-muted small mb-0">{{ page.category.name }}</p>
+ </a>
+ {% endfor %}
+ </div>
+ </div>
+ {% endif %}
+ 
+ {% elif view_type == 'page_detail' %}
+ <!-- Page Detail Content -->
+ <div class="page-header">
+ <div class="d-flex justify-content-between align-items-start mb-3">
+ <h1 class="page-title">{{ page.title }}</h1>
+ <span class="badge-type badge-type-{{ page.page_type }}">
+ {{ page.get_page_type_display }}
+ </span>
+ </div>
+ 
+ <p class="lead">{{ page.short_description }}</p>
+ 
+ <div class="page-meta">
+ <span class="meta-item">
+ <i class="fas fa-folder"></i>
+ {{ page.category.name }}
+ </span>
+ <span class="meta-item">
+ <i class="fas fa-clock"></i>
+ {{ page.estimated_read_time }} min read
+ </span>
+ <span class="meta-item">
+ <i class="fas fa-eye"></i>
+ <span id="viewCount">{{ page.views }}</span> views
+ </span>
+ {% if page.updated_at %}
+ <span class="meta-item">
+ <i class="fas fa-calendar-alt"></i>
+ Updated {{ page.updated_at|date:"M d, Y" }}
+ </span>
+ {% endif %}
+ </div>
+ 
+ {% if prerequisites %}
+ <div class="alert alert-info mt-3">
+ <h6><i class="fas fa-info-circle me-2"></i>Prerequisites</h6>
+ <ul class="mb-0">
+ {% for prereq in prerequisites %}
+ <li><a href="{% url 'documentation:page' slug=prereq.slug %}">{{ prereq.title }}</a></li>
+ {% endfor %}
+ </ul>
+ </div>
+ {% endif %}
+ </div>
+ 
+ <!-- Table of Contents -->
+ {% if toc %}
+ <div class="toc-container mb-4">
+ <h6 class="sidebar-title mb-3">Contents</h6>
+ <ul class="toc-list">
+ {% for item in toc %}
+ <li class="toc-item">
+ <a href="#{{ item.id }}" class="toc-link" data-section="{{ item.id }}">
+ {{ item.title }}
+ </a>
+ </li>
+ {% endfor %}
+ </ul>
+ </div>
+ {% endif %}
+ 
+ <!-- Page Content -->
+ <div class="content-section">
+ {{ page.content|safe }}
+ </div>
+ 
+ <!-- Sections -->
+ {% for section in sections %}
+ <div class="content-section" id="section-{{ section.id }}">
+ <h2 class="section-title">
+ {{ section.title }}
+ <a href="#section-{{ section.id }}" class="text-muted ms-2" style="font-size: 0.8rem;">
+ <i class="fas fa-link"></i>
+ </a>
+ </h2>
+ <div class="section-content">
+ {{ section.content|safe }}
+ </div>
+ 
+ <!-- Code Examples -->
+ {% with section.code_examples.all as examples %}
+ {% if examples %}
+ <div class="mt-4">
+ {% for example in examples %}
+ <div class="code-container">
+ <div class="code-header">
+ <span>{{ example.language|upper }}</span>
+ <button class="btn btn-sm btn-outline-light copy-code" data-code="{{ example.code|escape }}">
+ <i class="fas fa-copy"></i> Copy
+ </button>
+ </div>
+ <pre><code class="language-{{ example.language }}">{{ example.code }}</code></pre>
+ {% if example.description %}
+ <div class="p-3 bg-dark text-light">
+ <small>{{ example.description }}</small>
+ </div>
+ {% endif %}
+ </div>
+ {% endfor %}
+ </div>
+ {% endif %}
+ {% endwith %}
+ </div>
+ {% endfor %}
+ 
+ <!-- Related Pages -->
+ {% if related_pages %}
+ <div class="content-section">
+ <h3 class="section-title">Related Documents</h3>
+ <div class="row">
+ {% for related in related_pages %}
+ <div class="col-md-6 mb-3">
+ <div class="card h-100">
+ <div class="card-body">
+ <h6 class="card-title">
+ <a href="{% url 'documentation:page' slug=related.slug %}">
+ {{ related.title }}
+ </a>
+ </h6>
+ <p class="card-text text-muted small">
+ {{ related.short_description|truncatechars:100 }}
+ </p>
+ <div class="d-flex justify-content-between align-items-center">
+ <span class="badge-type badge-type-{{ related.page_type }}">
+ {{ related.get_page_type_display }}
+ </span>
+ <small class="text-muted">
+ <i class="fas fa-eye"></i> {{ related.views }}
+ </small>
+ </div>
+ </div>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+ </div>
+ {% endif %}
+ 
+ <!-- Navigation -->
+ <div class="d-flex justify-content-between mt-4">
+ {% if prev_page %}
+ <a href="{% url 'documentation:page' slug=prev_page.slug %}" class="btn btn-outline-primary">
+ <i class="fas fa-arrow-left me-2"></i> Previous: {{ prev_page.title|truncatechars:30 }}
+ </a>
+ {% else %}
+ <div></div>
+ {% endif %}
+ 
+ {% if next_page %}
+ <a href="{% url 'documentation:page' slug=next_page.slug %}" class="btn btn-outline-primary">
+ Next: {{ next_page.title|truncatechars:30 }} <i class="fas fa-arrow-right ms-2"></i>
+ </a>
+ {% endif %}
+ </div>
+ 
+ {% elif view_type == 'category' %}
+ <!-- Category Page -->
+ <div class="page-header">
+ <h1 class="page-title">{{ category.name }}</h1>
+ <p class="lead">{{ category.description }}</p>
+ <div class="page-meta">
+ <span class="meta-item">
+ <i class="fas fa-file-alt"></i>
+ {{ pages.paginator.count }} documents
+ </span>
+ </div>
+ </div>
+ 
+ <!-- Filters -->
+ <div class="content-section mb-4">
+ <form method="get" class="row g-3">
+ <div class="col-md-3">
+ <select name="type" class="form-select">
+ <option value="">All Types</option>
+ {% for type in page_types %}
+ <option value="{{ type.0 }}" {% if current_type == type.0 %}selected{% endif %}>
+ {{ type.1 }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="col-md-3">
+ <select name="difficulty" class="form-select">
+ <option value="">All Levels</option>
+ {% for level in difficulty_levels %}
+ <option value="{{ level.0 }}" {% if current_difficulty == level.0 %}selected{% endif %}>
+ {{ level.1 }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="col-md-3">
+ <select name="order" class="form-select">
+ <option value="order" {% if current_order == 'order' %}selected{% endif %}>Default Order</option>
+ <option value="title" {% if current_order == 'title' %}selected{% endif %}>Title (A-Z)</option>
+ <option value="views" {% if current_order == 'views' %}selected{% endif %}>Most Viewed</option>
+ <option value="recent" {% if current_order == 'recent' %}selected{% endif %}>Recently Updated</option>
+ </select>
+ </div>
+ <div class="col-md-3">
+ <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+ </div>
+ </form>
+ </div>
+ 
+ <!-- Pages List -->
+ {% if pages %}
+ <div class="row">
+ {% for page in pages %}
+ <div class="col-md-6 col-lg-4 mb-4">
+ <div class="card h-100">
+ <div class="card-body">
+ <div class="d-flex justify-content-between align-items-start mb-2">
+ <span class="badge-type badge-type-{{ page.page_type }}">
+ {{ page.get_page_type_display }}
+ </span>
+ <small class="text-muted">
+ <i class="fas fa-eye"></i> {{ page.views }}
+ </small>
+ </div>
+ <h5 class="card-title">
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="text-decoration-none">
+ {{ page.title }}
+ </a>
+ </h5>
+ <p class="card-text text-muted small">
+ {{ page.short_description|truncatechars:100 }}
+ </p>
+ <div class="d-flex justify-content-between align-items-center mt-3">
+ <small class="text-muted">
+ <i class="fas fa-clock"></i> {{ page.estimated_read_time }} min
+ </small>
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="btn btn-sm btn-outline-primary">
+ Read <i class="fas fa-arrow-right ms-1"></i>
+ </a>
+ </div>
+ </div>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+ {% else %}
+ <div class="alert alert-info">
+ <i class="fas fa-info-circle me-2"></i>
+ No documents found in this category with the current filters.
+ </div>
+ {% endif %}
+ 
+ <!-- Pagination -->
+ {% if pages.paginator.num_pages > 1 %}
+ <nav class="mt-4">
+ <ul class="pagination justify-content-center">
+ {% if pages.has_previous %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ pages.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}{% if current_order %}&order={{ current_order }}{% endif %}">
+ Previous
+ </a>
+ </li>
+ {% endif %}
+ 
+ {% for num in pages.paginator.page_range %}
+ {% if pages.number == num %}
+ <li class="page-item active">
+ <span class="page-link">{{ num }}</span>
+ </li>
+ {% elif num > pages.number|add:'-3' and num < pages.number|add:'3' %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ num }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}{% if current_order %}&order={{ current_order }}{% endif %}">
+ {{ num }}
+ </a>
+ </li>
+ {% endif %}
+ {% endfor %}
+ 
+ {% if pages.has_next %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ pages.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}{% if current_order %}&order={{ current_order }}{% endif %}">
+ Next
+ </a>
+ </li>
+ {% endif %}
+ </ul>
+ </nav>
+ {% endif %}
+ 
+ {% elif view_type == 'list' %}
+ <!-- All Pages List -->
+ <div class="page-header">
+ <h1 class="page-title">All Documentation</h1>
+ <p class="lead">Browse all available documents in the system</p>
+ <div class="page-meta">
+ <span class="meta-item">
+ <i class="fas fa-file-alt"></i>
+ {{ total_results }} documents
+ </span>
+ </div>
+ </div>
+ 
+ <!-- Content similar to category view -->
+ <div class="content-section mb-4">
+ <form method="get" class="row g-3">
+ <div class="col-md-3">
+ <select name="category" class="form-select">
+ <option value="">All Categories</option>
+ {% for category in categories %}
+ <option value="{{ category.slug }}" {% if current_category == category.slug %}selected{% endif %}>
+ {{ category.name }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="col-md-3">
+ <select name="type" class="form-select">
+ <option value="">All Types</option>
+ {% for type in page_types %}
+ <option value="{{ type.0 }}" {% if current_type == type.0 %}selected{% endif %}>
+ {{ type.1 }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="col-md-3">
+ <select name="difficulty" class="form-select">
+ <option value="">All Levels</option>
+ {% for level in difficulty_levels %}
+ <option value="{{ level.0 }}" {% if current_difficulty == level.0 %}selected{% endif %}>
+ {{ level.1 }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="col-md-3">
+ <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+ </div>
+ </form>
+ </div>
+ 
+ {% if pages %}
+ <div class="row">
+ {% for page in pages %}
+ <div class="col-md-6 col-lg-4 mb-4">
+ <div class="card h-100">
+ <div class="card-body">
+ <div class="d-flex justify-content-between align-items-start mb-2">
+ <span class="badge-type badge-type-{{ page.page_type }}">
+ {{ page.get_page_type_display }}
+ </span>
+ <small class="text-muted">
+ <i class="fas fa-eye"></i> {{ page.views }}
+ </small>
+ </div>
+ <h5 class="card-title">
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="text-decoration-none">
+ {{ page.title }}
+ </a>
+ </h5>
+ <p class="card-text text-muted small">
+ {{ page.short_description|truncatechars:100 }}
+ </p>
+ <div class="d-flex justify-content-between align-items-center mt-3">
+ <small class="text-muted">
+ {{ page.category.name }}
+ </small>
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="btn btn-sm btn-outline-primary">
+ Read
+ </a>
+ </div>
+ </div>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+ {% else %}
+ <div class="alert alert-info">
+ <i class="fas fa-info-circle me-2"></i>
+ No documents found with the current filters.
+ </div>
+ {% endif %}
+ 
+ <!-- Pagination -->
+ {% if pages.paginator.num_pages > 1 %}
+ <nav class="mt-4">
+ <ul class="pagination justify-content-center">
+ {% if pages.has_previous %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ pages.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}">
+ Previous
+ </a>
+ </li>
+ {% endif %}
+ 
+ {% for num in pages.paginator.page_range %}
+ {% if pages.number == num %}
+ <li class="page-item active">
+ <span class="page-link">{{ num }}</span>
+ </li>
+ {% elif num > pages.number|add:'-3' and num < pages.number|add:'3' %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}">
+ {{ num }}
+ </a>
+ </li>
+ {% endif %}
+ {% endfor %}
+ 
+ {% if pages.has_next %}
+ <li class="page-item">
+ <a class="page-link" href="?page={{ pages.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_difficulty %}&difficulty={{ current_difficulty }}{% endif %}">
+ Next
+ </a>
+ </li>
+ {% endif %}
+ </ul>
+ </nav>
+ {% endif %}
+ 
+ {% elif view_type == 'search' %}
+ <!-- Search Results -->
+ <div class="page-header">
+ <h1 class="page-title">Search Results</h1>
+ <p class="lead">Search query: "{{ query }}"</p>
+ <div class="page-meta">
+ <span class="meta-item">
+ <i class="fas fa-search"></i>
+ {{ total_results }} results found
+ </span>
+ </div>
+ </div>
+ 
+ {% if pages %}
+ <div class="row">
+ {% for page in pages %}
+ <div class="col-md-6 mb-4">
+ <div class="card h-100">
+ <div class="card-body">
+ <div class="d-flex justify-content-between align-items-start mb-2">
+ <span class="badge-type badge-type-{{ page.page_type }}">
+ {{ page.get_page_type_display }}
+ </span>
+ <small class="text-muted">
+ {{ page.category.name }}
+ </small>
+ </div>
+ <h5 class="card-title">
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="text-decoration-none">
+ {{ page.title }}
+ </a>
+ </h5>
+ <p class="card-text text-muted">
+ {{ page.short_description|truncatechars:150 }}
+ </p>
+ <div class="d-flex justify-content-between align-items-center mt-3">
+ <small class="text-muted">
+ <i class="fas fa-eye"></i> {{ page.views }} views
+ </small>
+ <a href="{% url 'documentation:page' slug=page.slug %}" class="btn btn-sm btn-outline-primary">
+ View Document
+ </a>
+ </div>
+ </div>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+ {% else %}
+ <div class="alert alert-info">
+ <i class="fas fa-info-circle me-2"></i>
+ No results found for "{{ query }}". Try different search terms.
+ </div>
+ {% endif %}
+ 
+ <!-- Pagination for search -->
+ {% if pages.paginator.num_pages > 1 %}
+ <nav class="mt-4">
+ <ul class="pagination justify-content-center">
+ {% if pages.has_previous %}
+ <li class="page-item">
+ <a class="page-link" href="?q={{ query }}&page={{ pages.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}">
+ Previous
+ </a>
+ </li>
+ {% endif %}
+ 
+ {% for num in pages.paginator.page_range %}
+ {% if pages.number == num %}
+ <li class="page-item active">
+ <span class="page-link">{{ num }}</span>
+ </li>
+ {% elif num > pages.number|add:'-3' and num < pages.number|add:'3' %}
+ <li class="page-item">
+ <a class="page-link" href="?q={{ query }}&page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}">
+ {{ num }}
+ </a>
+ </li>
+ {% endif %}
+ {% endfor %}
+ 
+ {% if pages.has_next %}
+ <li class="page-item">
+ <a class="page-link" href="?q={{ query }}&page={{ pages.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}">
+ Next
+ </a>
+ </li>
+ {% endif %}
+ </ul>
+ </nav>
+ {% endif %}
+ 
+ {% endif %}
+ </div>
+ </main>
+ </div>
+
+ <!-- Bootstrap JS -->
+ 
+ 
+ <!-- Highlight.js -->
+{% endblock content %}
+
+{% block footer %}<footer style="background:var(--panel-navy,#0d1b3e);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:1px solid rgba(255,255,255,.08);" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'documentation/js/documentation_documentation_single_page.js' %}"></script>
+{% endblock extra_js %}

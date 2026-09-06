@@ -1,0 +1,572 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Export Feedbacks · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .fb-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  /* ── hero ── */
+  .fb-hero {
+    padding-bottom:.5rem; margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex; align-items:baseline; justify-content:space-between;
+    flex-wrap:wrap; gap:.5rem;
+  }
+  .fb-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+  .fb-hero-sub { font-size:.8rem; color:#475569; }
+
+  /* ── excel section titles ── */
+  .excel-section-title {
+    font-size:.9rem; font-weight:700; color:#000;
+    margin:1.2rem 0 .5rem; text-transform:uppercase; letter-spacing:.5px;
+    border-left:4px solid #107c41; padding-left:6px;
+  }
+
+  /* ── filter matrix table (same style as dashboard) ── */
+  .fb-filter-table {
+    width:100%; border-collapse:collapse;
+    font-size:.8rem; background:#fff;
+    margin-bottom:1rem;
+    border-bottom:2px solid #107c41;
+  }
+  .fb-filter-table th, .fb-filter-table td {
+    border:1px solid #000 !important;
+    padding:7px 8px; vertical-align:top;
+    text-align:left; border-radius:0 !important;
+    background:none !important;
+  }
+  .fb-filter-table th {
+    font-weight:700; font-size:.75rem;
+    text-transform:uppercase; color:#000;
+    border-bottom:2px solid #000 !important;
+    width:25%;
+  }
+
+  /* ── checkbox group ── */
+  .fb-checkbox-group { display:flex; flex-direction:column; gap:4px; max-height:180px; overflow-y:auto; }
+  .fb-checkbox-group label {
+    display:flex; align-items:center; gap:6px;
+    font-size:.78rem; font-weight:400; color:#000; cursor:pointer;
+    margin:0; padding:2px 0;
+  }
+  .fb-checkbox-group input[type="checkbox"] { width:auto; margin:0; }
+
+  /* ── date range buttons ── */
+  .fb-date-btns { display:flex; flex-wrap:wrap; gap:5px; }
+  .fb-date-btn {
+    border:1px solid #000; background:transparent; color:#000;
+    padding:4px 12px; font-size:.75rem; font-weight:700;
+    cursor:pointer; border-radius:0;
+  }
+  .fb-date-btn:hover { background:#f1f5f9; }
+  .fb-date-btn.active { background:#107c41; color:#fff; border-color:#107c41; }
+
+  /* ── search input inside filter ── */
+  .fb-filter-search {
+    border:1px solid #000; padding:5px 8px;
+    font-size:.8rem; width:100%; border-radius:0;
+    font-family:inherit; margin:0;
+  }
+  .fb-filter-search:focus { outline:none; border-color:#107c41; }
+
+  /* ── action buttons ── */
+  .fb-action-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:.8rem; }
+  .fb-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 14px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000;
+    cursor:pointer; border-radius:0; text-decoration:none;
+    transition:background .12s;
+  }
+  .fb-btn:hover               { background:#f1f5f9; }
+  .fb-btn.fb-btn-green        { background:#107c41; color:#fff; border-color:#107c41; }
+  .fb-btn.fb-btn-green:hover  { background:#0e6b36; }
+  .fb-btn.fb-btn-blue         { background:#1565c0; color:#fff; border-color:#1565c0; }
+  .fb-btn.fb-btn-blue:hover   { background:#0d47a1; }
+  .fb-btn.fb-btn-orange       { background:#e65100; color:#fff; border-color:#e65100; }
+  .fb-btn.fb-btn-orange:hover { background:#c84600; }
+  .fb-btn.fb-btn-purple       { background:#6a1b9a; color:#fff; border-color:#6a1b9a; }
+  .fb-btn.fb-btn-purple:hover { background:#4a148c; }
+
+  /* ── bulk action bar ── */
+  .fb-bulk-bar {
+    display:none; gap:8px; flex-wrap:wrap; align-items:center;
+    border:1px solid #000; padding:6px 10px;
+    margin-bottom:.6rem; background:#fff3e0;
+  }
+  .fb-bulk-bar.show { display:flex; }
+  .fb-bulk-count { font-size:.8rem; font-weight:700; color:#e65100; }
+
+  /* ── data table ── */
+  .fb-table-wrap { width:100%; overflow-x:auto; margin-bottom:1rem; }
+  .fb-table {
+    width:100%; border-collapse:collapse;
+    font-size:.79rem; background:#fff;
+    border-bottom:2px solid #107c41;
+  }
+  .fb-table th, .fb-table td {
+    border:1px solid #000 !important;
+    padding:5px 7px; vertical-align:top;
+    text-align:left; border-radius:0 !important;
+    background:none !important;
+  }
+  .fb-table th {
+    font-weight:700; font-size:.74rem;
+    text-transform:uppercase; color:#000;
+    border-bottom:2px solid #000 !important;
+    white-space:nowrap;
+  }
+  .fb-table tr:nth-child(even) td { background:#f8fdf9 !important; }
+  .fb-table tr:hover td           { background:#e8f5e9 !important; }
+
+  /* status badges */
+  .fb-status {
+    display:inline-block; padding:1px 7px; border:1px solid #000;
+    font-size:.68rem; font-weight:700; white-space:nowrap;
+  }
+  .fb-status.pending  { background:#fff3e0; color:#e65100; }
+  .fb-status.seen     { background:#e8f5e9; color:#107c41; }
+  .fb-status.attended { background:#e3f2fd; color:#1565c0; }
+  .fb-status.solved   { background:#f3e5f5; color:#6a1b9a; }
+
+  .fb-msg { max-width:260px; word-break:break-word; }
+
+  /* row action icons */
+  .fb-row-actions { display:flex; gap:3px; }
+  .fb-row-btn {
+    border:1px solid #000; background:transparent;
+    padding:2px 7px; font-size:.68rem; font-weight:700;
+    cursor:pointer; border-radius:0; white-space:nowrap;
+  }
+  .fb-row-btn:hover       { background:#f1f5f9; }
+  .fb-row-btn.seen        { border-color:#107c41; color:#107c41; }
+  .fb-row-btn.attended    { border-color:#1565c0; color:#1565c0; }
+  .fb-row-btn.solved      { border-color:#6a1b9a; color:#6a1b9a; }
+
+  /* empty state */
+  .fb-empty {
+    border:1px solid #000; padding:28px; text-align:center;
+    font-size:.88rem; color:#475569; background:#fafafa;
+  }
+
+  /* loading overlay */
+  .fb-loading-bar {
+    display:none; height:3px; background:#d1fae5;
+    margin-bottom:.5rem; overflow:hidden;
+  }
+  .fb-loading-bar.show { display:block; }
+  .fb-loading-inner {
+    height:100%; width:40%; background:#107c41;
+    animation:fbLoad 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes fbLoad { from{margin-left:0;width:30%} to{margin-left:60%;width:40%} }
+
+  /* modal */
+  .fb-modal {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.45); z-index:9000;
+    align-items:center; justify-content:center;
+  }
+  .fb-modal.show { display:flex; }
+  .fb-modal-box {
+    background:#fff; border:2px solid #000;
+    padding:20px 24px; max-width:420px; width:92%;
+  }
+  .fb-modal-title { font-size:1rem; font-weight:800; margin-bottom:12px; }
+  .fb-modal-body  { font-size:.85rem; color:#374151; margin-bottom:16px; }
+  .fb-modal-foot  { display:flex; gap:8px; justify-content:flex-end; }
+
+  /* toast */
+  #fb-toast-wrap {
+    position:fixed; bottom:1.2rem; right:1.2rem;
+    z-index:9999; display:flex; flex-direction:column; gap:6px;
+  }
+  .fb-toast {
+    min-width:220px; max-width:360px; padding:9px 13px;
+    font-size:.82rem; font-weight:700; border:1px solid #000;
+    display:flex; align-items:center; gap:8px;
+    animation:fbToastIn .2s ease;
+  }
+  @keyframes fbToastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .fb-toast.success { background:#e8f5e9; color:#107c41; }
+  .fb-toast.error   { background:#ffebee; color:#b71c1c; }
+  .fb-toast.info    { background:#e3f2fd; color:#1565c0; }
+  .fb-toast-close   { background:none; border:none; cursor:pointer; margin-left:auto; font-size:1rem; color:inherit; }
+{% endblock %}
+
+{% block content %}
+<div class="fb-page">
+
+  <!-- ── Hero ── -->
+  <div class="fb-hero">
+    <h2>Export Feedbacks</h2>
+    <span class="fb-hero-sub">Filter, manage and export feedback records as PDF</span>
+  </div>
+
+  <!-- ── Loading bar ── -->
+  <div class="fb-loading-bar" id="fbLoadingBar">
+    <div class="fb-loading-inner"></div>
+  </div>
+
+  <!-- ── Alert rows ── -->
+  <div id="fbAlertSuccess" style="display:none; border:1px solid #107c41; background:#e8f5e9; color:#107c41; padding:7px 12px; font-size:.82rem; font-weight:700; margin-bottom:.5rem;"></div>
+  <div id="fbAlertError"   style="display:none; border:1px solid #b71c1c; background:#ffebee; color:#b71c1c; padding:7px 12px; font-size:.82rem; font-weight:700; margin-bottom:.5rem;"></div>
+
+  <form id="fbExportForm" method="GET">
+
+    <!-- ══════════════════════════════════════
+         FILTER MATRIX
+    ══════════════════════════════════════ -->
+    <div class="excel-section-title">1. Filter Options</div>
+    <table class="fb-filter-table">
+      <thead>
+        <tr>
+          <th>Feedback Period</th>
+          <th>Date Range</th>
+          <th>Search</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <!-- Periods -->
+          <td>
+            <div class="fb-checkbox-group">
+              {% for period in available_periods %}
+              <label>
+                <input type="checkbox" name="months[]" value="{{ period.month }}"
+                  {% if period.month|stringformat:"s" in selected_months %}checked{% endif %}>
+                {{ period.display }}
+              </label>
+              {% empty %}
+              <em style="font-size:.78rem; color:#888;">No periods available</em>
+              {% endfor %}
+            </div>
+          </td>
+
+          <!-- Date range buttons -->
+          <td>
+            <div class="fb-date-btns">
+              {% for rng, lbl in date_range_choices|default:"" %}
+              {% empty %}
+              <!-- fallback hardcoded if view doesn't pass choices -->
+              {% endfor %}
+              <button type="button" class="fb-date-btn {% if date_range == 'today' %}active{% endif %}"      data-range="today">Today</button>
+              <button type="button" class="fb-date-btn {% if date_range == 'yesterday' %}active{% endif %}"  data-range="yesterday">Yesterday</button>
+              <button type="button" class="fb-date-btn {% if date_range == 'last_7_days' %}active{% endif %}" data-range="last_7_days">Last 7 Days</button>
+              <button type="button" class="fb-date-btn {% if date_range == 'last_30_days' %}active{% endif %}" data-range="last_30_days">Last 30 Days</button>
+              <button type="button" class="fb-date-btn {% if date_range == 'all' or not date_range %}active{% endif %}" data-range="all">All Time</button>
+              <input type="hidden" name="date_range" id="fbDateRangeInput" value="{{ date_range|default:'all' }}">
+            </div>
+          </td>
+
+          <!-- Search -->
+          <td>
+            <input type="text" name="search" class="fb-filter-search"
+              placeholder="Name, email, admission no., message…"
+              value="{{ search_query }}">
+          </td>
+
+          <!-- Apply -->
+          <td style="vertical-align:middle;">
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <button type="submit" class="fb-btn fb-btn-green" style="width:100%; justify-content:center;">
+                <i class="bi bi-funnel"></i> Apply Filters
+              </button>
+              <button type="button" class="fb-btn fb-btn-blue" style="width:100%; justify-content:center;" onclick="fbShowMarkAll()">
+                <i class="bi bi-eye"></i> Mark All Seen
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- ══════════════════════════════════════
+         BULK ACTION BAR
+    ══════════════════════════════════════ -->
+    <div class="fb-bulk-bar" id="fbBulkBar">
+      <span class="fb-bulk-count" id="fbBulkCount">0 selected</span>
+      <button type="button" class="fb-btn fb-btn-green"  onclick="fbShowBulkModal('seen')"><i class="bi bi-eye"></i> Mark Seen</button>
+      <button type="button" class="fb-btn fb-btn-blue"   onclick="fbShowBulkModal('attended')"><i class="bi bi-check-circle"></i> Mark Attended</button>
+      <button type="button" class="fb-btn fb-btn-purple" onclick="fbShowBulkModal('solved')"><i class="bi bi-check2-all"></i> Mark Solved</button>
+      <button type="button" class="fb-btn"               onclick="fbClearSelection()"><i class="bi bi-x"></i> Clear</button>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         DATA TABLE
+    ══════════════════════════════════════ -->
+    <div class="excel-section-title">
+      2. Feedback Records
+      <span style="font-weight:400; text-transform:none; font-size:.78rem; color:#475569; margin-left:8px;">({{ total_count }} total)</span>
+    </div>
+
+    <!-- action bar above table -->
+    <div class="fb-action-bar">
+      <button type="button" class="fb-btn fb-btn-orange" onclick="fbExportPDF()">
+        <i class="bi bi-file-pdf-fill"></i> Export to PDF
+      </button>
+      <a href="{% url 'feedback_panel' %}" class="fb-btn">
+        <i class="bi bi-eye"></i> Simple View
+      </a>
+      <a href="{% url 'timetable_dashboard' %}" class="fb-btn">
+        <i class="bi bi-arrow-left"></i> Dashboard
+      </a>
+    </div>
+
+    {% if feedbacks %}
+    <div class="fb-table-wrap">
+      <table class="fb-table">
+        <thead>
+          <tr>
+            <th style="width:36px; text-align:center;">
+              <input type="checkbox" id="fbSelectAll" onchange="fbToggleAll(this)" title="Select all">
+            </th>
+            <th style="width:110px;">Date</th>
+            <th style="width:150px;">Name</th>
+            <th style="width:170px;">Email</th>
+            <th style="width:100px;">Adm No.</th>
+            <th>Message</th>
+            <th style="width:80px;">Status</th>
+            <th style="width:170px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for feedback in feedbacks %}
+          <tr id="fb-row-{{ feedback.id }}">
+            <td style="text-align:center;">
+              <input type="checkbox" name="selected_ids[]" value="{{ feedback.id }}"
+                class="fb-checkbox" onchange="fbUpdateSelection()">
+            </td>
+            <td style="font-size:.72rem; white-space:nowrap;">{{ feedback.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ feedback.full_name }}</td>
+            <td style="font-size:.74rem; word-break:break-all;">{{ feedback.email }}</td>
+            <td>{{ feedback.admission_number|default:"N/A" }}</td>
+            <td class="fb-msg">{{ feedback.message|truncatechars:120 }}</td>
+            <td>
+              <span class="fb-status {{ feedback.status }}" id="fb-status-{{ feedback.id }}">
+                {{ feedback.get_status_display }}
+              </span>
+            </td>
+            <td>
+              <div class="fb-row-actions">
+                <button type="button" class="fb-row-btn seen"     onclick="fbUpdateStatus({{ feedback.id }},'seen')"     title="Mark Seen"><i class="bi bi-eye"></i></button>
+                <button type="button" class="fb-row-btn attended" onclick="fbUpdateStatus({{ feedback.id }},'attended')" title="Mark Attended"><i class="bi bi-check-circle"></i></button>
+                <button type="button" class="fb-row-btn solved"   onclick="fbUpdateStatus({{ feedback.id }},'solved')"   title="Mark Solved"><i class="bi bi-check2-all"></i></button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="fb-empty">
+      <i class="bi bi-inbox" style="font-size:2rem; display:block; margin-bottom:8px; opacity:.4;"></i>
+      No feedbacks found for the selected criteria.
+    </div>
+    {% endif %}
+
+  </form><!-- /fbExportForm -->
+
+</div><!-- /fb-page -->
+
+<!-- ── Mark All Modal ── -->
+<div class="fb-modal" id="fbMarkAllModal">
+  <div class="fb-modal-box">
+    <div class="fb-modal-title">Mark All as Seen</div>
+    <div class="fb-modal-body">
+      Are you sure you want to mark all <strong>{{ total_count }}</strong> filtered feedbacks as "Seen"?
+      This cannot be undone.
+    </div>
+    <div class="fb-modal-foot">
+      <button class="fb-btn" onclick="fbCloseModal('fbMarkAllModal')">Cancel</button>
+      <button class="fb-btn fb-btn-green" onclick="fbMarkAllSeen()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Bulk Update Modal ── -->
+<div class="fb-modal" id="fbBulkModal">
+  <div class="fb-modal-box">
+    <div class="fb-modal-title" id="fbBulkModalTitle">Update Selected</div>
+    <div class="fb-modal-body" id="fbBulkModalBody"></div>
+    <div class="fb-modal-foot">
+      <button class="fb-btn" onclick="fbCloseModal('fbBulkModal')">Cancel</button>
+      <button class="fb-btn fb-btn-green" id="fbBulkConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="fb-toast-wrap"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function fbCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+function fbLoading(on) {
+  document.getElementById('fbLoadingBar').classList.toggle('show', on);
+}
+function fbAlert(type, msg) {
+  const el = document.getElementById(type === 'success' ? 'fbAlertSuccess' : 'fbAlertError');
+  el.innerHTML = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5500);
+}
+function fbToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 4500 : ttl;
+  const w = document.getElementById('fb-toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'fb-toast ' + (type || 'info');
+  t.innerHTML = msg + '<button class="fb-toast-close" onclick="this.closest(\'.fb-toast\').remove()">&times;</button>';
+  w.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+}
+
+// ── Date range buttons ─────────────────────────────────────────────────────────
+document.querySelectorAll('.fb-date-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.fb-date-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    document.getElementById('fbDateRangeInput').value = this.dataset.range;
+  });
+});
+
+// ── Selection management ──────────────────────────────────────────────────────
+function fbToggleAll(cb) {
+  document.querySelectorAll('.fb-checkbox').forEach(c => c.checked = cb.checked);
+  fbUpdateSelection();
+}
+function fbUpdateSelection() {
+  const all = document.querySelectorAll('.fb-checkbox');
+  const sel = Array.from(all).filter(c => c.checked);
+  const n = sel.length;
+  document.getElementById('fbBulkCount').textContent = n + ' selected';
+  document.getElementById('fbBulkBar').classList.toggle('show', n > 0);
+  const sa = document.getElementById('fbSelectAll');
+  sa.checked = n === all.length;
+  sa.indeterminate = n > 0 && n < all.length;
+}
+function fbClearSelection() {
+  document.querySelectorAll('.fb-checkbox').forEach(c => c.checked = false);
+  document.getElementById('fbSelectAll').checked = false;
+  document.getElementById('fbSelectAll').indeterminate = false;
+  fbUpdateSelection();
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────────────
+function fbShowMarkAll()  { document.getElementById('fbMarkAllModal').classList.add('show'); }
+function fbCloseModal(id) { document.getElementById(id).classList.remove('show'); }
+
+let _fbBulkStatus = '';
+function fbShowBulkModal(status) {
+  _fbBulkStatus = status;
+  const n = document.querySelectorAll('.fb-checkbox:checked').length;
+  const label = status.charAt(0).toUpperCase() + status.slice(1);
+  document.getElementById('fbBulkModalTitle').textContent = 'Mark as ' + label;
+  document.getElementById('fbBulkModalBody').innerHTML =
+    'Mark <strong>' + n + '</strong> selected feedback(s) as "' + label + '"?';
+  document.getElementById('fbBulkModal').classList.add('show');
+}
+document.getElementById('fbBulkConfirmBtn').onclick = function() {
+  fbCloseModal('fbBulkModal');
+  fbPerformBulkUpdate();
+};
+// Close modals on overlay click
+document.querySelectorAll('.fb-modal').forEach(m => {
+  m.addEventListener('click', function(e) { if (e.target === this) fbCloseModal(this.id); });
+});
+
+// ── Status update ─────────────────────────────────────────────────────────────
+function fbUpdateStatus(id, status) {
+  if (!confirm('Mark this feedback as ' + status + '?')) return;
+  fbLoading(true);
+  fetch("{% url 'update_feedback_status' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fbCsrf() },
+    body: JSON.stringify({ action: 'individual', feedback_id: id, status: status })
+  })
+  .then(r => r.json())
+  .then(d => {
+    fbLoading(false);
+    if (d.success) {
+      const el = document.getElementById('fb-status-' + id);
+      if (el) { el.textContent = d.new_status_display || status; el.className = 'fb-status ' + (d.new_status || status); }
+      fbToast('&#10003; Updated to <b>' + (d.new_status_display || status) + '</b>', 'success');
+    } else {
+      fbToast('&#10007; ' + (d.error || 'Error updating status'), 'error');
+    }
+  })
+  .catch(() => { fbLoading(false); fbToast('&#10007; Network error', 'error'); });
+}
+
+function fbPerformBulkUpdate() {
+  const ids = Array.from(document.querySelectorAll('.fb-checkbox:checked')).map(c => c.value);
+  if (!ids.length) { fbToast('No feedbacks selected.', 'info'); return; }
+  fbLoading(true);
+  fetch("{% url 'update_feedback_status' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fbCsrf() },
+    body: JSON.stringify({ action: 'bulk', feedback_ids: ids, status: _fbBulkStatus })
+  })
+  .then(r => r.json())
+  .then(d => {
+    fbLoading(false);
+    if (d.success) {
+      ids.forEach(id => {
+        const el = document.getElementById('fb-status-' + id);
+        if (el) { const l = _fbBulkStatus.charAt(0).toUpperCase()+_fbBulkStatus.slice(1); el.textContent=l; el.className='fb-status '+_fbBulkStatus; }
+      });
+      fbToast('&#10003; ' + d.message, 'success');
+      fbClearSelection();
+    } else { fbToast('&#10007; ' + (d.error||'Error'), 'error'); }
+  })
+  .catch(() => { fbLoading(false); fbToast('&#10007; Network error', 'error'); });
+}
+
+function fbMarkAllSeen() {
+  fbCloseModal('fbMarkAllModal');
+  fbLoading(true);
+  const months  = Array.from(document.querySelectorAll('input[name="months[]"]:checked')).map(c=>c.value);
+  const search  = document.querySelector('input[name="search"]').value;
+  const range   = document.getElementById('fbDateRangeInput').value;
+  fetch("{% url 'update_feedback_status' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fbCsrf() },
+    body: JSON.stringify({ action: 'mark_all_seen', selected_months: months, search_query: search, date_range: range })
+  })
+  .then(r => r.json())
+  .then(d => {
+    fbLoading(false);
+    if (d.success) {
+      document.querySelectorAll('.fb-checkbox').forEach(cb => {
+        const el = document.getElementById('fb-status-' + cb.value);
+        if (el) { el.textContent = 'Seen'; el.className = 'fb-status seen'; }
+      });
+      fbToast('&#10003; ' + d.message, 'success');
+    } else { fbToast('&#10007; ' + (d.error||'Error'), 'error'); }
+  })
+  .catch(() => { fbLoading(false); fbToast('&#10007; Network error', 'error'); });
+}
+
+// ── Export PDF ────────────────────────────────────────────────────────────────
+function fbExportPDF() {
+  const form = document.getElementById('fbExportForm');
+  form.action = "{% url 'export_feedbacks_pdf' %}";
+  form.target = '_blank';
+  form.submit();
+  form.action = '';
+  form.target = '';
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', fbUpdateSelection);
+</script>
+{% endblock %}

@@ -1,0 +1,997 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_auto_allocate_all.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/auto_alloc2.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_auto_allocate_all.css' %}">
+<style>
+  .aa-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,20,.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 6000;
+    padding: 20px;
+  }
+  .aa-modal-backdrop[hidden] {
+    display: none;
+  }
+  .aa-modal {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: var(--radius, 6px);
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.1));
+    max-width: 520px;
+    width: 100%;
+    padding: 20px 22px;
+  }
+  .aa-modal h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    color: var(--text, #333);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .aa-modal-sub {
+    margin: 0 0 14px;
+    font-size: 12.5px;
+    color: var(--text-muted, #888);
+  }
+  .aa-option {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: var(--radius-sm, 4px);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: var(--transition, all 0.15s);
+  }
+  .aa-option:hover {
+    border-color: var(--green-200, #a5d6a7);
+  }
+  .aa-option input[type=radio] {
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .aa-option-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text, #333);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .aa-option-desc {
+    font-size: 12px;
+    color: var(--text-muted, #888);
+    margin-top: 3px;
+    line-height: 1.45;
+  }
+  .aa-option-recommended {
+    border-color: var(--green-200, #a5d6a7);
+    background: var(--green-20, #e8f5e9);
+  }
+  .aa-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--green-600, #1e7e34);
+    color: #fff;
+  }
+  .aa-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+  }
+
+  .aa-modal-backdrop .btn {
+    padding: 6px 16px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .aa-modal-backdrop .btn:hover {
+    background: #f0f0f0;
+  }
+  .aa-modal-backdrop .btn-g {
+    background: #2E7D32;
+    color: #fff;
+    border-color: #2E7D32;
+  }
+  .aa-modal-backdrop .btn-g:hover {
+    background: #1B5E20;
+  }
+
+  .alert-error {
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+
+  /* ── Config Modal ── */
+  .aa-config-modal {
+    max-width: 720px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .aa-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 12px 0 16px;
+  }
+  
+  @media (max-width: 640px) {
+    .aa-config-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .aa-config-section {
+    border: 1px solid var(--border, #e0e0e0);
+    border-radius: var(--radius-sm, 6px);
+    padding: 12px 14px;
+    background: var(--surface-2, #f8f9fa);
+  }
+  
+  .aa-config-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text, #333);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .aa-config-section-title i {
+    color: var(--green-600, #2e7d32);
+    font-size: 14px;
+  }
+  
+  .aa-config-row {
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .aa-config-row:last-child {
+    margin-bottom: 0;
+  }
+  
+  .aa-config-row label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text, #333);
+    min-width: 100px;
+  }
+  
+  .aa-config-row input[type="number"] {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: var(--radius-sm, 4px);
+    font-size: 13px;
+    text-align: center;
+  }
+  
+  .aa-config-row input[type="number"]:focus {
+    border-color: var(--green-500, #4caf50);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+  }
+  
+  .aa-config-help {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    width: 100%;
+    padding-left: 100px;
+  }
+  
+  .aa-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text, #333);
+    user-select: none;
+  }
+  
+  .aa-toggle-label input {
+    display: none;
+  }
+  
+  .aa-toggle-slider {
+    width: 36px;
+    height: 20px;
+    background: #ccc;
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  
+  .aa-toggle-slider::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  
+  .aa-toggle-label input:checked + .aa-toggle-slider {
+    background: var(--green-600, #2e7d32);
+  }
+  
+  .aa-toggle-label input:checked + .aa-toggle-slider::after {
+    transform: translateX(16px);
+  }
+  
+  .aa-toggle-text {
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  
+  .aa-toggle-help {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    margin-left: auto;
+  }
+  
+  .aa-config-presets {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border, #e0e0e0);
+    margin-top: 4px;
+    flex-wrap: wrap;
+  }
+  
+  .aa-config-presets-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-right: 4px;
+  }
+  
+  .aa-preset-btn {
+    padding: 3px 12px;
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: 12px;
+    background: #fff;
+    font-size: 11px;
+    cursor: pointer;
+    transition: var(--transition, all 0.15s);
+    color: var(--text, #333);
+  }
+  
+  .aa-preset-btn:hover {
+    border-color: var(--green-500, #4caf50);
+    background: var(--green-10, #e8f5e9);
+  }
+  
+  .aa-preset-btn.active {
+    border-color: var(--green-600, #2e7d32);
+    background: var(--green-600, #2e7d32);
+    color: #fff;
+  }
+
+  .aa-config-number .aa-config-help {
+    padding-left: 0;
+  }
+
+  .aa-config-row .aa-help-inline {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    margin-left: 4px;
+  }
+
+  .aa-split-examples {
+    font-size: 11px;
+    color: var(--text-muted, #888);
+    background: var(--surface-2, #f8f9fa);
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin-top: 4px;
+    width: 100%;
+  }
+
+  .aa-split-examples code {
+    background: var(--surface, #fff);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 10px;
+  }
+</style>
+{% endblock page_css %}
+
+{% block title %}Auto-Allocate Courses{% endblock %}
+{% block page_title %}Course Auto-Allocation{% endblock %}
+
+{% block header_controls %}
+<a href="{% url homepage_url %}" class="hdr-btn">
+ <i class="fas fa-home"></i> <span class="d-none d-md-inline">Homepage</span>
+</a>
+{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+
+<div class="infobar">
+ Logged in as: <strong>{{ request.user.username }}</strong>&nbsp;|&nbsp;Role:
+ {% if is_superuser %}Superuser (all departments)
+ {% elif is_admin %}Admin (all departments)
+ {% elif is_cod %}COD &mdash; {{ user_department.name }}
+ {% else %}User{% endif %}
+</div>
+
+<div class="msgs" id="msgBox">
+ {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+</div>
+
+<div class="pg">
+
+ <!-- Stats -->
+ <div class="stats">
+ <div class="sbox"><div class="sval" id="sDepts">{{ departments.count }}</div><div class="slbl">Departments</div></div>
+ <div class="sbox"><div class="sval" id="sTotal">0</div><div class="slbl">Allocations</div></div>
+ <div class="sbox"><div class="sval" id="sAssigned">0</div><div class="slbl">Assigned</div></div>
+ <div class="sbox"><div class="sval" id="sUnassigned">0</div><div class="slbl">Unassigned</div></div>
+ </div>
+
+ <!-- Controls -->
+ <div class="card">
+ <div class="ch">Allocation Controls</div>
+ <div class="cb">
+ <div class="ctrl-row">
+ {% if is_superuser or is_admin %}
+ <div class="cg">
+ <label for="dSel">Department</label>
+ <select id="dSel">
+ <option value="__all__">-- All Departments --</option>
+ {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+ </select>
+ </div>
+ {% else %}
+ <input type="hidden" id="dSel" value="{{ user_department.id }}">
+ <div class="cg">
+ <label>Department</label>
+ <input type="text" value="{{ user_department.name }}" disabled>
+ </div>
+ {% endif %}
+
+ <div class="cg">
+ <label for="semSel">Semester</label>
+ <select id="semSel">
+ <option value="1">Semester 1</option>
+ <option value="2">Semester 2</option>
+ </select>
+ </div>
+
+ <div class="cg">
+ <label>&nbsp;</label>
+ <div class="btn-row">
+ <button class="btn btn-g" id="allocBtn"><i class="fas fa-robot"></i> Run Auto-Allocation</button>
+ <button class="btn btn-b" id="refBtn"><i class="fas fa-sync-alt"></i> Refresh Table</button>
+ </div>
+ </div>
+ </div>
+
+ <div class="prog-bar" id="progBar">
+ <span class="spin"></span>
+ <span id="progTxt">Processing...</span>
+ </div>
+
+ <div style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+ Note: Existing allocations for the selected semester will be archived before replacement.
+ Student counts are drawn from Program Enrollment records where available.
+ By default, only courses with enrolled students are allocated — courses with no
+ enrolled students are skipped so you don't have to manually delete unused allocations later.
+ </div>
+ </div>
+ </div>
+
+ <!-- Result bar -->
+ <div class="res-bar" id="resBar"></div>
+
+ <!-- Run-scope choice modal -->
+ <div class="aa-modal-backdrop" id="aaScopeModal" hidden>
+   <div class="aa-modal">
+     <h3><i class="fas fa-robot"></i> Run auto-allocation</h3>
+     <p class="aa-modal-sub" id="aaModalTarget"></p>
+     <label class="aa-option aa-option-recommended">
+       <input type="radio" name="aaScope" value="enrolled" checked>
+       <div>
+         <div class="aa-option-title">Only courses with enrolled students <span class="aa-badge">Recommended</span></div>
+         <div class="aa-option-desc">
+           Skips courses whose program has no students in that year of study (per Program Enrollment).
+           Avoids creating allocations you'd just have to find and delete later.
+         </div>
+       </div>
+     </label>
+     <label class="aa-option">
+       <input type="radio" name="aaScope" value="all">
+       <div>
+         <div class="aa-option-title">All courses, regardless of enrollment</div>
+         <div class="aa-option-desc">
+           Allocates every course in scope, including ones with 0 enrolled students right now
+           (useful if you're pre-planning ahead of an intake).
+         </div>
+       </div>
+     </label>
+     <div class="aa-modal-actions">
+       <button type="button" class="btn" id="aaScopeCancel">Cancel</button>
+       <button type="button" class="btn btn-g" id="aaScopeConfirm"><i class="fas fa-robot"></i> Run</button>
+     </div>
+   </div>
+ </div>
+
+ <!-- Config Modal -->
+ <div class="aa-modal-backdrop" id="aaConfigModal" hidden>
+   <div class="aa-modal aa-config-modal">
+     <h3><i class="fas fa-sliders-h"></i> Allocation Configuration</h3>
+     <p class="aa-modal-sub" id="aaConfigTarget">
+       Review and adjust allocation settings for this run.
+     </p>
+     
+     <div class="aa-config-grid">
+       <!-- Splitting Section -->
+       <div class="aa-config-section">
+         <div class="aa-config-section-title">
+           <i class="fas fa-arrows-split-up-and-left"></i> Course Splitting
+         </div>
+         
+         <div class="aa-config-row">
+           <label class="aa-toggle-label">
+             <input type="checkbox" id="cfg_splitting_enabled" checked>
+             <span class="aa-toggle-slider"></span>
+             <span class="aa-toggle-text">Enable Splitting</span>
+           </label>
+           <span class="aa-toggle-help">Split large classes</span>
+         </div>
+         
+         <div class="aa-config-row aa-config-number">
+           <label for="cfg_split_threshold">Max Students Per Group</label>
+           <input type="number" id="cfg_split_threshold" min="1" max="1000" value="200">
+           <span class="aa-config-help">Hard limit: no group exceeds this number</span>
+         </div>
+         
+         <div class="aa-config-row aa-config-number">
+           <label for="cfg_split_extend_by">Extend By</label>
+           <input type="number" id="cfg_split_extend_by" min="0" max="100" value="0">
+           <span class="aa-config-help">Allow groups to exceed max by this many before splitting <span class="aa-help-inline">(0 = exact)</span></span>
+         </div>
+         
+         <div class="aa-split-examples">
+           <strong>Examples</strong> (threshold=200, extend=20):
+           <br>
+           <span id="splitExamples">
+             200 students → <code>1 group</code> (200 ≤ 200)<br>
+             210 students → <code>1 group</code> (210 ≤ 220)<br>
+             220 students → <code>1 group</code> (220 ≤ 220)<br>
+             221 students → <code>2 groups</code> (110 + 111)<br>
+             300 students → <code>2 groups</code> (150 + 150)<br>
+             410 students → <code>3 groups</code> (137 + 137 + 136)<br>
+             600 students → <code>3 groups</code> (200 + 200 + 200)<br>
+             601 students → <code>4 groups</code> (151 + 150 + 150 + 150)
+           </span>
+         </div>
+       </div>
+       
+       <!-- Lecturer Load Section -->
+       <div class="aa-config-section">
+         <div class="aa-config-section-title">
+           <i class="fas fa-user-graduate"></i> Lecturer Load
+         </div>
+         
+         <div class="aa-config-row">
+           <label class="aa-toggle-label">
+             <input type="checkbox" id="cfg_max_load_enabled" checked>
+             <span class="aa-toggle-slider"></span>
+             <span class="aa-toggle-text">Enforce Load Limits</span>
+           </label>
+           <span class="aa-toggle-help">Prevent over-allocation</span>
+         </div>
+         
+         <div class="aa-config-row aa-config-number">
+           <label for="cfg_max_load_per_semester">Max per Lecturer</label>
+           <input type="number" id="cfg_max_load_per_semester" min="1" max="20" value="6">
+           <span class="aa-config-help">Maximum allocations per semester</span>
+         </div>
+       </div>
+     </div>
+     
+     <div class="aa-config-presets">
+       <span class="aa-config-presets-label">Quick Presets:</span>
+       <button type="button" class="aa-preset-btn" data-preset="default">Default</button>
+       <button type="button" class="aa-preset-btn" data-preset="large">Large Classes</button>
+       <button type="button" class="aa-preset-btn" data-preset="small">Small Classes</button>
+       <button type="button" class="aa-preset-btn" data-preset="flexible">Flexible</button>
+     </div>
+     
+     <div class="aa-modal-actions">
+       <button type="button" class="btn" id="aaConfigCancel">Cancel</button>
+       <button type="button" class="btn btn-g" id="aaConfigConfirm">
+         <i class="fas fa-robot"></i> Run with Config
+       </button>
+     </div>
+   </div>
+ </div>
+
+ <!-- Table -->
+ <div class="card">
+ <div class="ch">
+ <span>Course Allocations</span>
+ <span style="font-size:11px;font-weight:400;opacity:.85" id="tableCtx"></span>
+ </div>
+
+ <div class="ttbar">
+ <input type="text" id="tSrch" placeholder="Search program, course, lecturer...">
+ <select id="tSemFilt">
+ <option value="">All Semesters</option>
+ <option value="1">Semester 1</option>
+ <option value="2">Semester 2</option>
+ </select>
+ <select id="tYrFilt">
+ <option value="">All Years</option>
+ {% for y in "123456" %}<option value="{{ y }}">Year {{ y }}</option>{% endfor %}
+ </select>
+ <span class="tcnt" id="rCnt">0 records</span>
+ </div>
+
+ <div class="tscroll">
+ <table>
+ <thead>
+ <tr>
+ <th>#</th>
+ <th>Program</th>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Yr</th>
+ <th>Sem</th>
+ <th>Department</th>
+ <th>Lecturer</th>
+ <th>Students</th>
+ <th>Status</th>
+ </tr>
+ </thead>
+ <tbody id="tBody">
+ <tr class="erow"><td colspan="10">Select a department and semester, then click Refresh Table.</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * Auto-Allocate Courses
+ * With Configuration Modal Support and Intelligent Splitting
+ */
+
+// ── CSRF token (get from cookie) ──
+function getCSRFToken() {
+  const cookieValue = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('csrftoken='));
+  return cookieValue ? cookieValue.split('=')[1] : '';
+}
+
+const CSRFToken = getCSRFToken();
+
+const URL_ALLOC = "{% url 'auto_allocate_all_ajax' %}";
+const URL_DEPT = "{% url 'get_department_allocations' %}";
+const URL_CONFIG = "{% url 'get_allocation_config' %}";
+
+// ── Presets ──
+const PRESETS = {
+  default: {
+    splitting_enabled: true,
+    split_threshold: 200,
+    split_extend_by: 0,
+    max_load_enabled: true,
+    max_load_per_semester: 6,
+  },
+  large: {
+    splitting_enabled: true,
+    split_threshold: 50,
+    split_extend_by: 10,
+    max_load_enabled: true,
+    max_load_per_semester: 4,
+  },
+  small: {
+    splitting_enabled: false,
+    split_threshold: 500,
+    split_extend_by: 50,
+    max_load_enabled: true,
+    max_load_per_semester: 8,
+  },
+  flexible: {
+    splitting_enabled: true,
+    split_threshold: 100,
+    split_extend_by: 20,
+    max_load_enabled: false,
+    max_load_per_semester: 99,
+  },
+};
+
+// ── Configuration Modal ──
+let cachedConfig = null;
+let pendingConfig = null;
+
+async function openConfigModal() {
+  const dv = document.getElementById('dSel').value;
+  const allDepts = dv === '__all__';
+  
+  document.getElementById('aaConfigTarget').textContent = 'Loading configuration...';
+  document.getElementById('aaConfigModal').hidden = false;
+  
+  try {
+    const url = allDepts 
+      ? URL_CONFIG
+      : `${URL_CONFIG}?department_id=${dv}`;
+    
+    const r = await fetch(url, {
+      headers: {
+        'X-CSRFToken': CSRFToken
+      }
+    });
+    const data = await r.json();
+    
+    if (data.success) {
+      cachedConfig = data.config;
+      populateConfigForm(data.config);
+      document.getElementById('aaConfigTarget').textContent = 
+        `Current configuration for ${data.department}. Adjust settings below for this run.`;
+    } else {
+      document.getElementById('aaConfigTarget').textContent = 'Error loading configuration. Using defaults.';
+      populateConfigForm(PRESETS.default);
+    }
+  } catch (e) {
+    console.error('Config load error:', e);
+    document.getElementById('aaConfigTarget').textContent = 'Error loading configuration. Using defaults.';
+    populateConfigForm(PRESETS.default);
+  }
+}
+
+function populateConfigForm(config) {
+  document.getElementById('cfg_splitting_enabled').checked = config.splitting_enabled !== false;
+  document.getElementById('cfg_split_threshold').value = config.split_threshold || 200;
+  document.getElementById('cfg_split_extend_by').value = config.split_extend_by || 0;
+  document.getElementById('cfg_max_load_enabled').checked = config.max_load_enabled !== false;
+  document.getElementById('cfg_max_load_per_semester').value = config.max_load_per_semester || 6;
+  
+  document.querySelectorAll('.aa-preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function getConfigFromForm() {
+  return {
+    splitting_enabled: document.getElementById('cfg_splitting_enabled').checked,
+    split_threshold: parseInt(document.getElementById('cfg_split_threshold').value) || 200,
+    split_extend_by: parseInt(document.getElementById('cfg_split_extend_by').value) || 0,
+    max_load_enabled: document.getElementById('cfg_max_load_enabled').checked,
+    max_load_per_semester: parseInt(document.getElementById('cfg_max_load_per_semester').value) || 6,
+  };
+}
+
+function closeConfigModal() {
+  document.getElementById('aaConfigModal').hidden = true;
+}
+
+// ── Scope Modal ──
+function openScopeModal() {
+  const dv = document.getElementById('dSel').value;
+  const sv = document.getElementById('semSel').value;
+  const allDepts = dv === '__all__';
+  
+  const target = document.getElementById('aaModalTarget');
+  target.textContent = allDepts
+    ? `This will archive and reallocate ALL departments for Semester ${sv}. This cannot be undone.`
+    : `This will archive and reallocate Semester ${sv} for the selected department. This cannot be undone.`;
+  
+  document.querySelector('input[name="aaScope"][value="enrolled"]').checked = true;
+  document.getElementById('aaScopeModal').hidden = false;
+}
+
+function closeScopeModal() {
+  document.getElementById('aaScopeModal').hidden = true;
+}
+
+// ── Event listeners ──
+
+// Config Presets
+document.querySelectorAll('.aa-preset-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const preset = PRESETS[this.dataset.preset];
+    if (preset) {
+      populateConfigForm(preset);
+      document.querySelectorAll('.aa-preset-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    }
+  });
+});
+
+// Alloc button - opens config modal first
+document.getElementById('allocBtn').addEventListener('click', function() {
+  openConfigModal();
+});
+
+// Config confirm - stores config and opens scope modal
+document.getElementById('aaConfigConfirm').addEventListener('click', function() {
+  pendingConfig = getConfigFromForm();
+  closeConfigModal();
+  setTimeout(openScopeModal, 100);
+});
+
+// Config cancel
+document.getElementById('aaConfigCancel').addEventListener('click', closeConfigModal);
+
+// Close config modal on backdrop click
+document.getElementById('aaConfigModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeConfigModal();
+  }
+});
+
+// Scope modal cancel
+document.getElementById('aaScopeCancel').addEventListener('click', closeScopeModal);
+
+// Close scope modal on backdrop click
+document.getElementById('aaScopeModal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeScopeModal();
+  }
+});
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const configModal = document.getElementById('aaConfigModal');
+    if (!configModal.hidden) {
+      closeConfigModal();
+    }
+    const scopeModal = document.getElementById('aaScopeModal');
+    if (!scopeModal.hidden) {
+      closeScopeModal();
+    }
+  }
+});
+
+// ── Scope Confirm ──
+document.getElementById('aaScopeConfirm').addEventListener('click', async function() {
+  const dv = document.getElementById('dSel').value;
+  const sv = document.getElementById('semSel').value;
+  const allDepts = dv === '__all__';
+  const onlyEnrolled = document.querySelector('input[name="aaScope"]:checked').value === 'enrolled';
+  const config = pendingConfig || getConfigFromForm();
+  
+  closeScopeModal();
+  showProg('Running auto-allocation...');
+  document.getElementById('allocBtn').disabled = true;
+  
+  const body = new URLSearchParams({
+    semester: sv,
+    only_enrolled: onlyEnrolled ? 'true' : 'false'
+  });
+  
+  // Add config parameters
+  for (const [key, value] of Object.entries(config)) {
+    body.append(`config_${key}`, value);
+  }
+  
+  if (!allDepts) body.append('department', dv);
+  if (allDepts) body.append('allocate_all', 'true');
+  
+  try {
+    const r = await fetch(URL_ALLOC, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': CSRFToken
+      },
+      body: body
+    });
+    const d = await r.json();
+    
+    if (r.ok && d.success) {
+      renderTable(d.allocations, true);
+      
+      const bar = document.getElementById('resBar');
+      let msg = `Allocation complete — ${d.created_count} course(s) allocated, ${d.deleted_count} previous record(s) archived and replaced. Semester ${d.semester}.`;
+      if (d.skipped_no_enrollment > 0) {
+        msg += ` ${d.skipped_no_enrollment} course(s) skipped — no enrolled students.`;
+      }
+      if (d.config_used && Object.keys(d.config_used).length > 0) {
+        const cfg = d.config_used;
+        msg += ` Config: Split=${cfg.splitting_enabled ? 'ON' : 'OFF'}, Max/Group=${cfg.split_threshold}, Extend=${cfg.split_extend_by || 0}`;
+      }
+      bar.textContent = msg;
+      bar.classList.add('on');
+      setTimeout(() => bar.classList.remove('on'), 14000);
+      
+      showMsg(`Auto-allocation done. ${d.created_count} courses allocated.${d.skipped_no_enrollment > 0 ? ` (${d.skipped_no_enrollment} skipped — no enrollment)` : ''}`, 'success');
+    } else {
+      showMsg((d.error || d.detail || 'Allocation failed.'), 'error');
+    }
+  } catch (e) {
+    showMsg('Error: ' + e.message, 'error');
+  } finally {
+    hideProg();
+    document.getElementById('allocBtn').disabled = false;
+    pendingConfig = null;
+  }
+});
+
+// ── Filter functions ──
+function applyFilters() {
+  const q = (document.getElementById('tSrch').value || '').toLowerCase();
+  const sv = document.getElementById('tSemFilt').value;
+  const yv = document.getElementById('tYrFilt').value;
+  let v = 0;
+  
+  document.querySelectorAll('#tBody tr:not(.erow)').forEach(r => {
+    const show = (!q || r.textContent.toLowerCase().includes(q))
+      && (!sv || r.dataset.sem === sv)
+      && (!yv || r.dataset.yr === yv);
+    r.style.display = show ? '' : 'none';
+    if (show) v++;
+  });
+  document.getElementById('rCnt').textContent = v + ' records';
+}
+
+['tSrch', 'tSemFilt', 'tYrFilt'].forEach(id => {
+  document.getElementById(id).addEventListener('input', applyFilters);
+  document.getElementById(id).addEventListener('change', applyFilters);
+});
+
+// ── Refresh table ──
+document.getElementById('refBtn').addEventListener('click', refreshTable);
+
+async function refreshTable() {
+  const dv = document.getElementById('dSel').value;
+  const sv = document.getElementById('semSel').value;
+  
+  if (!dv || dv === '__all__') {
+    showMsg('Select a specific department to refresh.', 'warning');
+    return;
+  }
+  
+  showProg('Loading allocations...');
+  try {
+    const r = await fetch(`${URL_DEPT}?department_id=${dv}&semester=${sv}`);
+    const d = await r.json();
+    if (r.ok && !d.error) {
+      renderTable(d.allocations, false);
+      document.getElementById('tableCtx').textContent = `${d.department} | Semester ${sv}`;
+    } else {
+      showMsg(d.error || 'Failed to load.', 'error');
+    }
+  } catch (e) {
+    showMsg('Error: ' + e.message, 'error');
+  } finally {
+    hideProg();
+  }
+}
+
+// ── Render table ──
+function renderTable(rows, flash) {
+  const tbody = document.getElementById('tBody');
+  
+  if (!rows || !rows.length) {
+    tbody.innerHTML = '<tr class="erow"><td colspan="10">No allocations found for this selection.</td></tr>';
+    updateStats([]);
+    return;
+  }
+  
+  let html = '';
+  rows.forEach((a, i) => {
+    const lClass = (!a.lecturer || a.lecturer === 'Unassigned') ? ' style="color:var(--text-muted);font-style:italic;"' : '';
+    let bCls = 'b-pend', bTxt = a.status || 'Pending';
+    if (bTxt.toLowerCase().includes('submitted')) bCls = 'b-sub';
+    else if (bTxt.toLowerCase().includes('approved')) bCls = 'b-appr';
+    else if (!a.lecturer || a.lecturer === 'Unassigned') { bCls = 'b-unas'; bTxt = 'Unassigned'; }
+    
+    html += `<tr class="${flash ? 'new-row' : ''}" data-sem="${a.semester || ''}" data-yr="${a.year || ''}">
+      <td>${i + 1}</td>
+      <td>${a.program || ''}</td>
+      <td><code>${a.course_code}</code></td>
+      <td>${a.course_name}</td>
+      <td>${a.year || ''}</td>
+      <td>${a.semester || ''}</td>
+      <td>${a.department || ''}</td>
+      <td${lClass}>${a.lecturer || 'Unassigned'}</td>
+      <td style="text-align:right">${a.number_of_students || 0}</td>
+      <td><span class="badge ${bCls}">${bTxt}</span></td>
+    </tr>`;
+  });
+  
+  tbody.innerHTML = html;
+  updateStats(rows);
+  document.getElementById('rCnt').textContent = rows.length + ' records';
+  document.getElementById('tSrch').value = '';
+  document.getElementById('tSemFilt').value = '';
+  document.getElementById('tYrFilt').value = '';
+}
+
+// ── Stats ──
+function updateStats(rows) {
+  const total = rows.length;
+  const unas = rows.filter(r => !r.lecturer || r.lecturer === 'Unassigned').length;
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sAssigned').textContent = total - unas;
+  document.getElementById('sUnassigned').textContent = unas;
+}
+
+// ── Progress bar ──
+function showProg(t) {
+  document.getElementById('progTxt').textContent = t;
+  document.getElementById('progBar').classList.add('on');
+}
+
+function hideProg() {
+  document.getElementById('progBar').classList.remove('on');
+}
+
+// ── Toast messages ──
+function showMsg(msg, type) {
+  const el = document.createElement('div');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  const box = document.getElementById('msgBox');
+  box.prepend(el);
+  setTimeout(() => el.remove(), 7000);
+}
+
+// ── Auto-refresh for COD users ──
+{% if not is_superuser and not is_admin %}
+window.addEventListener('DOMContentLoaded', refreshTable);
+{% endif %}
+
+// ── Department/Semester change triggers ──
+const dEl = document.getElementById('dSel');
+if (dEl && dEl.tagName === 'SELECT') {
+  dEl.addEventListener('change', () => {
+    if (dEl.value && dEl.value !== '__all__') refreshTable();
+  });
+}
+
+document.getElementById('semSel').addEventListener('change', () => {
+  const dv = document.getElementById('dSel').value;
+  if (dv && dv !== '__all__') refreshTable();
+});
+</script>
+{% endblock extra_js %}

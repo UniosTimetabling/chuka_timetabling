@@ -1,0 +1,321 @@
+{% extends "timetable/autoscheduler_base.html" %}
+{% load static %}
+
+{% block title %}Campus AutoScheduler — Chuka University{% endblock %}
+{% block load_text %}Loading Campus AutoScheduler…{% endblock %}
+{% block page_title %}Campus AutoScheduler{% endblock %}
+{% block topbar_badge %}<span class="excel-badge">Multi-Campus</span>{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'campuses_timetable:manual_timetable' %}" class="btn-topbar">
+    <i class="fas fa-pencil-alt"></i> Manual
+  </a>
+  <a href="{% url 'campuses_timetable:auto_scheduler' %}" class="btn-topbar">
+    <i class="fas fa-home"></i> Home
+  </a>
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'campuses_timetable/css/auto_scheduler.css' %}">
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="workspace-container">
+
+  <!-- LEFT NAV RAIL -->
+  <aside class="excel-nav-rail" id="leftRailAnchors">
+    <div class="rail-label">Nav</div>
+    <button class="rail-anchor" onclick="window.scrollTo({top:0,behavior:'smooth'})">Top</button>
+    <div style="width:90%;height:1px;background:var(--excel-grid);margin:4px 0;"></div>
+  </aside>
+
+  <main class="workspace-body">
+
+    <!-- MODE TOGGLE BAR -->
+    <div class="mode-toggle-bar">
+      <div class="mode-toggle">
+        <button class="mode-toggle-btn active class-btn" onclick="switchMode('class')">
+          <i class="fas fa-chalkboard-teacher"></i> Class Mode
+        </button>
+        <button class="mode-toggle-btn exam-btn" onclick="switchMode('exam')">
+          <i class="fas fa-pencil-alt"></i> Exam Mode
+        </button>
+      </div>
+      <span id="statusInfoText">Currently in Class Scheduling Mode</span>
+    </div>
+
+    <!-- CONFIG STRIP (always visible, collapsible) -->
+    <form id="configForm" class="config-strip" method="post">
+      {% csrf_token %}
+      <label>Start Date
+        <input type="date" name="start_date" id="startDate" value="{{ config.start_date|date:'Y-m-d' }}" required>
+      </label>
+      <label>End Date
+        <input type="date" name="end_date" id="endDate" value="{{ config.end_date|date:'Y-m-d' }}" required>
+      </label>
+      <label>Day Start
+        <input type="time" name="day_start_time" id="dayStartTime" value="{{ config.day_start_time|time:'H:i' }}" required>
+      </label>
+      <label>Day End
+        <input type="time" name="day_end_time" id="dayEndTime" value="{{ config.day_end_time|time:'H:i' }}" required>
+      </label>
+      <label>Class Slots/Day
+        <input type="number" name="class_slot_size" id="classSlotSize" value="{{ config.class_slot_size }}" min="1" max="10" required>
+      </label>
+      <label>Exam Slots/Day
+        <input type="number" name="exam_slot_size" id="examSlotSize" value="{{ config.exam_slot_size }}" min="1" max="10" required>
+      </label>
+      <label>Exam Break
+        <select name="exam_break_duration" id="examBreakDuration">
+          <option value="30"  {% if config.exam_break_duration == 30  %}selected{% endif %}>30 min</option>
+          <option value="60"  {% if config.exam_break_duration == 60  %}selected{% endif %}>1 hr</option>
+          <option value="90"  {% if config.exam_break_duration == 90  %}selected{% endif %}>1.5 hr</option>
+          <option value="120" {% if config.exam_break_duration == 120 %}selected{% endif %}>2 hr</option>
+        </select>
+      </label>
+      <div class="config-strip-actions">
+        <span id="configMessage"></span>
+        <button type="submit" class="btn btn-excel"><i class="fas fa-save"></i> Save Config</button>
+      </div>
+    </form>
+
+    <!-- META STATUS STRIP -->
+    <div class="meta-status-strip">
+      <span><strong>Scheduler Config:</strong></span>
+      <div class="meta-divider"></div>
+      <span>Class Drafts: <strong>{{ class_drafts_count }}</strong></span>
+      <div class="meta-divider"></div>
+      <span>Exam Drafts: <strong>{{ exam_drafts_count }}</strong></span>
+    </div>
+
+    <!-- SCHEDULER MODE SELECTOR -->
+    <div class="mode-selector-bar" id="classModeSelector">
+      <span class="mode-selector-label">Distribution Logic:</span>
+      <button class="mode-seg-btn active" data-mode="balanced" onclick="selectMode('balanced')">
+        <i class="fas fa-balance-scale"></i> Balanced
+      </button>
+      <button class="mode-seg-btn" data-mode="compact" onclick="selectMode('compact')">
+        <i class="fas fa-compress"></i> Compact
+      </button>
+      <button class="mode-seg-btn" data-mode="spread" onclick="selectMode('spread')">
+        <i class="fas fa-expand"></i> Spread
+      </button>
+    </div>
+
+    <div class="mode-selector-bar" id="examModeSelector" style="display:none">
+      <span class="mode-selector-label">Distribution Logic:</span>
+      <button class="mode-seg-btn active" data-mode="balanced" onclick="selectMode('balanced')">
+        <i class="fas fa-balance-scale"></i> Balanced
+      </button>
+      <button class="mode-seg-btn" data-mode="compact" onclick="selectMode('compact')">
+        <i class="fas fa-compress"></i> Compact
+      </button>
+      <button class="mode-seg-btn" data-mode="spread" onclick="selectMode('spread')">
+        <i class="fas fa-expand"></i> Spread
+      </button>
+    </div>
+
+    <!-- ACTIONS BAR -->
+    <nav class="actions-bar">
+      <a href="/timetable/dashboard/" class="btn-excel-ghost">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
+      <div class="excel-input-group">
+        <select id="modeSelectInline" title="Scheduler Logic Profile" onchange="selectModeFromSelect(this.value)">
+          <option value="balanced">Balanced Logic</option>
+          <option value="compact">Compact (Large First)</option>
+          <option value="spread">Spread (Random)</option>
+        </select>
+        <button class="btn btn-excel" id="runBtn" onclick="runScheduler()">
+          <i class="fas fa-play-circle"></i> <span id="runBtnText">Run Class Scheduler</span>
+        </button>
+      </div>
+
+      {% if can_publish %}
+      <button class="btn btn-excel" onclick="publishTimetable()">
+        <i class="fas fa-check-double"></i> <span id="publishBtnText">Publish Class Timetable</span>
+      </button>
+      {% endif %}
+
+      <button class="btn btn-excel-danger" onclick="clearDrafts()">
+        <i class="fas fa-trash"></i> <span id="clearBtnText">Clear Class Drafts</span>
+      </button>
+
+      <div class="actions-bar-right">
+        <button class="btn btn-excel-ghost" onclick="loadStatus()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
+      </div>
+    </nav>
+
+    <!-- RESULT / CONFLICT BANNERS -->
+    <div id="result" class="result-banner"></div>
+    <div id="conflicts" class="conflicts-panel"></div>
+
+    <!-- WORKBOOK TABS -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="class"><i class="fas fa-chalkboard-teacher"></i> Class Drafts</button>
+      <button class="tab-btn" data-tab="exam"><i class="fas fa-pencil-alt"></i> Exam Drafts</button>
+    </div>
+
+    <div class="loading-indicator" id="loadingIndicator">
+      <i class="fas fa-spinner fa-spin"></i> Reading spreadsheet records…
+    </div>
+
+    <!-- CLASS DRAFTS TAB -->
+    <div id="class-tab" class="tab-content active">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Course</th>
+              <th>Venue</th>
+              <th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for draft in class_drafts %}
+            <tr>
+              <td>{{ draft.date|date:'Y-m-d' }}</td>
+              <td>{{ draft.start_time|time:'H:i' }} – {{ draft.end_time|time:'H:i' }}</td>
+              <td>
+                <strong>{{ draft.course_allocation.course_code }}</strong><br>
+                <span class="cell-muted">{{ draft.course_allocation.course_name|truncatechars:35 }}</span>
+              </td>
+              <td>{{ draft.venue.code }}</td>
+              <td>{{ draft.course_allocation.number_of_students }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="text-align:center;padding:24px;color:#aaa;">
+                <i class="fas fa-info-circle"></i> No class drafts available. Run the scheduler to populate.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXAM DRAFTS TAB -->
+    <div id="exam-tab" class="tab-content">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Course</th>
+              <th>Venue</th>
+              <th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for draft in exam_drafts %}
+            <tr>
+              <td>{{ draft.date|date:'Y-m-d' }}</td>
+              <td>{{ draft.start_time|time:'H:i' }} – {{ draft.end_time|time:'H:i' }}</td>
+              <td>
+                <strong>{{ draft.course_allocation.course_code }}</strong><br>
+                <span class="cell-muted">{{ draft.course_allocation.course_name|truncatechars:35 }}</span>
+              </td>
+              <td>{{ draft.venue.code }}</td>
+              <td>{{ draft.course_allocation.number_of_students }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="text-align:center;padding:24px;color:#aaa;">
+                <i class="fas fa-info-circle"></i> No exam drafts available. Run the scheduler to populate.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SCHEDULER PROGRESS MODAL -->
+<div class="excel-modal-overlay" id="schedulerProgressModal">
+  <div class="excel-modal">
+    <div class="excel-modal-head">
+      <span id="modalTitle">Scheduler Processing Engine</span>
+    </div>
+    <div class="excel-modal-body">
+
+      <div style="display:flex;justify-content:space-between;font-weight:700;color:#000;">
+        <span id="batchInfo">Phase 1: Analyzing rules &amp; resolving allocation slots…</span>
+        <span id="progressPercentage">0%</span>
+      </div>
+
+      <div class="prog-wrap">
+        <div class="prog-fill stage-yellow" id="progressBar">0%</div>
+      </div>
+
+      <div class="modal-stats">
+        <div class="ms-card">
+          <div class="ms-val" id="scheduledCount">0</div>
+          <div class="ms-lbl">Cells Scheduled</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="remainingCount">0</div>
+          <div class="ms-lbl">Remaining</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="currentBatch">0/0</div>
+          <div class="ms-lbl">Current Batch</div>
+        </div>
+      </div>
+
+      <div class="action-strip" id="currentAction">Initializing workspace engine metrics…</div>
+
+      <div style="font-weight:700;color:#000;margin-bottom:4px;"><i class="fas fa-terminal"></i> Process Engine Log:</div>
+      <div class="console-wrap" id="consoleOutput">
+        <div>[SYSTEM] Scheduler initializing…</div>
+      </div>
+    </div>
+    <div class="excel-modal-foot">
+      <button type="button" class="btn btn-excel-ghost" style="color:#c00;border-color:#c00;font-weight:600;" onclick="cancelScheduling()">
+        Break Execution
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PUBLISH OVERLAY -->
+<div class="excel-modal-overlay" id="pubOverlay">
+  <div class="excel-modal" style="width:400px;text-align:center;">
+    <div class="excel-modal-head"><span>Publishing Timetable</span></div>
+    <div class="excel-modal-body" style="padding:30px 20px;">
+      <i class="fas fa-spinner fa-spin" id="pubSpinner" style="font-size:2rem;color:var(--excel-green);"></i>
+      <i class="fas fa-check" id="pubCheck" style="display:none;font-size:2rem;color:#107c41;"></i>
+      <div id="pubTitle" style="font-weight:700;margin-top:12px;color:#000;">Committing Timetable Records</div>
+      <div id="pubMsg" style="color:#555;font-size:0.78rem;margin-top:4px;">Writing changes into backend registers…</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  // Resolved server-side (Django templates DO process {% url %} here,
+  // unlike the static .js file below) and handed off to the static JS.
+  window.CAMPUS_AUTO_URLS = {
+    runClass:     "{% url 'campuses_timetable:run_class_scheduler' %}",
+    runExam:      "{% url 'campuses_timetable:run_exam_scheduler' %}",
+    publishClass: "{% url 'campuses_timetable:publish_class_timetable' %}",
+    publishExam:  "{% url 'campuses_timetable:publish_exam_timetable' %}",
+    clearDrafts:  "{% url 'campuses_timetable:clear_timetable_drafts' %}",
+    updateConfig: "{% url 'campuses_timetable:update_scheduler_config' %}",
+    status:       "{% url 'campuses_timetable:scheduler_status' %}"
+  };
+</script>
+<script src="{% static 'campuses_timetable/js/auto_scheduler.js' %}"></script>
+{% endblock page_scripts %}

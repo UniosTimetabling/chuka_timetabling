@@ -1,0 +1,1296 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<style>
+/* ============================================================
+   PROGRAM MANAGEMENT - FULL WIDTH SPREADSHEET
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+.dg-page {
+  padding: 0;
+  margin: 0;
+  background: #f5f6f8;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+}
+
+/* ── Tabs ── */
+.dg-tabs {
+  display: flex;
+  background: #fff;
+  border-bottom: 1px solid #d0d0d0;
+  padding: 0 12px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+}
+.dg-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.dg-tab:hover { color: #000; }
+.dg-tab.active { color: #2E7D32; border-bottom-color: #2E7D32; }
+.dg-tab .badge {
+  background: #e0e0e0;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-left: 6px;
+}
+.dg-tab.active .badge { background: #a5d6a7; }
+
+.dg-tab-content { display: none; flex: 1; overflow: hidden; width: 100%; }
+.dg-tab-content.active { display: flex; flex-direction: column; }
+
+/* ── Toolbar ── */
+.dg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: #fff;
+  border-bottom: 1px solid #d0d0d0;
+  flex-shrink: 0;
+  position: sticky;
+  top: 41px;
+  z-index: 99;
+  width: 100%;
+}
+.dg-toolbar-left { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; flex: 1; }
+.dg-toolbar-right { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+
+.dg-btn {
+  padding: 3px 10px;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #333;
+  white-space: nowrap;
+}
+.dg-btn:hover { background: #f0f0f0; }
+.dg-btn-primary { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+.dg-btn-primary:hover { background: #1B5E20; }
+.dg-btn-ghost { background: transparent; border-color: transparent; }
+.dg-btn-ghost:hover { background: #f0f0f0; }
+
+.dg-toolbar-sep { width: 1px; height: 18px; background: #d0d0d0; margin: 0 4px; }
+.dg-select, .dg-search {
+  padding: 2px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
+  font-size: 12px;
+  background: #fff;
+  height: 26px;
+}
+.dg-search { width: 150px; }
+.dg-search:focus { outline: none; border-color: #2E7D32; }
+
+.dg-dropdown { position: relative; display: inline-block; }
+.dg-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  min-width: 140px;
+  z-index: 200;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.dg-dropdown-menu[hidden] { display: none; }
+.dg-dropdown-item {
+  display: block;
+  padding: 4px 12px;
+  color: #333;
+  text-decoration: none;
+  font-size: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.dg-dropdown-item:hover { background: #f0f0f0; }
+
+/* ── Import Results ── */
+.dg-import-panel {
+  padding: 6px 12px;
+  background: #e8f5e9;
+  border-bottom: 1px solid #c8e6c9;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+  width: 100%;
+}
+.dg-import-panel-error { background: #ffebee; border-color: #ffcdd2; }
+.dg-import-panel[hidden] { display: none; }
+.dg-import-panel-head { display: flex; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 4px; }
+.dg-import-panel-head ul { margin: 2px 0 0 0; padding-left: 16px; font-size: 12px; color: #555; }
+.dg-import-panel-head ul li { margin: 1px 0; }
+
+.dg-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 13px;
+  color: #666;
+}
+.dg-icon-btn:hover { color: #000; }
+
+/* ── Modal ── */
+.dg-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dg-modal-backdrop[hidden] { display: none; }
+.dg-modal {
+  background: #fff;
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d0d0d0;
+}
+.dg-modal-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fafafa;
+}
+.dg-modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.dg-modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; font-size: 12px; }
+.dg-modal-foot {
+  padding: 8px 16px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fafafa;
+}
+
+.dg-diff-section { margin-bottom: 10px; }
+.dg-diff-section h4 { margin: 0 0 3px 0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+.dg-diff-list { list-style: none; padding: 0; margin: 3px 0 0 0; }
+.dg-diff-item { padding: 2px 6px; margin: 1px 0; font-size: 12px; background: #f8f9fa; border-left: 3px solid #ccc; }
+.dg-diff-item.create { border-left-color: #2E7D32; }
+.dg-diff-item.update { border-left-color: #F57C00; }
+.dg-diff-item.delete { border-left-color: #D32F2F; }
+.dg-diff-tag {
+  display: inline-block;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 2px;
+  margin-right: 4px;
+  color: #fff;
+}
+.create .dg-diff-tag { background: #2E7D32; }
+.update .dg-diff-tag { background: #F57C00; }
+.delete .dg-diff-tag { background: #D32F2F; }
+.dg-diff-changes { font-size: 11px; color: #666; margin-top: 1px; }
+.dg-diff-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  margin: 1px 3px 1px 0;
+  font-size: 11px;
+  border-radius: 2px;
+  background: #e0e0e0;
+}
+.dg-diff-chip.create { background: #a5d6a7; }
+.dg-diff-chip.update { background: #ffcc80; }
+.dg-diff-chip.delete { background: #ef9a9a; }
+.dg-diff-warn { padding: 6px 10px; background: #fff3e0; border-left: 3px solid #F57C00; margin: 8px 0; font-size: 12px; }
+.dg-diff-summary { margin-bottom: 8px; }
+
+/* ── Grid Container - FULL WIDTH ── */
+.dg-panel {
+  margin: 0;
+  background: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.dg-panel-head {
+  padding: 3px 12px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #d0d0d0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  min-height: 24px;
+  flex-shrink: 0;
+  width: 100%;
+}
+.dg-panel-title { font-weight: 600; color: #333; }
+.dg-count { background: #e0e0e0; padding: 0 8px; margin-left: 6px; font-size: 11px; }
+.dg-panel-sub { font-size: 11px; color: #888; }
+
+.dg-grid-wrap {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #fff;
+  width: 100%;
+}
+
+/* ── Spreadsheet Grid - FULL WIDTH ── */
+.dg-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  table-layout: fixed;
+}
+
+/* ── COLUMN HEADERS - FLOATS ON SCROLL ── */
+.dg-grid thead th {
+  background: #2E7D32;
+  color: #fff;
+  font-weight: 600;
+  padding: 3px 6px;
+  text-align: left;
+  border-right: 1px solid #1B5E20;
+  font-size: 11px;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+.dg-grid thead th:last-child { border-right: none; }
+
+/* Row number column - sticky left */
+.dg-grid tbody td:first-child,
+.dg-grid thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 25;
+  background: #fafafa;
+}
+.dg-grid thead th:first-child {
+  background: #2E7D32;
+  z-index: 35;
+  border-right: 1px solid #1B5E20;
+}
+.dg-grid tbody td:first-child {
+  border-right: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+/* ── Section Headers - flat, full width ── */
+.dg-section-header td {
+  background: #e8f0fe;
+  font-weight: 600;
+  color: #1a237e;
+  padding: 2px 8px;
+  border-bottom: 1px solid #c5cae9;
+  font-size: 12px;
+}
+.dg-section-header td:first-child { background: #e8f0fe; }
+
+.dg-subsection-header td {
+  background: #f3f5f9;
+  font-weight: 500;
+  color: #333;
+  padding: 2px 8px;
+  border-bottom: 1px solid #d0d0d0;
+  font-size: 11px;
+}
+.dg-subsection-header td:first-child { background: #f3f5f9; }
+
+/* ── Regular rows ── */
+.dg-grid tbody td {
+  padding: 2px 4px;
+  border-right: 1px solid #e8e8e8;
+  border-bottom: 1px solid #e8e8e8;
+  vertical-align: middle;
+  background: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dg-grid tbody td:last-child { border-right: none; }
+.dg-grid tbody tr:hover td { background: #f5f7fa; }
+.dg-grid tbody tr:hover td:first-child { background: #f5f7fa; }
+.dg-grid tbody tr.dg-row[hidden] { display: none; }
+
+.dg-rownum {
+  color: #999;
+  text-align: center;
+  font-size: 11px;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  background: #fafafa;
+}
+
+/* Column widths */
+.dg-grid .col-code { width: 13%; }
+.dg-grid .col-name { width: 22%; }
+.dg-grid .col-program { width: 18%; }
+.dg-grid .col-year { width: 6%; }
+.dg-grid .col-sem { width: 6%; }
+.dg-grid .col-type { width: 10%; }
+.dg-grid .col-cohort { width: 12%; }
+.dg-grid .col-actions { width: 5%; }
+
+/* ── Editable Cells ── */
+.dg-cell-input {
+  width: 100%;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  font-family: inherit;
+  color: #333;
+  box-sizing: border-box;
+  min-height: 20px;
+}
+.dg-cell-input:focus {
+  outline: none;
+  border-color: #2E7D32;
+  background: #fff;
+}
+.dg-cell-input:hover { background: #fff; }
+.dg-cell-input.dg-error { border-color: #D32F2F; background: #ffebee; }
+.dg-cell-input.dg-saved { background: #e8f5e9; }
+.dg-cell-static { display: block; padding: 1px 3px; color: #555; font-size: 12px; }
+.dg-select-small {
+  width: 100%;
+  padding: 1px 3px;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  font-family: inherit;
+  color: #333;
+  box-sizing: border-box;
+  min-height: 20px;
+}
+.dg-select-small:focus { outline: none; border-color: #2E7D32; background: #fff; }
+
+.dg-actions {
+  display: flex;
+  gap: 1px;
+  align-items: center;
+  justify-content: center;
+}
+.dg-actions .dg-icon-btn { padding: 1px 3px; font-size: 12px; }
+.dg-icon-btn.dg-delete-btn { color: #D32F2F; }
+.dg-icon-btn.dg-delete-btn:hover { color: #b71c1c; background: #ffebee; }
+.dg-icon-btn.dg-select-btn { color: #555; }
+.dg-icon-btn.dg-select-btn.active { color: #2E7D32; background: #e8f5e9; }
+.dg-icon-btn.dg-save-btn { color: #2E7D32; }
+.dg-icon-btn.dg-save-btn:hover { background: #e8f5e9; }
+.dg-icon-btn.dg-cancel-btn { color: #999; }
+.dg-icon-btn.dg-cancel-btn:hover { color: #D32F2F; }
+
+.dg-add-row td { background: #f5f9f5; border-top: 2px solid #2E7D32; }
+.dg-add-row[hidden] { display: none; }
+
+.dg-empty-row td { padding: 16px; text-align: center; color: #999; font-style: italic; background: #fff; }
+
+/* ── Toast ── */
+.dg-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #333;
+  color: #fff;
+  padding: 6px 16px;
+  font-size: 13px;
+  z-index: 9999;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.dg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.dg-toast-error { background: #D32F2F; }
+
+/* ── Password modal fields ── */
+.dg-password-field { margin-bottom: 12px; }
+.dg-password-field label { display: block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 3px; }
+.dg-password-field input[type="password"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.dg-password-field input[type="password"]:focus { outline: none; border-color: #2E7D32; }
+.dg-checkbox { display: flex; align-items: center; gap: 6px; font-weight: 400 !important; cursor: pointer; }
+.dg-checkbox input { margin: 0; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .dg-tabs { overflow-x: auto; padding: 0 8px; }
+  .dg-tab { padding: 6px 12px; font-size: 12px; }
+  .dg-toolbar { flex-direction: column; align-items: stretch; padding: 4px 8px; }
+  .dg-toolbar-left, .dg-toolbar-right { flex-wrap: wrap; }
+  .dg-search { width: 100%; }
+  .dg-grid { font-size: 11px; }
+  .dg-grid thead th, .dg-grid tbody td { padding: 1px 3px; }
+}
+</style>
+{% endblock page_css %}
+
+{% block title %}Programs & Courses{% endblock %}
+{% block page_title %}Programs &amp; Courses{% endblock %}
+
+{% block allocation_content %}
+<div class="dg-page">
+
+  <!-- TABS -->
+  <div class="dg-tabs">
+    <button class="dg-tab active" data-tab="programs">Programs <span class="badge" id="programsTabCount">{{ programs.count }}</span></button>
+    <button class="dg-tab" data-tab="courses">Courses <span class="badge" id="coursesTabCount">0</span></button>
+    <button class="dg-tab" data-tab="codes">Program Codes <span class="badge" id="codesTabCount">{{ program_codes.count }}</span></button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="dg-toolbar">
+    <div class="dg-toolbar-left">
+      <button type="button" class="dg-btn dg-btn-primary" id="addProgramBtn">+ Program</button>
+      <button type="button" class="dg-btn dg-btn-primary" id="addCourseBtn">+ Course</button>
+      <button type="button" class="dg-btn dg-btn-primary" id="addCodeBtn">+ Code</button>
+      <span class="dg-toolbar-sep"></span>
+      <!-- Export: Excel (.xlsx) only, always password-protected. CSV export
+           and unprotected export have been removed; CSV import still works. -->
+      <button type="button" class="dg-btn dg-btn-ghost export-option-protected" data-fmt="xlsx" id="exportBtn">Export (Excel, password-protected)</button>
+      <button type="button" class="dg-btn dg-btn-ghost" id="importBtn">Import</button>
+      <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,.zip" hidden>
+    </div>
+    <div class="dg-toolbar-right">
+      <select class="dg-select" id="deptFilter"><option value="">All Depts</option>{% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}</select>
+      <input type="text" class="dg-search" id="quickSearch" placeholder="Search…">
+    </div>
+  </div>
+
+  <!-- IMPORT RESULTS -->
+  <div class="dg-import-panel" id="importResultsPanel" hidden>
+    <div class="dg-import-panel-head">
+      <div><strong id="importResultsMessage"></strong><ul id="importResultsErrors"></ul></div>
+      <button type="button" class="dg-icon-btn" id="importResultsClose">✕</button>
+    </div>
+  </div>
+
+  <!-- DIFF MODAL -->
+  <div class="dg-modal-backdrop" id="importDiffModal" hidden>
+    <div class="dg-modal">
+      <div class="dg-modal-head"><h3>Review changes</h3><button type="button" class="dg-icon-btn" id="importDiffClose">✕</button></div>
+      <div class="dg-modal-body" id="importDiffBody"></div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="importDiffCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="importDiffApply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT PASSWORD MODAL -->
+  <div class="dg-modal-backdrop" id="exportPasswordModal" hidden>
+    <div class="dg-modal" style="max-width:440px;">
+      <div class="dg-modal-head"><h3>Export with Password</h3><button type="button" class="dg-icon-btn" id="exportPasswordClose">✕</button></div>
+      <div class="dg-modal-body">
+        <div class="dg-password-field">
+          <label for="exportPassword">Password</label>
+          <input type="password" id="exportPassword" placeholder="Enter a password to protect the file" autocomplete="new-password">
+        </div>
+        <div class="dg-password-field">
+          <label for="exportPasswordConfirm">Confirm Password</label>
+          <input type="password" id="exportPasswordConfirm" placeholder="Confirm password" autocomplete="new-password">
+        </div>
+        <div class="dg-password-field">
+          <label class="dg-checkbox"><input type="checkbox" id="exportEmailCopy" checked> Email this password to me{% if departments %} and my department admin/COD{% endif %}</label>
+        </div>
+        <div style="font-size:11px;color:#777;margin-top:6px;line-height:1.5;">
+          The file gets Excel's own "Encrypt with Password" protection — Excel will
+          ask for this password when opening the file, on this computer or the server.
+          Keep the password safe — you'll need it again to re-upload your edits.
+        </div>
+        <div class="dg-terms-box" style="margin-top:14px;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;background:#fafafa;">
+          <div style="font-size:11.5px;color:#444;line-height:1.6;max-height:130px;overflow-y:auto;">
+            This Excel file is to be used for this system only. It must not be shared
+            with any third-party system, or moved to a different device. This Excel
+            file's sole purpose is to update the course master and should not be
+            shared. Sharing this file is done at the sharer's own responsibility for
+            any resulting harm. After you are done using this file, delete it from
+            your device.
+          </div>
+          <div class="dg-password-field" style="margin-top:10px;margin-bottom:0;">
+            <label class="dg-checkbox"><input type="checkbox" id="exportAgreeTerms"> I have read and agree to these terms</label>
+          </div>
+        </div>
+      </div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="exportPasswordCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="exportPasswordSubmit">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT PASSWORD MODAL -->
+  <div class="dg-modal-backdrop" id="importPasswordModal" hidden>
+    <div class="dg-modal" style="max-width:420px;">
+      <div class="dg-modal-head"><h3>Password Required</h3><button type="button" class="dg-icon-btn" id="importPasswordClose">✕</button></div>
+      <div class="dg-modal-body">
+        <p id="importPasswordMessage" style="margin-top:0;font-size:12px;color:#555;">This file is password-protected. Enter the password to continue.</p>
+        <div class="dg-password-field">
+          <label for="importPasswordInput">Password</label>
+          <input type="password" id="importPasswordInput" placeholder="Enter password" autocomplete="current-password">
+        </div>
+      </div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="importPasswordCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="importPasswordSubmit">Unlock &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: PROGRAMS ===== -->
+  <div class="dg-tab-content active" id="tab-programs">
+    <div class="dg-panel">
+      <div class="dg-panel-head">
+        <span class="dg-panel-title">Programs <span class="dg-count" id="programsCount">{{ programs.count }}</span></span>
+      </div>
+      <div class="dg-grid-wrap">
+        <table class="dg-grid" id="programsGrid">
+          <colgroup>
+            <col style="width:30px;">
+            <col style="width:35%;">
+            <col style="width:25%;">
+            <col style="width:20%;">
+            <col style="width:50px;">
+          </colgroup>
+          <thead><tr><th>#</th><th>Program Name</th><th>Department</th><th>Default Cohort</th><th></th></tr></thead>
+          <tbody id="programsBody">
+            <tr class="dg-row dg-add-row" id="programAddRow" hidden>
+              <td class="dg-rownum">+</td>
+              <td><input type="text" class="dg-cell-input" data-field="name" placeholder="Program name"></td>
+              <td><select class="dg-select-small" data-field="department"><option value="">Select…</option>{% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}</select></td>
+              <td><input type="text" class="dg-cell-input" data-field="default_cohort" placeholder="e.g. 2024" value="0"></td>
+              <td class="dg-actions"><button type="button" class="dg-icon-btn dg-save-btn">✓</button><button type="button" class="dg-icon-btn dg-cancel-btn">✕</button></td>
+            </tr>
+            {% for program in programs %}
+            <tr class="dg-row" data-id="{{ program.id }}" data-type="program" data-dept-id="{{ program.department_id }}">
+              <td class="dg-rownum">{{ forloop.counter }}</td>
+              <td><input type="text" class="dg-cell-input" data-field="name" value="{{ program.name }}"></td>
+              <td><select class="dg-select-small" data-field="department">{% for dept in departments %}<option value="{{ dept.id }}" {% if dept.id == program.department_id %}selected{% endif %}>{{ dept.name }}</option>{% endfor %}</select></td>
+              <td><input type="text" class="dg-cell-input" data-field="default_cohort" value="{{ program.default_cohort|default:'0' }}"></td>
+              <td class="dg-actions"><button type="button" class="dg-icon-btn dg-select-btn" title="View courses">▶</button><button type="button" class="dg-icon-btn dg-delete-btn dg-delete-program-btn">✕</button></td>
+            </tr>
+            {% empty %}
+            <tr class="dg-empty-row"><td colspan="5">No programs. Add one above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: COURSES ===== -->
+  <div class="dg-tab-content" id="tab-courses">
+    <div class="dg-panel">
+      <div class="dg-panel-head">
+        <span class="dg-panel-title">Courses <span class="dg-count" id="coursesCount">0</span></span>
+        <span class="dg-panel-sub" id="coursesFilterLabel">All programs</span>
+      </div>
+      <div class="dg-grid-wrap">
+        <table class="dg-grid" id="coursesGrid">
+          <colgroup>
+            <col style="width:28px;">
+            <col style="width:13%;">
+            <col style="width:22%;">
+            <col style="width:18%;">
+            <col style="width:6%;">
+            <col style="width:6%;">
+            <col style="width:10%;">
+            <col style="width:12%;">
+            <col style="width:40px;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th><th>Code</th><th>Course Name</th><th>Program</th><th>Year</th><th>Sem</th><th>Type</th><th>Cohort</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="coursesBody">
+            <tr class="dg-row dg-add-row" id="courseAddRow" hidden>
+              <td class="dg-rownum">+</td>
+              <td><input type="text" class="dg-cell-input" data-field="course_code" placeholder="CS101"></td>
+              <td><input type="text" class="dg-cell-input" data-field="course_name" placeholder="Course name"></td>
+              <td><select class="dg-select-small" data-field="program"><option value="">Select…</option>{% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}</select></td>
+              <td><select class="dg-select-small" data-field="year">{% for y in years_range %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select></td>
+              <td><select class="dg-select-small" data-field="semester"><option value="1">1</option><option value="2">2</option></select></td>
+              <td><select class="dg-select-small" data-field="unit_type"><option value="CORE">Core</option><option value="ELECTIVE">Elective</option><option value="UNIVERSITY_WIDE">Uni Wide</option><option value="REQUIRED_ELECTIVE">Req Elec</option></select></td>
+              <td><input type="text" class="dg-cell-input" data-field="student_cohort" placeholder="e.g. 2024" value="0"></td>
+              <td class="dg-actions"><button type="button" class="dg-icon-btn dg-save-btn">✓</button><button type="button" class="dg-icon-btn dg-cancel-btn">✕</button></td>
+            </tr>
+
+            {% for program in programs %}
+              {% regroup program.courses.all|dictsort:"year" by year as year_groups %}
+              {% for year_group in year_groups %}
+                <tr class="dg-section-header"><td colspan="9">{{ program.name }} — Year {{ year_group.grouper }}</td></tr>
+                {% regroup year_group.list|dictsort:"semester" by semester as semester_groups %}
+                {% for semester_group in semester_groups %}
+                  <tr class="dg-subsection-header"><td colspan="9">Semester {{ semester_group.grouper }}</td></tr>
+                  {% for course in semester_group.list %}
+                  <tr class="dg-row" data-id="{{ course.id }}" data-type="course" data-program-id="{{ program.id }}" data-dept-id="{{ program.department_id }}" data-year="{{ course.year }}" data-semester="{{ course.semester }}">
+                    <td class="dg-rownum">{{ forloop.parentloop.parentloop.counter }}.{{ forloop.parentloop.counter }}.{{ forloop.counter }}</td>
+                    <td><input type="text" class="dg-cell-input" data-field="course_code" value="{{ course.course_code }}"></td>
+                    <td><input type="text" class="dg-cell-input" data-field="course_name" value="{{ course.course_name }}"></td>
+                    <td><span class="dg-cell-static">{{ program.name }}</span></td>
+                    <td><select class="dg-select-small" data-field="year">{% for y in years_range %}<option value="{{ y }}" {% if y == course.year %}selected{% endif %}>{{ y }}</option>{% endfor %}</select></td>
+                    <td><select class="dg-select-small" data-field="semester"><option value="1" {% if course.semester == 1 %}selected{% endif %}>1</option><option value="2" {% if course.semester == 2 %}selected{% endif %}>2</option></select></td>
+                    <td><select class="dg-select-small" data-field="unit_type"><option value="CORE" {% if course.unit_type == 'CORE' %}selected{% endif %}>Core</option><option value="ELECTIVE" {% if course.unit_type == 'ELECTIVE' %}selected{% endif %}>Elec</option><option value="UNIVERSITY_WIDE" {% if course.unit_type == 'UNIVERSITY_WIDE' %}selected{% endif %}>Uni</option><option value="REQUIRED_ELECTIVE" {% if course.unit_type == 'REQUIRED_ELECTIVE' %}selected{% endif %}>Req</option></select></td>
+                    <td><input type="text" class="dg-cell-input" data-field="student_cohort" value="{{ course.student_cohort|default:'0' }}"></td>
+                    <td class="dg-actions"><button type="button" class="dg-icon-btn dg-delete-btn dg-delete-course-btn">✕</button></td>
+                  </tr>
+                  {% endfor %}
+                {% endfor %}
+              {% empty %}
+              <tr class="dg-empty-row"><td colspan="9">No courses for {{ program.name }}</td></tr>
+              {% endfor %}
+            {% empty %}
+            <tr class="dg-empty-row"><td colspan="9">No programs found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: PROGRAM CODES ===== -->
+  <div class="dg-tab-content" id="tab-codes">
+    <div class="dg-panel">
+      <div class="dg-panel-head">
+        <span class="dg-panel-title">Program Codes <span class="dg-count" id="codesCount">{{ program_codes.count }}</span></span>
+      </div>
+      <div class="dg-grid-wrap">
+        <table class="dg-grid" id="codesGrid">
+          <colgroup>
+            <col style="width:30px;">
+            <col style="width:40%;">
+            <col style="width:40%;">
+            <col style="width:50px;">
+          </colgroup>
+          <thead><tr><th>#</th><th>Program</th><th>Code</th><th></th></tr></thead>
+          <tbody id="codesBody">
+            <tr class="dg-row dg-add-row" id="codeAddRow" hidden>
+              <td class="dg-rownum">+</td>
+              <td><select class="dg-select-small" data-field="program"><option value="">Select…</option>{% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}</select></td>
+              <td><input type="text" class="dg-cell-input" data-field="code" placeholder="e.g. BCS"></td>
+              <td class="dg-actions"><button type="button" class="dg-icon-btn dg-save-btn">✓</button><button type="button" class="dg-icon-btn dg-cancel-btn">✕</button></td>
+            </tr>
+            {% for code in program_codes %}
+            <tr class="dg-row" data-id="{{ code.id }}" data-type="code" data-program-id="{{ code.program_id }}" data-dept-id="{{ code.program.department_id }}">
+              <td class="dg-rownum">{{ forloop.counter }}</td>
+              <td>
+                <select class="dg-select-small" data-field="program">
+                  {% for program in programs %}<option value="{{ program.id }}" {% if program.id == code.program_id %}selected{% endif %}>{{ program.name }}</option>{% endfor %}
+                </select>
+              </td>
+              <td><input type="text" class="dg-cell-input" data-field="code" value="{{ code.code }}"></td>
+              <td class="dg-actions"><button type="button" class="dg-icon-btn dg-delete-btn dg-delete-code-btn">✕</button></td>
+            </tr>
+            {% empty %}
+            <tr class="dg-empty-row"><td colspan="4">No program codes. Add one above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock allocation_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function() {
+"use strict";
+
+const AJAX_URL = "{% url 'ajax_program_courses' %}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+const IMPORT_PREVIEW_URL = "{% url 'import_programs' %}";
+const IMPORT_APPLY_URL = "{% url 'import_programs_apply' %}";
+const EXPORT_URL = "{% url 'export_programs' %}";
+
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = document.getElementById('dgToast');
+  if (!el) { el = document.createElement('div'); el.id = 'dgToast'; el.className = 'dg-toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.toggle('dg-toast-error', !!isErr);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2600);
+}
+
+function sendAjax(fields) {
+  var fd = new FormData();
+  Object.keys(fields).forEach(function(k) { fd.append(k, fields[k] == null ? '' : fields[k]); });
+  return fetch(AJAX_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function(r) { return r.json(); });
+}
+
+// Tabs
+var tabs = document.querySelectorAll('.dg-tab');
+var tabContents = { programs: document.getElementById('tab-programs'), courses: document.getElementById('tab-courses'), codes: document.getElementById('tab-codes') };
+tabs.forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var target = this.dataset.tab;
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    this.classList.add('active');
+    Object.keys(tabContents).forEach(function(key) {
+      tabContents[key].classList.toggle('active', key === target);
+    });
+  });
+});
+
+function refreshCounts() {
+  var pc = document.querySelectorAll('#programsBody .dg-row[data-type="program"]:not([hidden])').length;
+  document.getElementById('programsCount').textContent = pc;
+  document.getElementById('programsTabCount').textContent = pc;
+  var cc = document.querySelectorAll('#coursesBody .dg-row[data-type="course"]:not([hidden])').length;
+  document.getElementById('coursesCount').textContent = cc;
+  document.getElementById('coursesTabCount').textContent = cc;
+  var coc = document.querySelectorAll('#codesBody .dg-row[data-type="code"]:not([hidden])').length;
+  document.getElementById('codesCount').textContent = coc;
+  document.getElementById('codesTabCount').textContent = coc;
+}
+refreshCounts();
+
+// Export (Excel only, always password-protected — no dropdown needed anymore)
+var exportBtn = document.getElementById('exportBtn');
+
+// Export with Password modal
+var exportPasswordModal = document.getElementById('exportPasswordModal');
+var exportPasswordInput = document.getElementById('exportPassword');
+var exportPasswordConfirmInput = document.getElementById('exportPasswordConfirm');
+var exportEmailCopy = document.getElementById('exportEmailCopy');
+var exportAgreeTerms = document.getElementById('exportAgreeTerms');
+var pendingExportFmt = 'xlsx';
+
+document.querySelectorAll('.export-option-protected').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    pendingExportFmt = this.dataset.fmt || 'xlsx';
+    exportPasswordInput.value = '';
+    exportPasswordConfirmInput.value = '';
+    exportEmailCopy.checked = true;
+    exportAgreeTerms.checked = false;
+    exportPasswordModal.hidden = false;
+    exportPasswordInput.focus();
+  });
+});
+
+function closeExportPasswordModal() { exportPasswordModal.hidden = true; }
+document.getElementById('exportPasswordClose').addEventListener('click', closeExportPasswordModal);
+document.getElementById('exportPasswordCancel').addEventListener('click', closeExportPasswordModal);
+
+document.getElementById('exportPasswordSubmit').addEventListener('click', function() {
+  var pwd = exportPasswordInput.value;
+  var confirmPwd = exportPasswordConfirmInput.value;
+  if (!pwd || pwd.length < 4) { toast('Password must be at least 4 characters.', true); return; }
+  if (pwd !== confirmPwd) { toast('Passwords do not match.', true); return; }
+  if (!exportAgreeTerms.checked) { toast('You must agree to the usage terms before exporting.', true); return; }
+
+  var btn = this;
+  btn.disabled = true;
+  toast('Preparing protected export…');
+
+  var fd = new FormData();
+  fd.append('fmt', pendingExportFmt);
+  fd.append('password', pwd);
+  fd.append('email_copy', exportEmailCopy.checked ? 'true' : 'false');
+  fd.append('agree_terms', 'true');
+
+  fetch(EXPORT_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd
+  }).then(function(r) {
+    if (!r.ok) { return r.text().then(function(t) { throw new Error(t || ('Export failed (' + r.status + ')')); }); }
+    var disposition = r.headers.get('Content-Disposition') || '';
+    var match = disposition.match(/filename="?([^"]+)"?/);
+    var filename = match ? match[1] : 'programs_and_courses_protected.xlsx';
+    return r.blob().then(function(blob) { return { blob: blob, filename: filename }; });
+  }).then(function(result) {
+    var link = document.createElement('a');
+    var url = URL.createObjectURL(result.blob);
+    link.href = url;
+    link.download = result.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast('Protected file downloaded.' + (exportEmailCopy.checked ? ' Password emailed.' : ''));
+    closeExportPasswordModal();
+  }).catch(function(err) {
+    toast(err.message || 'Export failed.', true);
+  }).finally(function() { btn.disabled = false; });
+});
+
+// Import
+var importBtn = document.getElementById('importBtn');
+var importFileInput = document.getElementById('importFileInput');
+importBtn.addEventListener('click', function() { importFileInput.click(); });
+
+var importResultsPanel = document.getElementById('importResultsPanel');
+var importResultsMessage = document.getElementById('importResultsMessage');
+var importResultsErrors = document.getElementById('importResultsErrors');
+document.getElementById('importResultsClose').addEventListener('click', function() { importResultsPanel.hidden = true; });
+
+function showImportResults(data, isErr) {
+  importResultsMessage.textContent = data.message || (isErr ? 'Import failed.' : 'Import complete.');
+  importResultsErrors.innerHTML = '';
+  (data.errors || []).forEach(function(err) { var li = document.createElement('li'); li.textContent = err; importResultsErrors.appendChild(li); });
+  if (data.rollback_hint) { var li = document.createElement('li'); li.textContent = data.rollback_hint; li.style.fontStyle = 'italic'; importResultsErrors.appendChild(li); }
+  importResultsPanel.classList.toggle('dg-import-panel-error', !!isErr);
+  importResultsPanel.hidden = false;
+}
+
+// Diff Modal
+var importDiffModal = document.getElementById('importDiffModal');
+var importDiffBody = document.getElementById('importDiffBody');
+var importDiffApplyBtn = document.getElementById('importDiffApply');
+var pendingToken = null;
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+function diffItemHtml(kindLabel, action, title, changesObj) {
+  var changesHtml = '';
+  if (changesObj && Object.keys(changesObj).length) {
+    var parts = Object.keys(changesObj).map(function(f) { var pair = changesObj[f]; return esc(f) + ': "' + esc(pair[0]) + '" → "' + esc(pair[1]) + '"'; });
+    changesHtml = '<div class="dg-diff-changes">' + parts.join(' · ') + '</div>';
+  }
+  return '<li class="dg-diff-item ' + action + '"><span class="dg-diff-tag">' + action + '</span>' + esc(kindLabel) + ': <strong>' + esc(title) + '</strong>' + changesHtml + '</li>';
+}
+
+function renderDiffSection(heading, items, action, titleFn) {
+  if (!items || !items.length) return '';
+  return '<div class="dg-diff-section"><h4>' + esc(heading) + ' (' + items.length + ')</h4><ul class="dg-diff-list">' + items.map(function(it) { return diffItemHtml(heading.split(' ')[0], action, titleFn(it), it.changes); }).join('') + '</ul></div>';
+}
+
+function showDiffModal(data) {
+  pendingToken = data.token;
+  var s = data.summary || {};
+  var chips = [
+    ['programs_created', 'create', s.programs_created + ' program(s) to create'],
+    ['programs_updated', 'update', s.programs_updated + ' program(s) to update'],
+    ['programs_deleted', 'delete', s.programs_deleted + ' program(s) to DELETE'],
+    ['courses_created', 'create', s.courses_created + ' course(s) to create'],
+    ['courses_updated', 'update', s.courses_updated + ' course(s) to update'],
+    ['courses_deleted', 'delete', s.courses_deleted + ' course(s) to DELETE'],
+    ['codes_created', 'create', s.codes_created + ' code(s) to create'],
+    ['codes_updated', 'update', s.codes_updated + ' code(s) to update'],
+    ['codes_deleted', 'delete', s.codes_deleted + ' code(s) to DELETE']
+  ].filter(function(c) { return parseInt(c[2], 10) > 0; }).map(function(c) { return '<span class="dg-diff-chip ' + c[1] + '">' + esc(c[2]) + '</span>'; }).join('');
+
+  var anyDeletes = (s.programs_deleted || 0) + (s.courses_deleted || 0) + (s.codes_deleted || 0) > 0;
+  var warn = anyDeletes ? '<div class="dg-diff-warn">⚠ This will permanently delete rows removed from your file.</div>' : '';
+
+  var d = data.diff || { programs: {}, courses: {}, codes: {} };
+  var body = '<div class="dg-diff-summary">' + (chips || '<span class="dg-diff-chip">No changes</span>') + '</div>' + warn;
+  body += renderDiffSection('Programs to create', d.programs.create, 'create', function(it) { return it.name + ' (' + it.department + ')'; });
+  body += renderDiffSection('Programs to update', d.programs.update, 'update', function(it) { return it.name; });
+  body += renderDiffSection('Programs to delete', d.programs.delete, 'delete', function(it) { return it.name + ' (' + it.department + ', ' + it.course_count + ' courses)'; });
+  body += renderDiffSection('Courses to create', d.courses.create, 'create', function(it) { return it.course_code + ' — ' + it.course_name + ' (' + it.program + ')'; });
+  body += renderDiffSection('Courses to update', d.courses.update, 'update', function(it) { return it.course_code + ' — ' + it.course_name; });
+  body += renderDiffSection('Courses to delete', d.courses.delete, 'delete', function(it) { return it.course_code + ' — ' + it.course_name + ' (' + it.program + ')'; });
+  if (d.codes) {
+    body += renderDiffSection('Codes to create', d.codes.create, 'create', function(it) { return it.code + ' (' + it.program + ')'; });
+    body += renderDiffSection('Codes to update', d.codes.update, 'update', function(it) { return it.code + ' (' + it.program + ')'; });
+    body += renderDiffSection('Codes to delete', d.codes.delete, 'delete', function(it) { return it.code + ' (' + it.program + ')'; });
+  }
+
+  if ((data.errors || []).length) {
+    body += '<div class="dg-diff-section"><h4>Skipped (' + data.errors.length + ')</h4><ul class="dg-diff-list">' + data.errors.map(function(e) { return '<li class="dg-diff-item">' + esc(e) + '</li>'; }).join('') + '</ul></div>';
+  }
+
+  if (!chips) body = '<div class="dg-diff-empty">No changes found.</div>' + body;
+  importDiffBody.innerHTML = body;
+  importDiffApplyBtn.disabled = !pendingToken;
+  importDiffModal.hidden = false;
+}
+
+function closeDiffModal() { importDiffModal.hidden = true; pendingToken = null; }
+document.getElementById('importDiffClose').addEventListener('click', closeDiffModal);
+document.getElementById('importDiffCancel').addEventListener('click', closeDiffModal);
+
+importDiffApplyBtn.addEventListener('click', function() {
+  if (!pendingToken) { closeDiffModal(); return; }
+  importDiffApplyBtn.disabled = true;
+  toast('Applying…');
+  fetch(IMPORT_APPLY_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token: pendingToken })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var failed = data.status === 'error';
+    toast(data.message || (failed ? 'Import failed.' : 'Done.'), failed);
+    showImportResults(data, failed || data.status === 'partial');
+    closeDiffModal();
+    if (!failed) { setTimeout(function() { window.location.reload(); }, 1400); }
+  }).catch(function() { toast('Network error.', true); importDiffApplyBtn.disabled = false; });
+});
+
+var importPasswordModal = document.getElementById('importPasswordModal');
+var importPasswordMessage = document.getElementById('importPasswordMessage');
+var importPasswordInput = document.getElementById('importPasswordInput');
+var pendingImportFile = null;
+
+function closeImportPasswordModal() {
+  importPasswordModal.hidden = true;
+  importPasswordInput.value = '';
+  pendingImportFile = null;
+}
+document.getElementById('importPasswordClose').addEventListener('click', function() { closeImportPasswordModal(); importFileInput.value = ''; });
+document.getElementById('importPasswordCancel').addEventListener('click', function() { closeImportPasswordModal(); importFileInput.value = ''; });
+
+function submitImportPreview(file, password) {
+  var fd = new FormData();
+  fd.append('file', file);
+  if (password) fd.append('password', password);
+  toast('Reading ' + file.name + '…');
+  return fetch(IMPORT_PREVIEW_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.status === 'need_password') {
+      pendingImportFile = file;
+      importPasswordMessage.textContent = data.message || 'This file is password-protected. Enter the password to continue.';
+      importPasswordModal.hidden = false;
+      importPasswordInput.value = '';
+      importPasswordInput.focus();
+      return;
+    }
+    if (data.status === 'error') { toast(data.message || 'Import failed.', true); showImportResults(data, true); importFileInput.value = ''; return; }
+    if (!data.token) { toast(data.message || 'Nothing to import.'); showImportResults(data, false); importFileInput.value = ''; return; }
+    showDiffModal(data);
+    importFileInput.value = '';
+  }).catch(function() { toast('Network error.', true); importFileInput.value = ''; });
+}
+
+document.getElementById('importPasswordSubmit').addEventListener('click', function() {
+  var pwd = importPasswordInput.value;
+  if (!pwd) { toast('Enter a password.', true); return; }
+  if (!pendingImportFile) { closeImportPasswordModal(); return; }
+  var file = pendingImportFile;
+  importPasswordModal.hidden = true;
+  submitImportPreview(file, pwd).then(function() { pendingImportFile = null; });
+});
+
+importFileInput.addEventListener('change', function() {
+  var file = importFileInput.files[0];
+  if (!file) return;
+  submitImportPreview(file, null);
+});
+
+// Add Program
+var addProgramBtn = document.getElementById('addProgramBtn');
+var programAddRow = document.getElementById('programAddRow');
+addProgramBtn.addEventListener('click', function() {
+  programAddRow.hidden = !programAddRow.hidden;
+  if (!programAddRow.hidden) { programAddRow.querySelector('[data-field="name"]').focus(); }
+});
+programAddRow.querySelector('.dg-cancel-btn').addEventListener('click', function() {
+  programAddRow.hidden = true;
+  programAddRow.querySelectorAll('input').forEach(function(i) { i.value = ''; });
+  programAddRow.querySelector('select').selectedIndex = 0;
+});
+programAddRow.querySelector('.dg-save-btn').addEventListener('click', function() {
+  var name = programAddRow.querySelector('[data-field="name"]').value.trim();
+  var dept = programAddRow.querySelector('[data-field="department"]').value;
+  var cohort = programAddRow.querySelector('[data-field="default_cohort"]').value.trim() || '0';
+  if (!name) { toast('Name required.', true); return; }
+  if (!dept) { toast('Select department.', true); return; }
+  sendAjax({ action: 'add_program', name: name, department: dept, default_cohort: cohort })
+    .then(function(d) { if (d.status === 'success') { toast('Program added.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+    .catch(function() { toast('Network error.', true); });
+});
+
+// Add Course
+var addCourseBtn = document.getElementById('addCourseBtn');
+var courseAddRow = document.getElementById('courseAddRow');
+addCourseBtn.addEventListener('click', function() {
+  courseAddRow.hidden = !courseAddRow.hidden;
+  if (!courseAddRow.hidden) { courseAddRow.querySelector('[data-field="course_code"]').focus(); }
+});
+courseAddRow.querySelector('.dg-cancel-btn').addEventListener('click', function() {
+  courseAddRow.hidden = true;
+  courseAddRow.querySelectorAll('input').forEach(function(i) { i.value = ''; });
+  courseAddRow.querySelectorAll('select').forEach(function(s) { s.selectedIndex = 0; });
+});
+courseAddRow.querySelector('.dg-save-btn').addEventListener('click', function() {
+  var code = courseAddRow.querySelector('[data-field="course_code"]').value.trim();
+  var name = courseAddRow.querySelector('[data-field="course_name"]').value.trim();
+  var prog = courseAddRow.querySelector('[data-field="program"]').value;
+  var year = courseAddRow.querySelector('[data-field="year"]').value;
+  var sem = courseAddRow.querySelector('[data-field="semester"]').value;
+  var type = courseAddRow.querySelector('[data-field="unit_type"]').value;
+  var cohort = courseAddRow.querySelector('[data-field="student_cohort"]').value.trim() || '0';
+  if (!code || !name) { toast('Code and name required.', true); return; }
+  if (!prog) { toast('Select program.', true); return; }
+  sendAjax({ action: 'add_course', course_code: code, course_name: name, program: prog, year: year, semester: sem, unit_type: type, student_cohort: cohort })
+    .then(function(d) { if (d.status === 'success') { toast('Course added.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+    .catch(function() { toast('Network error.', true); });
+});
+
+// Add Program Code
+var addCodeBtn = document.getElementById('addCodeBtn');
+var codeAddRow = document.getElementById('codeAddRow');
+addCodeBtn.addEventListener('click', function() {
+  codeAddRow.hidden = !codeAddRow.hidden;
+  if (!codeAddRow.hidden) { codeAddRow.querySelector('[data-field="code"]').focus(); }
+});
+codeAddRow.querySelector('.dg-cancel-btn').addEventListener('click', function() {
+  codeAddRow.hidden = true;
+  codeAddRow.querySelectorAll('input').forEach(function(i) { i.value = ''; });
+  codeAddRow.querySelector('select').selectedIndex = 0;
+});
+codeAddRow.querySelector('.dg-save-btn').addEventListener('click', function() {
+  var prog = codeAddRow.querySelector('[data-field="program"]').value;
+  var code = codeAddRow.querySelector('[data-field="code"]').value.trim().toUpperCase();
+  if (!prog) { toast('Select program.', true); return; }
+  if (!code) { toast('Code required.', true); return; }
+  sendAjax({ action: 'add_program_code', program: prog, code: code })
+    .then(function(d) { if (d.status === 'success') { toast('Code added.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+    .catch(function() { toast('Network error.', true); });
+});
+
+// Inline edit - Programs
+document.getElementById('programsBody').addEventListener('change', function(e) {
+  var input = e.target.closest('.dg-cell-input, .dg-select-small');
+  if (!input) return;
+  var row = input.closest('.dg-row');
+  if (!row || row === programAddRow) return;
+  var id = row.dataset.id;
+  var name = row.querySelector('[data-field="name"]').value.trim();
+  var dept = row.querySelector('[data-field="department"]').value;
+  var cohort = row.querySelector('[data-field="default_cohort"]').value.trim() || '0';
+  if (!name) { input.classList.add('dg-error'); toast('Name required.', true); return; }
+  sendAjax({ action: 'edit_program', id: id, name: name, department: dept, default_cohort: cohort })
+    .then(function(d) {
+      if (d.status === 'success') { input.classList.remove('dg-error'); input.classList.add('dg-saved'); setTimeout(function() { input.classList.remove('dg-saved'); }, 900); }
+      else { input.classList.add('dg-error'); toast(d.message || 'Error.', true); }
+    })
+    .catch(function() { input.classList.add('dg-error'); toast('Network error.', true); });
+});
+
+// Inline edit - Courses
+document.getElementById('coursesBody').addEventListener('change', function(e) {
+  var input = e.target.closest('.dg-cell-input, .dg-select-small');
+  if (!input) return;
+  var row = input.closest('.dg-row');
+  if (!row || row === courseAddRow) return;
+  var id = row.dataset.id;
+  var code = row.querySelector('[data-field="course_code"]').value.trim();
+  var name = row.querySelector('[data-field="course_name"]').value.trim();
+  var year = row.querySelector('[data-field="year"]').value;
+  var sem = row.querySelector('[data-field="semester"]').value;
+  var type = row.querySelector('[data-field="unit_type"]').value;
+  var cohort = row.querySelector('[data-field="student_cohort"]').value.trim() || '0';
+  if (!code || !name) { input.classList.add('dg-error'); toast('Code and name required.', true); return; }
+  sendAjax({ action: 'edit_course', id: id, course_code: code, course_name: name, year: year, semester: sem, unit_type: type, student_cohort: cohort })
+    .then(function(d) {
+      if (d.status === 'success') { input.classList.remove('dg-error'); input.classList.add('dg-saved'); setTimeout(function() { input.classList.remove('dg-saved'); }, 900); }
+      else { input.classList.add('dg-error'); toast(d.message || 'Error.', true); }
+    })
+    .catch(function() { input.classList.add('dg-error'); toast('Network error.', true); });
+});
+
+// Inline edit - Program Codes
+document.getElementById('codesBody').addEventListener('change', function(e) {
+  var input = e.target.closest('.dg-cell-input, .dg-select-small');
+  if (!input) return;
+  var row = input.closest('.dg-row');
+  if (!row || row === codeAddRow) return;
+  var id = row.dataset.id;
+  var prog = row.querySelector('[data-field="program"]').value;
+  var code = row.querySelector('[data-field="code"]').value.trim().toUpperCase();
+  if (!code) { input.classList.add('dg-error'); toast('Code required.', true); return; }
+  sendAjax({ action: 'edit_program_code', id: id, program: prog, code: code })
+    .then(function(d) {
+      if (d.status === 'success') { input.classList.remove('dg-error'); input.classList.add('dg-saved'); setTimeout(function() { input.classList.remove('dg-saved'); }, 900); }
+      else { input.classList.add('dg-error'); toast(d.message || 'Error.', true); }
+    })
+    .catch(function() { input.classList.add('dg-error'); toast('Network error.', true); });
+});
+
+// Delete
+document.addEventListener('click', function(e) {
+  var delProg = e.target.closest('.dg-delete-program-btn');
+  if (delProg) {
+    var row = delProg.closest('.dg-row');
+    if (!confirm('Delete this program and all its courses?')) return;
+    sendAjax({ action: 'delete_program', id: row.dataset.id })
+      .then(function(d) { if (d.status === 'success') { toast('Program deleted.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+      .catch(function() { toast('Network error.', true); });
+    return;
+  }
+  var delCourse = e.target.closest('.dg-delete-course-btn');
+  if (delCourse) {
+    var row = delCourse.closest('.dg-row');
+    if (!confirm('Delete this course?')) return;
+    sendAjax({ action: 'delete_course', id: row.dataset.id })
+      .then(function(d) { if (d.status === 'success') { toast('Course deleted.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+      .catch(function() { toast('Network error.', true); });
+    return;
+  }
+  var delCode = e.target.closest('.dg-delete-code-btn');
+  if (delCode) {
+    var row = delCode.closest('.dg-row');
+    if (!confirm('Delete this program code?')) return;
+    sendAjax({ action: 'delete_program_code', id: row.dataset.id })
+      .then(function(d) { if (d.status === 'success') { toast('Code deleted.'); location.reload(); } else { toast(d.message || 'Error.', true); } })
+      .catch(function() { toast('Network error.', true); });
+    return;
+  }
+});
+
+// Filtering
+var activeProgramId = null;
+
+function applyCourseFilter() {
+  var dept = document.getElementById('deptFilter').value;
+  var q = document.getElementById('quickSearch').value.trim().toLowerCase();
+
+  document.querySelectorAll('#coursesBody .dg-section-header').forEach(function(r) { r.hidden = true; });
+  document.querySelectorAll('#coursesBody .dg-subsection-header').forEach(function(r) { r.hidden = true; });
+
+  var visible = 0;
+  document.querySelectorAll('#coursesBody .dg-row[data-type="course"]').forEach(function(row) {
+    var show = true;
+    if (activeProgramId && row.dataset.programId !== activeProgramId) show = false;
+    if (dept && row.dataset.deptId !== dept) show = false;
+    if (q && !row.textContent.toLowerCase().includes(q)) show = false;
+    row.hidden = !show;
+    if (show) {
+      visible++;
+      var prev = row.previousElementSibling;
+      while (prev) {
+        if (prev.classList.contains('dg-section-header')) { prev.hidden = false; break; }
+        if (prev.classList.contains('dg-subsection-header')) { prev.hidden = false; break; }
+        prev = prev.previousElementSibling;
+      }
+    }
+  });
+
+  document.querySelectorAll('#coursesBody .dg-section-header').forEach(function(h) {
+    var has = false;
+    var nxt = h.nextElementSibling;
+    while (nxt && !nxt.classList.contains('dg-section-header')) {
+      if (!nxt.hidden && nxt.dataset.type === 'course') { has = true; break; }
+      nxt = nxt.nextElementSibling;
+    }
+    if (has) h.hidden = false;
+  });
+  document.querySelectorAll('#coursesBody .dg-subsection-header').forEach(function(h) {
+    var has = false;
+    var nxt = h.nextElementSibling;
+    while (nxt && !nxt.classList.contains('dg-section-header') && !nxt.classList.contains('dg-subsection-header')) {
+      if (!nxt.hidden && nxt.dataset.type === 'course') { has = true; break; }
+      nxt = nxt.nextElementSibling;
+    }
+    if (has) h.hidden = false;
+  });
+
+  document.getElementById('coursesCount').textContent = visible;
+  document.getElementById('coursesTabCount').textContent = visible;
+}
+
+function applyProgramFilter() {
+  var dept = document.getElementById('deptFilter').value;
+  var q = document.getElementById('quickSearch').value.trim().toLowerCase();
+  document.querySelectorAll('#programsBody .dg-row[data-type="program"]').forEach(function(row) {
+    var show = true;
+    if (dept && row.dataset.deptId !== dept) show = false;
+    if (q && !row.textContent.toLowerCase().includes(q)) show = false;
+    row.hidden = !show;
+  });
+  refreshCounts();
+}
+
+function applyCodeFilter() {
+  var dept = document.getElementById('deptFilter').value;
+  var q = document.getElementById('quickSearch').value.trim().toLowerCase();
+  document.querySelectorAll('#codesBody .dg-row[data-type="code"]').forEach(function(row) {
+    var show = true;
+    if (dept && row.dataset.deptId !== dept) show = false;
+    if (q && !row.textContent.toLowerCase().includes(q)) show = false;
+    row.hidden = !show;
+  });
+  refreshCounts();
+}
+
+document.getElementById('deptFilter').addEventListener('change', function() { applyProgramFilter(); applyCourseFilter(); applyCodeFilter(); });
+document.getElementById('quickSearch').addEventListener('input', function() { applyProgramFilter(); applyCourseFilter(); applyCodeFilter(); });
+
+document.getElementById('programsBody').addEventListener('click', function(e) {
+  var btn = e.target.closest('.dg-select-btn');
+  if (!btn) return;
+  var row = btn.closest('.dg-row');
+  var id = row.dataset.id;
+  var name = row.querySelector('[data-field="name"]').value;
+
+  if (activeProgramId === id) {
+    activeProgramId = null;
+    document.getElementById('coursesFilterLabel').textContent = 'All programs';
+    document.querySelector('.dg-tab[data-tab="courses"]').click();
+  } else {
+    activeProgramId = id;
+    document.getElementById('coursesFilterLabel').innerHTML = 'Filtered: <strong>' + name + '</strong> <span class="dg-clear-filter" id="clearProgramFilter">Clear</span>';
+    document.querySelector('.dg-tab[data-tab="courses"]').click();
+  }
+  applyCourseFilter();
+});
+
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'clearProgramFilter') {
+    activeProgramId = null;
+    document.getElementById('coursesFilterLabel').textContent = 'All programs';
+    applyCourseFilter();
+  }
+});
+
+applyProgramFilter();
+applyCourseFilter();
+applyCodeFilter();
+
+})();
+</script>
+{% endblock extra_js %}

@@ -1,0 +1,1337 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}DVC Panel — Chuka University{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'faculty_management/css/faculty_management_faculty_dvc_panel.css' %}">
+<link rel="stylesheet" href="{% static 'faculty_management/css/dvc_panel.css' %}">
+{% endblock page_css %}
+
+
+{% block header_title %}<i class="fas fa-university" aria-hidden="true"></i> DVC Admin Panel — {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}
+
+{% block navbar_extra %}
+<a href="{% url 'published_timetables' %}" class="panel-header-btn panel-header-btn--outline" title="View Published Timetables">
+  <i class="fas fa-calendar-check" aria-hidden="true"></i>
+  <span class="d-none-xs" style="font-size:.78rem;margin-left:4px;">Published Timetables</span>
+</a>
+<a href="{% url 'dvc_allocations_dashboard' %}" class="panel-header-btn panel-header-btn--outline" title="Allocation Reports — every department, Main/ODeL/Campus/Resit">
+  <i class="fas fa-file-pdf" aria-hidden="true"></i>
+  <span class="d-none-xs" style="font-size:.78rem;margin-left:4px;">Allocation Reports (All Depts)</span>
+</a>
+<a href="{% url 'course_list_pdf' %}" target="_blank" class="panel-header-btn panel-header-btn--outline" title="Download Allocation PDF">
+  <i class="fas fa-file-pdf" aria-hidden="true"></i>
+  <span class="d-none-xs" style="font-size:.78rem;margin-left:4px;">Course Allocation PDF</span> 
+</a>
+
+{% endblock navbar_extra %}
+
+{% block panel_content %}
+{# Hidden CSRF holder — always present in DOM so JS querySelector never returns null #}
+<form id="csrf-holder" style="display:none">{% csrf_token %}</form>
+<div class="dvc-body">
+
+  <!-- ===== NAV TABS ===== -->
+  <div class="nav-tabs">
+    <button class="nav-tab-btn active" id="tab-allocations">
+      <i class="fas fa-table"></i> Course Allocations
+      <span class="tab-count" id="tab-count-alloc">—</span>
+    </button>
+    <button class="nav-tab-btn" id="tab-campus">
+      <i class="fas fa-university"></i> Campus Allocations
+      <span class="tab-count" id="tab-count-campus">—</span>
+    </button>
+    <button class="nav-tab-btn" id="tab-odel">
+      <i class="fas fa-laptop"></i> ODEL Allocations
+      <span class="tab-count" id="tab-count-odel">—</span>
+    </button>
+    <button class="nav-tab-btn" id="tab-disapproved">
+      <i class="fas fa-times-circle"></i> Disapproved
+      <span class="tab-count" id="tab-count-dis">—</span>
+    </button>
+  </div>
+
+  <!-- ===== MAIN ===== -->
+  <main>
+
+    <!-- =================================================================
+    STANDARD ALLOCATIONS PANEL
+    ================================================================== -->
+    <section id="allocations-panel" class="panel-section active">
+      <!-- Filter Toolbar -->
+      <div class="toolbar"
+        data-dept-url="{% url 'ajax_search_departments' %}"
+        data-fac-url="{% url 'ajax_search_faculties' %}"
+        data-lect-url="{% url 'ajax_search_lecturers' %}">
+        <div class="filter-group">
+          <label>Faculty</label>
+          <select id="faculty-filter">
+            <option value="">All Faculties</option>
+            {% for faculty in faculties %}
+            <option value="{{ faculty.id }}" {% if faculty_filter == faculty.id %}selected{% endif %}>{{ faculty.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Department</label>
+          <select id="department-filter">
+            <option value="">All Departments</option>
+            {% for department in departments %}
+            <option value="{{ department.id }}" {% if department_filter == department.id %}selected{% endif %} data-faculty="{{ department.faculty.id }}">
+              {{ department.name }} ({{ department.faculty.name }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Lecturer</label>
+          <select id="lecturer-filter">
+            <option value="">All Lecturers</option>
+            {% for lecturer in lecturers %}
+            <option value="{{ lecturer.id }}" {% if lecturer_filter == lecturer.id %}selected{% endif %} data-department="{{ lecturer.department.id }}">
+              {{ lecturer.display_name }}{% if lecturer.department %} ({{ lecturer.department.name }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group" style="flex:2;">
+          <label>Search</label>
+          <div class="search-wrap">
+            <input type="text" id="search-allocations" value="{{ search_query|default:'' }}" placeholder="Course code, name, lecturer or program…">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" id="apply-filters"><i class="fas fa-filter"></i> Apply</button>
+          <button class="btn btn-secondary" id="clear-filters"><i class="fas fa-times"></i> Clear</button>
+        </div>
+      </div>
+
+      <!-- Active filter indicators -->
+      <div id="active-filter-bar" style="display:none; padding:5px 24px 0; background:#fff; border-bottom:1px solid var(--gray-border); flex-wrap:wrap; gap:6px; align-items:center;">
+        <span style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;">Active filters:</span>
+        <span id="active-fac-chip" style="display:none;" class="sub-chip submitted"></span>
+        <span id="active-dept-chip" style="display:none;" class="sub-chip submitted"></span>
+        <span id="active-lect-chip" style="display:none;" class="sub-chip submitted"></span>
+        <span id="active-srch-chip" style="display:none;" class="sub-chip submitted"></span>
+      </div>
+
+      <!-- View Toggle and Bulk Actions -->
+      <div class="bulk-bar" style="justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <span class="bulk-bar-title"><i class="fas fa-check-double"></i> Course Allocations</span>
+          <div class="view-toggle">
+            <button class="view-toggle-btn {% if group_by == 'lecturer' %}active{% endif %}" data-view="lecturer">
+              <i class="fas fa-chalkboard-teacher"></i> By Lecturer
+            </button>
+            <button class="view-toggle-btn {% if group_by == 'department' %}active{% endif %}" data-view="department">
+              <i class="fas fa-sitemap"></i> By Department
+            </button>
+          </div>
+        </div>
+        <div class="bulk-bar-actions">
+          <button class="btn btn-approve" id="approve-all-btn"><i class="fas fa-check-double"></i> Approve All</button>
+          <button class="btn btn-reject" id="reject-all-btn"><i class="fas fa-times"></i> Reject All</button>
+        </div>
+      </div>
+
+      <div class="panel-scroll" id="alloc-scroll">
+        <div id="allocations-container">
+          {% if group_by == 'lecturer' %}
+          {% for lecturer_name, lecturer_data in grouped_allocations.items %}
+          <div class="lecturer-master-block" data-lecturer="{{ lecturer_name }}" data-lecturer-id="{{ lecturer_data.id }}">
+            <div class="lecturer-master-header">
+              <div class="lecturer-master-header-left">
+                <i class="fas fa-chalkboard-teacher" style="font-size:18px;"></i>
+                <h3>{{ lecturer_name }}</h3>
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ lecturer_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ lecturer_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ lecturer_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ lecturer_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+              <div class="lecturer-master-header-right">
+                <button class="btn btn-approve approve-lecturer-btn" data-lecturer-id="{{ lecturer_data.id }}"><i class="fas fa-check"></i> Approve All</button>
+                <button class="btn btn-reject reject-lecturer-btn" data-lecturer-id="{{ lecturer_data.id }}"><i class="fas fa-times"></i> Reject All</button>
+              </div>
+            </div>
+            {% for dept_name, dept_data in lecturer_data.departments.items %}
+            <div class="dept-within-lecturer">
+              <div class="dept-mini-header">
+                <i class="fas fa-sitemap" style="color:var(--green-accent);"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ dept_name }}</span>
+                <span style="font-size:11px;color:var(--text-muted);">{% if dept_data.faculty %}({{ dept_data.faculty }}){% endif %}</span>
+                <button class="btn btn-approve btn-sm approve-dept-btn-small" data-dept-id="{{ dept_data.id }}" style="margin-left:auto;"><i class="fas fa-check"></i> Dept</button>
+                <button class="btn btn-reject btn-sm reject-dept-btn-small" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Dept</button>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in dept_data.courses %}
+                    <tr data-id="{{ course.id }}">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No courses assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-inbox" style="font-size:48px;opacity:.3;"></i><h3>No course allocations found</h3><p>Try adjusting your filters or check back later.</p></div>
+          {% endfor %}
+
+          {% else %}
+          {% for dept_name, dept_data in grouped_allocations.items %}
+          <div class="dept-master-block" data-dept="{{ dept_name }}" data-dept-id="{{ dept_data.id }}">
+            <div class="dept-master-header">
+              <div class="dept-master-header-left">
+                <i class="fas fa-sitemap" style="font-size:18px;"></i>
+                <h3>{{ dept_name }}</h3>
+                <span style="font-size:12px;color:rgba(255,255,255,0.8);">{% if dept_data.faculty %}{{ dept_data.faculty }}{% endif %}</span>
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ dept_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ dept_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ dept_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ dept_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+              <div class="dept-master-header-right">
+                <button class="btn btn-approve approve-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-check"></i> Approve Dept</button>
+                <button class="btn btn-reject reject-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Reject Dept</button>
+              </div>
+            </div>
+            {% for lecturer_name, lecturer_data in dept_data.lecturers.items %}
+            <div class="lecturer-within-dept">
+              <div class="lecturer-mini-header">
+                <i class="fas fa-chalkboard-teacher" style="color:var(--green-main);"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ lecturer_name }}</span>
+                <button class="btn btn-approve btn-sm approve-lecturer-btn-small" data-lecturer-id="{{ lecturer_data.id }}" style="margin-left:auto;"><i class="fas fa-check"></i> Lecturer</button>
+                <button class="btn btn-reject btn-sm reject-lecturer-btn-small" data-lecturer-id="{{ lecturer_data.id }}"><i class="fas fa-times"></i> Lecturer</button>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in lecturer_data.courses %}
+                    <tr data-id="{{ course.id }}">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No lecturers assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-inbox" style="font-size:48px;opacity:.3;"></i><h3>No course allocations found</h3></div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+    CAMPUS ALLOCATIONS PANEL  ← NEW
+    ================================================================== -->
+    <section id="campus-panel" class="panel-section">
+      <div class="bulk-bar" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="bulk-bar-title"><i class="fas fa-university"></i> Campus Course Allocations</span>
+          <!-- Campus filter pill -->
+          <select id="campus-filter-select" style="border:1px solid var(--gray-border);border-radius:6px;padding:4px 10px;font-size:.82rem;">
+            <option value="">All Campuses</option>
+            {% for c in campuses %}
+            <option value="{{ c.id }}">{{ c.name }} ({{ c.code }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="bulk-bar-actions">
+          <button class="btn btn-approve" id="campus-approve-all-btn"><i class="fas fa-check-double"></i> Approve All</button>
+          <button class="btn btn-reject" id="campus-reject-all-btn"><i class="fas fa-times"></i> Reject All</button>
+        </div>
+      </div>
+
+      <div class="panel-scroll">
+        <div id="campus-allocations-container">
+          {% if group_by == 'lecturer' %}
+          {% for lecturer_name, lecturer_data in grouped_campus_allocations.items %}
+          <div class="lecturer-master-block" data-lecturer="{{ lecturer_name }}" data-lecturer-id="{{ lecturer_data.id }}">
+            <div class="lecturer-master-header">
+              <div class="lecturer-master-header-left">
+                <i class="fas fa-chalkboard-teacher" style="font-size:18px;"></i>
+                <h3>{{ lecturer_name }}</h3>
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ lecturer_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ lecturer_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ lecturer_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ lecturer_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+            </div>
+            {% for dept_name, dept_data in lecturer_data.departments.items %}
+            <div class="dept-within-lecturer" data-campus-code="{{ dept_data.campus_code }}">
+              <div class="dept-mini-header">
+                <i class="fas fa-map-marker-alt" style="color:#1565c0;"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ dept_name }}</span>
+                <span style="font-size:11px;color:var(--text-muted);">{% if dept_data.faculty %}({{ dept_data.faculty }}){% endif %}</span>
+                {% if dept_data.campus %}<span class="sub-chip submitted" style="margin-left:6px;font-size:10px;"><i class="fas fa-university"></i> {{ dept_data.campus }}</span>{% endif %}
+                <button class="btn btn-approve btn-sm campus-approve-dept-btn" data-dept-id="{{ dept_data.id }}" style="margin-left:auto;"><i class="fas fa-check"></i> Dept</button>
+                <button class="btn btn-reject btn-sm campus-reject-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Dept</button>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Delivery</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in dept_data.courses %}
+                    <tr data-id="{{ course.id }}" data-alloc-type="campus">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td><span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;">{{ course.delivery_mode }}</span></td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve campus-approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject campus-reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No courses assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-university" style="font-size:48px;opacity:.3;"></i><h3>No campus allocations submitted to DVC</h3><p>Campus CODs must submit allocations before they appear here.</p></div>
+          {% endfor %}
+
+          {% else %}
+          {% for dept_name, dept_data in grouped_campus_allocations.items %}
+          <div class="dept-master-block" data-dept="{{ dept_name }}" data-dept-id="{{ dept_data.id }}" data-campus-code="{{ dept_data.campus_code }}">
+            <div class="dept-master-header">
+              <div class="dept-master-header-left">
+                <i class="fas fa-sitemap" style="font-size:18px;"></i>
+                <h3>{{ dept_name }}</h3>
+                {% if dept_data.campus %}<span style="font-size:11px;background:rgba(255,255,255,0.2);border-radius:10px;padding:2px 8px;margin-left:8px;"><i class="fas fa-university"></i> {{ dept_data.campus }}</span>{% endif %}
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ dept_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ dept_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ dept_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ dept_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+              <div class="dept-master-header-right">
+                <button class="btn btn-approve campus-approve-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-check"></i> Approve Dept</button>
+                <button class="btn btn-reject campus-reject-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Reject Dept</button>
+              </div>
+            </div>
+            {% for lecturer_name, lecturer_data in dept_data.lecturers.items %}
+            <div class="lecturer-within-dept">
+              <div class="lecturer-mini-header">
+                <i class="fas fa-chalkboard-teacher" style="color:var(--green-main);"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ lecturer_name }}</span>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Delivery</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in lecturer_data.courses %}
+                    <tr data-id="{{ course.id }}" data-alloc-type="campus">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td><span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;">{{ course.delivery_mode }}</span></td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve campus-approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject campus-reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No lecturers assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-university" style="font-size:48px;opacity:.3;"></i><h3>No campus allocations submitted to DVC</h3></div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+    ODEL ALLOCATIONS PANEL  ← NEW
+    ================================================================== -->
+    <section id="odel-panel" class="panel-section">
+      <div class="bulk-bar" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="bulk-bar-title"><i class="fas fa-laptop"></i> ODEL Course Allocations</span>
+        </div>
+        <div class="bulk-bar-actions">
+          <button class="btn btn-approve" id="odel-approve-all-btn"><i class="fas fa-check-double"></i> Approve All</button>
+          <button class="btn btn-reject" id="odel-reject-all-btn"><i class="fas fa-times"></i> Reject All</button>
+        </div>
+      </div>
+
+      <div class="panel-scroll">
+        <div id="odel-allocations-container">
+          {% if group_by == 'lecturer' %}
+          {% for lecturer_name, lecturer_data in grouped_odel_allocations.items %}
+          <div class="lecturer-master-block" data-lecturer="{{ lecturer_name }}" data-lecturer-id="{{ lecturer_data.id }}">
+            <div class="lecturer-master-header">
+              <div class="lecturer-master-header-left">
+                <i class="fas fa-chalkboard-teacher" style="font-size:18px;"></i>
+                <h3>{{ lecturer_name }}</h3>
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ lecturer_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ lecturer_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ lecturer_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ lecturer_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+            </div>
+            {% for dept_name, dept_data in lecturer_data.departments.items %}
+            <div class="dept-within-lecturer">
+              <div class="dept-mini-header">
+                <i class="fas fa-laptop" style="color:#6a1b9a;"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ dept_name }}</span>
+                <span style="font-size:11px;color:var(--text-muted);">{% if dept_data.faculty %}({{ dept_data.faculty }}){% endif %}</span>
+                <button class="btn btn-approve btn-sm odel-approve-dept-btn" data-dept-id="{{ dept_data.id }}" style="margin-left:auto;"><i class="fas fa-check"></i> Dept</button>
+                <button class="btn btn-reject btn-sm odel-reject-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Dept</button>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in dept_data.courses %}
+                    <tr data-id="{{ course.id }}" data-alloc-type="odel">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve odel-approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject odel-reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No courses assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-laptop" style="font-size:48px;opacity:.3;"></i><h3>No ODEL allocations submitted to DVC</h3><p>ODEL CODs must submit allocations before they appear here.</p></div>
+          {% endfor %}
+
+          {% else %}
+          {% for dept_name, dept_data in grouped_odel_allocations.items %}
+          <div class="dept-master-block" data-dept="{{ dept_name }}" data-dept-id="{{ dept_data.id }}">
+            <div class="dept-master-header">
+              <div class="dept-master-header-left">
+                <i class="fas fa-laptop" style="font-size:18px;"></i>
+                <h3>{{ dept_name }}</h3>
+                <span style="font-size:12px;color:rgba(255,255,255,0.8);">{% if dept_data.faculty %}{{ dept_data.faculty }}{% endif %}</span>
+                <span class="lecturer-counts">
+                  <span class="count-badge total">{{ dept_data.counts.total }} courses</span>
+                  <span class="count-badge approved">{{ dept_data.counts.approved }} approved</span>
+                  <span class="count-badge pending">{{ dept_data.counts.pending }} pending</span>
+                  <span class="count-badge rejected">{{ dept_data.counts.rejected }} rejected</span>
+                </span>
+              </div>
+              <div class="dept-master-header-right">
+                <button class="btn btn-approve odel-approve-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-check"></i> Approve Dept</button>
+                <button class="btn btn-reject odel-reject-dept-btn" data-dept-id="{{ dept_data.id }}"><i class="fas fa-times"></i> Reject Dept</button>
+              </div>
+            </div>
+            {% for lecturer_name, lecturer_data in dept_data.lecturers.items %}
+            <div class="lecturer-within-dept">
+              <div class="lecturer-mini-header">
+                <i class="fas fa-chalkboard-teacher" style="color:var(--green-main);"></i>
+                <span style="font-weight:600;color:var(--text-dark);">{{ lecturer_name }}</span>
+              </div>
+              <div class="excel-table-wrap">
+                <table class="xl">
+                  <thead>
+                    <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+                    <tr><th class="row-num"><i class="fas fa-hashtag"></i></th><th>Course Code</th><th>Course Name</th><th>Program</th><th>Year/Sem</th><th>Students</th><th>Status</th><th>Action</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for course in lecturer_data.courses %}
+                    <tr data-id="{{ course.id }}" data-alloc-type="odel">
+                      <td class="row-num">{{ forloop.counter }}</td>
+                      <td><strong>{{ course.code }}</strong></td>
+                      <td>{{ course.name }}</td>
+                      <td>{{ course.program }}</td>
+                      <td>Y{{ course.year }} S{{ course.semester }}</td>
+                      <td>{{ course.students }}</td>
+                      <td>
+                        {% if course.approved %}<span class="status-chip approved"><i class="fas fa-check-circle"></i> Approved</span>
+                        {% elif course.rejected %}<span class="status-chip rejected"><i class="fas fa-times-circle"></i> Rejected</span>
+                        {% else %}<span class="status-chip pending"><i class="fas fa-clock"></i> Pending</span>{% endif %}
+                      </td>
+                      <td>
+                        {% if not course.approved and not course.rejected %}
+                        <button class="btn btn-approve odel-approve-btn"><i class="fas fa-check"></i></button>
+                        <button class="btn btn-reject odel-reject-btn" style="margin-left:4px;"><i class="fas fa-times"></i></button>
+                        {% else %}<em style="color:#aaa;font-size:12px;">—</em>{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {% empty %}<div class="empty-state" style="margin:15px 0 15px 45px;">No lecturers assigned.</div>{% endfor %}
+          </div>
+          {% empty %}
+          <div class="empty-state"><i class="fas fa-laptop" style="font-size:48px;opacity:.3;"></i><h3>No ODEL allocations submitted to DVC</h3></div>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+    DISAPPROVED PANEL (now shows Standard + Campus + ODEL tabs)
+    ================================================================== -->
+    <section id="disapproved-panel" class="panel-section">
+      <div class="toolbar">
+        <div class="filter-group">
+          <label>Filter by Faculty</label>
+          <select id="dis-faculty-filter">
+            <option value="">All Faculties</option>
+            {% for faculty in faculties %}<option value="{{ faculty.id }}">{{ faculty.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Filter by Department</label>
+          <select id="dis-department-filter">
+            <option value="">All Departments</option>
+            {% for department in departments %}
+            <option value="{{ department.id }}" data-faculty="{{ department.faculty.id }}">{{ department.name }}{% if department.faculty %} ({{ department.faculty.name }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="filter-group" style="flex:2;">
+          <label>Search</label>
+          <div class="search-wrap">
+            <input type="text" id="dis-search" placeholder="Course code, name or lecturer…">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" id="dis-apply-filters"><i class="fas fa-filter"></i> Filter</button>
+          <button class="btn btn-secondary" id="dis-clear-filters"><i class="fas fa-times"></i> Clear</button>
+        </div>
+      </div>
+
+      <!-- Sub-tabs: Standard / Campus / ODEL -->
+      <div style="display:flex;gap:0;border-bottom:2px solid var(--gray-border);background:#f7f9ff;padding:0 16px;">
+        <button class="dis-sub-tab active" data-dis-tab="standard" style="border:none;background:none;padding:10px 18px;font-size:.85rem;font-weight:600;cursor:pointer;border-bottom:2px solid var(--green-main);margin-bottom:-2px;color:var(--green-main);">
+          <i class="fas fa-table"></i> Standard
+          <span id="dis-count-standard" class="tab-count" style="background:#c62828;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;margin-left:4px;">{{ disapproved_allocations|length }}</span>
+        </button>
+        <button class="dis-sub-tab" data-dis-tab="campus" style="border:none;background:none;padding:10px 18px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--text-muted);">
+          <i class="fas fa-university"></i> Campus
+          <span id="dis-count-campus" class="tab-count" style="background:#c62828;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;margin-left:4px;">{{ campus_disapproved|length }}</span>
+        </button>
+        <button class="dis-sub-tab" data-dis-tab="odel" style="border:none;background:none;padding:10px 18px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--text-muted);">
+          <i class="fas fa-laptop"></i> ODEL
+          <span id="dis-count-odel" class="tab-count" style="background:#c62828;color:#fff;border-radius:10px;padding:1px 7px;font-size:.7rem;margin-left:4px;">{{ odel_disapproved|length }}</span>
+        </button>
+      </div>
+
+      <div class="panel-scroll">
+        <div class="bulk-bar">
+          <span class="bulk-bar-title"><i class="fas fa-times-circle"></i> Disapproved Courses</span>
+          <div class="bulk-bar-actions">
+            <button class="btn btn-approve" id="approve-all-disapproved-btn"><i class="fas fa-check-double"></i> Approve All Shown</button>
+          </div>
+        </div>
+
+        <!-- Standard disapproved -->
+        <div id="disapproved-standard-container" class="dis-tab-content">
+          <div id="disapproved-container">
+            <div class="excel-table-wrap" style="border-radius:0 0 6px 6px;">
+              <table class="xl">
+                <thead>
+                  <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+                  <tr><th class="row-num"><i class="fas fa-hashtag" style="font-size:10px;"></i></th><th>Course Code</th><th>Course Name</th><th>Lecturer</th><th>Department</th><th>Reason for Disapproval</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                  {% for alloc in disapproved_allocations %}
+                  <tr data-id="{{ alloc.id }}" data-dept-id="{{ alloc.department.id|default:'' }}" data-alloc-type="standard">
+                    <td class="row-num">{{ forloop.counter }}</td>
+                    <td><strong>{{ alloc.course_code }}</strong></td>
+                    <td>{{ alloc.course_name }}</td>
+                    <td>{% if alloc.lecturer %}{{ alloc.lecturer.display_name }}{% else %}<em style="color:#999;">N/A</em>{% endif %}</td>
+                    <td>{{ alloc.department.name|default:"—" }}</td>
+                    <td><input type="text" class="reason-input" value="{{ alloc.reason_for_disapproval|default_if_none:'' }}" placeholder="Enter reason…"></td>
+                    <td>
+                      <button class="btn btn-approve approve-btn"><i class="fas fa-check"></i> Approve</button>
+                      <button class="btn btn-update update-reason-btn" style="margin-left:4px;"><i class="fas fa-save"></i> Save</button>
+                    </td>
+                  </tr>
+                  {% empty %}
+                  <tr><td colspan="7" class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--excel-th-bg);"></i><br>No disapproved standard courses.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campus disapproved -->
+        <div id="disapproved-campus-container" class="dis-tab-content" style="display:none;">
+          <div class="excel-table-wrap" style="border-radius:0 0 6px 6px;">
+            <table class="xl">
+              <thead>
+                <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th></tr>
+                <tr><th class="row-num"><i class="fas fa-hashtag" style="font-size:10px;"></i></th><th>Course Code</th><th>Course Name</th><th>Lecturer</th><th>Department</th><th>Campus</th><th>Reason</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {% for alloc in campus_disapproved %}
+                <tr data-id="{{ alloc.id }}" data-dept-id="{{ alloc.department.id|default:'' }}" data-alloc-type="campus">
+                  <td class="row-num">{{ forloop.counter }}</td>
+                  <td><strong>{{ alloc.course_code }}</strong></td>
+                  <td>{{ alloc.course_name }}</td>
+                  <td>{% if alloc.lecturer %}{{ alloc.lecturer.display_name }}{% else %}<em style="color:#999;">N/A</em>{% endif %}</td>
+                  <td>{{ alloc.department.name|default:"—" }}</td>
+                  <td>{% if alloc.campus %}<span style="background:#e3f2fd;color:#1565c0;border-radius:10px;padding:2px 8px;font-size:11px;">{{ alloc.campus.code }}</span>{% else %}—{% endif %}</td>
+                  <td><input type="text" class="reason-input" value="{{ alloc.reason_for_disapproval|default_if_none:'' }}" placeholder="Enter reason…"></td>
+                  <td>
+                    <button class="btn btn-approve approve-btn"><i class="fas fa-check"></i> Approve</button>
+                    <button class="btn btn-update update-reason-btn" style="margin-left:4px;"><i class="fas fa-save"></i> Save</button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--excel-th-bg);"></i><br>No disapproved campus courses.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ODEL disapproved -->
+        <div id="disapproved-odel-container" class="dis-tab-content" style="display:none;">
+          <div class="excel-table-wrap" style="border-radius:0 0 6px 6px;">
+            <table class="xl">
+              <thead>
+                <tr class="col-letter-row"><th class="row-num">#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>
+                <tr><th class="row-num"><i class="fas fa-hashtag" style="font-size:10px;"></i></th><th>Course Code</th><th>Course Name</th><th>Lecturer</th><th>Department</th><th>Reason for Rejection</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {% for alloc in odel_disapproved %}
+                <tr data-id="{{ alloc.id }}" data-dept-id="{{ alloc.department.id|default:'' }}" data-alloc-type="odel">
+                  <td class="row-num">{{ forloop.counter }}</td>
+                  <td><strong>{{ alloc.course_code }}</strong></td>
+                  <td>{{ alloc.course_name }}</td>
+                  <td>{% if alloc.lecturer %}{{ alloc.lecturer.display_name }}{% else %}<em style="color:#999;">N/A</em>{% endif %}</td>
+                  <td>{% if alloc.department %}{{ alloc.department.name }}{% else %}—{% endif %}</td>
+                  <td><input type="text" class="reason-input" value="{{ alloc.reason_for_rejection|default_if_none:'' }}" placeholder="Enter reason…"></td>
+                  <td>
+                    <button class="btn btn-approve approve-btn"><i class="fas fa-check"></i> Approve</button>
+                    <button class="btn btn-update update-reason-btn" style="margin-left:4px;"><i class="fas fa-save"></i> Save</button>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty-state" style="padding:30px;"><i class="fas fa-check-circle" style="color:var(--excel-th-bg);"></i><br>No disapproved ODEL courses.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =================================================================
+    FACULTIES PANEL (unchanged)
+    ================================================================== -->
+    <section id="faculty-panel" class="panel-section">
+      <div class="toolbar">
+        <div class="filter-group" style="flex:3;">
+          <label>Search Faculties</label>
+          <div class="search-wrap">
+            <input type="text" id="search-faculties" placeholder="Search by name or description…">
+            <i class="fas fa-search"></i>
+          </div>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" id="add-faculty-btn"><i class="fas fa-plus"></i> Add Faculty</button>
+          <button class="btn btn-secondary" id="refresh-faculties"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+      </div>
+      <div class="panel-scroll">
+        <div id="faculties-container">
+          <div class="faculty-grid" id="faculty-list">
+            {% for f in faculties %}
+            <div class="faculty-card" data-id="{{ f.id }}">
+              <div class="faculty-card-name">{{ f.name }}</div>
+              <div class="faculty-card-desc">{{ f.description|default:"No description" }}</div>
+              <div class="faculty-card-dean">
+                <i class="fas fa-user-tie" style="font-size:11px;color:var(--excel-th-bg);"></i>
+                {% if f.leader %}Dean: {{ f.leader.get_full_name|default:f.leader.username }}{% else %}Dean: Not assigned{% endif %}
+              </div>
+              <div class="faculty-card-actions">
+                <button class="btn btn-edit edit-btn"><i class="fas fa-edit"></i> Edit</button>
+                <button class="btn btn-delete delete-btn"><i class="fas fa-trash-alt"></i> Delete</button>
+              </div>
+            </div>
+            {% empty %}
+            <div class="empty-state"><i class="fas fa-building"></i>No faculties found.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    &copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} &mdash; DVC Admin Panel
+  </footer>
+</div>
+
+<!-- FACULTY MODAL (unchanged) -->
+<div id="faculty-modal" class="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2><i class="fas fa-university"></i> <span id="modal-title">Add Faculty</span></h2>
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="faculty-form">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="faculty-id">
+        <div class="form-group"><label>Faculty Name *</label><input type="text" name="name" id="faculty-name" required placeholder="e.g. Faculty of Science"></div>
+        <div class="form-group"><label>Description</label><textarea name="description" id="faculty-desc" placeholder="Brief description…"></textarea></div>
+        <div class="form-group"><label>Dean Full Name</label><input type="text" name="dean_name" id="faculty-dean" placeholder="Dean Full Name"></div>
+        <div class="form-group"><label>Dean Username</label><input type="text" name="dean_username" id="faculty-dean-username" placeholder="Dean Username"></div>
+        <div class="form-group"><label>Dean Email</label><input type="email" name="dean_email" id="faculty-dean-email" placeholder="Dean Email"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn"><i class="fas fa-save"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
+{{ state|json_script:"dvc-state-data" }}
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+try {
+
+  const DVC_URL   = "{% url 'dvc_panel' %}";
+  const AJAX_URL  = "{% url 'ajax_disapproved' %}";
+  const csrfToken = (
+    document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+    (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || ''
+  );
+
+  let currentState = {};
+  try { currentState = JSON.parse(document.getElementById('dvc-state-data')?.textContent || '{}'); } catch(e) {}
+
+  const toastEl = document.getElementById('toast');
+  function toast(msg, type = 'success', duration = 3200) {
+    if (!toastEl) return;
+    const icons = { success:'check-circle', error:'exclamation-circle', info:'info-circle' };
+    toastEl.innerHTML = `<i class="fas fa-${icons[type]||'check-circle'}"></i> ${msg}`;
+    toastEl.className = `toast ${type} show`;
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(() => toastEl.classList.remove('show'), duration);
+  }
+
+  function postJSON(url, data) {
+    const fd = new FormData();
+    Object.entries(data).forEach(([k,v]) => fd.append(k, v));
+    return fetch(url, { method:'POST', headers:{'X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'}, body:fd })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  }
+  function getJSON(url) {
+    return fetch(url, { headers:{'X-Requested-With':'XMLHttpRequest'} })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  }
+  function saveState(updates = {}) {
+    currentState = { ...currentState, ...updates };
+    postJSON(DVC_URL, { action:'update_active_panel', panel:currentState.active_panel||'allocations-panel' }).catch(()=>{});
+  }
+
+  // ─── PANEL TABS ────────────────────────────────────────────
+  const tabMap = {
+    'tab-allocations': 'allocations-panel',
+    'tab-campus':      'campus-panel',
+    'tab-odel':        'odel-panel',
+    'tab-disapproved': 'disapproved-panel',
+    'tab-faculties':   'faculty-panel',
+  };
+
+  function activateTab(panelId) {
+    Object.entries(tabMap).forEach(([btnId, pid]) => {
+      document.getElementById(btnId)?.classList.toggle('active', pid === panelId);
+      document.getElementById(pid)?.classList.toggle('active', pid === panelId);
+    });
+  }
+  Object.entries(tabMap).forEach(([btnId, panelId]) => {
+    document.getElementById(btnId)?.addEventListener('click', () => {
+      activateTab(panelId);
+      currentState.active_panel = panelId;
+      saveState();
+    });
+  });
+  activateTab(currentState.active_panel || 'allocations-panel');
+
+  // ─── VIEW TOGGLE ───────────────────────────────────────────
+  document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('group_by', this.dataset.view);
+      url.searchParams.set('clear_session', '1');
+      window.location.href = url.toString();
+    });
+  });
+
+  // ─── STANDARD FILTER BAR ──────────────────────────────────
+  const toolbar          = document.querySelector('#allocations-panel .toolbar');
+  const DEPT_URL         = toolbar?.dataset.deptUrl || '';
+  const FAC_URL          = toolbar?.dataset.facUrl  || '';
+  const LECT_URL         = toolbar?.dataset.lectUrl || '';
+  const facultyFilter    = document.getElementById('faculty-filter');
+  const departmentFilter = document.getElementById('department-filter');
+  const lecturerFilter   = document.getElementById('lecturer-filter');
+  const searchInput      = document.getElementById('search-allocations');
+
+  function loadDepartments(facultyId) {
+    if (!departmentFilter) return;
+    if (!facultyId) { departmentFilter.innerHTML = '<option value="">All Departments</option>'; return; }
+    departmentFilter.innerHTML = '<option value="">Loading…</option>';
+    getJSON(`${DEPT_URL}?faculty_id=${encodeURIComponent(facultyId)}`)
+      .then(data => {
+        departmentFilter.innerHTML = '<option value="">All Departments</option>';
+        (data.results||[]).forEach(d => { const o=document.createElement('option'); o.value=d.id; o.textContent=d.text; departmentFilter.appendChild(o); });
+      }).catch(() => { departmentFilter.innerHTML = '<option value="">All Departments</option>'; });
+  }
+  function loadLecturers(deptId, facId) {
+    if (!lecturerFilter) return;
+    lecturerFilter.innerHTML = '<option value="">Loading…</option>';
+    const qs = deptId?`department_id=${encodeURIComponent(deptId)}`:facId?`faculty_id=${encodeURIComponent(facId)}`:'q=';
+    getJSON(`${LECT_URL}?${qs}`)
+      .then(data => {
+        lecturerFilter.innerHTML = '<option value="">All Lecturers</option>';
+        (data.results||[]).forEach(l => { const o=document.createElement('option'); o.value=l.id; o.textContent=l.text+(l.department?` (${l.department})`:''); lecturerFilter.appendChild(o); });
+      }).catch(() => { lecturerFilter.innerHTML = '<option value="">All Lecturers</option>'; });
+  }
+  facultyFilter?.addEventListener('change', function() { loadDepartments(this.value); loadLecturers(null, this.value); });
+  departmentFilter?.addEventListener('change', function() { loadLecturers(this.value, facultyFilter?.value); });
+  document.getElementById('apply-filters')?.addEventListener('click', () => {
+    const p = new URLSearchParams();
+    if (facultyFilter?.value)      p.append('faculty',    facultyFilter.value);
+    if (departmentFilter?.value)   p.append('department', departmentFilter.value);
+    if (lecturerFilter?.value)     p.append('lecturer',   lecturerFilter.value);
+    if (searchInput?.value.trim()) p.append('search',     searchInput.value.trim());
+    p.append('clear_session', '1');
+    window.location.search = p.toString();
+  });
+  document.getElementById('clear-filters')?.addEventListener('click', () => { window.location.search = '?clear_session=1'; });
+  searchInput?.addEventListener('keydown', e => { if (e.key==='Enter') document.getElementById('apply-filters')?.click(); });
+
+  // ─── DOM HELPERS ───────────────────────────────────────────
+  function updateRow(row, label, cls) {
+    const icons = { approved:'check-circle', rejected:'times-circle', pending:'clock' };
+    // Find the status cell by its chip, not by fragile nth-child counting.
+    // Every status cell contains a .status-chip span — walk up from it to the <td>.
+    let statusTd = row.querySelector('.status-chip')?.closest('td');
+    // Fallback for rows that are still in the initial pending state rendered
+    // by the template without a chip (shouldn't normally happen, but be safe).
+    if (!statusTd) statusTd = row.querySelector('td:nth-child(7)');
+    if (statusTd) statusTd.innerHTML = `<span class="status-chip ${cls}"><i class="fas fa-${icons[cls]}"></i> ${label}</span>`;
+    const actionTd = row.querySelector('td:last-child');
+    if (!actionTd) return;
+    const allocType = row.dataset.allocType || 'standard';
+    if (cls === 'approved') {
+      // Show Disapprove button so DVC can reverse
+      const rejectClass = allocType === 'campus' ? 'campus-reject-btn' : allocType === 'odel' ? 'odel-reject-btn' : 'reject-btn';
+      actionTd.innerHTML = `<button class="btn btn-reject ${rejectClass}" title="Disapprove"><i class="fas fa-times"></i></button>`;
+    } else if (cls === 'rejected') {
+      // Show Approve button so DVC can reverse
+      const approveClass = allocType === 'campus' ? 'campus-approve-btn' : allocType === 'odel' ? 'odel-approve-btn' : 'approve-btn';
+      actionTd.innerHTML = `<button class="btn btn-approve ${approveClass}" title="Re-approve"><i class="fas fa-check"></i></button>`;
+    } else {
+      // Pending — show both buttons
+      const approveClass = allocType === 'campus' ? 'campus-approve-btn' : allocType === 'odel' ? 'odel-approve-btn' : 'approve-btn';
+      const rejectClass  = allocType === 'campus' ? 'campus-reject-btn'  : allocType === 'odel' ? 'odel-reject-btn'  : 'reject-btn';
+      actionTd.innerHTML = `<button class="btn btn-approve ${approveClass}"><i class="fas fa-check"></i></button>`
+                         + `<button class="btn btn-reject ${rejectClass}" style="margin-left:4px;"><i class="fas fa-times"></i></button>`;
+    }
+  }
+  function recountBlock(block) {
+    let approved=0,rejected=0,pending=0;
+    block.querySelectorAll('tbody tr').forEach(r => {
+      const chip = r.querySelector('.status-chip');
+      if (!chip) return;
+      if (chip.classList.contains('approved')) approved++;
+      else if (chip.classList.contains('rejected')) rejected++;
+      else pending++;
+    });
+    const counts = block.querySelector('.lecturer-counts');
+    if (!counts) return;
+    const set = (cls,text) => { const el=counts.querySelector('.'+cls); if(el) el.textContent=text; };
+    set('approved',`${approved} approved`); set('pending',`${pending} pending`); set('rejected',`${rejected} rejected`);
+  }
+  function setAllRows(container, label, cls) {
+    document.querySelectorAll(`#${container} tbody tr`).forEach(r => updateRow(r, label, cls));
+    document.querySelectorAll(`#${container}`).forEach(c => c.querySelectorAll('.lecturer-master-block, .dept-master-block').forEach(recountBlock));
+  }
+  function updateTabCounts() {
+    const stdPending  = document.querySelectorAll('#allocations-container .status-chip.pending').length;
+    const campusPend  = document.querySelectorAll('#campus-allocations-container .status-chip.pending').length;
+    const odelPend    = document.querySelectorAll('#odel-allocations-container .status-chip.pending').length;
+    const disapprStd  = document.querySelectorAll('#disapproved-standard-container tbody tr[data-id]').length;
+    const disapprCamp = document.querySelectorAll('#disapproved-campus-container tbody tr[data-id]').length;
+    const disapprOdel = document.querySelectorAll('#disapproved-odel-container tbody tr[data-id]').length;
+    const setEl = (id, v) => { const e=document.getElementById(id); if(e) e.textContent=v||'0'; };
+    setEl('tab-count-alloc',   stdPending);
+    setEl('tab-count-campus',  campusPend);
+    setEl('tab-count-odel',    odelPend);
+    setEl('tab-count-dis',     disapprStd + disapprCamp + disapprOdel);
+  }
+  updateTabCounts();
+
+  // ─── STANDARD ALLOCATION ACTIONS ──────────────────────────
+  document.addEventListener('click', function(e) {
+    // Single row approve/reject (standard)
+    if (e.target.closest('#allocations-container .approve-btn')) {
+      const row = e.target.closest('tr[data-id]'); if (row) doStdRowAction(row, 'approve_allocation'); return;
+    }
+    if (e.target.closest('#allocations-container .reject-btn')) {
+      const row = e.target.closest('tr[data-id]'); if (row) doStdRowAction(row, 'reject_allocation'); return;
+    }
+    // Approve / Reject ALL standard
+    if (e.target.closest('#approve-all-btn')) {
+      if (!confirm('Approve ALL standard allocations?')) return;
+      postJSON(DVC_URL, { action:'approve_all_allocations' })
+        .then(d => { if(d.status==='success'){ setAllRows('allocations-container','Approved','approved'); toast(d.message); } else toast(d.message,'error'); })
+        .catch(()=>toast('Network error','error')); return;
+    }
+    if (e.target.closest('#reject-all-btn')) {
+      if (!confirm('Reject ALL standard allocations?')) return;
+      postJSON(DVC_URL, { action:'reject_all_allocations' })
+        .then(d => { if(d.status==='success'){ setAllRows('allocations-container','Rejected','rejected'); toast(d.message); } else toast(d.message,'error'); })
+        .catch(()=>toast('Network error','error')); return;
+    }
+    // Dept buttons (dept-view master header)
+    if (e.target.closest('#allocations-container .approve-dept-btn, #allocations-container .reject-dept-btn')) {
+      const btn=e.target.closest('.approve-dept-btn,.reject-dept-btn'); const blk=btn.closest('.dept-master-block'); if(!blk) return;
+      const isAp=btn.classList.contains('approve-dept-btn');
+      if (!confirm(`${isAp?'Approve':'Reject'} ALL in this department?`)) return;
+      postJSON(DVC_URL,{action:isAp?'approve_department_allocations':'reject_department_allocations',department_id:blk.dataset.deptId})
+        .then(d=>{if(d.status==='success'){blk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));recountBlock(blk);toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#allocations-container .approve-dept-btn-small, #allocations-container .reject-dept-btn-small')) {
+      const btn=e.target.closest('.approve-dept-btn-small,.reject-dept-btn-small');const deptBlk=btn.closest('.dept-within-lecturer');if(!deptBlk)return;
+      const isAp=btn.classList.contains('approve-dept-btn-small');
+      if(!confirm(`${isAp?'Approve':'Reject'} ALL in this department?`))return;
+      postJSON(DVC_URL,{action:isAp?'approve_department_allocations':'reject_department_allocations',department_id:btn.dataset.deptId})
+        .then(d=>{if(d.status==='success'){deptBlk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));const lb=deptBlk.closest('.lecturer-master-block');if(lb)recountBlock(lb);toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    // Lecturer buttons
+    if (e.target.closest('#allocations-container .approve-lecturer-btn, #allocations-container .reject-lecturer-btn')) {
+      const btn=e.target.closest('.approve-lecturer-btn,.reject-lecturer-btn');const blk=btn.closest('.lecturer-master-block');const lid=btn.dataset.lecturerId;if(!blk||!lid)return;
+      const isAp=btn.classList.contains('approve-lecturer-btn');
+      if(!confirm(`${isAp?'Approve':'Reject'} ALL for this lecturer?`))return;
+      postJSON(DVC_URL,{action:isAp?'approve_lecturer_allocations':'reject_lecturer_allocations',lecturer_id:lid})
+        .then(d=>{if(d.status==='success'){blk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));recountBlock(blk);toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#allocations-container .approve-lecturer-btn-small, #allocations-container .reject-lecturer-btn-small')) {
+      const btn=e.target.closest('.approve-lecturer-btn-small,.reject-lecturer-btn-small');const lectBlk=btn.closest('.lecturer-within-dept');const lid=btn.dataset.lecturerId;if(!lectBlk||!lid)return;
+      const isAp=btn.classList.contains('approve-lecturer-btn-small');
+      if(!confirm(`${isAp?'Approve':'Reject'} ALL for this lecturer?`))return;
+      postJSON(DVC_URL,{action:isAp?'approve_lecturer_allocations':'reject_lecturer_allocations',lecturer_id:lid})
+        .then(d=>{if(d.status==='success'){lectBlk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));const db=lectBlk.closest('.dept-master-block');if(db)recountBlock(db);toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    // Faculty edit/delete
+    if (e.target.closest('.edit-btn')) {
+      const card=e.target.closest('.faculty-card');if(!card)return;
+      document.getElementById('faculty-id').value=card.dataset.id;
+      document.getElementById('faculty-name').value=card.querySelector('.faculty-card-name')?.textContent.trim()||'';
+      document.getElementById('faculty-desc').value=card.querySelector('.faculty-card-desc')?.textContent.trim()||'';
+      document.getElementById('modal-title').textContent='Edit Faculty';
+      document.getElementById('faculty-modal')?.classList.add('open');return;
+    }
+    if (e.target.closest('.delete-btn')) {
+      const card=e.target.closest('.faculty-card');if(!card)return;
+      if(!confirm('Delete this faculty? This cannot be undone.'))return;
+      postJSON(DVC_URL,{action:'delete_faculty',id:card.dataset.id})
+        .then(d=>{if(d.status==='success'){card.remove();toast('Faculty deleted');}else toast(d.message,'error');}).catch(()=>toast('Error deleting faculty','error'));return;
+    }
+  });
+
+  function doStdRowAction(row, action) {
+    postJSON(DVC_URL,{action,id:row.dataset.id})
+      .then(d=>{if(d.status==='success'){const isAp=action==='approve_allocation';updateRow(row,isAp?'Approved':'Rejected',isAp?'approved':'rejected');const parent=row.closest('.lecturer-master-block')||row.closest('.dept-master-block');if(parent)recountBlock(parent);updateTabCounts();toast(d.message);}else toast(d.message||'Action failed','error');})
+      .catch(()=>toast('Network error','error'));
+  }
+
+  // ─── CAMPUS ALLOCATION ACTIONS ─────────────────────────────
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#campus-allocations-container .campus-approve-btn')) {
+      const row=e.target.closest('tr[data-id]');if(row)doCampusRowAction(row,'approve_campus_allocation');return;
+    }
+    if (e.target.closest('#campus-allocations-container .campus-reject-btn')) {
+      const row=e.target.closest('tr[data-id]');if(row)doCampusRowAction(row,'reject_campus_allocation');return;
+    }
+    if (e.target.closest('#campus-approve-all-btn')) {
+      if(!confirm('Approve ALL campus allocations?'))return;
+      postJSON(DVC_URL,{action:'approve_all_campus_allocations'})
+        .then(d=>{if(d.status==='success'){setAllRows('campus-allocations-container','Approved','approved');toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#campus-reject-all-btn')) {
+      if(!confirm('Reject ALL campus allocations?'))return;
+      postJSON(DVC_URL,{action:'reject_all_campus_allocations'})
+        .then(d=>{if(d.status==='success'){setAllRows('campus-allocations-container','Rejected','rejected');toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#campus-allocations-container .campus-approve-dept-btn, #campus-allocations-container .campus-reject-dept-btn')) {
+      const btn=e.target.closest('.campus-approve-dept-btn,.campus-reject-dept-btn');
+      const deptId=btn.dataset.deptId;if(!deptId)return;
+      const isAp=btn.classList.contains('campus-approve-dept-btn');
+      if(!confirm(`${isAp?'Approve':'Reject'} ALL campus courses in this department?`))return;
+      postJSON(DVC_URL,{action:isAp?'approve_campus_dept_allocations':'reject_campus_dept_allocations',department_id:deptId})
+        .then(d=>{if(d.status==='success'){const blk=btn.closest('.dept-within-lecturer,.dept-master-block');if(blk){blk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));recountBlock(blk);}toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+  });
+  function doCampusRowAction(row, action) {
+    postJSON(DVC_URL,{action,id:row.dataset.id})
+      .then(d=>{if(d.status==='success'){const isAp=action==='approve_campus_allocation';updateRow(row,isAp?'Approved':'Rejected',isAp?'approved':'rejected');const parent=row.closest('.lecturer-master-block')||row.closest('.dept-master-block');if(parent)recountBlock(parent);updateTabCounts();toast(d.message);}else toast(d.message||'Action failed','error');}).catch(()=>toast('Network error','error'));
+  }
+
+  // Campus filter by campus (client-side show/hide)
+  document.getElementById('campus-filter-select')?.addEventListener('change', function() {
+    const campusId = this.value;
+    document.querySelectorAll('#campus-allocations-container .dept-within-lecturer, #campus-allocations-container .dept-master-block').forEach(blk => {
+      blk.style.display = (!campusId || blk.dataset.campusCode) ? '' : '';
+      // We match by campus badge text since we store campus_code on data attribute
+      if (campusId) {
+        const badge = blk.querySelector('.sub-chip');
+        if (badge) {
+          blk.style.display = badge.textContent.includes(this.options[this.selectedIndex]?.textContent?.split('(')[1]?.replace(')','').trim() || '') ? '' : 'none';
+        }
+      }
+    });
+  });
+
+  // ─── ODEL ALLOCATION ACTIONS ───────────────────────────────
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('#odel-allocations-container .odel-approve-btn')) {
+      const row=e.target.closest('tr[data-id]');if(row)doOdelRowAction(row,'approve_odel_allocation');return;
+    }
+    if (e.target.closest('#odel-allocations-container .odel-reject-btn')) {
+      const row=e.target.closest('tr[data-id]');if(row)doOdelRowAction(row,'reject_odel_allocation');return;
+    }
+    if (e.target.closest('#odel-approve-all-btn')) {
+      if(!confirm('Approve ALL ODEL allocations?'))return;
+      postJSON(DVC_URL,{action:'approve_all_odel_allocations'})
+        .then(d=>{if(d.status==='success'){setAllRows('odel-allocations-container','Approved','approved');toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#odel-reject-all-btn')) {
+      if(!confirm('Reject ALL ODEL allocations?'))return;
+      postJSON(DVC_URL,{action:'reject_all_odel_allocations'})
+        .then(d=>{if(d.status==='success'){setAllRows('odel-allocations-container','Rejected','rejected');toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+    if (e.target.closest('#odel-allocations-container .odel-approve-dept-btn, #odel-allocations-container .odel-reject-dept-btn')) {
+      const btn=e.target.closest('.odel-approve-dept-btn,.odel-reject-dept-btn');
+      const deptId=btn.dataset.deptId;if(!deptId)return;
+      const isAp=btn.classList.contains('odel-approve-dept-btn');
+      if(!confirm(`${isAp?'Approve':'Reject'} ALL ODEL courses in this department?`))return;
+      postJSON(DVC_URL,{action:isAp?'approve_odel_dept_allocations':'reject_odel_dept_allocations',department_id:deptId})
+        .then(d=>{if(d.status==='success'){const blk=btn.closest('.dept-within-lecturer,.dept-master-block');if(blk){blk.querySelectorAll('tbody tr').forEach(r=>updateRow(r,isAp?'Approved':'Rejected',isAp?'approved':'rejected'));recountBlock(blk);}toast(d.message);}else toast(d.message,'error');}).catch(()=>toast('Network error','error'));return;
+    }
+  });
+  function doOdelRowAction(row, action) {
+    postJSON(DVC_URL,{action,id:row.dataset.id})
+      .then(d=>{if(d.status==='success'){const isAp=action==='approve_odel_allocation';updateRow(row,isAp?'Approved':'Rejected',isAp?'approved':'rejected');const parent=row.closest('.lecturer-master-block')||row.closest('.dept-master-block');if(parent)recountBlock(parent);updateTabCounts();toast(d.message);}else toast(d.message||'Action failed','error');}).catch(()=>toast('Network error','error'));
+  }
+
+  // ─── DISAPPROVED SUB-TABS ──────────────────────────────────
+  let activeDisTab = 'standard';
+  document.querySelectorAll('.dis-sub-tab').forEach(btn => {
+    btn.addEventListener('click', function() {
+      activeDisTab = this.dataset.disTab;
+      document.querySelectorAll('.dis-sub-tab').forEach(b => {
+        b.style.borderBottom = b===this ? '2px solid var(--green-main)' : 'none';
+        b.style.color = b===this ? 'var(--green-main)' : 'var(--text-muted)';
+      });
+      document.querySelectorAll('.dis-tab-content').forEach(c => { c.style.display = 'none'; });
+      document.getElementById(`disapproved-${activeDisTab}-container`)?.style.setProperty('display','block');
+    });
+  });
+
+  // Disapproved panel actions (delegated — handles all three sub-tabs)
+  document.addEventListener('click', function(e) {
+    const disRow = e.target.closest('#disapproved-panel tr[data-id]');
+    if (!disRow) return;
+    const allocType = disRow.dataset.allocType || 'standard';
+
+    if (e.target.closest('.update-reason-btn')) {
+      const reason = disRow.querySelector('.reason-input')?.value.trim() || '';
+      postJSON(AJAX_URL,{action:'update_disapproval_reason',id:disRow.dataset.id,reason,alloc_type:allocType})
+        .then(d=>toast(d.status==='success'?d.message:(d.message||'Error'),d.status==='success'?'success':'error'))
+        .catch(()=>toast('Error saving reason','error')); return;
+    }
+    if (e.target.closest('.approve-btn')) {
+      if(!confirm('Approve this disapproved course?'))return;
+      postJSON(AJAX_URL,{action:'approve_allocation',id:disRow.dataset.id,alloc_type:allocType})
+        .then(d=>{if(d.status==='success'){disRow.remove();toast(d.message);updateTabCounts();}else toast(d.message||'Error','error');})
+        .catch(()=>toast('Error approving','error')); return;
+    }
+  });
+
+  document.getElementById('approve-all-disapproved-btn')?.addEventListener('click', () => {
+    if(!confirm(`Approve ALL disapproved ${activeDisTab} courses?`))return;
+    postJSON(AJAX_URL,{action:'approve_all_disapproved',alloc_type:activeDisTab})
+      .then(d=>{
+        if(d.status==='success'){
+          const container=document.getElementById(`disapproved-${activeDisTab}-container`);
+          container?.querySelectorAll('tbody tr[data-id]').forEach(r=>r.remove());
+          toast(d.message);updateTabCounts();
+        }else toast(d.message||'Error','error');
+      }).catch(()=>toast('Error','error'));
+  });
+
+  // Disapproved client-side filter
+  (function() {
+    const disFac=document.getElementById('dis-faculty-filter');
+    const disDept=document.getElementById('dis-department-filter');
+    const disSrch=document.getElementById('dis-search');
+    function filterDis() {
+      const facId=disFac?.value||'';const deptId=disDept?.value||'';const srch=(disSrch?.value||'').toLowerCase().trim();
+      let validDeptIds=null;
+      if(facId){validDeptIds=new Set();document.querySelectorAll('#dis-department-filter option[data-faculty]').forEach(o=>{if(o.dataset.faculty===facId)validDeptIds.add(o.value);});}
+      document.querySelectorAll('#disapproved-panel tbody tr[data-id]').forEach(row=>{
+        const rowDept=row.dataset.deptId||'';
+        let show=true;
+        if(facId&&validDeptIds&&!validDeptIds.has(rowDept))show=false;
+        if(deptId&&rowDept!==deptId)show=false;
+        if(srch&&!row.textContent.toLowerCase().includes(srch))show=false;
+        row.style.display=show?'':'none';
+      });
+    }
+    disFac?.addEventListener('change',function(){
+      const facId=this.value;
+      document.querySelectorAll('#dis-department-filter option[data-faculty]').forEach(o=>{o.style.display=(!facId||o.dataset.faculty===facId)?'':'none';});
+      if(disDept)disDept.value='';filterDis();
+    });
+    disDept?.addEventListener('change',filterDis);
+    disSrch?.addEventListener('input',filterDis);
+    document.getElementById('dis-apply-filters')?.addEventListener('click',filterDis);
+    document.getElementById('dis-clear-filters')?.addEventListener('click',()=>{
+      if(disFac)disFac.value='';
+      if(disDept){disDept.querySelectorAll('option[data-faculty]').forEach(o=>o.style.display='');disDept.value='';}
+      if(disSrch)disSrch.value='';filterDis();
+    });
+  })();
+
+  // ─── FACULTY MODAL ─────────────────────────────────────────
+  const facultyModal=document.getElementById('faculty-modal');
+  const facultyForm=document.getElementById('faculty-form');
+  function openModal(){facultyModal?.classList.add('open');}
+  function closeModal(){facultyModal?.classList.remove('open');}
+  document.getElementById('add-faculty-btn')?.addEventListener('click',()=>{facultyForm?.reset();document.getElementById('faculty-id').value='';document.getElementById('modal-title').textContent='Add Faculty';openModal();});
+  document.getElementById('modal-close-btn')?.addEventListener('click',closeModal);
+  document.getElementById('modal-cancel-btn')?.addEventListener('click',closeModal);
+  facultyModal?.addEventListener('click',e=>{if(e.target===facultyModal)closeModal();});
+  document.getElementById('modal-save-btn')?.addEventListener('click',()=>{facultyForm?.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));});
+  facultyForm?.addEventListener('submit',e=>{
+    e.preventDefault();const fd=new FormData(facultyForm);const id=fd.get('id');fd.append('action',id?'edit_faculty':'add_faculty');
+    fetch(DVC_URL,{method:'POST',headers:{'X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'},body:fd})
+      .then(r=>r.json()).then(d=>{if(d.status==='success'){closeModal();toast(d.message);setTimeout(()=>location.reload(),1000);}else toast(d.message||'Error saving faculty','error');}).catch(()=>toast('Error saving faculty','error'));
+  });
+  document.getElementById('refresh-faculties')?.addEventListener('click',()=>location.reload());
+  document.getElementById('search-faculties')?.addEventListener('input',function(){
+    const term=this.value.toLowerCase();
+    document.querySelectorAll('#faculty-list .faculty-card').forEach(card=>{card.style.display=card.textContent.toLowerCase().includes(term)?'':'none';});
+  });
+
+  updateTabCounts();
+
+  // ─── OFFLINE QUEUE & AUTO-SYNC ────────────────────────────────────────────
+  // Failed network actions are saved to localStorage and retried automatically
+  // when connectivity is restored.
+  const OFFLINE_QUEUE_KEY = 'dvc_offline_queue';
+  function loadQueue() { try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY)||'[]'); } catch(e){ return []; } }
+  function saveQueue(q) { try { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); } catch(e){} }
+
+  function showOfflineBanner(count) {
+    let b = document.getElementById('offline-banner');
+    if (!b) {
+      b = document.createElement('div'); b.id = 'offline-banner';
+      b.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#e65100;color:#fff;padding:8px 22px;border-radius:20px;font-size:.82rem;z-index:9998;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3);';
+      document.body.appendChild(b);
+    }
+    b.innerHTML = `<i class="fas fa-wifi"></i> ${count} action(s) queued — will sync when online`;
+    b.style.display = 'flex';
+  }
+  function hideOfflineBanner() { const b=document.getElementById('offline-banner'); if(b) b.style.display='none'; }
+
+  async function flushQueue() {
+    const q = loadQueue(); if (!q.length) return;
+    const remaining = [];
+    for (const item of q) {
+      try {
+        const fd = new FormData();
+        Object.entries(item.data).forEach(([k,v])=>fd.append(k,v));
+        const r = await fetch(item.url,{method:'POST',headers:{'X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'},body:fd});
+        if (!r.ok) remaining.push(item);
+      } catch(e) { remaining.push(item); }
+    }
+    saveQueue(remaining);
+    if (!remaining.length) { hideOfflineBanner(); toast(`Synced ${q.length} offline action(s)`,'success'); }
+    else showOfflineBanner(remaining.length);
+  }
+
+  // Offline-aware wrapper around postJSON — queues on failure
+  function postJSONSafe(url, data) {
+    return postJSON(url, data).catch(err => {
+      const q = loadQueue(); q.push({url, data, ts:Date.now()}); saveQueue(q);
+      showOfflineBanner(q.length);
+      toast('Offline — action saved and will sync automatically','info',5000);
+      return Promise.reject(err);
+    });
+  }
+
+  window.addEventListener('online', () => { toast('Back online — syncing…','info'); flushQueue(); });
+  if (navigator.onLine) flushQueue();
+  const _iq = loadQueue(); if (_iq.length) showOfflineBanner(_iq.length);
+
+  // ─── AUTO-REFRESH POLLING ────────────────────────────────────────────────
+  // Poll every 30 s; only update rows whose status actually changed.
+  let _pollTimer = null, _polling = false;
+  async function pollForUpdates() {
+    if (_polling || document.hidden) return;
+    _polling = true;
+    try {
+      const r = await fetch(`${DVC_URL}?ajax_status=1`,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!Array.isArray(d.rows)) return;
+      d.rows.forEach(({id, status}) => {
+        const row = document.querySelector(`tr[data-id="${id}"]`); if (!row) return;
+        const chip = row.querySelector('.status-chip'); if (!chip) return;
+        const cur = chip.classList.contains('approved') ? 'approved' : chip.classList.contains('rejected') ? 'rejected' : 'pending';
+        if (cur !== status) {
+          updateRow(row, status.charAt(0).toUpperCase()+status.slice(1), status);
+          const parent = row.closest('.lecturer-master-block')||row.closest('.dept-master-block');
+          if (parent) recountBlock(parent);
+        }
+      });
+      updateTabCounts();
+    } catch(e) { /* silent */ } finally { _polling = false; }
+  }
+  function startPolling() { _pollTimer = setInterval(pollForUpdates, 30000); }
+  function stopPolling()  { clearInterval(_pollTimer); }
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopPolling(); else { pollForUpdates(); startPolling(); } });
+  startPolling();
+
+} catch(err) {
+  console.error("DVC Panel error:", err);
+  const b=document.createElement("div");
+  b.style.cssText="position:fixed;top:60px;left:0;right:0;background:#c62828;color:#fff;padding:12px 20px;z-index:9999;font-size:.9rem;";
+  b.innerHTML='<strong>⚠ Panel error:</strong> '+err.message+' — please reload.';
+  document.body.prepend(b);
+}
+});
+</script>
+{% endblock extra_js %}

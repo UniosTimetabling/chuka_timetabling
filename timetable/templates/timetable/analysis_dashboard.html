@@ -1,0 +1,1926 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timetable Analysis &amp; Reports</title>
+<style>
+  :root{
+    --green:#1E7145; --green-dark:#155432; --grid:#D0E1D4;
+    --bg:#F6F9F7; --text:#111; --warn:#B94A2C; --muted:#666; --orange:#D4772A;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:24px;}
+  h1{font-size:1.4rem;color:var(--green-dark);margin:0 0 4px;}
+  p.sub{color:var(--muted);margin:0 0 20px;}
+  
+  /* Tabs */
+  .tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--grid);flex-wrap:wrap;}
+  .tab{background:transparent;border:none;padding:10px 18px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;transition:all .2s;}
+  .tab:hover{color:var(--green-dark);}
+  .tab.active{color:var(--green);border-bottom-color:var(--green);}
+  .tab .badge-tab{display:inline-block;background:var(--warn);color:#fff;border-radius:10px;padding:0 8px;font-size:.65rem;margin-left:4px;}
+  .tab .badge-tab.orange{background:var(--orange);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+  
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px;}
+  .card{background:#fff;border:1px solid var(--grid);border-radius:10px;padding:16px;text-align:center;}
+  .card .num{font-size:1.8rem;font-weight:700;color:var(--green);}
+  .card.warn .num{color:var(--warn);}
+  .card .lbl{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .panel{background:#fff;border:1px solid var(--grid);border-radius:10px;padding:18px 20px;margin-bottom:20px;}
+  .panel h2{font-size:1.05rem;color:var(--green-dark);margin:0 0 12px;}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:end;}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:160px;}
+  .field label{font-size:.78rem;color:var(--muted);}
+  select,input[type=text],textarea{
+    padding:7px 9px;border:1px solid #cfd8d2;border-radius:6px;font-size:.85rem;font-family:inherit;
+    background:#fff;
+  }
+  textarea{min-height:70px;width:100%;resize:vertical;}
+  button{
+    background:var(--green);color:#fff;border:none;border-radius:6px;
+    padding:8px 16px;font-size:.85rem;cursor:pointer;font-weight:600;
+    transition:background .2s;
+  }
+  button:hover{background:var(--green-dark);}
+  button.secondary{background:#fff;color:var(--green);border:1px solid var(--green);}
+  button.secondary:hover{background:#eef6f0;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .scope-label{font-size:.8rem;color:var(--muted);margin-top:8px;}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.83rem;}
+  th,td{border:1px solid var(--grid);padding:6px 8px;text-align:left;vertical-align:top;}
+  th{background:var(--green);color:#fff;font-weight:600;}
+  tr:nth-child(even){background:#F4F9F5;}
+  .badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:.72rem;font-weight:600;}
+  .badge.ok{background:#DCEFE2;color:var(--green-dark);}
+  .badge.no{background:#F7DFD8;color:var(--warn);}
+  .badge.merged{background:#EAE3F7;color:#5B3A9C;margin-left:6px;}
+  .badge.group{background:#D4EDDA;color:#155724;}
+  .badge.stem{background:#D1ECF1;color:#0C5460;}
+  .badge.elective{background:#FFF3CD;color:#856404;}
+  .badge.overload{background:var(--warn);color:#fff;}
+  .badge.combined{background:#EAE3F7;color:#5B3A9C;}
+  .badge.special{background:#FDEBD0;color:#B9770E;margin-left:6px;}
+  .group-header{background:#EAF3EC;font-weight:700;}
+  #lookupResults{margin-top:10px;}
+  .hint{font-size:.75rem;color:var(--muted);margin-top:4px;}
+  .program-block{margin-bottom:28px;border:1px solid var(--grid);border-radius:8px;overflow:hidden;}
+  .program-header{background:var(--green);color:#fff;padding:12px 18px;font-weight:700;font-size:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+  .program-header .dept{font-weight:400;font-size:.8rem;opacity:.8;}
+  .program-header .stats{font-weight:400;font-size:.75rem;opacity:.85;}
+  .year-block{border-top:1px solid var(--grid);padding:14px 18px;}
+  .year-block h4{color:var(--green-dark);margin:0 0 10px;font-size:.95rem;cursor:pointer;user-select:none;}
+  .year-block h4:hover{opacity:.7;}
+  .section-group{margin:10px 0 16px 0;}
+  .section-group .sg-title{font-weight:600;color:var(--text);font-size:.85rem;padding:4px 0 4px 12px;border-left:3px solid var(--green);background:#F4F9F5;}
+  .sub-table{margin:6px 0 6px 20px;font-size:.8rem;}
+  .sub-table th{background:#4C7A5E;font-size:.75rem;}
+  .sub-table td{font-size:.75rem;}
+  .no-data{color:var(--muted);font-style:italic;padding:4px 12px;}
+  .collapse-content{display:block;}
+  .collapse-content.hidden{display:none;}
+  .loading-spinner{display:inline-block;width:20px;height:20px;border:3px solid var(--grid);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .summary-row{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;font-size:.8rem;color:var(--muted);}
+  .summary-row .count{font-weight:700;color:var(--text);}
+  .lecturer-card{border:1px solid var(--grid);border-radius:6px;padding:12px 16px;margin-bottom:12px;}
+  .lecturer-card .name{font-weight:700;font-size:1rem;color:var(--green-dark);}
+  .lecturer-card .count{color:var(--warn);font-weight:700;font-size:1.1rem;}
+  .lecturer-card .detail{font-size:.85rem;color:var(--muted);}
+  .lecturer-card .courses-list{margin-top:8px;padding-left:16px;}
+  .lecturer-card .courses-list li{font-size:.8rem;padding:2px 0;}
+  .lecturer-card .courses-list .combined-sub{list-style:none;padding-left:24px;font-size:.7rem;color:var(--muted);}
+
+  /* Consecutive & Workload tab */
+  .hidden{display:none !important;}
+  .pill-toggle{display:flex;gap:0;border:1px solid var(--green);border-radius:6px;overflow:hidden;width:fit-content;}
+  .pill-toggle .pill{background:#fff;color:var(--green);border:none;border-radius:0;padding:8px 16px;font-size:.83rem;}
+  .pill-toggle .pill.active{background:var(--green);color:#fff;}
+  .pill-toggle .pill:hover{background:#eef6f0;}
+  .pill-toggle .pill.active:hover{background:var(--green-dark);}
+  .workload-card .count-inline{font-weight:700;color:var(--green-dark);}
+  .workload-card .summary-row{margin:6px 0;}
+  .wl-view-btn{margin-top:8px;}
+  .wl-schedule-panel{margin-top:12px;border-top:1px dashed var(--grid);padding-top:12px;}
+  .ws-summary{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted);margin-bottom:10px;padding:8px 10px;background:#F4F9F5;border-radius:6px;}
+  .ws-summary b{color:var(--green-dark);}
+  .ws-day{margin-bottom:10px;}
+  .ws-day-title{font-weight:700;color:var(--green-dark);font-size:.85rem;margin-bottom:4px;}
+  .ws-sessions{list-style:none;margin:0;padding:0;}
+  .ws-sessions li{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--grid);border-radius:6px;margin-bottom:4px;font-size:.8rem;background:#fff;}
+  .ws-sessions li.ws-consecutive{border-color:var(--orange);background:#FFF8F0;}
+  .ws-time{font-weight:700;color:var(--green-dark);min-width:110px;}
+  .ws-course b{color:var(--text);}
+  .ws-meta{color:var(--muted);font-size:.72rem;}
+  .ws-noclasses{color:var(--muted);font-style:italic;font-size:.8rem;}
+
+  /* Matrix (venue × timeslot) search-result grids, one per day */
+  .day-matrix-wrap{overflow-x:auto;margin-top:6px;border:1px solid var(--grid);border-radius:8px;}
+  table.matrix-table{width:auto;min-width:100%;border-collapse:collapse;font-size:.78rem;}
+  table.matrix-table th,table.matrix-table td{border:1px solid var(--grid);padding:6px 8px;text-align:left;vertical-align:top;}
+  table.matrix-table thead th{background:var(--green);color:#fff;white-space:nowrap;position:sticky;top:0;z-index:1;}
+  table.matrix-table thead th:first-child{position:sticky;left:0;z-index:2;}
+  table.matrix-table td.mx-venue{background:#F4F9F5;font-weight:700;color:var(--green-dark);white-space:nowrap;position:sticky;left:0;z-index:1;}
+  table.matrix-table td.mx-filled{background:#fff;min-width:150px;max-width:220px;white-space:normal;}
+  table.matrix-table td.mx-empty{background:#FAFCFB;min-width:60px;}
+  table.matrix-table tr:nth-child(even) td.mx-filled,table.matrix-table tr:nth-child(even) td.mx-empty{background:#FBFDFC;}
+  .mx-code{font-weight:700;color:var(--green-dark);}
+  .mx-name{display:block;font-size:.7rem;color:var(--text);margin-top:1px;}
+  .mx-lect{display:block;font-size:.7rem;color:var(--muted);margin-top:1px;}
+  .mx-prog{display:block;font-size:.66rem;color:var(--orange);margin-top:1px;}
+  .mx-dept{display:block;font-size:.66rem;color:#5B3A9C;margin-top:1px;}
+  .mx-year{display:block;font-size:.66rem;color:var(--muted);margin-top:1px;font-weight:600;}
+  .mx-students{display:block;font-size:.66rem;color:var(--green-dark);margin-top:1px;font-weight:600;}
+  .mx-hr{border:none;border-top:1px dashed var(--grid);margin:5px 0;}
+  .day-heading{margin:18px 0 6px;color:var(--green-dark);font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .day-heading .day-count{font-size:.7rem;font-weight:400;color:var(--muted);}
+  @media(max-width:600px){body{padding:12px;} .tab{padding:8px 12px;font-size:.75rem;} .field{min-width:100%;}}
+</style>
+</head>
+<body>
+
+<h1>Timetable Analysis &amp; Reports</h1>
+<p class="sub">Read-only reporting on top of the live timetable — nothing here edits scheduling data.</p>
+
+<!-- ── Tabs ────────────────────────────────────────────────────── -->
+<div class="tabs">
+  <button class="tab active" data-tab="summary">📊 Summary</button>
+  <button class="tab" data-tab="programs">📋 Program Analysis</button>
+  <button class="tab" data-tab="zero-student">🔴 Zero-Student <span class="badge-tab" id="zeroBadge">0</span></button>
+  <button class="tab" data-tab="overload">⚠️ Overload <span class="badge-tab orange" id="overloadBadge">0</span></button>
+  <button class="tab" data-tab="workload">🔗 Consecutive &amp; Workload <span class="badge-tab orange" id="workloadBadge">0</span></button>
+  <button class="tab" data-tab="email">📧 Email Department</button>
+</div>
+
+<!-- ── TAB 1: Summary ─────────────────────────────────────────── -->
+<div id="tab-summary" class="tab-content active">
+
+  <!-- Summary cards -->
+  <div class="cards" id="summaryCards">
+    <div class="card"><div class="num" id="cScheduled">–</div><div class="lbl">Scheduled</div></div>
+    <div class="card warn"><div class="num" id="cUnscheduled">–</div><div class="lbl">Unscheduled</div></div>
+    <div class="card warn"><div class="num" id="cEw">–</div><div class="lbl">Evening / Weekend Pending</div></div>
+    <div class="card warn"><div class="num" id="cZero">–</div><div class="lbl">Zero-Student</div></div>
+  </div>
+
+  <!-- Scope filters -->
+  <div class="panel">
+    <h2>Scope</h2>
+    <div class="row">
+      <div class="field">
+        <label for="fFaculty">Faculty</label>
+        <select id="fFaculty"><option value="">All</option>
+          {% for f in faculties %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="fDepartment">Department</label>
+        <select id="fDepartment"><option value="">All</option>
+          {% for d in departments %}<option value="{{ d.id }}" data-faculty="{{ d.faculty_id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="fProgram">Program</label>
+        <select id="fProgram"><option value="">All</option>
+          {% for p in programs %}<option value="{{ p.id }}" data-department="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="fYear">Year</label>
+        <select id="fYear"><option value="">All</option>
+          {% for y in years %}<option value="{{ y.value }}">{{ y.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <button id="btnApplyScope">Apply Scope</button>
+    </div>
+    <div class="scope-label" id="scopeLabel">All Faculties / Departments / Programs</div>
+  </div>
+
+  <!-- Scoped timetable table -->
+  <div class="panel">
+    <h2>Timetable — <span id="scopeTimetableLabel">All Faculties / Departments / Programs</span></h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:8px;">Every scheduled entry inside the scope applied above, laid out day-by-day: timeslots across the top, venues down the left. Click "View Timetable" to load it for the current scope.</p>
+    <div class="row">
+      <button id="btnViewScopeTimetable">👁 View Timetable</button>
+      <button id="btnHideScopeTimetable" class="secondary" style="display:none;">Hide Timetable</button>
+    </div>
+    <div id="scopeTimetableTable" style="display:none;margin-top:10px;"></div>
+  </div>
+
+  <!-- Exports -->
+  <div class="panel">
+    <h2>Export Reports (PDF)</h2>
+    <div class="row">
+      <button id="btnExportUnscheduled">📄 Export Unscheduled — PDF</button>
+      <button id="btnExportUnscheduledOnly" class="secondary">📄 Export ALL Unscheduled Only — PDF</button>
+      <button id="btnExportScheduled" class="secondary">📅 Export Scheduled Timetable — PDF</button>
+      <button id="btnExportAllCoursesVenue" class="secondary">🏫 Export ALL Courses — Venue Summary PDF</button>
+      <button id="btnExportUsedRooms" class="secondary">🔑 Export Used Rooms — PDF</button>
+      <button id="btnExportAllVenues" class="secondary">🗺️ Export All Venues — PDF</button>
+      <button id="btnExportBlockedDesignated" class="secondary">🚫 Export Blocked & Designated Venues — PDF</button>
+      <button id="btnExportVenueCapacity" class="secondary">🏢 Export Venue Capacity & Availability — PDF</button>
+      <button id="btnExportDeptTimetable" class="secondary">🏛️ Export Departmental Timetable — PDF</button>
+    </div>
+  </div>
+
+  <!-- Course lookup -->
+  <div class="panel">
+    <h2>Course Lookup — "When / where is this course scheduled?"</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:8px;">Search anything — course code, course name, lecturer, program, department, faculty, venue, specialization, student group, or day. Laid out as a per-day venue×timeslot matrix.</p>
+    <div class="field" style="max-width:520px;">
+      <label for="lookupCodes">Search term(s) — comma or newline separated</label>
+      <textarea id="lookupCodes" placeholder="e.g. COSC 101, Mwangi, BBIT, BSL 303, Monday"></textarea>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button id="btnLookup">🔍 Search</button>
+      <button id="btnLookupPdf" class="secondary">📄 Download PDF for these results</button>
+    </div>
+    <div id="lookupResults"></div>
+  </div>
+
+  <!-- Universal search -->
+  <div class="panel">
+    <h2>Universal Search — search anything</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:8px;">Course code, course name, lecturer, program, department, faculty, venue, specialization, student group, or day — shown as a flat results list.</p>
+    <div class="field" style="max-width:520px;">
+      <label for="uSearchQuery">Search anything</label>
+      <input type="text" id="uSearchQuery" placeholder="e.g. Mwangi, Computer Science, BBIT, COSC 101, BSL 303">
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button id="btnUSearch">🔍 Search</button>
+      <button id="btnUSearchPdf" class="secondary">🖨️ Print / Export All Results — PDF</button>
+    </div>
+    <div id="uSearchResults"></div>
+  </div>
+
+</div><!-- /tab-summary -->
+
+<!-- ── TAB 2: Program Analysis ────────────────────────────────── -->
+<div id="tab-programs" class="tab-content">
+
+  <div class="panel">
+    <h2>Program Analysis — Courses, Groups, Combinations</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:12px;">Shows each program/year with: student groups, combined groups, specialization stems, selection groups, and ungrouped courses.</p>
+    <div class="row">
+      <div class="field">
+        <label for="paDepartment">Department</label>
+        <select id="paDepartment">
+          <option value="">All Departments</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="paProgram">Program</label>
+        <select id="paProgram">
+          <option value="">All Programs</option>
+          {% for p in programs %}<option value="{{ p.id }}" data-department="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <button id="btnLoadPrograms">📊 Load Analysis</button>
+    </div>
+  </div>
+
+  <div id="programAnalysisResults">
+    <div class="panel" style="text-align:center;padding:30px 20px;color:var(--muted);">
+      <p style="margin:0;">Select a department or program and click <strong>"Load Analysis"</strong>.</p>
+      <p style="margin:4px 0 0;font-size:.8rem;">Leave both on "All" to load everything (may take a moment).</p>
+    </div>
+  </div>
+
+</div><!-- /tab-programs -->
+
+<!-- ── TAB 3: Zero-Student Courses ───────────────────────────── -->
+<div id="tab-zero-student" class="tab-content">
+
+  <div class="panel">
+    <h2>🔴 Zero-Student Courses</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:12px;">Courses with 0 enrolled students — these may need attention or removal.</p>
+    <div class="row">
+      <div class="field">
+        <label for="zsDepartment">Department</label>
+        <select id="zsDepartment">
+          <option value="">All Departments</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="zsProgram">Program</label>
+        <select id="zsProgram">
+          <option value="">All Programs</option>
+          {% for p in programs %}<option value="{{ p.id }}" data-department="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <button id="btnLoadZeroStudent">🔍 Load Zero-Student Courses</button>
+    </div>
+  </div>
+
+  <div id="zeroStudentResults">
+    <div class="panel" style="text-align:center;padding:30px 20px;color:var(--muted);">
+      <p style="margin:0;">Select filters and click <strong>"Load Zero-Student Courses"</strong>.</p>
+    </div>
+  </div>
+
+</div><!-- /tab-zero-student -->
+
+<!-- ── TAB 4: Lecturer Overload ───────────────────────────────── -->
+<div id="tab-overload" class="tab-content">
+
+  <div class="panel">
+    <h2>⚠️ Lecturer Overload</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:12px;">
+      Lecturers with more than 6 units — showing count and which courses they're teaching.
+      <strong>Combined course groups count as ONE unit</strong> (not individual allocations).
+    </p>
+    <div class="row">
+      <div class="field">
+        <label for="olDepartment">Department</label>
+        <select id="olDepartment">
+          <option value="">All Departments</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="olProgram">Program</label>
+        <select id="olProgram">
+          <option value="">All Programs</option>
+          {% for p in programs %}<option value="{{ p.id }}" data-department="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="olThreshold">Threshold</label>
+        <select id="olThreshold">
+          <option value="6">6+ units</option>
+          <option value="7">7+ units</option>
+          <option value="8">8+ units</option>
+          <option value="9">9+ units</option>
+          <option value="10">10+ units</option>
+        </select>
+      </div>
+      <button id="btnLoadOverload">📊 Load Overload</button>
+    </div>
+  </div>
+
+  <div id="overloadResults">
+    <div class="panel" style="text-align:center;padding:30px 20px;color:var(--muted);">
+      <p style="margin:0;">Select filters and click <strong>"Load Overload"</strong>.</p>
+    </div>
+  </div>
+
+</div><!-- /tab-overload -->
+
+<!-- ── TAB: Consecutive Classes & Weekly Workload ────────────────── -->
+<div id="tab-workload" class="tab-content">
+
+  <div class="panel">
+    <h2>🔗 Consecutive Classes &amp; Weekly Workload</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:12px;">
+      Ranks lecturers or programs by back-to-back scheduled classes (no gap between sessions), highest first —
+      each row also shows overall weekly workload (hours, session count). Click a lecturer or a program year to
+      see its full week's schedule.
+    </p>
+
+    <div class="field" style="margin-bottom:14px;">
+      <label>View</label>
+      <div class="pill-toggle">
+        <button type="button" class="pill active" data-view="lecturers" id="wlViewLecturersBtn">👨‍🏫 Lecturers</button>
+        <button type="button" class="pill" data-view="programs" id="wlViewProgramsBtn">📋 Programs</button>
+      </div>
+    </div>
+
+    <div class="row" id="wlLecturerFilters">
+      <div class="field">
+        <label for="wlDepartment">Department</label>
+        <select id="wlDepartment">
+          <option value="">All Departments</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="wlProgram">Program</label>
+        <select id="wlProgram">
+          <option value="">All Programs</option>
+          {% for p in programs %}<option value="{{ p.id }}" data-department="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="wlMinConsecutive">Min. Back-to-Back</label>
+        <select id="wlMinConsecutive">
+          <option value="2">2+ consecutive</option>
+          <option value="3">3+ consecutive</option>
+          <option value="4">4+ consecutive</option>
+          <option value="5">5+ consecutive</option>
+        </select>
+      </div>
+      <button id="btnLoadLecturerWorkload">📊 Load Lecturers</button>
+    </div>
+
+    <div class="row hidden" id="wlProgramFilters">
+      <div class="field">
+        <label for="wlpDepartment">Department</label>
+        <select id="wlpDepartment">
+          <option value="">All Departments</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="wlpMinConsecutive">Min. Back-to-Back</label>
+        <select id="wlpMinConsecutive">
+          <option value="2">2+ consecutive</option>
+          <option value="3">3+ consecutive</option>
+          <option value="4">4+ consecutive</option>
+          <option value="5">5+ consecutive</option>
+        </select>
+      </div>
+      <button id="btnLoadProgramWorkload">📊 Load Programs</button>
+    </div>
+  </div>
+
+  <div id="workloadResults">
+    <div class="panel" style="text-align:center;padding:30px 20px;color:var(--muted);">
+      <p style="margin:0;">Choose a view and click <strong>"Load"</strong>.</p>
+    </div>
+  </div>
+
+</div><!-- /tab-workload -->
+
+<!-- ── TAB 5: Email Department ────────────────────────────────── -->
+<div id="tab-email" class="tab-content">
+
+  <div class="panel">
+    <h2>📧 Email Timetable &amp; Allocation to a Department</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:12px;">
+      Sends to each department's COD and COD Admin(s) on file — resolved automatically, nothing to type.
+      Pick one department, or check "Send to ALL departments" to broadcast the same message to everyone at once
+      (each department still only gets its own PDFs — never another department's). Choose what to attach, write your message, and send.
+    </p>
+    <div class="row">
+      <div class="field">
+        <label for="emDepartment">Department</label>
+        <select id="emDepartment">
+          <option value="">Select a department…</option>
+          {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:400;color:var(--text);margin-top:10px;">
+      <input type="checkbox" id="emSendToAll"> 📢 Send to ALL departments (each gets its own individually-scoped PDFs — nobody sees another department's timetable)
+    </label>
+    <div id="emRecipients" class="hint" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Attachments</h2>
+    <div class="row" style="gap:22px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:400;color:var(--text);">
+        <input type="checkbox" id="emIncludeUnscheduled"> 📄 Unscheduled Timetable (PDF)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:400;color:var(--text);">
+        <input type="checkbox" id="emIncludeScheduled" checked> 📅 Latest Published Timetable (PDF)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:400;color:var(--text);">
+        <input type="checkbox" id="emIncludeAllocation" checked> 📋 Course Allocation (PDF)
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:400;color:var(--text);">
+        <input type="checkbox" id="emIncludeDeptTimetable"> 🏛️ Departmental Timetable (PDF)
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Message</h2>
+    <div class="field">
+      <label for="emSubject">Subject</label>
+      <input type="text" id="emSubject" placeholder="e.g. Updated Timetable &amp; Course Allocation">
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label for="emBody">Body</label>
+      <textarea id="emBody" rows="7" placeholder="Type your message to the department…"></textarea>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button id="btnSendDeptEmail">📤 Send Email</button>
+    </div>
+    <div id="emSendResult" style="margin-top:10px;"></div>
+  </div>
+
+</div><!-- /tab-email -->
+
+<script>
+// ====================================================================
+// Shared utilities
+// ====================================================================
+const API = {
+  summary: "{% url 'timetable_analysis_summary_api' %}",
+  exportUnscheduled: "{% url 'export_unscheduled_pdf' %}",
+  exportUnscheduledOnly: "{% url 'export_unscheduled_only_pdf' %}",
+  exportScheduled: "{% url 'export_scheduled_pdf' %}",
+  exportAllCoursesVenue: "{% url 'export_all_courses_venue_summary_pdf' %}",
+  exportUsedRooms: "{% url 'export_used_rooms_pdf' %}",
+  exportAllVenues: "{% url 'export_all_venues_pdf' %}",
+  exportBlockedDesignated: "{% url 'export_blocked_designated_venues_pdf' %}",
+  exportVenueCapacity: "{% url 'export_venue_capacity_report_pdf' %}",
+  exportDeptTimetable: "{% url 'department_timetable_pdf' %}",
+  lookup: "{% url 'query_course_schedule_api' %}",
+  lookupPdf: "{% url 'export_course_schedule_pdf' %}",
+  uSearch: "{% url 'universal_search_api' %}",
+  uSearchPdf: "{% url 'export_universal_search_pdf' %}",
+  programAnalysis: "{% url 'program_analysis_api' %}",
+  zeroStudent: "{% url 'zero_student_courses_api' %}",
+  scheduledTimetable: "{% url 'scheduled_timetable_api' %}",
+  lecturerOverload: "{% url 'lecturer_overload_api' %}",
+  lecturerWorkload: "{% url 'lecturer_workload_api' %}",
+  lecturerWeeklySchedule: "{% url 'lecturer_weekly_schedule_api' %}",
+  programWorkload: "{% url 'program_workload_api' %}",
+  programYearWeeklySchedule: "{% url 'program_year_weekly_schedule_api' %}",
+  deptEmailRecipients: "{% url 'department_email_recipients_api' %}",
+  sendDeptEmail: "{% url 'send_department_timetable_email' %}",
+};
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+function currentScopeParams(){
+  const p = new URLSearchParams();
+  const f = document.getElementById('fFaculty').value;
+  const d = document.getElementById('fDepartment').value;
+  const pr = document.getElementById('fProgram').value;
+  const y = document.getElementById('fYear').value;
+  if (f) p.set('faculty_id', f);
+  if (d) p.set('department_id', d);
+  if (pr) p.set('program_id', pr);
+  if (y) p.set('year', y);
+  return p;
+}
+
+function escapeHtml(text){
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getSelectVal(id){ return document.getElementById(id).value; }
+
+// ====================================================================
+// Button feedback helper — every button that fires a network call
+// (fetch or a PDF download via window.open) routes through this so a
+// click ALWAYS visibly registers immediately: label swaps to a busy
+// state and the button disables, then restores in a `finally` no
+// matter how the action ends (success, error, or thrown exception).
+// This fixes the "did my click even register?" problem.
+// ====================================================================
+function withButtonBusy(btn, busyLabel, fn){
+  if (btn.dataset.busy === '1') return; // ignore rapid double-clicks
+  const originalLabel = btn.textContent;
+  btn.dataset.busy = '1';
+  btn.disabled = true;
+  btn.textContent = busyLabel;
+  const restore = () => {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+    btn.dataset.busy = '0';
+  };
+  try {
+    const result = fn();
+    if (result && typeof result.finally === 'function') {
+      result.finally(restore);
+    } else {
+      restore();
+    }
+  } catch (e) {
+    restore();
+    throw e;
+  }
+}
+
+// ====================================================================
+// Tabs
+// ====================================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    const target = this.dataset.tab;
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.getElementById('tab-' + target).classList.add('active');
+    
+    // Load data when switching to tabs
+    if (target === 'programs') {
+      const container = document.getElementById('programAnalysisResults');
+      if (container.querySelector('.panel') && !container.querySelector('.program-block')) {
+        loadProgramAnalysis();
+      }
+    } else if (target === 'zero-student') {
+      const container = document.getElementById('zeroStudentResults');
+      if (container.querySelector('.panel') && !container.querySelector('.program-block')) {
+        loadZeroStudent();
+      }
+    } else if (target === 'overload') {
+      const container = document.getElementById('overloadResults');
+      if (container.querySelector('.panel') && !container.querySelector('.lecturer-card')) {
+        loadOverload();
+      }
+    } else if (target === 'workload') {
+      const container = document.getElementById('workloadResults');
+      if (container.querySelector('.panel') && !container.querySelector('.workload-card')) {
+        loadCurrentWorkloadView();
+      }
+    }
+  });
+});
+
+// ====================================================================
+// TAB 1: Summary
+// ====================================================================
+async function refreshSummary(){
+  const params = currentScopeParams();
+  try {
+    const res = await fetch(`${API.summary}?${params.toString()}`);
+    const data = await res.json();
+    if (data.status !== 'success') return;
+    document.getElementById('cScheduled').textContent   = data.scheduled_count;
+    document.getElementById('cUnscheduled').textContent = data.unscheduled_count;
+    document.getElementById('cEw').textContent           = data.ew_unscheduled_count;
+    document.getElementById('cZero').textContent         = data.zero_student_count;
+    document.getElementById('scopeLabel').textContent   = data.scope_label;
+    // Update badge counts
+    document.getElementById('zeroBadge').textContent = data.zero_student_count;
+  } catch(e) {
+    console.warn('Summary refresh failed:', e);
+  }
+}
+
+// Scoped Timetable table — every scheduled entry inside the applied scope,
+// rendered day-by-day in the same matrix layout as the lookup/search
+// results (buildMatrixTables): timeslots across the top, venues down the
+// left, courses dropped into the cell matching their own venue + timeslot.
+// Loaded on demand — click "View Timetable" — rather than automatically,
+// since a university-wide scope can be a large table.
+async function loadScopeTimetable(){
+  const params = currentScopeParams();
+  const box = document.getElementById('scopeTimetableTable');
+  box.style.display = '';
+  box.innerHTML = '<p class="hint">Loading…</p>';
+  try {
+    const res = await fetch(`${API.scheduledTimetable}?${params.toString()}`);
+    const data = await res.json();
+    if (data.status !== 'success'){
+      box.innerHTML = `<p class="hint">${escapeHtml(data.message || 'Error loading timetable.')}</p>`;
+      return;
+    }
+    document.getElementById('scopeTimetableLabel').textContent = data.scope_label;
+    if (!data.count){
+      box.innerHTML = `<p class="hint">No scheduled entries for this scope.</p>`;
+      return;
+    }
+    const matches = data.results.map(r => ({ ...r, scheduled: true }));
+    let html = `<p class="hint">${data.count} scheduled entr${data.count === 1 ? 'y' : 'ies'} in this scope.</p>`;
+    html += buildMatrixTables(matches, { showProgram: true, showDept: true });
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<p class="hint">Error: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+document.getElementById('btnApplyScope').addEventListener('click', function(){
+  const box = document.getElementById('scopeTimetableTable');
+  const wasOpen = box.style.display !== 'none' && box.innerHTML.trim() !== '';
+  withButtonBusy(this, 'Applying…', () => Promise.all([refreshSummary(), wasOpen ? loadScopeTimetable() : Promise.resolve()]));
+});
+
+document.getElementById('btnViewScopeTimetable').addEventListener('click', function(){
+  document.getElementById('btnHideScopeTimetable').style.display = '';
+  withButtonBusy(this, 'Loading…', () => loadScopeTimetable());
+});
+
+document.getElementById('btnHideScopeTimetable').addEventListener('click', function(){
+  document.getElementById('scopeTimetableTable').style.display = 'none';
+  document.getElementById('scopeTimetableTable').innerHTML = '';
+  this.style.display = 'none';
+});
+
+// Cascade filters
+document.getElementById('fFaculty').addEventListener('change', () => {
+  const fid = document.getElementById('fFaculty').value;
+  document.querySelectorAll('#fDepartment option[data-faculty]').forEach(opt => {
+    opt.style.display = fid && opt.dataset.faculty !== fid ? 'none' : '';
+  });
+  document.getElementById('fDepartment').value = '';
+  document.getElementById('fProgram').value = '';
+});
+document.getElementById('fDepartment').addEventListener('change', () => {
+  const did = document.getElementById('fDepartment').value;
+  document.querySelectorAll('#fProgram option[data-department]').forEach(opt => {
+    opt.style.display = did && opt.dataset.department !== did ? 'none' : '';
+  });
+  document.getElementById('fProgram').value = '';
+});
+
+function openReportInNewTab(btn, url){
+  withButtonBusy(btn, 'Preparing PDF…', () => {
+    const win = window.open(url, '_blank');
+    if (!win) {
+      // Popup blocked — this is exactly the "clicked and nothing happened"
+      // case, so tell the person what actually happened instead of failing
+      // silently.
+      alert('Your browser blocked the new tab for this PDF. Please allow pop-ups for this site and try again.');
+    }
+    // The PDF itself renders server-side in the new tab, which shows its
+    // own loading state — this button only needs to stay busy long enough
+    // to confirm the click registered.
+    return new Promise(resolve => setTimeout(resolve, 700));
+  });
+}
+
+document.getElementById('btnExportUnscheduled').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportUnscheduled}?${params.toString()}`);
+});
+document.getElementById('btnExportUnscheduledOnly').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportUnscheduledOnly}?${params.toString()}`);
+});
+document.getElementById('btnExportScheduled').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportScheduled}?${params.toString()}`);
+});
+document.getElementById('btnExportAllCoursesVenue').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportAllCoursesVenue}?${params.toString()}`);
+});
+document.getElementById('btnExportUsedRooms').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportUsedRooms}?${params.toString()}`);
+});
+document.getElementById('btnExportAllVenues').addEventListener('click', function(){
+  // Not scope-filtered — always the full university-wide list of venues.
+  openReportInNewTab(this, API.exportAllVenues);
+});
+document.getElementById('btnExportBlockedDesignated').addEventListener('click', function(){
+  // Not scope-filtered — always the full university-wide list of blocked/designated venues.
+  openReportInNewTab(this, API.exportBlockedDesignated);
+});
+document.getElementById('btnExportVenueCapacity').addEventListener('click', function(){
+  const params = currentScopeParams();
+  openReportInNewTab(this, `${API.exportVenueCapacity}?${params.toString()}`);
+});
+document.getElementById('btnExportDeptTimetable').addEventListener('click', function(){
+  // This report is per-department (its letterhead is titled for ONE
+  // department, not a faculty/university-wide roll-up) — unlike the other
+  // Export buttons, a Department must actually be picked in Scope.
+  const did = document.getElementById('fDepartment').value;
+  if (!did){
+    alert('Pick a Department in the Scope section above first — the Departmental Timetable PDF is generated for one department at a time.');
+    return;
+  }
+  const params = new URLSearchParams();
+  params.set('department_id', did);
+  openReportInNewTab(this, `${API.exportDeptTimetable}?${params.toString()}`);
+});
+
+// ====================================================================
+// Course Lookup
+// ====================================================================
+const MATRIX_DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+/**
+ * Turns a flat list of match/result rows (each with course_code, and
+ * — when scheduled — day/start_time/end_time/venue) into one
+ * venue-by-timeslot matrix table PER DAY: venues down the left,
+ * timeslots across the top, course code (+ details) in the matching
+ * cell. Rows that aren't scheduled yet (no day/time/venue) are listed
+ * separately underneath, since they have no cell to sit in.
+ */
+function buildMatrixTables(matches, opts){
+  opts = opts || {};
+  matches = matches || [];
+
+  const scheduled = matches.filter(m => m.scheduled && m.day && m.venue && m.start_time && m.end_time);
+  const unscheduled = matches.filter(m => !(m.scheduled && m.day && m.venue && m.start_time && m.end_time));
+
+  if (!scheduled.length && !unscheduled.length){
+    return '<p class="hint">No matching course allocation found.</p>';
+  }
+
+  const byDay = {};
+  for (const m of scheduled){
+    (byDay[m.day] = byDay[m.day] || []).push(m);
+  }
+  const days = Object.keys(byDay).sort((a, b) => {
+    const ia = MATRIX_DAY_ORDER.indexOf(a), ib = MATRIX_DAY_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  let html = '';
+
+  for (const day of days){
+    const entries = byDay[day];
+    const venues = [...new Set(entries.map(e => e.venue))].sort();
+    const slotKeys = [...new Set(entries.map(e => `${e.start_time}|${e.end_time}`))]
+      .sort((a, b) => a.localeCompare(b));
+
+    const cellMap = {};
+    for (const e of entries){
+      const key = `${e.venue}__${e.start_time}|${e.end_time}`;
+      (cellMap[key] = cellMap[key] || []).push(e);
+    }
+
+    html += `<div class="day-heading">📅 ${escapeHtml(day)} <span class="day-count">${entries.length} class(es) · ${venues.length} venue(s)</span></div>`;
+    html += `<div class="day-matrix-wrap"><table class="matrix-table"><thead><tr><th>Venue</th>`;
+    for (const sk of slotKeys){
+      const [st, en] = sk.split('|');
+      html += `<th>${escapeHtml(st)}–${escapeHtml(en)}</th>`;
+    }
+    html += `</tr></thead><tbody>`;
+
+    for (const v of venues){
+      html += `<tr><td class="mx-venue">${escapeHtml(v)}</td>`;
+      for (const sk of slotKeys){
+        const occupants = cellMap[`${v}__${sk}`] || [];
+        if (!occupants.length){
+          html += `<td class="mx-empty"></td>`;
+        } else {
+          const cellHtml = occupants.map(m => {
+            const lines = [`<span class="mx-code">${escapeHtml(m.course_code)}</span>`];
+            if (m.course_name) lines.push(`<span class="mx-name">${escapeHtml(m.course_name)}</span>`);
+            if (m.year) lines.push(`<span class="mx-year">Year ${escapeHtml(String(m.year))}</span>`);
+            if (m.semester) lines.push(`<span class="mx-year">Sem ${escapeHtml(String(m.semester))}</span>`);
+            if (m.lecturer) lines.push(`<span class="mx-lect">${escapeHtml(m.lecturer)}</span>`);
+            if (opts.showProgram && m.program) lines.push(`<span class="mx-prog">${escapeHtml(m.program)}</span>`);
+            if (opts.showDept && m.department) lines.push(`<span class="mx-dept">${escapeHtml(m.department)}</span>`);
+            lines.push(`<span class="mx-students">👥 ${escapeHtml(String(m.students ?? 0))} student(s)</span>`);
+            if (m.specialization) lines.push(`<span class="badge stem">🎯 ${escapeHtml(m.specialization)}</span>`);
+            if (m.student_group) lines.push(`<span class="badge group">Group: ${escapeHtml(m.student_group)}</span>`);
+            if (m.is_special_intake) lines.push(`<span class="badge special">⚠ Special Intake</span>`);
+            if (m.merged_group) {
+              const dept = m.merged_group.combined_by_department;
+              lines.push(`<span class="badge merged">Combined: ${escapeHtml(m.merged_group.group_code)} ×${m.merged_group.member_count}${dept ? ` (by ${escapeHtml(dept)})` : ''}</span>`);
+            }
+            return lines.join('');
+          }).join('<hr class="mx-hr">');
+          html += `<td class="mx-filled">${cellHtml}</td>`;
+        }
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+
+  if (unscheduled.length){
+    html += `<div class="day-heading" style="color:var(--warn);">🔴 Not Scheduled <span class="day-count">${unscheduled.length} course(s)</span></div>`;
+    html += `<table><thead><tr><th>Course Code</th><th>Program</th>`;
+    if (opts.showDept) html += `<th>Department</th>`;
+    html += `<th>Year</th><th>Sem</th><th>Special</th><th>Specialization</th><th>Student Group</th><th>Combined Group</th><th>Lecturer</th><th>Students</th></tr></thead><tbody>`;
+    for (const m of unscheduled){
+      html += `<tr>
+        <td>${escapeHtml(m.course_code)} <span class="badge no">Unscheduled</span></td>
+        <td>${escapeHtml(m.program || '-')}</td>`;
+      if (opts.showDept) html += `<td>${escapeHtml(m.department || '-')}</td>`;
+      html += `<td>${escapeHtml(m.year || '-')}</td>
+        <td>${escapeHtml(m.semester || '-')}</td>
+        <td>${m.is_special_intake ? '⚠ Special' : '—'}</td>
+        <td>${escapeHtml(m.specialization || '—')}</td>
+        <td>${escapeHtml(m.student_group || '—')}</td>
+        <td>${m.merged_group ? `${escapeHtml(m.merged_group.group_code)}${m.merged_group.combined_by_department ? ` (by ${escapeHtml(m.merged_group.combined_by_department)})` : ''}` : '—'}</td>
+        <td>${escapeHtml(m.lecturer || '-')}</td>
+        <td>${m.students}</td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+  }
+
+  return html;
+}
+
+function parseCodes(){
+  return document.getElementById('lookupCodes').value
+    .split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+}
+
+async function runLookup(){
+  const codes = parseCodes();
+  const box = document.getElementById('lookupResults');
+  if (!codes.length){ box.innerHTML = '<p class="hint">Enter at least one search term.</p>'; return; }
+
+  box.innerHTML = '<p class="hint">Searching...</p>';
+  
+  const params = new URLSearchParams();
+  codes.forEach(c => params.append('code', c));
+  try {
+    const res = await fetch(`${API.lookup}?${params.toString()}`);
+    const data = await res.json();
+    if (data.status !== 'success'){ box.innerHTML = `<p class="hint">${escapeHtml(data.message || 'Error')}</p>`; return; }
+
+    let html = '';
+    for (const code of codes){
+      const entry = data.results[code];
+      html += `<h3 style="margin:14px 0 4px;color:var(--green-dark);">${escapeHtml(code.toUpperCase())}</h3>`;
+      if (!entry || entry.not_found){
+        html += `<p class="hint">No matching course allocation found.</p>`;
+        continue;
+      }
+      html += buildMatrixTables(entry.matches, { showProgram: true });
+    }
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<p class="hint">Error: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+document.getElementById('btnLookup').addEventListener('click', function(){
+  withButtonBusy(this, 'Searching…', runLookup);
+});
+document.getElementById('btnLookupPdf').addEventListener('click', function(){
+  const codes = parseCodes();
+  if (!codes.length) return;
+  const params = new URLSearchParams();
+  codes.forEach(c => params.append('code', c));
+  openReportInNewTab(this, `${API.lookupPdf}?${params.toString()}`);
+});
+
+// ====================================================================
+// Universal Search — lecturer / program / department / course code
+// ====================================================================
+async function runUSearch(){
+  const q = document.getElementById('uSearchQuery').value.trim();
+  const box = document.getElementById('uSearchResults');
+  if (!q){ box.innerHTML = '<p class="hint">Enter something to search for.</p>'; return; }
+
+  box.innerHTML = '<p class="hint">Searching...</p>';
+
+  try {
+    const res = await fetch(`${API.uSearch}?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    if (data.status !== 'success'){ box.innerHTML = `<p class="hint">${escapeHtml(data.message || 'Error')}</p>`; return; }
+
+    if (!data.count){
+      box.innerHTML = `<p class="hint">No matches for "${escapeHtml(q)}".</p>`;
+      return;
+    }
+
+    let html = `<p class="hint">${data.count} match(es) for "${escapeHtml(q)}" — every one of them prints if you export the PDF.</p>`;
+    html += buildMatrixTables(data.results, { showProgram: true, showDept: true });
+    box.innerHTML = html;
+  } catch(e) {
+    box.innerHTML = `<p class="hint">Error: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+document.getElementById('btnUSearch').addEventListener('click', function(){
+  withButtonBusy(this, 'Searching…', runUSearch);
+});
+document.getElementById('btnUSearchPdf').addEventListener('click', function(){
+  const q = document.getElementById('uSearchQuery').value.trim();
+  if (!q) return;
+  openReportInNewTab(this, `${API.uSearchPdf}?q=${encodeURIComponent(q)}`);
+});
+document.getElementById('uSearchQuery').addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    document.getElementById('btnUSearch').click();
+  }
+});
+
+// Initial load — summary cards only; the timetable matrix loads on demand
+// when "View Timetable" is clicked, since it can be large for wide scopes.
+refreshSummary();
+
+// ====================================================================
+// TAB 2: Program Analysis
+// ====================================================================
+document.getElementById('paDepartment').addEventListener('change', () => {
+  const did = document.getElementById('paDepartment').value;
+  document.querySelectorAll('#paProgram option[data-department]').forEach(opt => {
+    opt.style.display = did && opt.dataset.department !== did ? 'none' : '';
+  });
+  document.getElementById('paProgram').value = '';
+});
+
+document.getElementById('btnLoadPrograms').addEventListener('click', function(){
+  withButtonBusy(this, 'Loading…', loadProgramAnalysis);
+});
+
+async function loadProgramAnalysis(){
+  const container = document.getElementById('programAnalysisResults');
+  const deptId = document.getElementById('paDepartment').value;
+  const progId = document.getElementById('paProgram').value;
+  
+  const params = new URLSearchParams();
+  if (deptId) params.set('department_id', deptId);
+  if (progId) params.set('program_id', progId);
+  
+  container.innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;">
+    <div class="loading-spinner"></div>
+    <p style="margin:12px 0 0;color:var(--muted);">Loading program data...</p>
+  </div>`;
+  
+  try {
+    const res = await fetch(`${API.programAnalysis}?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.status !== 'success') {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+        <p style="margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>
+      </div>`;
+      return;
+    }
+    
+    if (!data.programs || data.programs.length === 0) {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--muted);">
+        <p style="margin:0;">No programs found for the selected filters.</p>
+      </div>`;
+      return;
+    }
+    
+    container.innerHTML = renderProgramQuickInsight(data.programs) + renderProgramAnalysis(data.programs);
+  } catch (e) {
+    container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+      <p style="margin:0;">Error loading data: ${escapeHtml(e.message)}</p>
+    </div>`;
+  }
+}
+
+// ── Quick Insight: every program/year, sorted by course count so it's
+//    fast to spot a duplicate import (an outlier program/year with far
+//    more courses than the rest). Click a row to jump to its detail below.
+function renderProgramQuickInsight(programs){
+  const rows = [];
+  for (const prog of programs){
+    for (const yearData of prog.years){
+      rows.push({
+        program_id: prog.program_id,
+        program: prog.program_name,
+        department: prog.department,
+        year: yearData.year,
+        total: yearData.total_courses,
+        sg: yearData.student_groups.length,
+        cg: yearData.combined_groups.length,
+        ungrouped: yearData.ungrouped_courses.length,
+      });
+    }
+  }
+  if (rows.length === 0) return '';
+
+  rows.sort((a, b) => b.total - a.total);
+
+  const counts = rows.map(r => r.total);
+  const avg = counts.reduce((s, v) => s + v, 0) / counts.length;
+  const highThreshold = Math.max(1, Math.round(avg * 1.5));
+
+  let html = `<div class="panel">
+    <h2>⚡ Quick Insight — Program/Year by Course Count</h2>
+    <p class="hint" style="margin-top:-4px;margin-bottom:10px;">
+      Sorted highest → lowest total courses. Rows flagged ⚠️ are at or above ${highThreshold}
+      (1.5× the average of ${avg.toFixed(1)} across ${rows.length} program-years) — an unusually high count
+      for one program/year is the fastest way to spot a duplicate import. Click a row to jump to its detail below.
+    </p>
+    <table class="sub-table" style="font-size:.82rem;">
+      <thead><tr>
+        <th>#</th><th>Program</th><th>Department</th><th>Year</th>
+        <th>Total Courses</th><th>Student Groups</th><th>Combined Groups</th><th>Ungrouped</th>
+      </tr></thead>
+      <tbody>`;
+
+  rows.forEach((r, i) => {
+    const flagged = r.total >= highThreshold && r.total > 0;
+    const rowStyle = flagged ? 'background:#FDECEA;font-weight:600;' : '';
+    html += `<tr style="${rowStyle}cursor:pointer;" onclick="scrollToProgramYear(${r.program_id}, ${JSON.stringify(r.year)})">
+      <td>${i + 1}</td>
+      <td>${escapeHtml(r.program)}</td>
+      <td>${escapeHtml(r.department)}</td>
+      <td>Year ${escapeHtml(String(r.year))}</td>
+      <td>${r.total}${flagged ? ' ⚠️' : ''}</td>
+      <td>${r.sg}</td>
+      <td>${r.cg}</td>
+      <td>${r.ungrouped}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+function scrollToProgramYear(programId, year){
+  const el = document.getElementById(`py-${programId}-${year}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const original = el.style.backgroundColor;
+  el.style.transition = 'background-color .3s';
+  el.style.backgroundColor = '#FFF3CD';
+  setTimeout(() => { el.style.backgroundColor = original; }, 1500);
+}
+
+function renderProgramAnalysis(programs){
+  let html = '';
+  
+  for (const prog of programs){
+    const totalCourses = prog.years.reduce((sum, y) => sum + y.total_courses, 0);
+    const totalGroups = prog.years.reduce((sum, y) => sum + y.student_groups.length, 0);
+    const totalCombined = prog.years.reduce((sum, y) => sum + y.combined_groups.length, 0);
+    const totalStems = prog.years.reduce((sum, y) => sum + y.specialization_stems.length, 0);
+    
+    html += `<div class="program-block">`;
+    html += `<div class="program-header">
+      <span>${escapeHtml(prog.program_name)}</span>
+      <span class="dept">${escapeHtml(prog.department)}</span>
+      <span class="stats">${totalCourses} courses · ${totalGroups} groups · ${totalCombined} combined · ${totalStems} stems</span>
+    </div>`;
+    
+    for (const yearData of prog.years){
+      const total = yearData.total_courses;
+      const sgCount = yearData.student_groups.length;
+      const cgCount = yearData.combined_groups.length;
+      const stemCount = yearData.specialization_stems.length;
+      const selCount = yearData.selection_groups.length;
+      const ungrouped = yearData.ungrouped_courses.length;
+      
+      html += `<div class="year-block" id="py-${prog.program_id}-${yearData.year}">`;
+      html += `<h4 onclick="toggleCollapse(this)">
+        📚 Year ${yearData.year}
+        <span style="font-weight:400;font-size:.8rem;color:var(--muted);">
+          (${total} courses · ${sgCount} student groups · ${cgCount} combined · ${stemCount} stems · ${ungrouped} ungrouped)
+        </span>
+        <span style="font-size:.7rem;color:var(--muted);margin-left:8px;">▼</span>
+      </h4>`;
+      html += `<div class="collapse-content">`;
+      
+      // ── Student Groups ──
+      if (yearData.student_groups.length > 0){
+        html += `<div class="section-group">`;
+        html += `<div class="sg-title">👥 Student Groups</div>`;
+        for (const sg of yearData.student_groups){
+          html += `<div style="padding:4px 0 4px 20px;font-weight:600;font-size:.85rem;color:var(--green-dark);">
+            ${escapeHtml(sg.name)} (${escapeHtml(sg.letter)}) — ${sg.course_count} courses
+          </div>`;
+          html += renderMiniTable(sg.courses, ['Course Code', 'Course Name', 'Year', 'Semester', 'Special', 'Combined Group', 'Lecturer', 'Students']);
+        }
+        html += `</div>`;
+      }
+      
+      // ── Combined Groups ──
+      if (yearData.combined_groups.length > 0){
+        html += `<div class="section-group">`;
+        html += `<div class="sg-title">🔗 Combined Course Groups</div>`;
+        for (const cg of yearData.combined_groups){
+          html += `<div style="padding:4px 0 4px 20px;font-weight:600;font-size:.85rem;color:#5B3A9C;">
+            ${escapeHtml(cg.group_code)} — ${cg.total_students} students · ${cg.courses.length} sections
+            <span style="font-weight:400;color:var(--muted);">(Lecturer: ${escapeHtml(cg.lecturer)})</span>
+          </div>`;
+          html += renderMiniTable(cg.courses, ['Course Code', 'Course Name', 'Program', 'Year', 'Semester', 'Special', 'Student Group', 'Lecturer']);
+        }
+        html += `</div>`;
+      }
+      
+      // ── Specialization Stems ──
+      if (yearData.specialization_stems.length > 0){
+        html += `<div class="section-group">`;
+        html += `<div class="sg-title">🎯 Specialization Stems</div>`;
+        for (const stem of yearData.specialization_stems){
+          html += `<div style="padding:4px 0 4px 20px;font-weight:600;font-size:.85rem;color:#0C5460;">
+            ${escapeHtml(stem.name)} (${escapeHtml(stem.category)}) — ${stem.courses.length} courses
+          </div>`;
+          html += renderMiniTable(stem.courses, ['Course Code', 'Course Name', 'Year', 'Semester', 'Special', 'Combined Group', 'Lecturer']);
+        }
+        html += `</div>`;
+      }
+      
+      // ── Selection Groups ──
+      if (yearData.selection_groups.length > 0){
+        html += `<div class="section-group">`;
+        html += `<div class="sg-title">📌 Selection Groups (Electives)</div>`;
+        for (const sel of yearData.selection_groups){
+          html += `<div style="padding:4px 0 4px 20px;font-weight:600;font-size:.85rem;color:#155724;">
+            ${escapeHtml(sel.name)} — ${sel.courses.length} courses
+          </div>`;
+          html += renderMiniTable(sel.courses, ['Course Code', 'Course Name', 'Year', 'Semester', 'Special', 'Combined Group', 'Lecturer']);
+        }
+        html += `</div>`;
+      }
+      
+      // ── Ungrouped Courses ──
+      if (yearData.ungrouped_courses.length > 0){
+        html += `<div class="section-group">`;
+        html += `<div class="sg-title">📄 Ungrouped / Standalone Courses</div>`;
+        html += renderMiniTable(yearData.ungrouped_courses, ['Course Code', 'Course Name', 'Year', 'Semester', 'Special', 'Combined Group', 'Lecturer', 'Students', 'Elective', 'E/W']);
+        html += `</div>`;
+      }
+      
+      if (yearData.student_groups.length === 0 && yearData.combined_groups.length === 0 && 
+          yearData.specialization_stems.length === 0 && yearData.ungrouped_courses.length === 0){
+        html += `<p class="no-data">No courses found for this year.</p>`;
+      }
+      
+      html += `</div>`; // collapse-content
+      html += `</div>`; // year-block
+    }
+    
+    html += `</div>`; // program-block
+  }
+  
+  return html;
+}
+
+function renderMiniTable(items, headers){
+  if (!items || items.length === 0) return '';
+  
+  let html = `<table class="sub-table"><thead><tr>`;
+  for (const h of headers){
+    html += `<th>${escapeHtml(h)}</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+  
+  for (const item of items){
+    html += `<tr>`;
+    for (const h of headers){
+      const keyMap = {
+        'Course Code': 'course_code',
+        'Course Name': 'course_name',
+        'Lecturer': 'lecturer',
+        'Students': 'students',
+        'Program': 'program',
+        'Student Group': 'student_group',
+        'Elective': 'is_elective',
+        'E/W': 'is_evening_weekend',
+        'Year': 'year',
+        'Semester': 'semester',
+        'Special': 'is_special_intake',
+        'Combined Group': 'combined_group_code',
+      };
+      const key = keyMap[h] || h.toLowerCase();
+      let val = item[key] !== undefined ? item[key] : '';
+      if (h === 'Elective') val = val ? '✓ Yes' : '';
+      if (h === 'E/W') val = val ? '✓ Yes' : '';
+      if (h === 'Special') val = val ? '⚠ Special' : '—';
+      if (h === 'Combined Group') val = val || '—';
+      if (h === 'Student Group' && !val) val = '—';
+      if (h === 'Year' && !val) val = '—';
+      if (h === 'Semester') val = val ? `Sem ${val}` : '—';
+      html += `<td>${escapeHtml(String(val))}</td>`;
+    }
+    html += `</tr>`;
+  }
+  html += `</tbody></table>`;
+  return html;
+}
+
+function toggleCollapse(el){
+  const content = el.nextElementSibling;
+  if (content) content.classList.toggle('hidden');
+  const indicator = el.querySelector('span:last-child');
+  if (indicator) indicator.textContent = content.classList.contains('hidden') ? '▶' : '▼';
+}
+
+// ====================================================================
+// TAB 3: Zero-Student Courses
+// ====================================================================
+document.getElementById('zsDepartment').addEventListener('change', () => {
+  const did = document.getElementById('zsDepartment').value;
+  document.querySelectorAll('#zsProgram option[data-department]').forEach(opt => {
+    opt.style.display = did && opt.dataset.department !== did ? 'none' : '';
+  });
+  document.getElementById('zsProgram').value = '';
+});
+
+document.getElementById('btnLoadZeroStudent').addEventListener('click', function(){
+  withButtonBusy(this, 'Loading…', loadZeroStudent);
+});
+
+async function loadZeroStudent(){
+  const container = document.getElementById('zeroStudentResults');
+  const deptId = document.getElementById('zsDepartment').value;
+  const progId = document.getElementById('zsProgram').value;
+  
+  const params = new URLSearchParams();
+  if (deptId) params.set('department_id', deptId);
+  if (progId) params.set('program_id', progId);
+  
+  container.innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;">
+    <div class="loading-spinner"></div>
+    <p style="margin:12px 0 0;color:var(--muted);">Loading zero-student courses...</p>
+  </div>`;
+  
+  try {
+    const res = await fetch(`${API.zeroStudent}?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.status !== 'success') {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+        <p style="margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>
+      </div>`;
+      return;
+    }
+    
+    if (!data.data || data.data.length === 0) {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--green);">
+        <p style="margin:0;font-weight:600;">✅ No zero-student courses found for the selected filters.</p>
+      </div>`;
+      return;
+    }
+    
+    container.innerHTML = renderZeroStudent(data);
+  } catch (e) {
+    container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+      <p style="margin:0;">Error loading data: ${escapeHtml(e.message)}</p>
+    </div>`;
+  }
+}
+
+function renderZeroStudent(data){
+  let html = `<div class="panel" style="background:#FFF8F5;border-color:var(--warn);">
+    <p style="margin:0;font-weight:600;color:var(--warn);">Total: ${data.total} zero-student courses</p>
+  </div>`;
+  
+  for (const dept of data.data){
+    html += `<div class="program-block">`;
+    html += `<div class="program-header">
+      <span>🏛️ ${escapeHtml(dept.department)}</span>
+      <span class="stats">${dept.total_courses} zero-student courses</span>
+    </div>`;
+    
+    for (const prog of dept.programs){
+      html += `<div class="year-block">`;
+      html += `<h4 onclick="toggleCollapse(this)">
+        📋 ${escapeHtml(prog.program)}
+        <span style="font-weight:400;font-size:.8rem;color:var(--muted);">(${prog.course_count} courses)</span>
+        <span style="font-size:.7rem;color:var(--muted);margin-left:8px;">▼</span>
+      </h4>`;
+      html += `<div class="collapse-content">`;
+      html += renderMiniTable(prog.courses, ['Course Code', 'Course Name', 'Lecturer', 'Year', 'Semester', 'Group', 'Elective', 'E/W']);
+      html += `</div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  
+  return html;
+}
+
+// ====================================================================
+// TAB 4: Lecturer Overload (with Combined Course Group support)
+// ====================================================================
+document.getElementById('olDepartment').addEventListener('change', () => {
+  const did = document.getElementById('olDepartment').value;
+  document.querySelectorAll('#olProgram option[data-department]').forEach(opt => {
+    opt.style.display = did && opt.dataset.department !== did ? 'none' : '';
+  });
+  document.getElementById('olProgram').value = '';
+});
+
+document.getElementById('btnLoadOverload').addEventListener('click', function(){
+  withButtonBusy(this, 'Loading…', loadOverload);
+});
+
+async function loadOverload(){
+  const container = document.getElementById('overloadResults');
+  const deptId = document.getElementById('olDepartment').value;
+  const progId = document.getElementById('olProgram').value;
+  const threshold = document.getElementById('olThreshold').value;
+  
+  const params = new URLSearchParams();
+  if (deptId) params.set('department_id', deptId);
+  if (progId) params.set('program_id', progId);
+  if (threshold) params.set('threshold', threshold);
+  
+  container.innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;">
+    <div class="loading-spinner"></div>
+    <p style="margin:12px 0 0;color:var(--muted);">Loading lecturer overload data...</p>
+  </div>`;
+  
+  try {
+    const res = await fetch(`${API.lecturerOverload}?${params.toString()}`);
+    const data = await res.json();
+    
+    if (data.status !== 'success') {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+        <p style="margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>
+      </div>`;
+      return;
+    }
+    
+    if (!data.data || data.data.length === 0) {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--green);">
+        <p style="margin:0;font-weight:600;">✅ No lecturers with ${data.threshold}+ units found for the selected filters.</p>
+      </div>`;
+      return;
+    }
+    
+    // Update badge
+    document.getElementById('overloadBadge').textContent = data.total_lecturers;
+    
+    container.innerHTML = renderOverload(data);
+  } catch (e) {
+    container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+      <p style="margin:0;">Error loading data: ${escapeHtml(e.message)}</p>
+    </div>`;
+  }
+}
+
+function renderOverload(data){
+  let html = `<div class="panel" style="background:#FFF8F5;border-color:var(--warn);">
+    <p style="margin:0;font-weight:600;color:var(--warn);">
+      ${data.total_lecturers} lecturer(s) with ${data.threshold}+ units
+      <span style="font-weight:400;font-size:.8rem;color:var(--muted);">(Combined groups count as 1 unit)</span>
+    </p>
+  </div>`;
+  
+  for (const lecturer of data.data){
+    const severityColor = lecturer.course_count > 8 ? 'var(--warn)' : 'var(--orange)';
+    html += `<div class="lecturer-card" style="border-color:${severityColor};">`;
+    html += `<div class="name">👨‍🏫 ${escapeHtml(lecturer.lecturer_name)}</div>`;
+    html += `<div class="detail">${escapeHtml(lecturer.designation)} · ${escapeHtml(lecturer.department)}</div>`;
+    html += `<div class="count">${lecturer.course_count} units (threshold: ${data.threshold}+) 
+      <span style="font-weight:400;font-size:.75rem;color:var(--muted);">
+        (${lecturer.standalone_count} standalone + ${lecturer.combined_group_count} combined groups)
+      </span>
+    </div>`;
+    
+    for (const prog of lecturer.programs){
+      html += `<div style="margin-top:8px;font-weight:600;font-size:.85rem;color:var(--green-dark);">📋 ${escapeHtml(prog.program)}</div>`;
+      html += `<ul class="courses-list">`;
+      for (const c of prog.courses){
+        const badges = [];
+        if (c.is_elective) badges.push('Elective');
+        if (c.student_group) badges.push(`Group ${escapeHtml(c.student_group)}`);
+        if (c.is_combined) {
+          const memberCount = c.group_members ? c.group_members.length : 0;
+          badges.push(`🔗 Combined: ${escapeHtml(c.group_code)} (${memberCount} sections)`);
+        }
+        const badgeHtml = badges.length ? ` <span style="font-size:.65rem;color:var(--muted);">(${badges.join(', ')})</span>` : '';
+        const unitLabel = c.is_combined ? '🔄' : '📘';
+        html += `<li>${unitLabel} ${escapeHtml(c.course_code)} — ${escapeHtml(c.course_name)} (Y${c.year}S${c.semester})${badgeHtml}</li>`;
+        if (c.is_combined && c.group_members && c.group_members.length > 1) {
+          html += `<li class="combined-sub">↳ Combined sections: ${c.group_members.map(m => escapeHtml(m)).join(', ')}</li>`;
+        }
+      }
+      html += `</ul>`;
+    }
+    html += `</div>`;
+  }
+  
+  return html;
+}
+
+// ====================================================================
+// TAB: Consecutive Classes & Weekly Workload
+// ====================================================================
+let wlCurrentView = 'lecturers';
+
+document.getElementById('wlViewLecturersBtn').addEventListener('click', function(){
+  wlSwitchView('lecturers');
+});
+document.getElementById('wlViewProgramsBtn').addEventListener('click', function(){
+  wlSwitchView('programs');
+});
+
+function wlSwitchView(view){
+  wlCurrentView = view;
+  document.getElementById('wlViewLecturersBtn').classList.toggle('active', view === 'lecturers');
+  document.getElementById('wlViewProgramsBtn').classList.toggle('active', view === 'programs');
+  document.getElementById('wlLecturerFilters').classList.toggle('hidden', view !== 'lecturers');
+  document.getElementById('wlProgramFilters').classList.toggle('hidden', view !== 'programs');
+  document.getElementById('workloadResults').innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;color:var(--muted);">
+    <p style="margin:0;">Click <strong>"Load ${view === 'lecturers' ? 'Lecturers' : 'Programs'}"</strong> to run this view.</p>
+  </div>`;
+}
+
+function loadCurrentWorkloadView(){
+  if (wlCurrentView === 'lecturers') loadLecturerWorkload(); else loadProgramWorkload();
+}
+
+document.getElementById('wlDepartment').addEventListener('change', () => {
+  const did = document.getElementById('wlDepartment').value;
+  document.querySelectorAll('#wlProgram option[data-department]').forEach(opt => {
+    opt.style.display = did && opt.dataset.department !== did ? 'none' : '';
+  });
+  document.getElementById('wlProgram').value = '';
+});
+
+document.getElementById('btnLoadLecturerWorkload').addEventListener('click', function(){
+  withButtonBusy(this, 'Loading…', loadLecturerWorkload);
+});
+document.getElementById('btnLoadProgramWorkload').addEventListener('click', function(){
+  withButtonBusy(this, 'Loading…', loadProgramWorkload);
+});
+
+async function loadLecturerWorkload(){
+  const container = document.getElementById('workloadResults');
+  const deptId = document.getElementById('wlDepartment').value;
+  const progId = document.getElementById('wlProgram').value;
+  const minConsecutive = document.getElementById('wlMinConsecutive').value;
+
+  const params = new URLSearchParams();
+  if (deptId) params.set('department_id', deptId);
+  if (progId) params.set('program_id', progId);
+  if (minConsecutive) params.set('min_consecutive', minConsecutive);
+
+  container.innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;">
+    <div class="loading-spinner"></div>
+    <p style="margin:12px 0 0;color:var(--muted);">Loading lecturer workload data...</p>
+  </div>`;
+
+  try {
+    const res = await fetch(`${API.lecturerWorkload}?${params.toString()}`);
+    const data = await res.json();
+
+    if (data.status !== 'success') {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+        <p style="margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>
+      </div>`;
+      return;
+    }
+
+    document.getElementById('workloadBadge').textContent = data.total_lecturers;
+
+    if (!data.data || data.data.length === 0) {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--green);">
+        <p style="margin:0;font-weight:600;">✅ No lecturers with ${data.min_consecutive}+ back-to-back classes found for the selected filters.</p>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = renderLecturerWorkload(data);
+  } catch (e) {
+    container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+      <p style="margin:0;">Error loading data: ${escapeHtml(e.message)}</p>
+    </div>`;
+  }
+}
+
+function renderLecturerWorkload(data){
+  let html = `<div class="panel" style="background:#FFF8F5;border-color:var(--warn);">
+    <p style="margin:0;font-weight:600;color:var(--warn);">
+      ${data.total_lecturers} lecturer(s) with ${data.min_consecutive}+ back-to-back classes
+      <span style="font-weight:400;font-size:.8rem;color:var(--muted);">— sorted highest first</span>
+    </p>
+  </div>`;
+
+  for (const lect of data.data){
+    html += `<div class="lecturer-card workload-card" data-lecturer-id="${lect.lecturer_id}">`;
+    html += `<div class="name">👨‍🏫 ${escapeHtml(lect.lecturer_name)}</div>`;
+    html += `<div class="detail">${escapeHtml(lect.designation)} · ${escapeHtml(lect.department)}</div>`;
+    html += `<div class="count">🔗 ${lect.max_consecutive_length} back-to-back
+      <span style="font-weight:400;font-size:.75rem;color:var(--muted);">(${lect.max_consecutive_hours} hrs straight, ${lect.consecutive_run_count} run(s))</span>
+    </div>`;
+    html += `<div class="summary-row">
+      <span>Weekly hours: <span class="count-inline">${lect.total_weekly_hours}</span></span>
+      <span>Sessions: <span class="count-inline">${lect.total_sessions}</span></span>
+      <span>Distinct courses: <span class="count-inline">${lect.distinct_courses}</span></span>
+    </div>`;
+    html += `<button class="secondary wl-view-btn" onclick="toggleLecturerSchedule(this, ${lect.lecturer_id})">📅 View Weekly Schedule</button>`;
+    html += `<div class="wl-schedule-panel hidden"></div>`;
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+async function toggleLecturerSchedule(btn, lecturerId){
+  const card = btn.closest('.workload-card');
+  const panel = card.querySelector('.wl-schedule-panel');
+
+  if (!panel.classList.contains('hidden') && panel.dataset.loaded === '1') {
+    panel.classList.add('hidden');
+    btn.textContent = '📅 View Weekly Schedule';
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  btn.textContent = '📅 Hide Weekly Schedule';
+  if (panel.dataset.loaded === '1') return;
+
+  panel.innerHTML = `<div style="text-align:center;padding:14px;"><div class="loading-spinner"></div></div>`;
+  try {
+    const res = await fetch(`${API.lecturerWeeklySchedule}?lecturer_id=${encodeURIComponent(lecturerId)}`);
+    const data = await res.json();
+    if (data.status !== 'success') {
+      panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>`;
+      return;
+    }
+    panel.innerHTML = renderWeeklyAgenda(data, 'lecturer');
+    panel.dataset.loaded = '1';
+  } catch (e) {
+    panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error loading schedule: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function loadProgramWorkload(){
+  const container = document.getElementById('workloadResults');
+  const deptId = document.getElementById('wlpDepartment').value;
+  const minConsecutive = document.getElementById('wlpMinConsecutive').value;
+
+  const params = new URLSearchParams();
+  if (deptId) params.set('department_id', deptId);
+  if (minConsecutive) params.set('min_consecutive', minConsecutive);
+
+  container.innerHTML = `<div class="panel" style="text-align:center;padding:30px 20px;">
+    <div class="loading-spinner"></div>
+    <p style="margin:12px 0 0;color:var(--muted);">Loading program workload data...</p>
+  </div>`;
+
+  try {
+    const res = await fetch(`${API.programWorkload}?${params.toString()}`);
+    const data = await res.json();
+
+    if (data.status !== 'success') {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+        <p style="margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>
+      </div>`;
+      return;
+    }
+
+    document.getElementById('workloadBadge').textContent = data.total_programs;
+
+    if (!data.data || data.data.length === 0) {
+      container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--green);">
+        <p style="margin:0;font-weight:600;">✅ No programs with ${data.min_consecutive}+ back-to-back classes found for the selected filters.</p>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = renderProgramWorkload(data);
+  } catch (e) {
+    container.innerHTML = `<div class="panel" style="text-align:center;padding:20px;color:var(--warn);">
+      <p style="margin:0;">Error loading data: ${escapeHtml(e.message)}</p>
+    </div>`;
+  }
+}
+
+function renderProgramWorkload(data){
+  let html = `<div class="panel" style="background:#FFF8F5;border-color:var(--warn);">
+    <p style="margin:0;font-weight:600;color:var(--warn);">
+      ${data.total_programs} program(s) with ${data.min_consecutive}+ back-to-back classes in at least one year
+      <span style="font-weight:400;font-size:.8rem;color:var(--muted);">— sorted highest first</span>
+    </p>
+  </div>`;
+
+  for (const prog of data.data){
+    html += `<div class="lecturer-card workload-card" data-program-id="${prog.program_id}">`;
+    html += `<div class="name">📋 ${escapeHtml(prog.program_name)}</div>`;
+    html += `<div class="detail">${escapeHtml(prog.department)}</div>`;
+    html += `<div class="count">🔗 Peak: Year ${escapeHtml(String(prog.peak_year))} — ${prog.peak_max_consecutive_length} back-to-back
+      <span style="font-weight:400;font-size:.75rem;color:var(--muted);">(${prog.peak_max_consecutive_hours} hrs straight)</span>
+    </div>`;
+    html += `<div class="summary-row"><span>Total scheduled hours (all years): <span class="count-inline">${prog.total_weekly_hours_all_years}</span></span></div>`;
+
+    html += `<table class="sub-table"><thead><tr>
+      <th>Year</th><th>Weekly Hrs</th><th>Sessions</th><th>Max Back-to-Back</th><th></th>
+    </tr></thead><tbody>`;
+    for (const y of prog.years){
+      html += `<tr>
+        <td>Year ${escapeHtml(String(y.year))}</td>
+        <td>${y.total_hours}</td>
+        <td>${y.total_sessions}</td>
+        <td>${y.max_consecutive_length} (${y.max_consecutive_hours} hrs)</td>
+        <td><button class="secondary wl-view-btn" onclick="toggleProgramYearSchedule(this, ${prog.program_id}, '${escapeHtml(String(y.year))}')">📅 View Week</button></td>
+      </tr>`;
+    }
+    html += `</tbody></table>`;
+    html += `<div class="wl-schedule-panel hidden"></div>`;
+    html += `</div>`;
+  }
+
+  return html;
+}
+
+async function toggleProgramYearSchedule(btn, programId, year){
+  const card = btn.closest('.workload-card');
+  const panel = card.querySelector('.wl-schedule-panel');
+  const cacheKey = `${programId}:${year}`;
+
+  const alreadyShowingThis = !panel.classList.contains('hidden') && panel.dataset.loadedKey === cacheKey;
+  if (alreadyShowingThis) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  panel.innerHTML = `<div style="text-align:center;padding:14px;"><div class="loading-spinner"></div></div>`;
+  try {
+    const res = await fetch(`${API.programYearWeeklySchedule}?program_id=${encodeURIComponent(programId)}&year=${encodeURIComponent(year)}`);
+    const data = await res.json();
+    if (data.status !== 'success') {
+      panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>`;
+      return;
+    }
+    panel.innerHTML = `<div style="font-weight:700;color:var(--green-dark);margin-bottom:8px;">📅 ${escapeHtml(data.program_name)} — Year ${escapeHtml(String(data.year))}, full week</div>`
+      + renderWeeklyAgenda(data, 'program');
+    panel.dataset.loadedKey = cacheKey;
+  } catch (e) {
+    panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error loading schedule: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function renderWeeklyAgenda(data, kind){
+  let html = `<div class="ws-summary">
+    <span>Total: <b>${data.total_weekly_hours} hrs/week</b></span>
+    <span><b>${data.total_sessions}</b> sessions</span>
+    <span>Longest back-to-back: <b>${data.max_consecutive_length}</b> classes (${data.max_consecutive_hours} hrs)</span>
+  </div>`;
+
+  if (!data.days || data.days.length === 0) {
+    return html + `<p class="ws-noclasses">No scheduled classes found.</p>`;
+  }
+
+  for (const dayBlock of data.days){
+    html += `<div class="ws-day"><div class="ws-day-title">${escapeHtml(dayBlock.day)}</div><ul class="ws-sessions">`;
+    for (const s of dayBlock.sessions){
+      const metaParts = [];
+      if (kind === 'lecturer') {
+        if (s.program) metaParts.push(escapeHtml(s.program));
+        if (s.year) metaParts.push(`Year ${escapeHtml(String(s.year))}`);
+        if (s.student_group) metaParts.push(`Group ${escapeHtml(s.student_group)}`);
+      } else {
+        if (s.lecturer) metaParts.push(escapeHtml(s.lecturer));
+        if (s.student_group) metaParts.push(`Group ${escapeHtml(s.student_group)}`);
+      }
+      if (s.venue) metaParts.push(`📍 ${escapeHtml(s.venue)}`);
+      const consecBadge = s.consecutive_with_prev ? `<span class="badge overload">🔗 back-to-back</span>` : '';
+      html += `<li class="${s.consecutive_with_prev ? 'ws-consecutive' : ''}">
+        <span class="ws-time">${escapeHtml(s.start_time)}–${escapeHtml(s.end_time)}</span>
+        <span class="ws-course"><b>${escapeHtml(s.course_code)}</b> — ${escapeHtml(s.course_name)}</span>
+        <span class="ws-meta">${metaParts.join(' · ')}</span>
+        ${consecBadge}
+      </li>`;
+    }
+    html += `</ul></div>`;
+  }
+
+  return html;
+}
+
+// Load data when tabs are shown (for zero-student and overload tabs)
+document.querySelector('.tab[data-tab="zero-student"]').addEventListener('click', function(){
+  const container = document.getElementById('zeroStudentResults');
+  if (container.querySelector('.panel') && !container.querySelector('.program-block')) {
+    loadZeroStudent();
+  }
+});
+
+document.querySelector('.tab[data-tab="overload"]').addEventListener('click', function(){
+  const container = document.getElementById('overloadResults');
+  if (container.querySelector('.panel') && !container.querySelector('.lecturer-card')) {
+    loadOverload();
+  }
+});
+
+// ====================================================================
+// TAB 5: Email Department
+// ====================================================================
+const emDepartmentEl = document.getElementById('emDepartment');
+const emSendToAllEl = document.getElementById('emSendToAll');
+const emRecipientsEl = document.getElementById('emRecipients');
+const emSendResultEl = document.getElementById('emSendResult');
+
+emDepartmentEl.addEventListener('change', function(){
+  loadDeptRecipients(this.value);
+});
+
+emSendToAllEl.addEventListener('change', function(){
+  emDepartmentEl.disabled = this.checked;
+  emSendResultEl.innerHTML = '';
+  if (this.checked){
+    emDepartmentEl.value = '';
+    emRecipientsEl.innerHTML = `<strong>Will send to:</strong> every department's COD/COD Admin(s) on file, individually — each department only receives its own timetable/allocation PDFs, never another department's. Departments with no COD/COD Admin email on file are skipped and listed in the result.`;
+  } else {
+    loadDeptRecipients(emDepartmentEl.value);
+  }
+});
+
+async function loadDeptRecipients(deptId){
+  emSendResultEl.innerHTML = '';
+  if (!deptId){
+    emRecipientsEl.innerHTML = '';
+    return;
+  }
+  emRecipientsEl.innerHTML = 'Looking up recipients…';
+  try {
+    const res = await fetch(`${API.deptEmailRecipients}?department_id=${encodeURIComponent(deptId)}`);
+    const data = await res.json();
+    if (data.status !== 'success'){
+      emRecipientsEl.innerHTML = `<span style="color:var(--warn);">${escapeHtml(data.message || 'Could not load recipients.')}</span>`;
+      return;
+    }
+    const codNames = data.cod.map(r => `${escapeHtml(r.name)} &lt;${escapeHtml(r.email)}&gt;`);
+    const adminNames = data.cod_admins.map(r => `${escapeHtml(r.name)} &lt;${escapeHtml(r.email)}&gt;`);
+    let html = '';
+    if (codNames.length === 0 && adminNames.length === 0){
+      html = `<span style="color:var(--warn);">No COD or COD Admin email is on file for ${escapeHtml(data.department)} yet. Add one via Manage COD before sending.</span>`;
+    } else {
+      html += `<strong>Will send to:</strong><br>`;
+      if (codNames.length) html += `COD: ${codNames.join(', ')}<br>`;
+      if (adminNames.length) html += `COD Admin(s): ${adminNames.join(', ')}`;
+    }
+    emRecipientsEl.innerHTML = html;
+  } catch (e) {
+    emRecipientsEl.innerHTML = `<span style="color:var(--warn);">Error loading recipients: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+document.getElementById('btnSendDeptEmail').addEventListener('click', function(){
+  withButtonBusy(this, emSendToAllEl.checked ? 'Sending to all departments…' : 'Sending…', sendDeptEmail);
+});
+
+async function sendDeptEmail(){
+  const sendToAll = emSendToAllEl.checked;
+  const deptId = sendToAll ? 'all' : emDepartmentEl.value;
+  const subject = document.getElementById('emSubject').value.trim();
+  const body = document.getElementById('emBody').value.trim();
+  const includeUnscheduled = document.getElementById('emIncludeUnscheduled').checked;
+  const includeScheduled = document.getElementById('emIncludeScheduled').checked;
+  const includeAllocation = document.getElementById('emIncludeAllocation').checked;
+  const includeDeptTimetable = document.getElementById('emIncludeDeptTimetable').checked;
+
+  emSendResultEl.innerHTML = '';
+
+  if (!sendToAll && !deptId){
+    emSendResultEl.innerHTML = `<span style="color:var(--warn);">Select a department, or check "Send to ALL departments".</span>`;
+    return;
+  }
+  if (!subject || !body){
+    emSendResultEl.innerHTML = `<span style="color:var(--warn);">Subject and message body are both required.</span>`;
+    return;
+  }
+  if (!includeUnscheduled && !includeScheduled && !includeAllocation && !includeDeptTimetable){
+    emSendResultEl.innerHTML = `<span style="color:var(--warn);">Select at least one attachment.</span>`;
+    return;
+  }
+  if (sendToAll && !confirm('This will send a separate email to every department\'s COD/COD Admin(s) on file — each with their own PDFs. Continue?')){
+    return;
+  }
+
+  const params = new URLSearchParams();
+  params.set('department_id', deptId);
+  params.set('subject', subject);
+  params.set('body', body);
+  params.set('include_unscheduled', includeUnscheduled ? '1' : '0');
+  params.set('include_scheduled', includeScheduled ? '1' : '0');
+  params.set('include_allocation', includeAllocation ? '1' : '0');
+  params.set('include_department_timetable', includeDeptTimetable ? '1' : '0');
+
+  emSendResultEl.innerHTML = sendToAll
+    ? `<div class="loading-spinner"></div> Sending to all departments — this can take a while…`
+    : `<div class="loading-spinner"></div> Sending…`;
+
+  try {
+    const res = await fetch(API.sendDeptEmail, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': CSRF_TOKEN,
+      },
+      body: params.toString(),
+    });
+    const data = await res.json();
+
+    if (data.mode === 'bulk'){
+      renderBulkSendResult(data);
+      return;
+    }
+
+    if (data.status !== 'success'){
+      emSendResultEl.innerHTML = `<span style="color:var(--warn);">${escapeHtml(data.message || 'Failed to send email.')}</span>`;
+      return;
+    }
+    let html = `<span style="color:var(--green-dark);font-weight:600;">✅ ${escapeHtml(data.message)}</span>`;
+    if (data.attachments && data.attachments.length){
+      html += `<br><span class="hint">Attached: ${data.attachments.map(escapeHtml).join(', ')}</span>`;
+    }
+    if (data.notes && data.notes.length){
+      html += `<br><span class="hint" style="color:var(--orange);">${data.notes.map(escapeHtml).join(' ')}</span>`;
+    }
+    emSendResultEl.innerHTML = html;
+  } catch (e) {
+    emSendResultEl.innerHTML = `<span style="color:var(--warn);">Error sending email: ${escapeHtml(e.message)}</span>`;
+  }
+}
+
+function renderBulkSendResult(data){
+  const ok = data.status === 'success';
+  const color = ok ? 'var(--green-dark)' : (data.status === 'partial' ? 'var(--orange)' : 'var(--warn)');
+  const icon = ok ? '✅' : (data.status === 'partial' ? '⚠️' : '❌');
+  let html = `<span style="color:${color};font-weight:600;">${icon} ${escapeHtml(data.message || '')}</span>`;
+
+  if (data.sent && data.sent.length){
+    html += `<div style="margin-top:8px;"><strong>Sent (${data.sent.length}):</strong><ul style="margin:4px 0 0 18px;padding:0;">`;
+    html += data.sent.map(r => `<li>${escapeHtml(r.department)} — ${(r.recipients || []).map(escapeHtml).join(', ')}</li>`).join('');
+    html += `</ul></div>`;
+  }
+  if (data.skipped && data.skipped.length){
+    html += `<div style="margin-top:8px;color:var(--muted);"><strong>Skipped (${data.skipped.length}):</strong><ul style="margin:4px 0 0 18px;padding:0;">`;
+    html += data.skipped.map(r => `<li>${escapeHtml(r.department)} — ${escapeHtml(r.reason || '')}</li>`).join('');
+    html += `</ul></div>`;
+  }
+  if (data.errors && data.errors.length){
+    html += `<div style="margin-top:8px;color:var(--warn);"><strong>Failed (${data.errors.length}):</strong><ul style="margin:4px 0 0 18px;padding:0;">`;
+    html += data.errors.map(r => `<li>${escapeHtml(r.department)} — ${escapeHtml(r.reason || '')}</li>`).join('');
+    html += `</ul></div>`;
+  }
+
+  emSendResultEl.innerHTML = html;
+}
+</script>
+</body>
+</html>

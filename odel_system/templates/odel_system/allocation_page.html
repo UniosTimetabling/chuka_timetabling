@@ -1,0 +1,1027 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'odel_system/css/odel_system_odel_system_allocation_page.css' %}">
+<link rel="stylesheet" href="{% static 'odel_system/css/odel_allocation.css' %}">
+<link rel="stylesheet" href="{% static 'odel_system/css/odel_system_allocation_page.css' %}">
+<style>
+    /* ── High-Efficiency Dual Viewport Layout ── */
+    .odel-main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0px !important;
+      margin: 10px 0;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-radius: 6px;
+      height: calc(100vh - 140px);
+      overflow: hidden;
+    }
+
+    /* Left Panel: Fixed Independent Scroller */
+    .odel-main > section:first-of-type {
+      border-right: 2px solid #1b5e20;
+      background: #fcfcfc;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    /* Right Panel: Fixed Independent Scroller */
+    .odel-main > section:last-of-type {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .panel-card {
+      margin: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      background: transparent;
+    }
+
+    .panel-card__head {
+      padding: 12px 14px !important;
+      border-bottom: 2px solid #1b5e20;
+      background: #1b5e20; 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      flex-shrink: 0;
+    }
+
+    .panel-card__head h2 {
+      font-size: 14px !important;
+      font-weight: 700;
+      color: #ffffff !important; 
+      margin: 0;
+    }
+
+    .panel-card__body {
+      padding: 12px !important;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    /* ── Spreadsheet Excel Matrix ── */
+    .table-container {
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+      height: 100%;
+      width: 100%;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th, 
+    .data-table td {
+      border: 1px solid #a5d6a7 !important; 
+      padding: 10px 12px !important; 
+      text-align: left;
+      vertical-align: middle;
+      background: #fff;
+      color: #222222 !important; 
+    }
+
+    .lecturer-text-highlight {
+      color: #2e7d32 !important;
+      font-weight: 600;
+    }
+    .lecturer-text-unassigned {
+      color: #c62828 !important;
+      font-weight: 600;
+      background: #ffebee;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .data-table th {
+      background: #1b5e20 !important; 
+      color: #ffffff !important; 
+      font-weight: 700;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      border-bottom: 3px solid #0d3c12 !important;
+    }
+
+    .data-table tbody tr:hover td {
+      background-color: #f1fcf1 !important; 
+    }
+
+    /* Stacked Action Columns */
+    .action-column-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      align-items: stretch;
+      width: 100%;
+      min-width: 90px;
+    }
+
+    .btn-action-row {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px !important;
+      font-weight: 700;
+      color: #fff !important;
+      padding: 6px 8px !important;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    .btn-action-row.edit-accent { background-color: #0288d1 !important; }
+    .btn-action-row.edit-accent:hover { background-color: #01579b !important; }
+    .btn-action-row.delete-danger { background-color: #d32f2f !important; }
+    .btn-action-row.delete-danger:hover { background-color: #c41c1c !important; }
+    .btn-action-row.btn-sr { background-color: #eceff1 !important; color: #455a64 !important; }
+    .btn-action-row.btn-sr:hover { background-color: #cfd8dc !important; }
+    .btn-action-row.btn-sr.has-sr { background-color: #fff3e0 !important; color: #e65100 !important; }
+
+    /* Top Nav Action Layout */
+    .nav-bulk-wrapper {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 5px 16px;
+      border-radius: 6px;
+      margin-right: 15px;
+      font-size: 13px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .nav-bulk-title {
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .btn-nav-bulk-action {
+      background: #ffffff !important;
+      color: #1b5e20 !important;
+      font-weight: 700;
+      border: 1px solid #ffffff;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .btn-nav-bulk-action:hover {
+      background: #e8f5e9 !important;
+      transform: translateY(-1px);
+    }
+    .nav-bulk-count {
+      background: #1b5e20;
+      color: #fff;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+      margin-left: 4px;
+    }
+
+    .header-search-input {
+      max-width: 260px;
+      font-size: 12px;
+      padding: 4px 8px;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid #a5d6a7;
+      color: #333 !important;
+    }
+
+    /* Form Tuning styles */
+    .odel-form .form-group { margin-bottom: 12px !important; }
+    .odel-form .form-label { font-size: 12px; margin-bottom: 4px; font-weight: 600; color: #333; }
+    .odel-form .form-control { height: 34px; font-size: 13px; padding: 4px 8px; border-radius: 4px; border: 1px solid #bbb; color: #222; }
+    .odel-form .form-control:focus { border-color: #1b5e20; box-shadow: 0 0 0 2px rgba(27,94,32,0.15); }
+    
+    .btn-update-mode {
+      background-color: #f39c12 !important;
+      color: white !important;
+    }
+    .btn-update-mode:hover {
+      background-color: #d35400 !important;
+    }
+    .editing-row-highlight {
+      background-color: #fff9db !important;
+    }
+
+    /* Toasts */
+    #toastContainer { position: fixed; bottom: 22px; right: 22px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+    .toast { color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 18px rgba(0,0,0,0.22); max-width: 340px; pointer-events: auto; opacity: 0; transform: translateX(30px); transition: opacity 0.26s, transform 0.26s; }
+    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast-success { background: #27ae60; }
+    .toast-error   { background: #e74c3c; }
+    .toast-warning { background: #f39c12; }
+    
+    #offlineBanner { position: fixed; top: 0; left: 0; right: 0; z-index: 8000; background: #e65100; color: #fff; font-size: 13px; font-weight: 700; text-align: center; padding: 7px 16px; display: none; gap: 12px; align-items: center; justify-content: center; }
+    #offlineBanner.visible { display: flex; }
+</style>
+{% endblock page_css %}
+
+{% block title %}ODEL Course Allocations — Chuka University{% endblock %}
+{% block page_title %}ODEL Course Allocations{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+{% endblock %}
+
+{% block header_controls %}
+ <div class="nav-bulk-wrapper">
+   <span class="nav-bulk-title"><i class="bi bi-send-check"></i> Instant Submission:</span>
+   
+   <button class="btn-nav-bulk-action" onclick="submitGlobalBulk('tt')">
+     To Timetable <span class="nav-bulk-count" id="submittedToTTCount">0/0</span>
+   </button>
+
+   <button class="btn-nav-bulk-action" onclick="submitGlobalBulk('dvc')">
+     To DVC <span class="nav-bulk-count" id="submittedToDVCCount">0/0</span>
+   </button>
+ </div>
+
+ <button type="button" class="hdr-btn hdr-btn--accent" id="openAutoAllocateBtn">
+   <i class="fas fa-robot"></i> Auto-Allocate
+ </button>
+
+ <a href="{% url 'odel_system:download_allocations_pdf' %}" class="hdr-btn hdr-btn--accent">
+   <i class="bi bi-file-pdf"></i> Download PDF
+ </a>
+
+ <a href="{% url 'odel_system:odel_safe_undo_page' %}" class="hdr-btn">
+   &#128737;&#65039; Safe Undo
+ </a>
+{% endblock %}
+
+{% block allocation_content %}
+
+<div id="offlineBanner"><span id="offlineBannerText"></span><button id="syncNowBtn">Sync Now</button></div>
+<div id="toastContainer"></div>
+<div id="searchContainer" style="display:none;"></div>
+
+<div class="odel-main">
+
+ <section class="panel-card" id="formPanelAnchor">
+ <div class="panel-card__head">
+   <h2 id="formPanelTitle"><i class="fas fa-plus-circle"></i> Allocate Course</h2>
+ </div>
+ <div class="panel-card__body">
+   <form id="createForm" class="odel-form">
+     {% csrf_token %}
+     
+     <input type="hidden" id="formAllocationId" value="">
+
+     <div class="form-group">
+       <label class="form-label">Program</label>
+       <select class="form-control" id="programSelect" required>
+         <option value="">Select Program</option>
+         {% for program in programs %}
+         <option value="{{ program.id }}">{{ program.name }}</option>
+         {% endfor %}
+       </select>
+     </div>
+
+     <div class="form-group">
+       <label class="form-label">Course (Type to search or select)</label>
+       <input type="text" class="form-control" id="courseDatalistInput" placeholder="Select Program first..." list="courseOptionsDatalist" autocomplete="off" disabled required>
+       <datalist id="courseOptionsDatalist"></datalist>
+       <input type="hidden" id="hiddenCourseValue" name="program_course">
+     </div>
+
+     <div class="form-group">
+       <label class="form-label">Lecturer</label>
+       <select class="form-control" id="lecturerSelect" name="lecturer">
+         <option value="">— Unassigned —</option>
+         {% for lecturer in lecturers %}
+         <option value="{{ lecturer.id }}">
+           {{ lecturer }}
+         </option>
+         {% endfor %}
+       </select>
+     </div>
+
+     <div class="form-group">
+       <label class="form-label">Number of Students</label>
+       <input type="number" class="form-control" id="studentCountInput" name="number_of_students" min="1" required>
+     </div>
+
+     <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;">
+       <button type="button" id="mainFormSubmitBtn" class="btn btn-primary btn-sm w-100" style="height:36px; font-weight:700;" onclick="handleFormSubmission()">
+         <i class="fas fa-save"></i> Create Allocation
+       </button>
+       <button type="button" id="cancelEditBtn" class="btn btn-outline btn-sm w-100" style="height:32px; font-weight:600; display: none;" onclick="resetFormToCreateMode()">
+         Cancel Edit Mode
+       </button>
+     </div>
+   </form>
+ </div>
+ </section>
+
+ <section class="panel-card">
+ <div class="panel-card__head">
+   <div style="width:10px;"></div>
+   <input type="text" id="panelSearchInput" class="form-control header-search-input" placeholder="Filter sheets rows..." onkeyup="window.onSearch(this.value)">
+ </div>
+
+ <div class="panel-card__body" style="padding:0 !important;">
+   <div class="table-container">
+     <table class="data-table">
+       <thead>
+         <tr>
+           <th>Course Code</th>
+           <th>Course Name</th>
+           <th>Program</th>
+           <th>Lecturer</th>
+           <th>Students</th>
+           <th style="width: 110px; text-align: center;">Actions</th>
+         </tr>
+       </thead>
+       <tbody id="allocationsTableBody">
+         {% for allocation in allocations %}
+         <tr id="row-{{ allocation.id }}" data-allocation-id="{{ allocation.id }}" data-searchable>
+           <td class="col-code"><strong>{{ allocation.course_code }}</strong></td>
+           <td class="col-name">{{ allocation.course_name }}</td>
+           <td class="col-program">{{ allocation.program.name }}</td>
+           <td class="col-lecturer">
+             {% if allocation.lecturer %}
+               <span class="lecturer-text-highlight">{{ allocation.lecturer }}</span>
+             {% else %}
+               <span class="lecturer-text-unassigned">Unassigned</span>
+             {% endif %}
+           </td>
+           <td class="col-students">{{ allocation.number_of_students }}</td>
+           <td style="text-align: center;">
+             <div class="action-column-stack">
+               <button class="btn-action-row edit-accent" 
+                       onclick="loadRowIntoForm('{{ allocation.id }}', '{{ allocation.program.id }}', '{{ allocation.program_course.id }}', '{{ allocation.course_code }} - {{ allocation.course_name }}', '{{ allocation.lecturer.id|default:"" }}', '{{ allocation.number_of_students }}')" 
+                       title="Edit Row Data" {% if allocation.rejected %}disabled{% endif %}>
+                 <i class="bi bi-pencil-square"></i> Edit
+               </button>
+               <button class="btn-action-row delete-danger" onclick="deleteAllocation({{ allocation.id }})" title="Delete Row">
+                 <i class="bi bi-trash3"></i> Delete
+               </button>
+               <button type="button" id="sr-btn-{{ allocation.id }}" class="btn-action-row btn-sr" title="Special Request (SR)"
+                       onclick="openSrMenu(event, {{ allocation.id }}, &quot;{{ allocation.course_code|escapejs }}&quot;)">
+                 SR &#9662;
+               </button>
+             </div>
+           </td>
+         </tr>
+         {% empty %}
+         <tr>
+           <td colspan="6" class="text-center" style="padding:40px; color:#555;">
+             <i class="bi bi-inbox" style="font-size:1.5rem; display:block; margin-bottom:4px;"></i>
+             No active records found inside sheet context.
+           </td>
+         </tr>
+         {% endfor %}
+       </tbody>
+     </table>
+   </div>
+ </div>
+ </section>
+
+</div>
+
+<!-- ── Auto-Allocate Modal ─────────────────────────────────────────── -->
+<div id="autoAllocateModal" class="aa-modal-overlay" style="display:none;">
+  <div class="aa-modal">
+    <div class="aa-modal__head">
+      <h2><i class="fas fa-robot"></i> ODEL Auto-Allocate</h2>
+      <button type="button" class="aa-close" id="aaCloseBtn">&times;</button>
+    </div>
+
+    <div class="aa-modal__body">
+      <div class="aa-sidebar">
+        <div class="aa-sidebar-title">Filters</div>
+
+        {% if is_odel_admin %}
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-control" id="aaDeptSelect">
+            <option value="">Select Department</option>
+            {% for d in all_departments %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input type="hidden" id="aaDeptSelect" value="{{ user_department.id }}">
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">Semester(s)</label>
+          <div class="aa-sem-checks aa-sem-checks--stacked">
+            <label><input type="checkbox" class="aaSemCheck" value="1" checked> Semester 1</label>
+            <label><input type="checkbox" class="aaSemCheck" value="2" checked> Semester 2</label>
+          </div>
+          <small class="aa-hint">Tick both to allocate Semester 1 and Semester 2 together in one run.</small>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-sm aa-load-btn" id="aaLoadTreeBtn">
+          <i class="fas fa-sync-alt"></i> Load Courses
+        </button>
+
+        <div class="aa-sidebar-divider"></div>
+
+        <label class="aa-overwrite-toggle">
+          <input type="checkbox" id="aaOverwrite"> Re-allocate courses that already have an ODEL allocation
+        </label>
+
+        <div class="aa-selected-count" id="aaSelectedCount">0 selected</div>
+      </div>
+
+      <div id="aaTreeContainer" class="aa-table-wrap">
+        <table class="aa-table">
+          <thead>
+            <tr>
+              <th class="aa-col-check"><input type="checkbox" id="aaSelectAllMaster" title="Select all courses shown"></th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Program</th>
+              <th>Cohort</th>
+              <th>Sem</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="aaTreeBody">
+            <tr><td colspan="7" class="aa-empty-hint">Pick a department and semester(s), then click "Load Courses".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="aa-modal__foot">
+      <button type="button" class="btn btn-outline btn-sm" id="aaCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="aaRunBtn" disabled>
+        <i class="fas fa-robot"></i> Auto-Allocate Selected
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Auto-Allocate: full-screen, flat, spreadsheet-style layout ───────── */
+  .aa-modal-overlay {
+    position: fixed; inset: 0; background: #fff;
+    z-index: 9500; display: flex; flex-direction: column;
+  }
+  .aa-modal {
+    background: #fff; border-radius: 0; width: 100%; flex: 1 1 auto;
+    max-width: none; max-height: none; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: none;
+  }
+  .aa-modal__head {
+    background: #1b5e20; color: #fff; padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
+  }
+  .aa-modal__head h2 { font-size: 15px; margin: 0; font-weight: 700; }
+  .aa-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+  .aa-modal__body { padding: 0; overflow: hidden; flex: 1 1 auto; display: flex; flex-direction: row; min-height: 0; }
+  .aa-modal__foot { padding: 8px 14px; border-top: 1px solid #ccc; display: flex; justify-content: flex-end; gap: 8px; flex: 0 0 auto; background: #fafafa; }
+
+  /* ── Left sidebar: filters / form ─────────────────────────────────── */
+  .aa-sidebar { flex: 0 0 260px; width: 260px; border-right: 1px solid #ccc; background: #fafafa; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .aa-sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1b5e20; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .aa-sidebar-divider { border-top: 1px solid #ddd; margin: 2px 0; }
+  .aa-sidebar .form-group { margin-bottom: 0; }
+  .aa-sem-checks--stacked { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .aa-hint { display: block; color: #666; font-size: 10.5px; margin-top: 4px; }
+  .aa-load-btn { width: 100%; }
+  .aa-overwrite-toggle { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; font-weight: 600; color: #333; }
+  .aa-selected-count { font-size: 12px; font-weight: 700; color: #1b5e20; border-top: 1px solid #ddd; padding-top: 10px; }
+
+  /* ── Right panel: flat, column-lined data table (scrolls at the outer edge) ── */
+  .aa-table-wrap { flex: 1 1 auto; overflow: auto; min-height: 0; background: #fff; }
+  .aa-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .aa-table thead th { position: sticky; top: 0; z-index: 2; background: #f3f3f3; border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: #333; }
+  .aa-table thead th.aa-col-check { width: 34px; text-align: center; }
+  .aa-table tbody td { border: 1px solid #eee; padding: 4px 8px; vertical-align: middle; }
+  .aa-table tbody td.aa-col-check { text-align: center; }
+  .aa-empty-hint { padding: 24px; text-align: center; color: #777; font-size: 13px; border: none !important; }
+  .aa-group-row td { background: #eaeaea; font-weight: 700; font-size: 12px; color: #1b5e20; border: 1px solid #ccc; padding: 5px 8px; }
+  .aa-cohort-row td { background: #f7f7f7; font-weight: 600; font-size: 11.5px; color: #333; border: 1px solid #eee; padding: 4px 8px 4px 22px; }
+  .aa-cohort-row .cohort-badge { color: #0d47a1; font-size: 10.5px; font-weight: 700; margin-left: 4px; }
+  .aa-course-row:nth-child(even) { background: #fafafa; }
+  .aa-course-row:hover { background: #eef6ff; }
+  .aa-course-row.aa-already td.aa-col-status { color: #2e7d32; font-weight: 600; }
+</style>
+{% endblock allocation_content %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  let courseCacheMap = {};
+
+  function toast(msg, type, dur) { 
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast toast-${type || 'info'}`;
+    toastEl.textContent = msg;
+    container.appendChild(toastEl);
+    setTimeout(() => toastEl.classList.add('show'), 10);
+    setTimeout(() => {
+      toastEl.classList.remove('show');
+      setTimeout(() => toastEl.remove(), 300);
+    }, dur || 4000);
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  $(document).ready(function () {
+    window.onSearch = function (q) {
+      const $rows = $('#allocationsTableBody tr');
+      $rows.find('mark.search-hit').each(function () { $(this).replaceWith($(this).text()); });
+      if (!q) { $rows.show(); return; }
+      q = q.toLowerCase().trim();
+      const pattern = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      $rows.each(function () {
+        const $tr = $(this);
+        if ($tr.text().toLowerCase().includes(q)) {
+          $tr.show();
+          $tr.find('td').each(function () {
+            const $td = $(this);
+            if ($td.find('button').length > 0) return;
+            const raw = $td.text();
+            if (raw.toLowerCase().includes(q)) {
+              $td.html(raw.replace(pattern, m => `<mark class="search-hit">${m}</mark>`));
+            }
+          });
+        } else { $tr.hide(); }
+      });
+    };
+
+    $('#programSelect').change(function () {
+      const programId = $(this).val();
+      const $input = $('#courseDatalistInput');
+      const $datalist = $('#courseOptionsDatalist');
+      
+      $input.val('').prop('disabled', true).attr('placeholder', 'Select Program first...');
+      $datalist.empty();
+      $('#hiddenCourseValue').val('');
+
+      if (!programId) return;
+      $input.attr('placeholder', 'Loading program courses...');
+
+      $.get('{% url "odel_system:api_get_program_courses" %}', { program_id: programId }, function (data) {
+        courseCacheMap[programId] = data; 
+        $.each(data, function (i, course) {
+          const textLabel = course.course_code + ' - ' + course.course_name;
+          $datalist.append($('<option>', {
+            value: textLabel,
+            'data-id': course.id
+          }));
+        });
+        $input.prop('disabled', false).attr('placeholder', 'Type or click to view options...');
+      }).fail(function () { 
+        toast('Failed to load courses for selected program.', 'error'); 
+      });
+    });
+
+    $('#courseDatalistInput').on('input change', function() {
+      const val = $(this).val();
+      const option = $('#courseOptionsDatalist option[value="' + val.replace(/"/g, '\\"') + '"]');
+      if(option.length) {
+        $('#hiddenCourseValue').val(option.attr('data-id'));
+      } else {
+        $('#hiddenCourseValue').val(''); 
+      }
+    });
+
+    loadSubmissionStats();
+  });
+
+  function loadSubmissionStats() {
+    $.get('{% url "odel_system:api_submission_stats" %}', function (data) {
+      $('#submittedToTTCount').text(data.submitted_tt + '/' + data.total_allocations);
+      $('#submittedToDVCCount').text(data.submitted_dvc + '/' + data.total_allocations);
+    });
+  }
+
+  window.loadRowIntoForm = function(id, programId, courseId, courseText, lecturerId, studentCount) {
+    $('#allocationsTableBody tr').removeClass('editing-row-highlight');
+    $('#row-' + id).addClass('editing-row-highlight');
+    document.getElementById('formPanelAnchor').scrollIntoView({ behavior: 'smooth' });
+
+    $('#formAllocationId').val(id);
+    $('#formPanelTitle').html('<i class="bi bi-pencil-square" style="color:#f39c12;"></i> Modify Allocation Mode');
+    $('#mainFormSubmitBtn').addClass('btn-update-mode').html('<i class="bi bi-check-lg"></i> Update Allocation');
+    $('#cancelEditBtn').show();
+
+    $('#programSelect').val(programId);
+    
+    const $datalist = $('#courseOptionsDatalist');
+    $datalist.empty();
+    
+    const populateDatalistAndSetValues = function(coursesArray) {
+      $.each(coursesArray, function (i, c) {
+        const textLabel = c.course_code + ' - ' + c.course_name;
+        $datalist.append($('<option>', { value: textLabel, 'data-id': c.id }));
+      });
+      
+      $('#courseDatalistInput').prop('disabled', false).val(courseText);
+      $('#hiddenCourseValue').val(courseId);
+    };
+
+    if (courseCacheMap[programId]) {
+      populateDatalistAndSetValues(courseCacheMap[programId]);
+    } else {
+      $.get('{% url "odel_system:api_get_program_courses" %}', { program_id: programId }, function (data) {
+        courseCacheMap[programId] = data;
+        populateDatalistAndSetValues(data);
+      });
+    }
+
+    $('#lecturerSelect').val(lecturerId);
+    $('#studentCountInput').val(studentCount);
+  };
+
+  window.resetFormToCreateMode = function() {
+    $('#allocationsTableBody tr').removeClass('editing-row-highlight');
+    $('#formAllocationId').val('');
+    $('#formPanelTitle').html('<i class="fas fa-plus-circle"></i> Allocate Course');
+    $('#mainFormSubmitBtn').removeClass('btn-update-mode').html('<i class="fas fa-save"></i> Create Allocation');
+    $('#cancelEditBtn').hide();
+
+    $('#programSelect').val('').trigger('change');
+    $('#lecturerSelect').val('');
+    $('#studentCountInput').val('');
+    $('#courseDatalistInput').val('').prop('disabled', true).attr('placeholder', 'Select Program first...');
+    $('#hiddenCourseValue').val('');
+  };
+
+  window.handleFormSubmission = function() {
+    const trackingId = $('#formAllocationId').val();
+    if (trackingId && trackingId.trim() !== "") {
+      submitUpdateAction(trackingId);
+    } else {
+      submitCreateAction();
+    }
+  };
+
+  // NO-RELOAD AJAX ASYNC CREATION FLOW
+  function submitCreateAction() {
+    const courseIdResolved = $('#hiddenCourseValue').val();
+    if (!courseIdResolved) { 
+      toast('Please type and select a valid matching course record from the option list.', 'warning'); 
+      return; 
+    }
+    if (!$('#studentCountInput').val()) { 
+      toast('Please specify student registration totals.', 'warning'); 
+      return; 
+    }
+
+    $.ajax({
+      url: '{% url "odel_system:api_allocation_create" %}',
+      type: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      data: JSON.stringify({
+        program_course: courseIdResolved,
+        lecturer: $('#lecturerSelect').val() || null,
+        number_of_students: parseInt($('#studentCountInput').val())
+      }),
+      contentType: 'application/json',
+      success: function (r) {
+        if (r.success) {
+          toast(r.message || 'Allocation created successfully', 'success');
+          
+          // Fallback parsing name strings directly from selection elements safely
+          const lecturerName = $('#lecturerSelect option:selected').val() ? $('#lecturerSelect option:selected').text().trim() : 'Unassigned';
+          const programName = $('#programSelect option:selected').text().trim();
+          const courseText = $('#courseDatalistInput').val();
+          const parts = courseText.split(' - ');
+          const courseCode = parts[0] || '';
+          const courseName = parts[1] || courseText;
+          const students = $('#studentCountInput').val();
+
+          const newRowHtml = `
+            <tr id="row-${r.id}" data-allocation-id="${r.id}" data-searchable>
+              <td class="col-code"><strong>${courseCode}</strong></td>
+              <td class="col-name">${courseName}</td>
+              <td class="col-program">${programName}</td>
+              <td class="col-lecturer">
+                <span class="${lecturerName === 'Unassigned' ? 'lecturer-text-unassigned' : 'lecturer-text-highlight'}">${lecturerName}</span>
+              </td>
+              <td class="col-students">${students}</td>
+              <td style="text-align: center;">
+                <div class="action-column-stack">
+                  <button class="btn-action-row edit-accent" onclick="loadRowIntoForm('${r.id}', '${$('#programSelect').val()}', '${courseIdResolved}', '${courseText}', '${$('#lecturerSelect').val()}', '${students}')">
+                    <i class="bi bi-pencil-square"></i> Edit
+                  </button>
+                  <button class="btn-action-row delete-danger" onclick="deleteAllocation(${r.id})">
+                    <i class="bi bi-trash3"></i> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>`;
+          
+          $('#allocationsTableBody tr:contains("No active records")').remove();
+          $('#allocationsTableBody').prepend(newRowHtml);
+          
+          resetFormToCreateMode();
+          loadSubmissionStats();
+        } else { toast('Error: ' + r.error, 'error'); }
+      },
+      error: function(xhr) {
+        toast('Server communication error (' + xhr.status + '). Verify parameters.', 'error');
+      }
+    });
+  }
+
+  // NO-RELOAD AJAX ASYNC UPDATE FLOW
+  function submitUpdateAction(id) {
+    if (!$('#studentCountInput').val()) {
+      toast('Number of students field cannot be left blank.', 'warning');
+      return;
+    }
+    
+    const selectedLecturerVal = $('#lecturerSelect').val();
+    const selectedLecturerText = selectedLecturerVal ? $('#lecturerSelect option:selected').text().trim() : 'Unassigned';
+    const studentsVal = $('#studentCountInput').val();
+
+    $.ajax({
+      url: '{% url "odel_system:api_allocation_update" 0 %}'.replace('0', id),
+      type: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      data: JSON.stringify({
+        lecturer: selectedLecturerVal || null,
+        number_of_students: parseInt(studentsVal) || 0
+      }),
+      contentType: 'application/json',
+      success: function (r) {
+        if (r.success) {
+          toast('Record updated and locked inside workspace matrix smoothly.', 'success');
+          
+          const $targetRow = $('#row-' + id);
+          $targetRow.find('.col-students').text(studentsVal);
+          
+          const $lecturerCell = $targetRow.find('.col-lecturer');
+          if (selectedLecturerVal) {
+            $lecturerCell.html(`<span class="lecturer-text-highlight">${selectedLecturerText}</span>`);
+          } else {
+            $lecturerCell.html(`<span class="lecturer-text-unassigned">Unassigned</span>`);
+          }
+          
+          const editBtn = $targetRow.find('.edit-accent');
+          const programId = $('#programSelect').val();
+          const courseId = $('#hiddenCourseValue').val();
+          const courseText = $('#courseDatalistInput').val();
+          editBtn.attr('onclick', `loadRowIntoForm('${id}', '${programId}', '${courseId}', '${courseText}', '${selectedLecturerVal}', '${studentsVal}')`);
+
+          resetFormToCreateMode();
+          loadSubmissionStats();
+        } else { toast('Error: ' + r.error, 'error'); }
+      },
+      error: function(xhr) {
+        toast('Server communication error (' + xhr.status + '). Verify credentials.', 'error');
+      }
+    });
+  }
+
+  window.submitGlobalBulk = function (target) {
+    const destinationLabel = target === 'tt' ? 'Timetable Office Desk' : 'DVC Academic Affairs';
+    
+    let targetIds = [];
+    $('#allocationsTableBody tr[data-allocation-id]').each(function() {
+       targetIds.push($(this).attr('data-allocation-id'));
+    });
+
+    if (targetIds.length === 0) {
+       toast('No dynamic records visible inside table arrays to submit.', 'warning');
+       return;
+    }
+
+    if (!confirm(`Are you sure you want to instantly submit all ${targetIds.length} visible allocation records to the ${destinationLabel}?`)) {
+      return;
+    }
+    
+    toast(`Processing bulk submission payload...`, 'info', 2000);
+
+    $.ajax({
+      url: '{% url "odel_system:api_bulk_submit" %}',
+      type: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      data: JSON.stringify({ 
+        allocation_ids: targetIds,
+        target: target 
+      }),
+      contentType: 'application/json',
+      success: function (r) {
+        if (r.success) {
+          toast(`Success: ${r.message}`, 'success');
+          loadSubmissionStats();
+        } else {
+          toast('Server error message: ' + r.error, 'error');
+        }
+      },
+      error: function () {
+        toast('Failed to process immediate submission requirements across dataset parameters.', 'error');
+      }
+    });
+  };
+
+  window.deleteAllocation = function (id) {
+    if (!confirm('Completely purge row record from school database allocation sheet parameters?')) return;
+    $.ajax({
+      url: '{% url "odel_system:api_allocation_delete" 0 %}'.replace('0', id),
+      type: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      data: JSON.stringify({}),
+      contentType: 'application/json',
+      success: function (r) {
+        if (r.success) { 
+          if($('#formAllocationId').val() == id) { resetFormToCreateMode(); }
+          $('#row-' + id).fadeOut(300, function(){ $(this).remove(); });
+          toast('Record dropped from data tables successfully.', 'success'); 
+          loadSubmissionStats();
+        } else { toast('Error: ' + r.error, 'error'); }
+      }
+    });
+  };
+
+  // ── Auto-Allocate modal ──────────────────────────────────────────────
+  const AA_TREE_URL = '{% url "odel_system:api_auto_allocate_tree" %}';
+  const AA_RUN_URL  = '{% url "odel_system:api_auto_allocate_run" %}';
+
+  function aaOpen() {
+    $('#autoAllocateModal').css('display', 'flex');
+    // Department is already known for regular COD/COD Admin accounts (server
+    // detected it and pre-filled the hidden field) -- auto-load their courses
+    // immediately instead of making them click "Load Courses", same as /cod/.
+    const deptId = $('#aaDeptSelect').val();
+    const isAdminPicker = $('#aaDeptSelect').is('select');
+    if (deptId && !isAdminPicker) {
+      aaLoadTree();
+    }
+  }
+  function aaClose() { $('#autoAllocateModal').hide(); }
+
+  $('#openAutoAllocateBtn').on('click', aaOpen);
+  $('#aaCloseBtn, #aaCancelBtn').on('click', aaClose);
+
+  function aaSelectedIds() {
+    return $('#aaTreeContainer .aa-course-check:checked')
+      .map(function () { return parseInt($(this).val(), 10); }).get();
+  }
+
+  function aaUpdateCount() {
+    const n = aaSelectedIds().length;
+    $('#aaSelectedCount').text(n + ' selected');
+    $('#aaRunBtn').prop('disabled', n === 0);
+  }
+
+  function aaRenderTree(data) {
+    const $tbody = $('#aaTreeBody');
+    if (!data.programs || !data.programs.length) {
+      $tbody.html('<tr><td colspan="7" class="aa-empty-hint">No courses found for this department/semester selection.</td></tr>');
+      aaUpdateCount();
+      return;
+    }
+    let html = '';
+    data.programs.forEach(function (prog) {
+      html += `<tr class="aa-group-row">
+        <td colspan="7"><label><input type="checkbox" class="aa-select-program" data-program="${prog.program_id}"> ${prog.program_name}</label></td>
+      </tr>`;
+      (prog.cohorts || []).forEach(function (cohort) {
+        html += `<tr class="aa-cohort-row">
+          <td colspan="7"><label><input type="checkbox" class="aa-select-cohort" data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"> Cohort ${cohort.entry_year} — Year ${cohort.year_of_study} <span class="cohort-badge">${cohort.students} students</span></label></td>
+        </tr>`;
+        cohort.courses.forEach(function (c) {
+          const already = c.already_allocated;
+          const status = already ? ('Already: ' + (c.lecturer || 'Unassigned')) : '—';
+          html += `<tr class="aa-course-row ${already ? 'aa-already' : ''}">
+            <td class="aa-col-check"><input type="checkbox" class="aa-course-check"
+                   value="${c.program_course_id}"
+                   data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"></td>
+            <td>${c.course_code}</td>
+            <td>${c.course_name}</td>
+            <td>${prog.program_name}</td>
+            <td>${cohort.entry_year} (Yr ${cohort.year_of_study})</td>
+            <td>Sem ${c.semester}</td>
+            <td class="aa-col-status">${status}</td>
+          </tr>`;
+        });
+      });
+    });
+    $tbody.html(html);
+    aaUpdateCount();
+  }
+
+  function aaLoadTree() {
+    const deptId = $('#aaDeptSelect').val();
+    if (!deptId) { toast('Select a department first.', 'warning'); return; }
+    const semesters = $('.aaSemCheck:checked').map(function () { return $(this).val(); }).get();
+    if (!semesters.length) { toast('Select at least one semester.', 'warning'); return; }
+
+    $('#aaTreeBody').html('<tr><td colspan="7" class="aa-empty-hint">Loading…</td></tr>');
+    $.ajax({
+      url: AA_TREE_URL,
+      type: 'GET',
+      data: { department_id: deptId, semesters: semesters.join(',') },
+      success: function (r) {
+        if (r.success) { aaRenderTree(r); }
+        else { toast(r.error || 'Failed to load courses.', 'error'); }
+      },
+      error: function (xhr) {
+        toast((xhr.responseJSON && xhr.responseJSON.error) || 'Failed to load courses.', 'error');
+      }
+    });
+  }
+
+  $('#aaLoadTreeBtn').on('click', aaLoadTree);
+
+  // Top-level "select all courses shown"
+  $(document).on('change', '#aaSelectAllMaster', function () {
+    const checked = $(this).is(':checked');
+    $('#aaTreeContainer .aa-course-check, #aaTreeContainer .aa-select-cohort, #aaTreeContainer .aa-select-program')
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  // Program-level select-all (every cohort, both semesters within that program)
+  $(document).on('change', '.aa-select-program', function () {
+    const programId = $(this).data('program');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"], .aa-select-cohort[data-program="${programId}"]`)
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  // Cohort-level select-all
+  $(document).on('change', '.aa-select-cohort', function () {
+    const programId = $(this).data('program');
+    const cohort = $(this).data('cohort');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"][data-cohort="${cohort}"]`).prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-course-check', aaUpdateCount);
+
+  $('#aaRunBtn').on('click', function () {
+    const ids = aaSelectedIds();
+    if (!ids.length) return;
+    const deptId = $('#aaDeptSelect').val();
+    const overwrite = $('#aaOverwrite').is(':checked');
+    const msg = overwrite
+      ? `Auto-allocate ${ids.length} course(s)? Any that already have an ODEL allocation will be re-picked.`
+      : `Auto-allocate ${ids.length} course(s)? Courses that already have an ODEL allocation will be skipped.`;
+    if (!confirm(msg)) return;
+
+    $('#aaRunBtn').prop('disabled', true).text('Running…');
+    $.ajax({
+      url: AA_RUN_URL,
+      type: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      contentType: 'application/json',
+      data: JSON.stringify({
+        program_course_ids: ids,
+        department_id: deptId,
+        overwrite: overwrite,
+      }),
+      success: function (r) {
+        if (r.success) {
+          toast(r.message, 'success', 6000);
+          aaClose();
+          location.reload();
+        } else {
+          toast(r.error || 'Auto-allocation failed.', 'error');
+        }
+      },
+      error: function (xhr) {
+        toast((xhr.responseJSON && xhr.responseJSON.error) || 'Auto-allocation failed.', 'error');
+      },
+      complete: function () {
+        $('#aaRunBtn').prop('disabled', false).html('<i class="fas fa-robot"></i> Auto-Allocate Selected');
+      }
+    });
+  });
+
+})();
+</script>
+{% url 'odel_system:api_sr_action' as sr_action_url %}
+{% include "special_requests/sr_widget.html" with sr_action_url=sr_action_url %}
+{{ block.super }}
+{% endblock extra_js %}

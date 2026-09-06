@@ -1,0 +1,248 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_sudo_manage_dvc.css' %}">
+{% endblock page_css %}
+
+{% block title %}Manage DVC & Admins{% endblock %}
+{% block nav_dvc %}active{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+ <h1>Manage DVC &amp; Admins</h1>
+ <p>Create and manage DVC accounts and Admin users</p>
+ <div class="header-bar"></div>
+</div>
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px,1fr)); gap:20px; margin-bottom:24px;">
+ <!-- Create DVC -->
+ <div class="card">
+ <div class="card-header">Create DVC</div>
+ <div class="card-body">
+ <form id="form-create-dvc">
+ <div class="form-group">
+ <label>Full Name</label>
+ <input name="full_name" id="dvc_fullname" class="form-control" required>
+ </div>
+ <div class="form-group">
+ <label>Email</label>
+ <input name="email" id="dvc_email" type="email" class="form-control">
+ </div>
+ <div class="form-group">
+ <label>Custom Username</label>
+ <input name="username" id="dvc_username" class="form-control">
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input name="password" id="dvc_password" type="password" class="form-control" required>
+ </div>
+ <button type="submit" class="btn btn-primary">Create DVC</button>
+ </form>
+ <div id="dvc-create-result" style="margin-top:15px; padding:10px; border-radius:4px; display:none;"></div>
+ </div>
+ </div>
+
+ <!-- Create Admin -->
+ <div class="card">
+ <div class="card-header">Create DVC Admin</div>
+ <div class="card-body">
+ <form id="form-create-admin">
+ <div class="form-group">
+ <label>Email</label>
+ <input name="email" id="admin_email" type="email" class="form-control">
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input name="password" id="admin_password" type="password" class="form-control" required>
+ </div>
+ <button type="submit" class="btn btn-primary">Add Admin</button>
+ </form>
+ <div id="admin-create-result" style="margin-top:15px; padding:10px; border-radius:4px; display:none;"></div>
+ </div>
+ </div>
+</div>
+
+<!-- Existing Accounts -->
+<div class="card">
+ <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+ <span>Existing Accounts</span>
+ <button id="btn-refresh" class="btn btn-secondary btn-sm">Refresh</button>
+ </div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table id="dvc-table" style="width:100%; border-collapse:collapse; min-width:700px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:12px;">Username</th>
+ <th style="padding:12px;">Full Name</th>
+ <th style="padding:12px;">Email</th>
+ <th style="padding:12px;">Groups</th>
+ <th style="padding:12px;">Active</th>
+ <th style="padding:12px;">Actions</th>
+ </tr>
+ </thead>
+ <tbody></tbody>
+ </table>
+ </div>
+ </div>
+</div>
+
+{% endblock sudo_content %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * admins_admins_sudo_manage_dvc.js
+ * Extracted inline JS from: admins/templates/admins/sudo_manage_dvc.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+function getCookie(name) {
+  let v = null;
+  if (document.cookie) {
+    document.cookie.split(';').forEach(c => {
+      const t = c.trim();
+      if (t.startsWith(name + '=')) v = decodeURIComponent(t.substring(name.length + 1));
+    });
+  }
+  return v;
+}
+const CSRF = getCookie('csrftoken');
+
+async function ajaxPost(data) {
+  const f = new URLSearchParams();
+  for (const k in data) f.append(k, data[k]);
+  const res = await fetch("{% url 'ajax_manage_dvc' %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF, 'Accept': 'application/json' },
+    body: f
+  });
+  return res.json();
+}
+
+function showResult(el, msg, ok) {
+  el.textContent = msg;
+  el.style.backgroundColor = ok ? '#d4edda' : '#f8d7da';
+  el.style.color = ok ? '#155724' : '#721c24';
+  el.style.border = ok ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+async function refreshList() {
+  const res = await ajaxPost({ action: 'list' });
+  const tbody = document.querySelector('#dvc-table tbody');
+  tbody.innerHTML = '';
+  if (res.status !== 'success') return;
+  
+  res.results.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #ddd';
+    
+    const groupsHtml = u.groups.map(g => 
+      `<span style="background:#e2e8f0; color:#0b1f4a; padding:3px 8px; border-radius:20px; font-size:11px; margin:2px; display:inline-block;">${g}</span>`
+    ).join(' ') || '<span style="background:#f1f5f9; color:#475569; padding:3px 8px; border-radius:20px;">None</span>';
+    
+    tr.innerHTML = `
+      <td style="padding:12px;"><strong>${u.username}</strong></td>
+      <td style="padding:12px;">${u.full_name}</td>
+      <td style="padding:12px;">${u.email || '—'}</td>
+      <td style="padding:12px;">${groupsHtml}</td>
+      <td style="padding:12px;">
+        <span style="background:${u.is_active ? '#d4edda' : '#f8d7da'}; color:${u.is_active ? '#155724' : '#721c24'}; padding:3px 8px; border-radius:20px; font-size:11px;">
+          ${u.is_active ? 'Yes' : 'No'}
+        </span>
+      </td>
+      <td style="padding:12px;">
+        <div style="display:flex; gap:5px;">
+          <button class="btn btn-warning btn-sm" data-action="edit" data-id="${u.id}">Edit</button>
+          <button class="btn btn-secondary btn-sm" data-action="reset" data-id="${u.id}">Reset</button>
+          <button class="btn btn-danger btn-sm" data-action="delete" data-id="${u.id}">Delete</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById('form-create-dvc').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const btn = ev.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const res = await ajaxPost({ 
+    action: 'create_dvc', 
+    full_name: dvc_fullname.value, 
+    email: dvc_email.value, 
+    username: dvc_username.value, 
+    password: dvc_password.value 
+  });
+  btn.disabled = false; btn.textContent = 'Create DVC';
+  const el = document.getElementById('dvc-create-result');
+  if (res.status === 'success') { 
+    showResult(el, 'Created DVC: ' + res.user.username, true); 
+    refreshList(); 
+    ev.target.reset(); 
+  } else { 
+    showResult(el, 'Error: ' + res.message, false); 
+  }
+});
+
+document.getElementById('form-create-admin').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const btn = ev.target.querySelector('button[type="submit"]');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const res = await ajaxPost({ 
+    action: 'create_admin', 
+    email: admin_email.value, 
+    password: admin_password.value 
+  });
+  btn.disabled = false; btn.textContent = 'Add Admin';
+  const el = document.getElementById('admin-create-result');
+  if (res.status === 'success') { 
+    showResult(el, 'Created Admin: ' + res.admin.username, true); 
+    refreshList(); 
+    ev.target.reset(); 
+  } else { 
+    showResult(el, 'Error: ' + res.message, false); 
+  }
+});
+
+document.querySelector('#dvc-table').addEventListener('click', async ev => {
+  const btn = ev.target.closest('button');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  const act = btn.dataset.action;
+  
+  if (act === 'delete') {
+    if (!confirm('Delete this user?')) return;
+    const r = await ajaxPost({ action: 'delete', user_id: id });
+    if (r.status === 'success') refreshList(); else alert(r.message);
+  }
+  
+  if (act === 'reset') {
+    const newPass = prompt('Enter new password:');
+    if (!newPass) return;
+    const r = await ajaxPost({ action: 'reset_password', user_id: id, new_password: newPass });
+    alert(r.status === 'success' ? 'Password updated.' : r.message);
+  }
+  
+  if (act === 'edit') {
+    const fn = prompt('Full name:'); 
+    if (fn === null) return;
+    const em = prompt('Email (blank = keep):');
+    const actv = confirm('Active? OK = Yes / Cancel = No');
+    const r = await ajaxPost({ 
+      action: 'edit', 
+      user_id: id, 
+      full_name: fn, 
+      email: em, 
+      is_active: actv ? '1' : '0' 
+    });
+    if (r.status === 'success') refreshList(); else alert(r.message);
+  }
+});
+
+document.getElementById('btn-refresh').addEventListener('click', refreshList);
+refreshList();
+</script>
+{% endblock extra_js %}

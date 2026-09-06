@@ -1,0 +1,70 @@
+{% with cg_info=a.cg_info %}
+<tr id="alloc-{{ a.id }}"{% if cg_info %} style="background:#f0f7ff;"{% endif %}
+    class="course-row"
+    data-program-course-id="{{ a.program_course_id }}"
+    data-program-id="{{ a.program.id|default:'' }}"
+    data-program-name="{{ a.program.name|default:'' }}"
+    data-year="{{ a.program_course.year|default:'' }}"
+    data-course-code="{{ a.course_code|escapejs }}"
+    data-course-name="{{ a.course_name|escapejs }}"
+    data-in-group="{{ a.selection_group_id|default:'' }}"
+    data-in-stem="{% if a.specialization_stem_id %}{{ a.specialization_stem_id }}{% elif a.specialization_stems.exists %}shared{% endif %}"
+    data-student-group="{{ a.student_group_id|default:'' }}"
+    data-student-group-name="{{ a.student_group.name|default:'' }}"
+    {% if cg_info %}
+    data-combined-group-id="{{ cg_info.group_id }}"
+    data-combined-group-code="{{ cg_info.group_code|escapejs }}"
+    data-combined-base-course-code="{{ cg_info.base_course_code|escapejs }}"
+    {% endif %}
+    oncontextmenu="showCourseRowContextMenu(event, this); return false;">
+  <td class="chk-col"><input type="checkbox" class="alloc-row-chk" value="{{ a.id }}" onclick="event.stopPropagation(); onAllocRowChkChange();"></td>
+  <td>
+    <strong>{{ a.course_code }}</strong>
+    {% if is_cross %}
+    <br><span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">🔀 {{ a.program.department.name }}</span>
+    {% endif %}
+    {% if not a.specialization_stem_id and a.specialization_stems.exists %}
+    <br><span style="font-size:10px;background:#fff3e0;color:#e65100;border-radius:3px;padding:1px 5px;font-weight:700;" title="Shared across: {% for st in a.specialization_stems.all %}{{ st.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — clashes normally against other courses in these stems.">🔀 Shared: {% for st in a.specialization_stems.all %}{{ st.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>
+    {% endif %}
+    {% if a.specialization_stem_id and a.selection_group_id %}
+    <br><span style="font-size:10px;background:#ede7f6;color:#4527a0;border-radius:3px;padding:1px 5px;font-weight:700;" title="Nested inside stem '{{ a.specialization_stem.name }}' — students in this stem still pick one course from '{{ a.selection_group.name }}'.">🎯 In group: {{ a.selection_group.name }}</span>
+    {% endif %}
+    {% if a.student_group %}
+   
+    {% endif %}
+    {% if cg_info %}
+    <br>
+    <span style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;background:#1565c0;color:#fff;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;letter-spacing:.02em;">
+      🔗 {{ cg_info.group_code }}
+    </span>
+    {% endif %}
+  </td>
+  <td>
+    {{ a.course_name }}
+    {% if cg_info %}
+    <div style="margin-top:4px;font-size:11px;color:#555;">
+      <strong style="color:#1565c0;">Combined class</strong> &mdash; {{ cg_info.total_students }} students total
+      {% if cg_info.lecturer_name %}&nbsp;| Lecturer: <strong>{{ cg_info.lecturer_name }}</strong>{% endif %}
+      &mdash; {{ cg_info.members|length }} allocation(s) merged.
+      <a href="javascript:void(0)" onclick="jumpToCombinedGroupRow({{ cg_info.group_id }}); return false;"
+         style="color:#1565c0;font-weight:700;text-decoration:underline;white-space:nowrap;">
+        View merged breakdown &#8595;
+      </a>
+    </div>
+    {% endif %}
+  </td>
+  <td>{% if a.program %}{{ a.program.name }}{% else %}<em style="color:#bbb;">-</em>{% endif %}</td>
+  <td>{% if a.origin_department %}<span style="font-size:11px;background:#fff3e0;color:#e65100;border-radius:3px;padding:1px 5px;font-weight:600;">{{ a.origin_department.name }}</span>{% else %}<em style="color:#bbb;">—</em>{% endif %}</td>
+  <td>
+    {% if cg_info %}<strong style="color:#1565c0;">{{ cg_info.total_students }}</strong>
+    <span style="font-size:10px;color:#888;">(combined)</span>
+    {% else %}{{ a.number_of_students }}{% endif %}
+  </td>
+  <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<em style="color:#bbb;">Unassigned</em>{% endif %}</td>
+  <td>
+    <button class="btn-act btn-edit"   onclick="editRow({{ a.id }})">Edit</button>
+    <button class="btn-act btn-delete" onclick="deleteRow({{ a.id }})">Delete</button>
+    <button class="btn-act btn-sr" title="Special Request (SR)" onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.course_code|escapejs }}&quot;)">SR ▾</button>
+  </td>
+</tr>
+{% endwith %}

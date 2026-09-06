@@ -1,0 +1,176 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Campus Timetable Management - Manual Scheduling{% endblock title %}
+
+{% block header_title %}<i class="bi bi-calendar3" aria-hidden="true"></i> Campus Timetable Management{% endblock header_title %}
+
+{% block navbar_extra %}
+<a href="/timetable/dashboard/" class="panel-header-btn panel-header-btn--outline" aria-label="Home">
+  <i class="bi bi-house-fill" aria-hidden="true"></i>
+  <span class="d-none-xs">Home</span>
+</a>
+
+<div class="cmp-schedule-toggle" role="group" aria-label="Scheduling mode">
+  <a href="/auto/" class="cmp-toggle-btn">Auto</a>
+  <span class="cmp-toggle-btn active" aria-current="page">Manual</span>
+</div>
+{% endblock navbar_extra %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'campuses_timetable/css/manual_timetable.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+<div id="campusPanelRoot">
+
+  <div class="container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <h2>Add Timetable Entry</h2>
+
+      <!-- Mode Tabs -->
+      <div class="tab-container">
+        <button class="tab active" data-mode="class" onclick="switchMode('class')">Class Scheduling</button>
+        <button class="tab" data-mode="exam" onclick="switchMode('exam')">Exam Scheduling</button>
+      </div>
+
+      <!-- Scheduling Form -->
+      <form id="timetableForm">
+        {% csrf_token %}
+        <input type="hidden" name="type" id="entryType" value="class">
+
+        <div class="form-group">
+          <label>Course Allocation:</label>
+          <select name="course_allocation" id="allocationSelect" required>
+            <option value="">Select a course...</option>
+            {% for alloc in available_allocations %}
+            <option value="{{ alloc.id }}" data-students="{{ alloc.number_of_students }}">
+              {{ alloc.course_code }} - {{ alloc.course_name }}
+              [{{ alloc.lecturer.display_name|default:'Unassigned' }}]
+              ({{ alloc.number_of_students }} students)
+            </option>
+            {% empty %}
+            <option value="" disabled>No approved allocations available</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Date:</label>
+          <input type="date" name="date" id="dateSelect" required
+                 value="{{ config.start_date|date:'Y-m-d' }}">
+        </div>
+
+        <div class="form-group">
+          <label>Time Slot:</label>
+          <select name="slot" id="slotSelect" required>
+            <option value="">Select a time slot...</option>
+          </select>
+        </div>
+
+        <div class="action-buttons">
+          <button type="submit" class="btn btn-success" id="submitBtn"><i class="bi bi-save"></i> Save Entry</button>
+          <button type="button" class="btn btn-info" id="checkAvailabilityBtn"><i class="bi bi-search"></i> Check Availability</button>
+        </div>
+      </form>
+
+      <!-- Availability Result -->
+      <div id="availabilityResult" style="display: none;" class="message"></div>
+
+      <!-- Date Range Info -->
+      <div class="info-box">
+        <strong>Scheduling Period:</strong><br>
+        {{ config.start_date|date:'d M Y' }} to {{ config.end_date|date:'d M Y' }}<br>
+        <strong>Daily Hours:</strong> {{ config.day_start_time|time:'H:i' }} - {{ config.day_end_time|time:'H:i' }}
+      </div>
+
+      <!-- Action Buttons -->
+      {% if can_clear_timetable %}
+      <div class="action-buttons">
+        <button class="btn btn-warning" onclick="clearTimetable('class')"><i class="bi bi-eraser-fill"></i> Clear Class</button>
+        <button class="btn btn-warning" onclick="clearTimetable('exam')"><i class="bi bi-eraser-fill"></i> Clear Exam</button>
+        <button class="btn btn-danger" onclick="clearTimetable('both')"><i class="bi bi-trash3-fill"></i> Clear All</button>
+      </div>
+      {% endif %}
+
+      <!-- Configuration Form -->
+      <div class="config-form">
+        <h3><i class="bi bi-gear-fill"></i> Timetable Configuration</h3>
+        <form id="configForm">
+          {% csrf_token %}
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date:</label>
+              <input type="date" name="start_date" id="startDate" value="{{ config.start_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="form-group">
+              <label>End Date:</label>
+              <input type="date" name="end_date" id="endDate" value="{{ config.end_date|date:'Y-m-d' }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Day Start Time:</label>
+              <input type="time" name="day_start_time" id="dayStartTime" value="{{ config.day_start_time|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+              <label>Day End Time:</label>
+              <input type="time" name="day_end_time" id="dayEndTime" value="{{ config.day_end_time|time:'H:i' }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Class Slots per Day:</label>
+              <input type="number" name="class_slot_size" id="classSlotSize" value="{{ config.class_slot_size }}" min="1" max="10" required>
+            </div>
+            <div class="form-group">
+              <label>Exam Slots per Day:</label>
+              <input type="number" name="exam_slot_size" id="examSlotSize" value="{{ config.exam_slot_size }}" min="1" max="10" required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success" style="width: 100%; justify-content:center;"><i class="bi bi-arrow-repeat"></i> Update Configuration</button>
+        </form>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-section">
+        <h3>Summary</h3>
+        <div class="summary-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="classCount">{{ class_timetable|length }}</div>
+            <div class="stat-label">Class Entries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="examCount">{{ exam_timetable|length }}</div>
+            <div class="stat-label">Exam Entries</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <h2 id="timetableTitle">Class Timetable</h2>
+
+      <!-- Timetable Container -->
+      <div id="timetableContainer" class="timetable-container">
+        <div class="empty-state">
+          <i class="bi bi-hourglass-split"></i>
+          Loading timetable...
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#campusPanelRoot -->
+{% endblock panel_content %}
+
+{% block panel_js %}
+<script src="{% static 'campuses_timetable/js/campus_manual_timetable.js' %}"></script>
+<script src="{% static 'campuses_timetable/js/manual_timetable_inline.js' %}"></script>
+{% endblock panel_js %}

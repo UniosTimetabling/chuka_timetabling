@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resit Allocations — Safe Undo</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      min-height: 100vh; width: 100vw;
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px; line-height: 1.5;
+    }
+    body { display: flex; flex-direction: column; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 1.25rem; background: #107c41; color: #fff; flex-shrink: 0;
+    }
+    header .hdr-left { display: flex; align-items: center; gap: 0.75rem; }
+    header .logo { height: 32px; }
+    .nav-toggle { background: none; border: none; color: #fff; font-size: 1rem; cursor: pointer; }
+    header h1 { font-size: 1.05rem; font-weight: 600; }
+    .side-nav {
+      position: fixed; top: 0; left: -280px; width: 280px; height: 100vh;
+      background: #fff; box-shadow: 2px 0 12px rgba(0,0,0,0.15); z-index: 999;
+      transition: left 0.22s ease; overflow-y: auto;
+    }
+    .side-nav.open { left: 0; }
+    .nav-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
+    .nav-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
+    .nav-content { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.3rem; }
+    .nav-btn { display: block; padding: 0.55rem 0.75rem; border-radius: 0.4rem; color: #1a1a1a; text-decoration: none; font-size: 0.88rem; }
+    .nav-btn:hover { background: #f0f5ee; }
+    .nav-btn.active-link { background: #e3f0e0; color: #107c41; font-weight: 600; }
+    .nav-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 998; display: none; }
+    .nav-overlay.open { display: block; }
+    main { flex: 1; overflow-y: auto; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <button class="nav-toggle" id="navToggle">&#9776;&nbsp; Menu</button>
+  </div>
+  <h1>&#128737;&#65039; Resit Allocations — Safe Undo</h1>
+  <div></div>
+</header>
+
+<nav class="side-nav" id="sideNav">
+  <div class="nav-header">
+    <h3>Navigation</h3>
+    <button class="nav-close" id="navClose">&times;</button>
+  </div>
+  <div class="nav-content">
+    <a href="/cod/" class="nav-btn">Home</a>
+    <a href="{% url 'lab_allocations' %}" class="nav-btn">Lab Allocations panel</a>
+    <a href="/panel/" class="nav-btn">Campus Allocations panel</a>
+    <a href="/odel/allocations/" class="nav-btn">ODEL Allocations panel</a>
+    <a href="{% url 'resit_cod_panel' %}" class="nav-btn">Resits Allocations panel</a>
+    <a href="{% url 'resit_safe_undo_page' %}" class="nav-btn active-link">&#128737;&#65039; Resits Safe Undo</a>
+    <a href="{% url 'logout' %}" class="nav-btn">Logout</a>
+  </div>
+</nav>
+<div class="nav-overlay" id="navOverlay"></div>
+
+<main>
+  {% include "backup_system/safe_undo_body.html" with su_action_url=action_url su_scope_label=scope.name su_heading="Resit Course Allocations" %}
+</main>
+
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const sideNav = document.getElementById('sideNav');
+  const navClose = document.getElementById('navClose');
+  const navOverlay = document.getElementById('navOverlay');
+  function openNav() { sideNav.classList.add('open'); navOverlay.classList.add('open'); }
+  function closeNav() { sideNav.classList.remove('open'); navOverlay.classList.remove('open'); }
+  navToggle.addEventListener('click', openNav);
+  navClose.addEventListener('click', closeNav);
+  navOverlay.addEventListener('click', closeNav);
+</script>
+</body>
+</html>

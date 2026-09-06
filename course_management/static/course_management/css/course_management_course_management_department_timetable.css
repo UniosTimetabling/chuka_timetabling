@@ -1,0 +1,262 @@
+/*
+ * course_management_course_management_department_timetable.css
+ * Extracted from: course_management/templates/course_management/department_timetable.html
+ */
+
+:root {
+            --primary-color: #0f2040;      /* Deep green */
+    --secondary-color: #1e4275;   /* Medium green */
+    --success-color: #43a047;
+    --warning-color: #f9a825;
+    --danger-color: #c62828;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: #0f2040;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 10px;
+        }
+        
+        .search-highlight {
+            background-color: #fff3cd;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .course-tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            min-width: 250px;
+            display: none;
+        }
+        
+        /* New Timetable Styles */
+        .timetable-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        .day-table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .day-header {
+            background: linear-gradient(135deg, #0f2040 0%, #163058 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .day-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .day-table th {
+            background-color: #f8f9fa;
+            color: #0f2040;
+            font-weight: 600;
+            padding: 12px 8px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .day-table td {
+            padding: 10px 8px;
+            border: 1px solid #e9ecef;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .venue-header {
+            background-color: #e8f4fc;
+            font-weight: 600;
+            color: #0f2040;
+            text-align: left !important;
+            padding-left: 15px !important;
+            width: 150px;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+        
+        .time-header {
+            background-color: #f1f8ff;
+            color: var(--secondary-color);
+            font-weight: 600;
+            min-width: 120px;
+            white-space: nowrap;
+        }
+        
+        .course-cell {
+            background-color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            height: 80px;
+            max-height: 80px;
+            overflow: hidden;
+        }
+        
+        .course-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+        
+        .course-cell-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding: 5px;
+        }
+        
+        .course-code {
+            font-weight: bold;
+            color: #0f2040;
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+            line-height: 1.2;
+        }
+        
+        .course-name {
+            color: #666;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .course-lecturer {
+            color: var(--secondary-color);
+            font-size: 0.75rem;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        
+        .course-program {
+            color: #888;
+            font-size: 0.7rem;
+            font-style: italic;
+            line-height: 1.2;
+            margin-top: 2px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .empty-cell {
+            background-color: #f8f9fa;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .compact .course-name,
+        .compact .course-lecturer,
+        .compact .course-program {
+            display: none;
+        }
+        
+        .compact .course-cell {
+            height: 50px;
+        }
+        
+        .compact .course-code {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+        }
+        
+        /* Exam timetable specific */
+        .exam-date-header {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #e67e22 100%);
+        }
+        
+        .exam-table th {
+            background-color: #fff8e1;
+        }
+        
+        .exam-table .venue-header {
+            background-color: #fff3cd;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .day-table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .venue-header {
+                position: static;
+                width: auto;
+            }
+            
+            .day-table th,
+            .day-table td {
+                min-width: 120px;
+            }
+        }
+        
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            .day-table {
+                font-size: 10px;
+            }
+            
+            .course-cell {
+                page-break-inside: avoid;
+            }
+        }

@@ -1,0 +1,894 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timetable Editor</title>
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4895ef;
+            --primary-lighter: #e6f0ff;
+            --secondary: #7209b7;
+            --accent: #f72585;
+            --success: #4cc9f0;
+            --warning: #f8961e;
+            --danger: #e63946;
+            --danger-light: #ffeaea;
+            --info: #4895ef;
+            --bg: #f8fafc;
+            --white: #ffffff;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== RESET & BASE STYLES ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e6f0ff 100%);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER & NAVIGATION ===== */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--white);
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-dashboard {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-dashboard:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-logout {
+            background: var(--accent);
+            color: var(--white);
+        }
+
+        .btn-logout:hover {
+            background: #d90479;
+            transform: translateY(-2px);
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 2rem 1.5rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem 3rem;
+        }
+
+        /* ===== FILTER SECTION ===== */
+        .filter-section {
+            background: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .filter-form {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: var(--primary);
+            white-space: nowrap;
+            font-size: 1rem;
+        }
+
+        .filter-select {
+            padding: 0.875rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            background: var(--white);
+            min-width: 250px;
+            flex: 1;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        /* ===== TIMETABLE STYLES ===== */
+        .timetable-container {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        .timetable {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        .timetable th {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: var(--white);
+            padding: 1.25rem 1rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 1px solid var(--primary-light);
+            position: sticky;
+            top: 0;
+        }
+
+        .timetable td {
+            padding: 1rem;
+            border: 1px solid var(--border-light);
+            text-align: center;
+            vertical-align: top;
+            min-width: 160px;
+            transition: var(--transition);
+        }
+
+        .timetable td:hover {
+            background: var(--primary-lighter);
+        }
+
+        .venue-header {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: var(--white);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* ===== ENTRY CARD STYLES ===== */
+        .entry-card {
+            background: linear-gradient(135deg, var(--primary-lighter), #f0f7ff);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.75rem;
+            text-align: left;
+            border: 1px solid rgba(67, 97, 238, 0.1);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .entry-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+        }
+
+        .entry-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .course-code {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .course-name {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-weight: 600;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, var(--info), var(--primary-light));
+            color: var(--white);
+        }
+
+        .btn-edit:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--info));
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, var(--danger), #ff6b6b);
+            color: var(--white);
+        }
+
+        .btn-delete:hover {
+            background: linear-gradient(135deg, #ff6b6b, var(--danger));
+        }
+
+        /* ===== MODAL STYLES ===== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--white);
+            padding: 1.5rem;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.875rem;
+            border: 2px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, var(--success), var(--primary-light));
+            color: var(--white);
+            flex: 1;
+        }
+
+        .btn-save:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--success));
+        }
+
+        .btn-cancel {
+            background: var(--text-light);
+            color: var(--white);
+            flex: 1;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6c7d;
+        }
+
+        /* ===== MOBILE CARD VIEW ===== */
+        .mobile-timetable {
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .mobile-venue-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .mobile-venue-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .venue-title {
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--primary-lighter);
+            font-size: 1.1rem;
+        }
+
+        .timeslot-section {
+            margin-bottom: 2rem;
+        }
+
+        .timeslot-header {
+            background: linear-gradient(135deg, var(--primary-lighter), #f0f7ff);
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            border-left: 4px solid var(--primary);
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+
+        /* Tablets */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 0 1.25rem 2rem;
+            }
+            
+            .page-title {
+                margin: 1.5rem 1.25rem 1.25rem;
+                font-size: 1.5rem;
+            }
+            
+            .filter-section {
+                padding: 1.25rem;
+            }
+            
+            .timetable th,
+            .timetable td {
+                padding: 1rem 0.75rem;
+            }
+        }
+
+        /* Mobile - Switch to card view */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            
+            .nav-container {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            
+            .nav-buttons {
+                justify-content: center;
+            }
+            
+            .page-title {
+                margin: 1.25rem 1rem 1rem;
+                font-size: 1.4rem;
+            }
+            
+            .container {
+                padding: 0 1rem 1.5rem;
+            }
+            
+            .filter-section {
+                padding: 1.25rem 1rem;
+            }
+            
+            .filter-form {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-select {
+                min-width: auto;
+            }
+            
+            /* Switch to mobile card view */
+            .table-wrapper {
+                display: none;
+            }
+            
+            .mobile-timetable {
+                display: grid;
+            }
+            
+            .entry-actions {
+                flex-direction: column;
+            }
+            
+            .action-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal-content {
+                margin: 1rem;
+            }
+        }
+
+        /* Small mobile phones */
+        @media (max-width: 480px) {
+            .header {
+                padding: 0.875rem;
+            }
+            
+            .btn {
+                padding: 0.625rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .page-title {
+                font-size: 1.3rem;
+                margin: 1rem 0.75rem 0.75rem;
+            }
+            
+            .container {
+                padding: 0 0.75rem 1.25rem;
+            }
+            
+            .filter-section {
+                padding: 1rem 0.875rem;
+            }
+            
+            .mobile-venue-card {
+                padding: 1.25rem;
+            }
+            
+            .modal-body {
+                padding: 1.25rem;
+            }
+            
+            .modal-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* ===== ACCESSIBILITY & UTILITIES ===== */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none;
+                animation: none;
+            }
+        }
+
+        /* Focus styles */
+        .btn:focus,
+        .filter-select:focus,
+        .action-btn:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        /* Print styles */
+        @media print {
+            .header,
+            .filter-section,
+            .action-btn,
+            .modal {
+                display: none !important;
+            }
+            
+            .timetable {
+                min-width: auto;
+            }
+        }
+
+        /* Empty state */
+        .empty-slot {
+            color: var(--text-light);
+            font-style: italic;
+            padding: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="nav-container">
+            <div class="nav-buttons">
+                <a href="{% url 'timetable_dashboard' %}" class="btn btn-dashboard">
+                    ⬅ Dashboard
+                </a>
+                <a href="{% url 'logout' %}" class="btn btn-logout">
+                    🔒 Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Title -->
+    <h1 class="page-title">🗓 Timetable Editor</h1>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Filter Section -->
+        <section class="filter-section">
+            <form method="get" action="" class="filter-form">
+                <label class="filter-label">Select Timetable Type:</label>
+                <select name="model" id="model" class="filter-select" onchange="this.form.submit()">
+                    {% for m in models %}
+                        <option value="{{ m }}" {% if current_model == m %}selected{% endif %}>
+                            {{ m|title }} Timetable
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </section>
+
+        <!-- Desktop Table View -->
+        <section class="timetable-container">
+            <div class="table-wrapper">
+                <table class="timetable">
+                    <thead>
+                        <tr>
+                            <th>Venue \ Timeslot</th>
+                            {% for start, end in timeslots %}
+                                <th>{{ start }} - {{ end }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for venue in venues %}
+                        <tr>
+                            <th class="venue-header">{{ venue }}</th>
+                            {% for start, end in timeslots %}
+                                <td>
+                                    {% for entry in entries %}
+                                        {% if entry.start_time == start and entry.end_time == end %}
+                                            {% if entry.venue == venue or entry.venue.code == venue %}
+                                                <div class="entry-card">
+                                                    <div class="course-code">{{ entry.course_allocation.course_code }}</div>
+                                                    <div class="course-name">{{ entry.course_allocation.course_name }}</div>
+                                                    
+                                                    <div class="entry-actions">
+                                                        <button onclick="openEditModal('{{ entry.id }}')" class="action-btn btn-edit">
+                                                            ✏️ Edit
+                                                        </button>
+                                                        <button onclick="openDeleteModal('{{ entry.id }}', '{{ entry.course_allocation.course_code }}')" class="action-btn btn-delete">
+                                                            🗑 Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Mobile Card View -->
+        <section class="mobile-timetable">
+            {% for venue in venues %}
+            <div class="mobile-venue-card">
+                <div class="venue-title">{{ venue }}</div>
+                
+                {% for start, end in timeslots %}
+                <div class="timeslot-section">
+                    <div class="timeslot-header">{{ start }} - {{ end }}</div>
+                    
+                    {% for entry in entries %}
+                        {% if entry.start_time == start and entry.end_time == end %}
+                            {% if entry.venue == venue or entry.venue.code == venue %}
+                                <div class="entry-card">
+                                    <div class="course-code">{{ entry.course_allocation.course_code }}</div>
+                                    <div class="course-name">{{ entry.course_allocation.course_name }}</div>
+                                    
+                                    <div class="entry-actions">
+                                        <button onclick="openEditModal('{{ entry.id }}')" class="action-btn btn-edit">
+                                            ✏️ Edit
+                                        </button>
+                                        <button onclick="openDeleteModal('{{ entry.id }}', '{{ entry.course_allocation.course_code }}')" class="action-btn btn-delete">
+                                            🗑 Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </section>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Timetable Entry</h3>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" method="post" class="modal-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="entry_id" id="editEntryId">
+                    
+                    <div class="form-group">
+                        <label for="editCourseCode">Course Code</label>
+                        <input type="text" id="editCourseCode" name="course_code" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editCourseName">Course Name</label>
+                        <input type="text" id="editCourseName" name="course_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editVenue">Venue</label>
+                        <select id="editVenue" name="venue" required>
+                            {% for venue in venues %}
+                                <option value="{{ venue }}">{{ venue }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editStartTime">Start Time</label>
+                        <input type="time" id="editStartTime" name="start_time" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editEndTime">End Time</label>
+                        <input type="time" id="editEndTime" name="end_time" required>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-save">💾 Save Changes</button>
+                        <button type="button" class="btn btn-cancel" onclick="closeEditModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🗑 Delete Entry</h3>
+            </div>
+            <div class="modal-body">
+                <form id="deleteForm" method="post" class="modal-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="entry_id" id="deleteEntryId">
+                    
+                    <p>Are you sure you want to delete <strong id="deleteCourseCode"></strong> from the timetable?</p>
+                    <p class="empty-slot">This action cannot be undone.</p>
+                    
+                    <div class="modal-actions">
+                        <button type="submit" class="btn btn-delete">🗑 Yes, Delete</button>
+                        <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function openEditModal(entryId) {
+            // In a real implementation, you would fetch the entry data here
+            // For now, we'll just set the entry ID
+            document.getElementById('editEntryId').value = entryId;
+            document.getElementById('editModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        function openDeleteModal(entryId, courseCode) {
+            document.getElementById('deleteEntryId').value = entryId;
+            document.getElementById('deleteCourseCode').textContent = courseCode;
+            document.getElementById('deleteModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('editModal')) {
+                closeEditModal();
+            }
+            if (event.target === document.getElementById('deleteModal')) {
+                closeDeleteModal();
+            }
+        }
+
+        // Form submissions
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Handle form submission here
+            const formData = new FormData(this);
+            console.log('Editing entry:', Object.fromEntries(formData));
+            closeEditModal();
+        });
+
+        document.getElementById('deleteForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Handle deletion here
+            const formData = new FormData(this);
+            console.log('Deleting entry:', Object.fromEntries(formData));
+            closeDeleteModal();
+        });
+
+        // Handle responsive view switching
+        function updateView() {
+            const tableWrapper = document.querySelector('.table-wrapper');
+            const mobileTimetable = document.querySelector('.mobile-timetable');
+            
+            if (window.innerWidth < 768) {
+                tableWrapper.style.display = 'none';
+                mobileTimetable.style.display = 'grid';
+            } else {
+                tableWrapper.style.display = 'block';
+                mobileTimetable.style.display = 'none';
+            }
+        }
+
+        // Initial call and event listener
+        updateView();
+        window.addEventListener('resize', updateView);
+
+        // Close modals with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeEditModal();
+                closeDeleteModal();
+            }
+        });
+    </script>
+</body>
+</html>

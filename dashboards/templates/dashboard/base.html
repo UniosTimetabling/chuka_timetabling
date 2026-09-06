@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/website.css' %}">
+{% block dashboard_css %}{% endblock %}
+
+<style>
+/* ═══════════════════════════════════════════════════════════
+   FLAT DESIGN OVERRIDES — removes all card shadows / border
+   shading across standard layouts, dashboards, and modals.
+═══════════════════════════════════════════════════════════ */
+
+/* 1. Strip shadows from every card / surface component */
+.card,
+.card-body,
+.widget,
+.widget-card,
+.dash-card,
+.stat-card,
+.info-card,
+.panel,
+.section-header,
+.form-card,
+.form-section,
+.download-section,
+.conflict-panel,
+.table-wrapper,
+.notification-panel,
+#notification-popup,
+.toast,
+.alert,
+.badge-card,
+.summary-card,
+.detail-card,
+.list-card,
+.grid-card {
+  box-shadow: none !important;
+  border-image: none !important;
+  filter: none !important;
+}
+
+/* Hover states must also stay flat */
+.card:hover,
+.dash-card:hover,
+.stat-card:hover,
+.widget-card:hover {
+  box-shadow: none !important;
+}
+
+/* 2. Notification action button — converts embedded URLs to labelled buttons
+      NOTE: this class is purely cosmetic. It is only ever applied by the
+      JS below, and that JS only ever runs inside the notification panel
+      (#notification-popup / .notification-panel / [data-notif-panel]).
+      It is never applied to nav, footer, or in-page content links. */
+.notif-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 14px;
+  background: #1a3260;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .18s;
+  box-shadow: none;
+}
+.notif-action-btn:hover             { background: #1e3d75; }
+.notif-action-btn.btn-download      { background: #f47c20; }
+.notif-action-btn.btn-download:hover { background: #d96512; }
+
+/* 3. Notification items — no tinted backgrounds, no left border shading */
+.notification-item {
+  background: #ffffff !important;
+  border-left: none !important;
+  border-bottom: 1px solid #dde6f5 !important;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+}
+.notification-item:last-child { border-bottom: none !important; }
+.notification-item.unread {
+  background: #ffffff !important;
+  border-left: none !important;
+  font-weight: 600;
+}
+.notification-item:hover {
+  background: #f4f7fb !important;
+  border-left: none !important;
+}
+
+/* 4. Modal / dialog / slide-over — card interiors must be flat too */
+dialog .card, dialog .dash-card, dialog .form-card, dialog .form-section,
+dialog .download-section, dialog .conflict-panel, dialog .section-header, dialog .table-wrapper,
+[role="dialog"] .card, [role="dialog"] .dash-card, [role="dialog"] .form-card,
+[role="dialog"] .form-section, [role="dialog"] .download-section,
+[role="dialog"] .conflict-panel, [role="dialog"] .section-header, [role="dialog"] .table-wrapper,
+.modal .card, .modal .dash-card, .modal .form-card, .modal .form-section,
+.modal .download-section, .modal .conflict-panel, .modal .section-header, .modal .table-wrapper,
+.modal-body .card, .modal-body .dash-card, .modal-body .form-card, .modal-body .form-section,
+.modal-body .download-section, .modal-body .conflict-panel, .modal-body .section-header,
+.modal-body .table-wrapper,
+.slide-over .card, .slide-over .dash-card, .slide-over .form-card, .slide-over .form-section,
+.slide-over .download-section, .slide-over .conflict-panel, .slide-over .section-header,
+.slide-over .table-wrapper {
+  box-shadow: none !important;
+}
+</style>
+{% endblock page_css %}
+
+{% block robots %}index, follow{% endblock %}
+
+{% block navbar %}
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+ <a href="{% url 'homepage' %}" class="nav-logo" aria-label="{{ site_settings.university_name|default:'Chuka University' }} home">
+ <img src="{% url 'site_logo' %}"
+ alt="{{ site_settings.university_name|default:'Chuka University' }} crest"
+ onerror="this.style.display='none';var f=document.getElementById('nlf');if(f)f.style.display='flex';"
+ class="nav-logo-img">
+ <span class="nav-logo-fallback" id="nlf" aria-hidden="true">{{ site_settings.university_name|default:"CU"|slice:":2"|upper }}</span>
+ <span class="nav-logo-text">
+ <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+ <small>{{ site_settings.tagline|default:"Timetabling &amp; Examinations" }}</small>
+ </span>
+ </a>
+
+ <button class="nav-hamburger" id="navHamburger" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navLinksMenu">
+ <span></span><span></span><span></span>
+ </button>
+
+ <div class="nav-links" id="navLinksMenu" role="menubar">
+ {% block nav_links %}
+ <a href="{% url 'student_portal' %}" role="menuitem">Programme Timetables</a>
+ <a href="{% url 'staff_portal' %}" class="nav-badge" role="menuitem">
+ <i class="fas fa-lock-open" aria-hidden="true"></i> Staff Login
+ </a>
+ {% endblock nav_links %}
+ </div>
+</nav>
+{% endblock navbar %}
+
+{% block content %}{% endblock content %}
+
+{% block quick_bar %}{% endblock quick_bar %}
+
+{% block footer %}
+<footer class="footer-dark" role="contentinfo">
+ <div class="footer-content">
+ <div class="footer-col">
+ <h4>{{ site_settings.university_name|default:"Chuka University" }}</h4>
+ <p>{{ site_settings.tagline|default:"Directorate of Timetabling &amp; Examinations" }} — ensuring academic excellence through efficient planning and examination administration.</p>
+ <div class="social-links" aria-label="Social media">
+ <a href="{{ site_settings.twitter_url|default:'#' }}" {% if site_settings.twitter_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Twitter"><i class="fab fa-twitter" aria-hidden="true"></i></a>
+ <a href="{{ site_settings.facebook_url|default:'#' }}" {% if site_settings.facebook_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="Facebook"><i class="fab fa-facebook-f" aria-hidden="true"></i></a>
+ <a href="{{ site_settings.linkedin_url|default:'#' }}" {% if site_settings.linkedin_url %}target="_blank" rel="noopener noreferrer"{% endif %} aria-label="LinkedIn"><i class="fab fa-linkedin-in" aria-hidden="true"></i></a>
+ {% if site_settings.youtube_url %}<a href="{{ site_settings.youtube_url }}" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube" aria-hidden="true"></i></a>{% endif %}
+ </div>
+ </div>
+ <div class="footer-col">
+ <h4>Quick Links</h4>
+ <ul class="footer-links-list">
+ {% block footer_links %}
+ <li><a href="{% url 'student_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Student Portal</a></li>
+ <li><a href="{% url 'staff_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Staff Portal</a></li>
+ <li><a href="/download/latest/regular/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Regular Timetable PDF</a></li>
+ <li><a href="/download/latest/exam/"><i class="fas fa-chevron-right" aria-hidden="true"></i> Exam Timetable PDF</a></li>
+ {% endblock footer_links %}
+ </ul>
+ </div>
+ <div class="footer-col">
+ <h4>Contact Us</h4>
+ <ul class="contact-info">
+ <li><i class="fas fa-map-pin" aria-hidden="true"></i> {{ site_settings.contact_location|default:"Science Complex (S102), Main Campus" }}</li>
+ {% if site_settings.contact_email %}<li><i class="fas fa-envelope" aria-hidden="true"></i> <a href="mailto:{{ site_settings.contact_email }}">{{ site_settings.contact_email }}</a></li>{% endif %}
+ {% if site_settings.contact_phone %}<li><i class="fas fa-phone" aria-hidden="true"></i> {{ site_settings.contact_phone }}</li>{% endif %}
+ <li><i class="fas fa-clock" aria-hidden="true"></i> Mon – Fri: 8:00 AM – 5:00 PM</li>
+ </ul>
+ </div>
+ </div>
+ <div class="footer-bottom">
+ <p>&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Directorate of Timetabling &amp; Examinations.</p>
+ {% if site_settings.website_url %}<a href="{{ site_settings.website_url }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-globe" aria-hidden="true"></i> Main University Website</a>{% endif %}
+ </div>
+</footer>
+{% endblock footer %}
+
+{% block extra_js %}
+
+<script>
+/* ── Notification link → button converter ──────────────────────
+   Scans notification messages for embedded URLs and replaces
+   them with contextually-labelled action buttons.
+
+   SCOPE FIX: previously this ran upgradeNotifLinks(document.body)
+   on page load, which rewrote EVERY <a> tag on the entire page
+   (nav links, footer links, in-page content links, etc) into
+   buttons — breaking the rest of the UI.
+
+   This now only ever runs against the notification panel element
+   itself (#notification-popup / .notification-panel /
+   [data-notif-panel]). If that panel doesn't exist on a given
+   page, the whole thing is a no-op and nothing else is touched.
+*/
+(function () {
+  function labelForUrl(url) {
+    const u = url.toLowerCase();
+    if (/download|report|pdf|export|csv|xlsx?|docx?/.test(u)) return { label: 'Download Report', cls: 'btn-download' };
+    if (/timetable|schedule/.test(u))                          return { label: 'View Timetable',   cls: '' };
+    if (/exam/.test(u))                                        return { label: 'View Exam Details', cls: '' };
+    if (/result/.test(u))                                      return { label: 'View Results',      cls: '' };
+    if (/upload/.test(u))                                      return { label: 'Go to Upload',      cls: '' };
+    return { label: 'Open Link', cls: '' };
+  }
+
+  function upgradeNotifLinks(container) {
+    if (!container) return;
+
+    const urlPattern = /(https?:\/\/[^\s<>"]+|\/(?:export|download|report|media|api)\/[^\s<>"]*|\/[^\s<>"]+\.[a-z]{2,6}[^\s<>"]*)/gi;
+
+    container.querySelectorAll('a[href]').forEach(link => {
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+      if (link.classList.contains('notif-action-btn')) return; // already converted
+      const { label, cls } = labelForUrl(href);
+      const btn = document.createElement('a');
+      btn.href        = href;
+      btn.className   = 'notif-action-btn' + (cls ? ' ' + cls : '');
+      btn.target      = '_blank';
+      btn.rel         = 'noopener noreferrer';
+      btn.innerHTML   = `<i class="fas fa-arrow-up-right-from-square"></i> ${label}`;
+      link.replaceWith(btn);
+    });
+
+    /* Also scan raw text nodes for bare URLs, restricted to known
+       notification-message containers inside this panel. */
+    container.querySelectorAll('.notification-item, .notif-message, .alert-message').forEach(el => {
+      el.innerHTML = el.innerHTML.replace(urlPattern, (url) => {
+        if (url.includes('class="notif-action-btn"')) return url; // already converted
+        const { label, cls } = labelForUrl(url);
+        return `<a href="${url}" class="notif-action-btn${cls ? ' ' + cls : ''}" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square"></i> ${label}</a>`;
+      });
+    });
+  }
+
+  function getNotifPanel() {
+    return document.getElementById('notification-popup') ||
+           document.querySelector('.notification-panel, [data-notif-panel]');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const notifPanel = getNotifPanel();
+
+    /* Run once on whatever notification content already exists in
+       the panel — NOT on document.body. */
+    if (notifPanel) {
+      upgradeNotifLinks(notifPanel);
+
+      /* Re-run whenever new notification content is injected into
+         that same panel (e.g. async-loaded notifications). */
+      const observer = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+          m.addedNodes.forEach(node => {
+            if (node.nodeType === 1) upgradeNotifLinks(node);
+          });
+        });
+      });
+      observer.observe(notifPanel, { childList: true, subtree: true });
+    }
+    /* If there's no notification panel on this page, do nothing —
+       no risk of touching nav/footer/content links. */
+  });
+})();
+</script>
+
+<script src="{% static 'dashboards/js/dashboards_dashboard_base.js' %}"></script>{% block dashboard_js %}{% endblock %}
+{% endblock extra_js %}

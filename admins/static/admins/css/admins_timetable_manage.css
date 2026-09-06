@@ -1,0 +1,42 @@
+/* admins_timetable_manage.css - extracted from original template */
+.status-active { color: #28a745; font-weight: 600; }
+.status-inactive { color: #dc3545; font-weight: 600; }
+.director-info {
+  background: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.director-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.di-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+.di-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+.form-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0b1f4a;
+  padding-left: 10px;
+  
+  margin: 22px 0 16px;
+}
+.muted-center {
+  text-align: center;
+  color: #6c757d;
+  padding: 24px;
+  font-style: italic;
+}

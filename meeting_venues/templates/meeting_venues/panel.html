@@ -1,0 +1,929 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Venues &amp; Scheduling</title>
+  {{ venue_type_choices|json_script:"venueTypeChoices" }}
+  {{ day_choices|json_script:"dayChoices" }}
+
+  <style>
+    :root {
+      --primary: #004d26;
+      --primary-dark: #003318;
+      --accent: #007a3d;
+      --danger: #d32f2f;
+      --warn: #e65100;
+      --ok: #2e7d32;
+      --blue: #1565c0;
+      --blue-dark: #0d47a1;
+      --yellow: #f9a825;
+      --yellow-dark: #c67c00;
+      --text-light: #666;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --border: #ddd;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px; line-height: 1.5;
+      padding-bottom: 40px;
+    }
+
+    .header {
+      background: var(--primary); padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid var(--accent);
+      height: 64px; margin-bottom: 24px;
+    }
+    .header h1 { font-size: 1.25rem; font-weight: 700; color: #fff; flex: 1; margin-left: 16px; }
+    .header img { height: 38px; display: block; }
+    .header .home-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.13); color: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 6px; padding: 6px 13px; cursor: pointer;
+      font-size: 13.5px; font-weight: 600; text-decoration: none;
+      transition: background 0.18s; white-space: nowrap;
+    }
+    .header .home-btn:hover { background: rgba(255,255,255,0.26); }
+
+    /* Menu toggle (top-left) + full-height sidebar drawer */
+    .menu-wrap { position: relative; order: -1; }
+    .menu-toggle-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 8px;
+      background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.28);
+      cursor: pointer; transition: background 0.18s;
+    }
+    .menu-toggle-btn:hover { background: rgba(255,255,255,0.26); }
+    .menu-toggle-btn .bar { display: block; width: 20px; height: 2px; background: #fff; border-radius: 2px; position: relative; transition: transform 0.2s, opacity 0.2s; }
+    .menu-toggle-btn .bar::before, .menu-toggle-btn .bar::after {
+      content: ""; position: absolute; left: 0; width: 20px; height: 2px; background: #fff; border-radius: 2px; transition: transform 0.2s;
+    }
+    .menu-toggle-btn .bar::before { top: -6px; }
+    .menu-toggle-btn .bar::after { top: 6px; }
+    .menu-toggle-btn.open .bar { background: transparent; }
+    .menu-toggle-btn.open .bar::before { top: 0; transform: rotate(45deg); }
+    .menu-toggle-btn.open .bar::after { top: 0; transform: rotate(-45deg); }
+
+    .menu-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.42);
+      opacity: 0; pointer-events: none; transition: opacity 0.22s ease; z-index: 400;
+    }
+    .menu-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .menu-dropdown {
+      position: fixed; top: 0; left: 0; height: 100vh; width: 270px; max-width: 82vw;
+      background: #fff; border-right: 1px solid var(--border);
+      box-shadow: 10px 0 32px rgba(0,0,0,0.2);
+      padding: 84px 14px 20px; display: flex; flex-direction: column; gap: 3px;
+      transform: translateX(-100%); transition: transform 0.25s ease; z-index: 450;
+    }
+    .menu-dropdown.open { transform: translateX(0); }
+    .menu-dropdown-title {
+      font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-light); padding: 0 14px 10px;
+    }
+    .menu-dropdown a {
+      color: var(--primary-dark); text-decoration: none; font-weight: 600;
+      font-size: 14px; padding: 12px 14px; border-radius: 7px; transition: 0.15s;
+    }
+    .menu-dropdown a:hover { background: #f2f6f4; }
+    .menu-dropdown a.active { background: var(--primary); color: #fff; }
+    .menu-dropdown a.link-danger { color: var(--danger); }
+    .menu-dropdown .menu-divider { height: 1px; background: var(--border); margin: 8px 4px; }
+
+    .container { max-width: 1400px; width: 100%; margin: 0 auto; padding: 0 20px; }
+    .hidden { display: none !important; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tab-btn {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text-light);
+      cursor: pointer; transition: all 0.15s;
+    }
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .tab-btn:hover:not(.active) { border-color: var(--accent); color: var(--accent); }
+    .tab-count {
+      display: inline-block; background: var(--danger); color: #fff;
+      border-radius: 999px; font-size: 11px; font-weight: 700;
+      padding: 1px 7px; margin-left: 6px;
+    }
+
+    .section-head-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .section-head-row h2 { margin-bottom: 0 !important; }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    section.form-section {
+      background: #fff; border-radius: var(--radius-md); padding: 22px 24px;
+      margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    section.form-section h2 { font-size: 1.05rem; color: var(--primary-dark); margin-bottom: 16px; }
+
+    .form-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px 18px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full-width { grid-column: 1 / -1; }
+    .form-group label { font-size: 12.5px; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.02em; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 14px; font-family: inherit; background: #fcfdfc;
+    }
+    .form-group textarea { min-height: 70px; resize: vertical; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,61,0.12);
+    }
+
+    .toggle-group { display: flex; align-items: center; gap: 10px; }
+    .toggle-label { font-size: 13.5px; font-weight: 600; color: #333; }
+    .toggle-switch { position: relative; display: inline-block; width: 42px; height: 22px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 22px; transition: 0.2s; }
+    .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+    .toggle-switch input:checked + .slider { background: var(--accent); }
+    .toggle-switch input:checked + .slider::before { transform: translateX(20px); }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+    .btn {
+      border: none; border-radius: var(--radius-sm); padding: 10px 20px;
+      font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #eee; color: #333; }
+    .btn-secondary:hover { background: #ddd; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #a82424; }
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-blue:hover { background: var(--blue-dark); }
+    .btn-yellow { background: var(--yellow); color: #3a2600; }
+    .btn-yellow:hover { background: var(--yellow-dark); color: #fff; }
+    .btn-small { padding: 6px 12px; font-size: 12.5px; border-radius: 6px; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius-md); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    thead { background: #f2f6f4; }
+    th, td { padding: 12px 14px; text-align: left; font-size: 13.5px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    th { font-weight: 700; color: var(--primary-dark); text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.03em; }
+    tbody tr:hover { background: #fafcfa; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 700; color: #fff; }
+    .badge-workshop { background: var(--warn); }
+    .badge-lab { background: #2196F3; }
+    .badge-booked { background: var(--danger); }
+    .badge-available { background: var(--ok); }
+    .badge-inactive { background: #999; }
+
+    .cell-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty-row td { text-align: center; color: var(--text-light); padding: 30px; font-style: italic; }
+
+    .booking-details { font-size: 12.5px; color: #333; }
+    .booking-details .label { color: var(--text-light); font-weight: 600; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .modal-box {
+      background: #fff; border-radius: var(--radius-md); padding: 24px 26px;
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+    .modal-box h2 { font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 16px; }
+    .modal-box .form-grid { grid-template-columns: 1fr 1fr; }
+
+    #toast {
+      position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff;
+      padding: 12px 24px; border-radius: var(--radius-sm); z-index: 9999;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    #toast.show { opacity: 1; }
+    #toast.error { background: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="menu-wrap">
+      <button type="button" class="menu-toggle-btn" id="menuToggleBtn" aria-haspopup="true" aria-expanded="false" aria-label="Open menu">
+        <span class="bar"></span>
+      </button>
+    </div>
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University Logo">
+    <h1>Meeting Venues &amp; Scheduling</h1>
+  </div>
+
+  <div class="menu-backdrop" id="menuBackdrop"></div>
+  <nav class="menu-dropdown" id="menuDropdown">
+    <div class="menu-dropdown-title">Menu</div>
+    <a href="{% url 'meeting_venues_panel' %}" class="active">Meeting Venues</a>
+    <a href="{% url 'venues_panel' %}">Venues (Timetabling)</a>
+    <a href="{% url 'public_book_meeting_venue' %}" target="_blank" rel="noopener">Public Booking Page &#8599;</a>
+    <div class="menu-divider"></div>
+    <a href="{% url 'logout' %}" class="link-danger">Logout</a>
+  </nav>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="board">Booking Board</button>
+      <button class="tab-btn" data-tab="venues">Meeting Venues</button>
+      <button class="tab-btn" data-tab="requests">
+        Unbook Requests
+        {% if pending_requests %}<span class="tab-count">{{ pending_requests|length }}</span>{% endif %}
+      </button>
+    </div>
+
+    <!-- BOOKING BOARD TAB -->
+    <div id="tab-board" class="tab-pane active">
+      <section class="form-section">
+        <div class="section-head-row">
+          <h2>Live Booking Board</h2>
+          <button class="btn btn-blue" onclick="openBookModal(null)">+ New Booking</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Venue</th>
+              <th>Type</th>
+              <th>Capacity</th>
+              <th>Status</th>
+              <th>Booking Details</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="boardBody">
+            {% for v in venues %}
+              {% if v.is_active %}
+              <tr data-venue-id="{{ v.id }}"
+                  data-booking-id="{% if v.current_booking %}{{ v.current_booking.id }}{% endif %}"
+                  class="board-row">
+                <td><strong>{{ v.code }}</strong>{% if v.name %} &mdash; {{ v.name }}{% endif %}{% if v.location %}<br><span class="booking-details"><span class="label">Location:</span> {{ v.location }}</span>{% endif %}</td>
+                <td>
+                  {{ v.get_venue_type_display }}
+                  {% if v.is_workshop %}<br><span class="badge badge-workshop">Workshop</span>{% endif %}
+                  {% if v.is_lab %}<br><span class="badge badge-lab">Lab</span>{% endif %}
+                </td>
+                <td>{{ v.capacity|default:"—" }}</td>
+                <td class="board-status">
+                  {% if v.is_booked %}
+                    <span class="badge badge-booked">Booked</span>
+                  {% else %}
+                    <span class="badge badge-available">Available</span>
+                  {% endif %}
+                </td>
+                <td class="board-booking-details">
+                  {% with b=v.current_booking %}
+                    {% if b %}
+                      <div class="booking-details">
+                        <div><span class="label">Booked by:</span> {{ b.booked_by }}</div>
+                        <div><span class="label">For:</span> {{ b.booked_for }}</div>
+                        {% if b.date %}<div><span class="label">Date:</span> {{ b.date }}{% if b.day %} ({{ b.day }}){% endif %}</div>{% elif b.day %}<div><span class="label">Day:</span> {{ b.day }}</div>{% endif %}
+                        {% if b.start_time %}<div><span class="label">Time:</span> {{ b.start_time|time:"H:i" }} - {{ b.end_time|time:"H:i" }}</div>{% endif %}
+                        <div><span class="label">Ref:</span> #{{ b.id }}</div>
+                      </div>
+                    {% else %}
+                      <span style="color:var(--text-light);">—</span>
+                    {% endif %}
+                  {% endwith %}
+                </td>
+                <td class="cell-actions board-actions">
+                  {% if v.is_booked %}
+                    <button class="btn btn-small btn-yellow" onclick="openTransferModal({{ v.id }})">Transfer</button>
+                    <button class="btn btn-small btn-danger" onclick="unbookVenue({{ v.id }})">Unbook</button>
+                  {% else %}
+                    <button class="btn btn-small btn-blue" onclick="openBookModal({{ v.id }})">Book</button>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endif %}
+            {% empty %}
+              <tr class="empty-row"><td colspan="6">No meeting venues yet. Add one from the "Meeting Venues" tab.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- MEETING VENUES CRUD TAB -->
+    <div id="tab-venues" class="tab-pane">
+      <section class="form-section">
+        <h2 id="venueFormTitle">Add New Meeting Venue</h2>
+        <div class="form-grid">
+          <input type="hidden" id="venueId">
+
+          <div class="form-group">
+            <label for="venueCode">Venue Code <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="venueCode" placeholder="e.g. BOARDROOM A">
+          </div>
+
+          <div class="form-group">
+            <label for="venueName">Name</label>
+            <input type="text" id="venueName" placeholder="e.g. Senate Boardroom">
+          </div>
+
+          <div class="form-group">
+            <label for="venueLocation">Location</label>
+            <input type="text" id="venueLocation" placeholder="e.g. Admin Block, 2nd Floor">
+          </div>
+
+          <div class="form-group">
+            <label for="venueCapacity">Capacity</label>
+            <input type="number" id="venueCapacity" min="0" placeholder="e.g. 40">
+          </div>
+
+          <div class="form-group">
+            <label for="venueType">Venue Type</label>
+            <select id="venueType"></select>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="venueDescription">Description</label>
+            <textarea id="venueDescription" placeholder="Optional notes about the venue"></textarea>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-group">
+              <span class="toggle-label">Workshop</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="venueIsWorkshop">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-group">
+              <span class="toggle-label">Lab</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="venueIsLab">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-group">
+              <span class="toggle-label">Active</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="venueIsActive" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="saveVenue()">Save Venue</button>
+          <button class="btn btn-secondary hidden" id="cancelVenueEditBtn" onclick="resetVenueForm()">Cancel Edit</button>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>All Meeting Venues</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Capacity</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="venuesTableBody">
+            {% for v in venues %}
+              <tr data-id="{{ v.id }}"
+                  data-code="{{ v.code }}"
+                  data-name="{{ v.name }}"
+                  data-location="{{ v.location }}"
+                  data-capacity="{{ v.capacity|default_if_none:'' }}"
+                  data-venue_type="{{ v.venue_type }}"
+                  data-description="{{ v.description|default_if_none:'' }}"
+                  data-is_workshop="{{ v.is_workshop|yesno:'true,false' }}"
+                  data-is_lab="{{ v.is_lab|yesno:'true,false' }}"
+                  data-is_active="{{ v.is_active|yesno:'true,false' }}">
+                <td><strong>{{ v.code }}</strong></td>
+                <td>{{ v.name|default:"—" }}</td>
+                <td>{{ v.location|default:"—" }}</td>
+                <td>{{ v.capacity|default:"—" }}</td>
+                <td>
+                  {{ v.get_venue_type_display }}
+                  {% if v.is_workshop %}<br><span class="badge badge-workshop">Workshop</span>{% endif %}
+                  {% if v.is_lab %}<br><span class="badge badge-lab">Lab</span>{% endif %}
+                </td>
+                <td>
+                  {% if not v.is_active %}
+                    <span class="badge badge-inactive">Inactive</span>
+                  {% elif v.is_booked %}
+                    <span class="badge badge-booked">Booked</span>
+                  {% else %}
+                    <span class="badge badge-available">Available</span>
+                  {% endif %}
+                </td>
+                <td class="cell-actions">
+                  <button class="btn btn-small btn-secondary" onclick="editVenueRow(this)">Edit</button>
+                  <button class="btn btn-small btn-danger" onclick="deleteVenue({{ v.id }}, '{{ v.code|escapejs }}')">Delete</button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr class="empty-row"><td colspan="7">No meeting venues yet. Add one above.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    <!-- UNBOOK REQUESTS TAB -->
+    <div id="tab-requests" class="tab-pane">
+      <section class="form-section">
+        <h2>Pending Unbook Requests</h2>
+        <p style="color:var(--text-light); font-size:13.5px; margin-bottom:16px;">
+          These come from staff using the public booking page. Approving one cancels the booking; rejecting it leaves the booking untouched.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Venue</th>
+              <th>Booking Details</th>
+              <th>Requested By</th>
+              <th>Reason</th>
+              <th>Requested At</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="requestsTableBody">
+            {% for r in pending_requests %}
+              <tr data-request-id="{{ r.id }}">
+                <td><strong>{{ r.booking.venue.code }}</strong></td>
+                <td class="booking-details">
+                  <div><span class="label">Booked by:</span> {{ r.booking.booked_by }}</div>
+                  <div><span class="label">For:</span> {{ r.booking.booked_for }}</div>
+                  {% if r.booking.date %}<div><span class="label">Date:</span> {{ r.booking.date }}</div>{% endif %}
+                  {% if r.booking.start_time %}<div><span class="label">Time:</span> {{ r.booking.start_time|time:"H:i" }} - {{ r.booking.end_time|time:"H:i" }}</div>{% endif %}
+                  <div><span class="label">Ref:</span> #{{ r.booking.id }}</div>
+                </td>
+                <td>{{ r.requested_by }}{% if r.contact %}<br><span style="color:var(--text-light);font-size:12px;">{{ r.contact }}</span>{% endif %}</td>
+                <td>{{ r.reason|default:"—" }}</td>
+                <td>{{ r.requested_at|date:"d M Y, H:i" }}</td>
+                <td class="cell-actions">
+                  <button class="btn btn-small btn-primary" onclick="resolveUnbookRequest({{ r.id }}, 'approve_unbook_request')">Approve</button>
+                  <button class="btn btn-small btn-danger" onclick="resolveUnbookRequest({{ r.id }}, 'reject_unbook_request')">Reject</button>
+                </td>
+              </tr>
+            {% empty %}
+              <tr class="empty-row"><td colspan="6">No pending unbook requests.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- BOOK MODAL -->
+  <div class="modal-overlay hidden" id="bookModal">
+    <div class="modal-box">
+      <h2 id="bookModalTitle">Book Venue</h2>
+      <input type="hidden" id="bookVenueId">
+      <div class="form-grid">
+        <div class="form-group full-width" id="bookVenueSelectGroup">
+          <label for="bookVenueSelect">Venue <span style="color:var(--danger)">*</span></label>
+          <select id="bookVenueSelect"></select>
+        </div>
+        <div class="form-group full-width">
+          <label for="bookBookedBy">Booked By <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="bookBookedBy" placeholder="Name / department / office">
+        </div>
+        <div class="form-group full-width">
+          <label for="bookBookedFor">Purpose / Meeting Title <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="bookBookedFor" placeholder="e.g. Senate Meeting">
+        </div>
+        <div class="form-group">
+          <label for="bookContact">Contact</label>
+          <input type="text" id="bookContact" placeholder="Phone / email (optional)">
+        </div>
+        <div class="form-group">
+          <label for="bookDay">Day</label>
+          <select id="bookDay"><option value="">—</option></select>
+        </div>
+        <div class="form-group">
+          <label for="bookDate">Date</label>
+          <input type="date" id="bookDate">
+        </div>
+        <div class="form-group">
+          <label for="bookStartTime">Start Time</label>
+          <input type="time" id="bookStartTime">
+        </div>
+        <div class="form-group">
+          <label for="bookEndTime">End Time</label>
+          <input type="time" id="bookEndTime">
+        </div>
+        <div class="form-group full-width">
+          <label for="bookNotes">Notes</label>
+          <textarea id="bookNotes" placeholder="Optional notes"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-blue" onclick="submitBook()">Confirm Booking</button>
+        <button class="btn btn-secondary" onclick="closeModal('bookModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRANSFER MODAL -->
+  <div class="modal-overlay hidden" id="transferModal">
+    <div class="modal-box">
+      <h2>Transfer Meeting</h2>
+      <input type="hidden" id="transferBookingId">
+      <input type="hidden" id="transferFromVenueId">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="transferNewVenue">Transfer To Venue</label>
+          <select id="transferNewVenue"></select>
+        </div>
+        <div class="form-group full-width">
+          <label for="transferBookedBy">Booked By</label>
+          <input type="text" id="transferBookedBy">
+        </div>
+        <div class="form-group full-width">
+          <label for="transferBookedFor">Purpose / Meeting Title</label>
+          <input type="text" id="transferBookedFor">
+        </div>
+        <div class="form-group">
+          <label for="transferContact">Contact</label>
+          <input type="text" id="transferContact">
+        </div>
+        <div class="form-group">
+          <label for="transferDay">New Day</label>
+          <select id="transferDay"><option value="">—</option></select>
+        </div>
+        <div class="form-group">
+          <label for="transferDate">New Date</label>
+          <input type="date" id="transferDate">
+        </div>
+        <div class="form-group">
+          <label for="transferStartTime">New Start Time</label>
+          <input type="time" id="transferStartTime">
+        </div>
+        <div class="form-group">
+          <label for="transferEndTime">New End Time</label>
+          <input type="time" id="transferEndTime">
+        </div>
+        <div class="form-group full-width">
+          <label for="transferNotes">Notes</label>
+          <textarea id="transferNotes"></textarea>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-yellow" onclick="submitTransfer()">Confirm Transfer</button>
+        <button class="btn btn-secondary" onclick="closeModal('transferModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const POST_URL = "{% url 'meeting_venues_panel' %}";
+    const VENUE_TYPE_CHOICES = JSON.parse(document.getElementById('venueTypeChoices').textContent);
+    const DAY_CHOICES = JSON.parse(document.getElementById('dayChoices').textContent);
+
+    // Header menu toggle (top-left button opens a full-height sidebar drawer)
+    (function () {
+      const btn = document.getElementById('menuToggleBtn');
+      const dropdown = document.getElementById('menuDropdown');
+      const backdrop = document.getElementById('menuBackdrop');
+
+      function closeMenu() {
+        btn.classList.remove('open');
+        dropdown.classList.remove('open');
+        backdrop.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+
+      function toggleMenu() {
+        const isOpen = dropdown.classList.toggle('open');
+        btn.classList.toggle('open', isOpen);
+        backdrop.classList.toggle('open', isOpen);
+        btn.setAttribute('aria-expanded', String(isOpen));
+      }
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+      });
+      backdrop.addEventListener('click', closeMenu);
+      document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target) && e.target !== btn) closeMenu();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+      });
+    })();
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    function showToast(message, isError) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = isError ? 'show error' : 'show';
+      setTimeout(() => { toast.className = ''; }, 3200);
+    }
+
+    function fillSelect(selectEl, choices, includeBlank) {
+      if (includeBlank) {
+        const opt = document.createElement('option');
+        opt.value = ''; opt.textContent = '—';
+        selectEl.appendChild(opt);
+      }
+      choices.forEach(([value, label]) => {
+        const opt = document.createElement('option');
+        opt.value = value; opt.textContent = label;
+        selectEl.appendChild(opt);
+      });
+    }
+    fillSelect(document.getElementById('venueType'), VENUE_TYPE_CHOICES, false);
+    fillSelect(document.getElementById('bookDay'), DAY_CHOICES, true);
+    fillSelect(document.getElementById('transferDay'), DAY_CHOICES, true);
+
+    function buildVenueOptions(excludeId) {
+      const rows = document.querySelectorAll('#venuesTableBody tr[data-id]');
+      const opts = [];
+      rows.forEach(row => {
+        const id = row.dataset.id;
+        if (String(id) === String(excludeId)) {
+          opts.push([id, row.dataset.code + ' (current)']);
+        } else if (row.dataset.is_active === 'true') {
+          opts.push([id, row.dataset.code]);
+        }
+      });
+      return opts;
+    }
+
+    async function postAction(payload) {
+      const formData = new FormData();
+      Object.entries(payload).forEach(([k, v]) => formData.append(k, v));
+      const res = await fetch(POST_URL, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF_TOKEN },
+        body: formData,
+      });
+      let data;
+      try { data = await res.json(); } catch (e) { data = { status: 'error', message: 'Unexpected server response.' }; }
+      return data;
+    }
+
+    // MEETING VENUE CRUD
+    function resetVenueForm() {
+      document.getElementById('venueId').value = '';
+      document.getElementById('venueCode').value = '';
+      document.getElementById('venueName').value = '';
+      document.getElementById('venueLocation').value = '';
+      document.getElementById('venueCapacity').value = '';
+      document.getElementById('venueType').value = 'hall';
+      document.getElementById('venueDescription').value = '';
+      document.getElementById('venueIsWorkshop').checked = false;
+      document.getElementById('venueIsLab').checked = false;
+      document.getElementById('venueIsActive').checked = true;
+      document.getElementById('venueFormTitle').textContent = 'Add New Meeting Venue';
+      document.getElementById('cancelVenueEditBtn').classList.add('hidden');
+    }
+
+    function editVenueRow(btn) {
+      const row = btn.closest('tr');
+      document.getElementById('venueId').value = row.dataset.id;
+      document.getElementById('venueCode').value = row.dataset.code;
+      document.getElementById('venueName').value = row.dataset.name;
+      document.getElementById('venueLocation').value = row.dataset.location;
+      document.getElementById('venueCapacity').value = row.dataset.capacity;
+      document.getElementById('venueType').value = row.dataset.venue_type;
+      document.getElementById('venueDescription').value = row.dataset.description;
+      document.getElementById('venueIsWorkshop').checked = row.dataset.is_workshop === 'true';
+      document.getElementById('venueIsLab').checked = row.dataset.is_lab === 'true';
+      document.getElementById('venueIsActive').checked = row.dataset.is_active === 'true';
+      document.getElementById('venueFormTitle').textContent = 'Edit Meeting Venue — ' + row.dataset.code;
+      document.getElementById('cancelVenueEditBtn').classList.remove('hidden');
+      document.querySelector('.tab-btn[data-tab="venues"]').click();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function saveVenue() {
+      const id = document.getElementById('venueId').value;
+      const code = document.getElementById('venueCode').value.trim();
+      if (!code) { showToast('Venue code is required.', true); return; }
+
+      const data = await postAction({
+        action: id ? 'update_venue' : 'create_venue',
+        id: id,
+        code: code,
+        name: document.getElementById('venueName').value.trim(),
+        location: document.getElementById('venueLocation').value.trim(),
+        capacity: document.getElementById('venueCapacity').value,
+        venue_type: document.getElementById('venueType').value,
+        description: document.getElementById('venueDescription').value.trim(),
+        is_workshop: document.getElementById('venueIsWorkshop').checked ? 'true' : 'false',
+        is_lab: document.getElementById('venueIsLab').checked ? 'true' : 'false',
+        is_active: document.getElementById('venueIsActive').checked ? 'true' : 'false',
+      });
+
+      if (data.status === 'success') {
+        showToast('Meeting venue saved. Reloading…');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        showToast(data.message || 'Could not save venue.', true);
+      }
+    }
+
+    async function deleteVenue(id, code) {
+      if (!confirm(`Delete meeting venue "${code}"? This cannot be undone.`)) return;
+      const data = await postAction({ action: 'delete_venue', id: id });
+      if (data.status === 'success') {
+        showToast('Venue deleted. Reloading…');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showToast(data.message || 'Could not delete venue.', true);
+      }
+    }
+
+    // BOOKING BOARD ACTIONS
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function buildAvailableVenueOptions(preselectId) {
+      const rows = document.querySelectorAll('#venuesTableBody tr[data-id]');
+      const opts = [];
+      rows.forEach(row => {
+        const id = row.dataset.id;
+        const isAvailable = row.dataset.is_active === 'true';
+        // Skip venues that are currently booked, unless it's the one we're pre-selecting for.
+        const boardRow = document.querySelector(`.board-row[data-venue-id="${id}"]`);
+        const isBooked = boardRow ? boardRow.querySelector('.board-status .badge-booked') !== null : false;
+        if (isAvailable && (!isBooked || String(id) === String(preselectId))) {
+          opts.push([id, row.dataset.code]);
+        }
+      });
+      return opts;
+    }
+
+    function openBookModal(venueId) {
+      document.getElementById('bookVenueId').value = venueId || '';
+      document.getElementById('bookBookedBy').value = '';
+      document.getElementById('bookBookedFor').value = '';
+      document.getElementById('bookContact').value = '';
+      document.getElementById('bookDay').value = '';
+      document.getElementById('bookDate').value = '';
+      document.getElementById('bookStartTime').value = '';
+      document.getElementById('bookEndTime').value = '';
+      document.getElementById('bookNotes').value = '';
+
+      const select = document.getElementById('bookVenueSelect');
+      select.innerHTML = '';
+      const opts = buildAvailableVenueOptions(venueId);
+      fillSelect(select, opts, false);
+
+      if (venueId) {
+        // Opened from a specific row — lock the venue choice.
+        select.value = String(venueId);
+        select.disabled = true;
+        const row = document.querySelector(`#venuesTableBody tr[data-id="${venueId}"]`);
+        document.getElementById('bookModalTitle').textContent = 'Book Venue — ' + (row ? row.dataset.code : '');
+      } else {
+        // Opened from "+ New Booking" — let them choose any available venue.
+        select.disabled = false;
+        document.getElementById('bookModalTitle').textContent = 'New Booking';
+        if (opts.length === 0) {
+          showToast('No available meeting venues right now — every venue is booked.', true);
+        }
+      }
+      openModal('bookModal');
+    }
+
+    async function submitBook() {
+      const venueId = document.getElementById('bookVenueId').value || document.getElementById('bookVenueSelect').value;
+      const bookedBy = document.getElementById('bookBookedBy').value.trim();
+      const bookedFor = document.getElementById('bookBookedFor').value.trim();
+      if (!venueId) { showToast('Please choose a venue.', true); return; }
+      if (!bookedBy || !bookedFor) { showToast('Please provide who booked it and what for.', true); return; }
+
+      const data = await postAction({
+        action: 'book',
+        venue_id: venueId,
+        booked_by: bookedBy,
+        booked_for: bookedFor,
+        contact: document.getElementById('bookContact').value.trim(),
+        day: document.getElementById('bookDay').value,
+        date: document.getElementById('bookDate').value,
+        start_time: document.getElementById('bookStartTime').value,
+        end_time: document.getElementById('bookEndTime').value,
+        notes: document.getElementById('bookNotes').value.trim(),
+      });
+
+      if (data.status === 'success') {
+        showToast('Venue booked. Reloading…');
+        closeModal('bookModal');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showToast(data.message || 'Could not book venue.', true);
+      }
+    }
+
+    async function unbookVenue(venueId) {
+      if (!confirm('Unbook this venue? This cancels the current meeting booking.')) return;
+      const data = await postAction({ action: 'unbook', venue_id: venueId });
+      if (data.status === 'success') {
+        showToast('Venue unbooked. Reloading…');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showToast(data.message || 'Could not unbook venue.', true);
+      }
+    }
+
+    function openTransferModal(venueId) {
+      const row = document.querySelector(`.board-row[data-venue-id="${venueId}"]`);
+      document.getElementById('transferFromVenueId').value = venueId;
+
+      const select = document.getElementById('transferNewVenue');
+      select.innerHTML = '';
+      fillSelect(select, buildVenueOptions(venueId), false);
+
+      document.getElementById('transferBookedBy').value = '';
+      document.getElementById('transferBookedFor').value = '';
+      document.getElementById('transferContact').value = '';
+      document.getElementById('transferDay').value = '';
+      document.getElementById('transferDate').value = '';
+      document.getElementById('transferStartTime').value = '';
+      document.getElementById('transferEndTime').value = '';
+      document.getElementById('transferNotes').value = '';
+
+      const bookingId = row ? row.dataset.bookingId : '';
+      document.getElementById('transferBookingId').value = bookingId || '';
+
+      openModal('transferModal');
+    }
+
+    async function submitTransfer() {
+      const bookingId = document.getElementById('transferBookingId').value;
+      if (!bookingId) { showToast('Could not find the active booking to transfer.', true); return; }
+
+      const data = await postAction({
+        action: 'transfer',
+        booking_id: bookingId,
+        new_venue_id: document.getElementById('transferNewVenue').value,
+        booked_by: document.getElementById('transferBookedBy').value.trim(),
+        booked_for: document.getElementById('transferBookedFor').value.trim(),
+        contact: document.getElementById('transferContact').value.trim(),
+        day: document.getElementById('transferDay').value,
+        date: document.getElementById('transferDate').value,
+        start_time: document.getElementById('transferStartTime').value,
+        end_time: document.getElementById('transferEndTime').value,
+        notes: document.getElementById('transferNotes').value.trim(),
+      });
+
+      if (data.status === 'success') {
+        showToast('Meeting transferred. Reloading…');
+        closeModal('transferModal');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showToast(data.message || 'Could not transfer meeting.', true);
+      }
+    }
+
+    async function resolveUnbookRequest(requestId, action) {
+      const verb = action === 'approve_unbook_request' ? 'approve (this will unbook the venue)' : 'reject';
+      if (!confirm(`Are you sure you want to ${verb} this unbook request?`)) return;
+      const data = await postAction({ action: action, request_id: requestId });
+      if (data.status === 'success') {
+        showToast('Request updated. Reloading…');
+        setTimeout(() => window.location.reload(), 400);
+      } else {
+        showToast(data.message || 'Could not update the request.', true);
+      }
+    }
+
+    resetVenueForm();
+  </script>
+</body>
+</html>

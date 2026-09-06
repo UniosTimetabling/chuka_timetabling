@@ -1,0 +1,14 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Safe Undo{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+    <span class="dept-badge">{{ scope.name }}</span>
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+{% include "backup_system/safe_undo_body.html" with su_action_url=action_url su_scope_label=scope.name su_heading="Course Allocation" su_note="Course allocations, selection groups, and combined course groups all show up here." %}
+{% endblock %}

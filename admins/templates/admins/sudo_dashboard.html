@@ -1,0 +1,861 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_sudo_dashboard.css' %}">
+{% endblock page_css %}
+
+{% block title %}Main Admin Panel{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+ <h1>Main Admin Panel</h1>
+ <p>Manage faculties, departments, allocations and timetables</p>
+ <div class="header-bar"></div>
+</div>
+
+<!-- STAT CARDS -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:15px; margin-bottom:25px;">
+ <div style="background:white; border:1px solid #e2e6ea; border-radius:8px; padding:20px; ">
+ <div style="font-size:28px; font-weight:bold; color:#0b1f4a;">{{ total_faculties }}</div>
+ <div style="font-size:13px; color:#666; text-transform:uppercase;">Faculties</div>
+ </div>
+ <div style="background:white; border:1px solid #e2e6ea; border-radius:8px; padding:20px; ">
+ <div style="font-size:28px; font-weight:bold; color:#28a745;">{{ total_departments }}</div>
+ <div style="font-size:13px; color:#666; text-transform:uppercase;">Departments</div>
+ </div>
+ <div style="background:white; border:1px solid #e2e6ea; border-radius:8px; padding:20px; ">
+ <div style="font-size:28px; font-weight:bold; color:#f6861f;">{{ total_allocations }}</div>
+ <div style="font-size:13px; color:#666; text-transform:uppercase;">Allocations</div>
+ </div>
+ <div style="background:white; border:1px solid #e2e6ea; border-radius:8px; padding:20px; ">
+ <div style="font-size:28px; font-weight:bold; color:#0b1f4a;">{{ total_timetables }}</div>
+ <div style="font-size:13px; color:#666; text-transform:uppercase;">Timetables</div>
+ </div>
+</div>
+
+<!-- HOST/REMOTE SYNC -->
+<div class="card mb-3">
+ <div class="card-header">Host / Remote Sync</div>
+ <div class="card-body">
+ <p style="margin:0 0 10px; color:#555;">Push any changed data (faculties, departments, programs, course allocations, timetables, etc. — everything except user accounts) to the configured remote installation, in dependency-safe order.</p>
+ <button id="dash-sync-now-btn" class="btn btn-primary">Sync to Remote</button>
+ <a href="{% url 'sync_settings' %}" class="btn btn-secondary" style="margin-left:8px;">Sync Settings</a>
+ <span id="dash-sync-status" style="margin-left:12px; font-weight:600;"></span>
+ <div id="dash-sync-progress-wrap" style="display:none; margin-top:12px;">
+   <div style="background:#eef1f6; border-radius:6px; height:16px; overflow:hidden; max-width:450px;">
+     <div id="dash-sync-progress-bar" style="background:#28a745; height:100%; width:0%; transition:width .3s;"></div>
+   </div>
+   <div id="dash-sync-progress-text" style="margin-top:6px; font-size:13px; color:#555;"></div>
+ </div>
+ </div>
+</div>
+
+<!-- MODAL -->
+<div id="data-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+ <div style="background:white; border-radius:8px; width:90%; max-width:500px; max-height:80vh; overflow-y:auto;">
+ <div style="background:#0b1f4a; color:white; padding:15px; border-radius:8px 8px 0 0; display:flex; justify-content:space-between;">
+ <span style="font-weight:bold;" id="modal-title">Details</span>
+ <button style="background:none; border:none; color:white; font-size:20px; cursor:pointer;" id="modal-close">&times;</button>
+ </div>
+ <div style="padding:20px;" id="modal-body"></div>
+ </div>
+</div>
+
+<!-- FACULTIES -->
+<div class="card mb-3">
+ <div class="card-header">Faculties</div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; min-width:600px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:10px; text-align:left;">ID</th>
+ <th style="padding:10px; text-align:left;">Name</th>
+ <th style="padding:10px; text-align:left;">Leader</th>
+ <th style="padding:10px; text-align:left;">Actions</th>
+ </tr>
+ </thead>
+ <tbody id="faculties-tbody">
+ {% for f in faculties %}
+ <tr data-id="{{ f.id }}" style="border-bottom:1px solid #ddd;">
+ <td style="padding:10px;">{{ f.id }}</td>
+ <td style="padding:10px;" class="val-name">{{ f.name }}</td>
+ <td style="padding:10px;" class="val-leader">{{ f.leader|default:"No Leader" }}</td>
+ <td style="padding:10px;">
+ <div style="display:flex; gap:5px;">
+ <button class="btn btn-info btn-sm" onclick="viewDetails('faculty', {{ f.id }})">View</button>
+ <button class="btn btn-warning btn-sm" onclick="editRow('faculty', {{ f.id }})">Edit</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteItem('faculty', {{ f.id }})">Delete</button>
+ </div>
+ </td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="4" style="padding:20px; text-align:center;">No faculties found</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% if faculties.has_next %}
+ <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="loadMoreData('faculties', {{ faculties.next_page_number }})" id="faculties-load-more">Load More Faculties</button>
+ {% endif %}
+
+ <h4 style="margin:20px 0 10px; color:#0b1f4a;">Add Faculty</h4>
+ <form id="faculty-form" data-url="{% url 'ajax_faculty' %}">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; align-items:center; margin-bottom:10px;">
+ <label>Name</label>
+ <input type="text" name="name" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; align-items:center; margin-bottom:10px;">
+ <label>Leader Option</label>
+ <select name="leader_option" id="faculty-leader-option" class="form-control">
+ <option value="none">None</option>
+ <option value="existing">Existing User</option>
+ <option value="new">Create New</option>
+ </select>
+ </div>
+ <div id="faculty-existing-row" style="display:none; grid-template-columns:1fr 2fr; gap:10px; align-items:center; margin-bottom:10px;">
+ <label>Select Leader</label>
+ <select name="leader" class="form-control">
+ {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+ </select>
+ </div>
+ <button type="submit" class="btn btn-success">Save Faculty</button>
+ </form>
+ </div>
+</div>
+
+<!-- DEPARTMENTS -->
+<div class="card mb-3">
+ <div class="card-header">Departments</div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; min-width:700px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:10px;">ID</th>
+ <th style="padding:10px;">Name</th>
+ <th style="padding:10px;">Faculty</th>
+ <th style="padding:10px;">Leader</th>
+ <th style="padding:10px;">Actions</th>
+ </tr>
+ </thead>
+ <tbody id="departments-tbody">
+ {% for d in departments %}
+ <tr data-id="{{ d.id }}" style="border-bottom:1px solid #ddd;">
+ <td style="padding:10px;">{{ d.id }}</td>
+ <td style="padding:10px;" class="val-name">{{ d.name }}</td>
+ <td style="padding:10px;" class="val-faculty">{{ d.faculty.name }}</td>
+ <td style="padding:10px;" class="val-leader">{{ d.leader|default:"No Leader" }}</td>
+ <td style="padding:10px;">
+ <div style="display:flex; gap:5px;">
+ <button class="btn btn-info btn-sm" onclick="viewDetails('department', {{ d.id }})">View</button>
+ <button class="btn btn-warning btn-sm" onclick="editRow('department', {{ d.id }})">Edit</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteItem('department', {{ d.id }})">Delete</button>
+ </div>
+ </td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="5" style="padding:20px; text-align:center;">No departments found</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% if departments.has_next %}
+ <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="loadMoreData('departments', {{ departments.next_page_number }})" id="departments-load-more">Load More Departments</button>
+ {% endif %}
+
+ <h4 style="margin:20px 0 10px; color:#0b1f4a;">Add Department</h4>
+ <form id="department-form" data-url="{% url 'ajax_department' %}">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Name</label>
+ <input type="text" name="name" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Faculty</label>
+ <select name="faculty" class="form-control" required>
+ {% for f in all_faculties %}<option value="{{ f.id }}">{{ f.name }}</option>{% endfor %}
+ </select>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Leader Option</label>
+ <select name="leader_option" id="dept-leader-option" class="form-control">
+ <option value="none">None</option>
+ <option value="existing">Existing User</option>
+ <option value="new">Create New</option>
+ </select>
+ </div>
+ <div id="dept-existing-row" style="display:none; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Select Leader</label>
+ <select name="leader" class="form-control">
+ {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+ </select>
+ </div>
+ <button type="submit" class="btn btn-success">Save Department</button>
+ </form>
+ </div>
+</div>
+
+<!-- ALLOCATIONS -->
+<div class="card mb-3">
+ <div class="card-header">Allocations</div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; min-width:800px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:10px;">ID</th>
+ <th style="padding:10px;">Code</th>
+ <th style="padding:10px;">Name</th>
+ <th style="padding:10px;">Lecturer</th>
+ <th style="padding:10px;">Department</th>
+ <th style="padding:10px;">Origin Dept</th>
+ <th style="padding:10px;">Actions</th>
+ </tr>
+ </thead>
+ <tbody id="allocations-tbody">
+ {% for a in allocations %}
+ <tr data-id="{{ a.id }}" style="border-bottom:1px solid #ddd;">
+ <td style="padding:10px;">{{ a.id }}</td>
+ <td style="padding:10px;" class="val-code">{{ a.course_code }}</td>
+ <td style="padding:10px;" class="val-name">{{ a.course_name }}</td>
+ <td style="padding:10px;" class="val-lecturer">{{ a.lecturer|default:"Unassigned" }}</td>
+ <td style="padding:10px;" class="val-department">{{ a.department.name|default:"No Department" }}</td>
+ <td style="padding:10px;" class="val-origin">{{ a.origin_department.name|default:"N/A" }}</td>
+ <td style="padding:10px;">
+ <div style="display:flex; gap:5px;">
+ <button class="btn btn-info btn-sm" onclick="viewDetails('allocation', {{ a.id }})">View</button>
+ <button class="btn btn-warning btn-sm" onclick="editRow('allocation', {{ a.id }})">Edit</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteItem('allocation', {{ a.id }})">Delete</button>
+ </div>
+ </td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="7" style="padding:20px; text-align:center;">No allocations found</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% if allocations.has_next %}
+ <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="loadMoreData('allocations', {{ allocations.next_page_number }})" id="allocations-load-more">Load More Allocations</button>
+ {% endif %}
+
+ <h4 style="margin:20px 0 10px; color:#0b1f4a;">Add Allocation</h4>
+ <form id="allocation-form" data-url="{% url 'ajax_allocation' %}">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Course Code</label>
+ <input type="text" name="course_code" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Course Name</label>
+ <input type="text" name="course_name" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Department</label>
+ <select name="department" class="form-control" required id="allocation-dept">
+ {% for d in all_departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+ </select>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Origin Dept</label>
+ <select name="origin_department" class="form-control" id="allocation-origin-dept">
+ {% for d in all_departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+ </select>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Lecturer</label>
+ <select name="lecturer" class="form-control">
+ <option value="">Unassigned</option>
+ {% for u in users %}<option value="{{ u.id }}">{{ u.username }}</option>{% endfor %}
+ </select>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>No. of Students</label>
+ <input type="number" name="number_of_students" min="0" class="form-control">
+ </div>
+ <button type="submit" class="btn btn-success">Save Allocation</button>
+ </form>
+ </div>
+</div>
+
+<!-- TIMETABLES -->
+<div class="card mb-3">
+ <div class="card-header">Timetables</div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; min-width:800px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:10px;">ID</th>
+ <th style="padding:10px;">Course</th>
+ <th style="padding:10px;">Venue</th>
+ <th style="padding:10px;">Start</th>
+ <th style="padding:10px;">End</th>
+ <th style="padding:10px;">Day</th>
+ <th style="padding:10px;">Actions</th>
+ </tr>
+ </thead>
+ <tbody id="timetables-tbody">
+ {% for t in timetables %}
+ <tr data-id="{{ t.id }}" style="border-bottom:1px solid #ddd;">
+ <td style="padding:10px;">{{ t.id }}</td>
+ <td style="padding:10px;" class="val-course">{{ t.course_allocation }}</td>
+ <td style="padding:10px;" class="val-venue">{{ t.venue }}</td>
+ <td style="padding:10px;" class="val-start">{{ t.start_time }}</td>
+ <td style="padding:10px;" class="val-end">{{ t.end_time }}</td>
+ <td style="padding:10px;" class="val-day">{{ t.day }}</td>
+ <td style="padding:10px;">
+ <div style="display:flex; gap:5px;">
+ <button class="btn btn-info btn-sm" onclick="viewDetails('timetable', {{ t.id }})">View</button>
+ <button class="btn btn-warning btn-sm" onclick="editRow('timetable', {{ t.id }})">Edit</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteItem('timetable', {{ t.id }})">Delete</button>
+ </div>
+ </td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="7" style="padding:20px; text-align:center;">No timetables found</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% if timetables.has_next %}
+ <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="loadMoreData('timetables', {{ timetables.next_page_number }})" id="timetables-load-more">Load More Timetables</button>
+ {% endif %}
+
+ <h4 style="margin:20px 0 10px; color:#0b1f4a;">Add Timetable</h4>
+ <form id="timetable-form" data-url="{% url 'ajax_timetable' %}">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Course</label>
+ <select name="course_allocation" class="form-control" required>
+ {% for a in all_allocations %}<option value="{{ a.id }}">{{ a.course_name }}</option>{% endfor %}
+ </select>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Venue</label>
+ <input type="text" name="venue" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Start Time</label>
+ <input type="time" name="start_time" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>End Time</label>
+ <input type="time" name="end_time" class="form-control" required>
+ </div>
+ <div style="display:grid; grid-template-columns:1fr 2fr; gap:10px; margin-bottom:10px;">
+ <label>Day</label>
+ <input type="text" name="day" class="form-control" required>
+ </div>
+ <button type="submit" class="btn btn-success">Save Timetable</button>
+ </form>
+ </div>
+</div>
+
+{% endblock sudo_content %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * admins_admins_sudo_dashboard.js
+ * Extracted inline JS from: admins/templates/admins/sudo_dashboard.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+// Leader option toggles
+document.addEventListener('DOMContentLoaded', function() {
+  const facultyOption = document.getElementById('faculty-leader-option');
+  const facultyExisting = document.getElementById('faculty-existing-row');
+  const deptOption = document.getElementById('dept-leader-option');
+  const deptExisting = document.getElementById('dept-existing-row');
+
+  if (facultyOption && facultyExisting) {
+    facultyOption.addEventListener('change', function() {
+      facultyExisting.style.display = this.value === 'existing' ? 'grid' : 'none';
+    });
+  }
+  
+  if (deptOption && deptExisting) {
+    deptOption.addEventListener('change', function() {
+      deptExisting.style.display = this.value === 'existing' ? 'grid' : 'none';
+    });
+  }
+
+  const allocationDept = document.getElementById('allocation-dept');
+  const allocationOriginDept = document.getElementById('allocation-origin-dept');
+  if (allocationDept && allocationOriginDept) {
+    allocationDept.addEventListener('change', function() { 
+      allocationOriginDept.value = this.value; 
+    });
+  }
+});
+
+// Load more
+async function loadMoreData(type, page) {
+  const button = document.getElementById(`${type}-load-more`);
+  const tbody = document.getElementById(`${type}-tbody`);
+  if (!button) return;
+  
+  button.disabled = true;
+  const orig = button.textContent;
+  button.textContent = 'Loading...';
+  
+  try {
+    const res = await fetch(`/sudo/ajax/load_more/?type=${type}&page=${page}`);
+    const data = await res.json();
+    if (data.success && data.html) {
+      tbody.insertAdjacentHTML('beforeend', data.html);
+      if (data.has_next) {
+        button.textContent = orig;
+        button.onclick = () => loadMoreData(type, parseInt(page) + 1);
+        button.disabled = false;
+      } else { 
+        button.style.display = 'none'; 
+      }
+    } else { 
+      alert('Failed to load: ' + (data.error || 'Unknown error')); 
+      button.disabled = false; 
+      button.textContent = orig; 
+    }
+  } catch (e) { 
+    button.textContent = 'Error — retry'; 
+    button.disabled = false; 
+    button.onclick = () => loadMoreData(type, page); 
+  }
+}
+
+// View details modal
+async function viewDetails(type, id) {
+  try {
+    const res = await fetch(`/sudo/ajax/modal_view/?type=${type}&id=${id}`);
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('modal-title').textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' Details';
+      let html = '<div style="display:grid; gap:10px;">';
+      for (const [key, value] of Object.entries(data.data)) {
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        html += `<div><strong>${label}:</strong> ${value ?? ''}</div>`;
+      }
+      html += '</div>';
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('data-modal').style.display = 'flex';
+    }
+  } catch (e) { 
+    alert('Error loading details'); 
+  }
+}
+
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('data-modal').style.display = 'none';
+});
+
+document.getElementById('data-modal').addEventListener('click', function(e) { 
+  if (e.target === this) this.style.display = 'none'; 
+});
+
+// Form submit
+document.querySelectorAll('form[data-url]').forEach(form => {
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const url = this.dataset.url;
+    const fd = new FormData(this);
+    fd.append('action', 'add');
+    const btn = this.querySelector('button[type="submit"]');
+    const orig = btn.textContent;
+    btn.disabled = true; 
+    btn.textContent = 'Saving...';
+    
+    try {
+      const res = await fetch(url, { 
+        method: 'POST', 
+        body: fd, 
+        headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') } 
+      });
+      const data = await res.json();
+      if (data.success) { 
+        location.reload(); 
+      } else { 
+        alert('Error: ' + JSON.stringify(data.errors)); 
+      }
+    } catch (err) { 
+      alert('Network error: ' + err.message); 
+    } finally { 
+      btn.disabled = false; 
+      btn.textContent = orig; 
+    }
+  });
+});
+
+// Delete item
+async function deleteItem(type, id) {
+  if (!confirm(`Delete this ${type}?`)) return;
+  
+  const urlMap = {
+    faculty: '{% url "ajax_faculty" %}',
+    department: '{% url "ajax_department" %}',
+    allocation: '{% url "ajax_allocation" %}',
+    timetable: '{% url "ajax_timetable" %}'
+  };
+  
+  const fd = new FormData();
+  fd.append('action', 'delete');
+  fd.append('id', id);
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  
+  const res = await fetch(urlMap[type], { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) location.reload(); 
+  else alert('Error deleting item');
+}
+
+// Inline edit
+function editRow(type, id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (!row || row.classList.contains('editing')) return;
+  row.classList.add('editing');
+  
+  if (type === 'faculty') {
+    const name = row.querySelector('.val-name').textContent;
+    row.querySelector('.val-name').innerHTML = `<input type="text" name="name" value="${name}" class="form-control" style="padding:5px;">`;
+  } else if (type === 'department') {
+    const name = row.querySelector('.val-name').textContent;
+    row.querySelector('.val-name').innerHTML = `<input type="text" name="name" value="${name}" class="form-control" style="padding:5px;">`;
+  } else if (type === 'allocation') {
+    ['val-code','val-name'].forEach(cls => {
+      const td = row.querySelector('.' + cls);
+      const val = td.textContent.trim();
+      td.innerHTML = `<input type="text" value="${val}" class="form-control" style="padding:5px;">`;
+    });
+  } else if (type === 'timetable') {
+    ['val-venue','val-start','val-end','val-day'].forEach(cls => {
+      const td = row.querySelector('.' + cls);
+      const val = td.textContent.trim();
+      td.innerHTML = `<input type="text" value="${val}" class="form-control" style="padding:5px;">`;
+    });
+  }
+
+  const actionCell = row.lastElementChild;
+  actionCell.innerHTML = `
+    <div style="display:flex; gap:5px;">
+      <button class="btn btn-success btn-sm" onclick="saveEdit('${type}', ${id})">Save</button>
+      <button class="btn btn-secondary btn-sm" onclick="cancelEdit('${type}', ${id})">Cancel</button>
+    </div>`;
+}
+
+async function saveEdit(type, id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  const inputs = row.querySelectorAll('input');
+  
+  const fd = new FormData();
+  fd.append('action', 'edit');
+  fd.append('id', id);
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  
+  inputs.forEach(inp => fd.append(inp.name, inp.value));
+  
+  const urlMap = {
+    faculty: '{% url "ajax_faculty" %}',
+    department: '{% url "ajax_department" %}',
+    allocation: '{% url "ajax_allocation" %}',
+    timetable: '{% url "ajax_timetable" %}'
+  };
+  
+  const res = await fetch(urlMap[type], { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) location.reload(); 
+  else alert('Error: ' + JSON.stringify(data.errors));
+}
+
+function cancelEdit(type, id) {
+  location.reload();
+}
+</script>
+<script>
+/* admins_sudo_dashboard.js */
+// Leader option toggles
+document.addEventListener('DOMContentLoaded', function() {
+  const facultyOption = document.getElementById('faculty-leader-option');
+  const facultyExisting = document.getElementById('faculty-existing-row');
+  const deptOption = document.getElementById('dept-leader-option');
+  const deptExisting = document.getElementById('dept-existing-row');
+
+  if (facultyOption && facultyExisting) {
+    facultyOption.addEventListener('change', function() {
+      facultyExisting.style.display = this.value === 'existing' ? 'grid' : 'none';
+    });
+  }
+  
+  if (deptOption && deptExisting) {
+    deptOption.addEventListener('change', function() {
+      deptExisting.style.display = this.value === 'existing' ? 'grid' : 'none';
+    });
+  }
+
+  const allocationDept = document.getElementById('allocation-dept');
+  const allocationOriginDept = document.getElementById('allocation-origin-dept');
+  if (allocationDept && allocationOriginDept) {
+    allocationDept.addEventListener('change', function() { 
+      allocationOriginDept.value = this.value; 
+    });
+  }
+});
+
+// Load more
+async function loadMoreData(type, page) {
+  const button = document.getElementById(`${type}-load-more`);
+  const tbody = document.getElementById(`${type}-tbody`);
+  if (!button) return;
+  
+  button.disabled = true;
+  const orig = button.textContent;
+  button.textContent = 'Loading...';
+  
+  try {
+    const res = await fetch(`/sudo/ajax/load_more/?type=${type}&page=${page}`);
+    const data = await res.json();
+    if (data.success && data.html) {
+      tbody.insertAdjacentHTML('beforeend', data.html);
+      if (data.has_next) {
+        button.textContent = orig;
+        button.onclick = () => loadMoreData(type, parseInt(page) + 1);
+        button.disabled = false;
+      } else { 
+        button.style.display = 'none'; 
+      }
+    } else { 
+      alert('Failed to load: ' + (data.error || 'Unknown error')); 
+      button.disabled = false; 
+      button.textContent = orig; 
+    }
+  } catch (e) { 
+    button.textContent = 'Error — retry'; 
+    button.disabled = false; 
+    button.onclick = () => loadMoreData(type, page); 
+  }
+}
+
+// View details modal
+async function viewDetails(type, id) {
+  try {
+    const res = await fetch(`/sudo/ajax/modal_view/?type=${type}&id=${id}`);
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('modal-title').textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' Details';
+      let html = '<div style="display:grid; gap:10px;">';
+      for (const [key, value] of Object.entries(data.data)) {
+        const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        html += `<div><strong>${label}:</strong> ${value ?? ''}</div>`;
+      }
+      html += '</div>';
+      document.getElementById('modal-body').innerHTML = html;
+      document.getElementById('data-modal').style.display = 'flex';
+    }
+  } catch (e) { 
+    alert('Error loading details'); 
+  }
+}
+
+document.getElementById('modal-close').addEventListener('click', () => {
+  document.getElementById('data-modal').style.display = 'none';
+});
+
+document.getElementById('data-modal').addEventListener('click', function(e) { 
+  if (e.target === this) this.style.display = 'none'; 
+});
+
+// Form submit
+document.querySelectorAll('form[data-url]').forEach(form => {
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const url = this.dataset.url;
+    const fd = new FormData(this);
+    fd.append('action', 'add');
+    const btn = this.querySelector('button[type="submit"]');
+    const orig = btn.textContent;
+    btn.disabled = true; 
+    btn.textContent = 'Saving...';
+    
+    try {
+      const res = await fetch(url, { 
+        method: 'POST', 
+        body: fd, 
+        headers: { 'X-CSRFToken': fd.get('csrfmiddlewaretoken') } 
+      });
+      const data = await res.json();
+      if (data.success) { 
+        location.reload(); 
+      } else { 
+        alert('Error: ' + JSON.stringify(data.errors)); 
+      }
+    } catch (err) { 
+      alert('Network error: ' + err.message); 
+    } finally { 
+      btn.disabled = false; 
+      btn.textContent = orig; 
+    }
+  });
+});
+
+// Delete item
+async function deleteItem(type, id) {
+  if (!confirm(`Delete this ${type}?`)) return;
+  
+  const urlMap = {
+    faculty: '{% url "ajax_faculty" %}',
+    department: '{% url "ajax_department" %}',
+    allocation: '{% url "ajax_allocation" %}',
+    timetable: '{% url "ajax_timetable" %}'
+  };
+  
+  const fd = new FormData();
+  fd.append('action', 'delete');
+  fd.append('id', id);
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  
+  const res = await fetch(urlMap[type], { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) location.reload(); 
+  else alert('Error deleting item');
+}
+
+// Inline edit
+function editRow(type, id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (!row || row.classList.contains('editing')) return;
+  row.classList.add('editing');
+  
+  if (type === 'faculty') {
+    const name = row.querySelector('.val-name').textContent;
+    row.querySelector('.val-name').innerHTML = `<input type="text" name="name" value="${name}" class="form-control" style="padding:5px;">`;
+  } else if (type === 'department') {
+    const name = row.querySelector('.val-name').textContent;
+    row.querySelector('.val-name').innerHTML = `<input type="text" name="name" value="${name}" class="form-control" style="padding:5px;">`;
+  } else if (type === 'allocation') {
+    ['val-code','val-name'].forEach(cls => {
+      const td = row.querySelector('.' + cls);
+      const val = td.textContent.trim();
+      td.innerHTML = `<input type="text" value="${val}" class="form-control" style="padding:5px;">`;
+    });
+  } else if (type === 'timetable') {
+    ['val-venue','val-start','val-end','val-day'].forEach(cls => {
+      const td = row.querySelector('.' + cls);
+      const val = td.textContent.trim();
+      td.innerHTML = `<input type="text" value="${val}" class="form-control" style="padding:5px;">`;
+    });
+  }
+
+  const actionCell = row.lastElementChild;
+  actionCell.innerHTML = `
+    <div style="display:flex; gap:5px;">
+      <button class="btn btn-success btn-sm" onclick="saveEdit('${type}', ${id})">Save</button>
+      <button class="btn btn-secondary btn-sm" onclick="cancelEdit('${type}', ${id})">Cancel</button>
+    </div>`;
+}
+
+async function saveEdit(type, id) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  const inputs = row.querySelectorAll('input');
+  
+  const fd = new FormData();
+  fd.append('action', 'edit');
+  fd.append('id', id);
+  fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+  
+  inputs.forEach(inp => fd.append(inp.name, inp.value));
+  
+  const urlMap = {
+    faculty: '{% url "ajax_faculty" %}',
+    department: '{% url "ajax_department" %}',
+    allocation: '{% url "ajax_allocation" %}',
+    timetable: '{% url "ajax_timetable" %}'
+  };
+  
+  const res = await fetch(urlMap[type], { method: 'POST', body: fd });
+  const data = await res.json();
+  if (data.success) location.reload(); 
+  else alert('Error: ' + JSON.stringify(data.errors));
+}
+
+function cancelEdit(type, id) {
+  location.reload();
+}
+
+// ── Host / Remote Sync — "Sync to Remote" button ──────────────────────────
+(function() {
+  const btn = document.getElementById('dash-sync-now-btn');
+  if (!btn) return;
+  const statusEl = document.getElementById('dash-sync-status');
+  const progressWrap = document.getElementById('dash-sync-progress-wrap');
+  const bar = document.getElementById('dash-sync-progress-bar');
+  const text = document.getElementById('dash-sync-progress-text');
+  let pollTimer = null;
+
+  function csrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
+  }
+
+  function poll(runId) {
+    fetch(`{% url 'sync_status' %}?run_id=${runId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) return;
+        const pct = data.total_models ? Math.round((data.models_completed / data.total_models) * 100) : 0;
+        bar.style.width = pct + '%';
+        text.textContent = `${data.models_completed}/${data.total_models} models — ${data.records_sent} record(s) sent`;
+
+        if (data.status === 'running') {
+          pollTimer = setTimeout(() => poll(runId), 1500);
+        } else {
+          statusEl.textContent = data.status === 'success' ? 'Sync complete.' :
+                                  data.status === 'partial' ? 'Sync finished with some errors.' :
+                                  'Sync failed: ' + (data.error_message || '');
+          if (data.status !== 'success') {
+            statusEl.innerHTML += ` <a href="/sync/run/${runId}/">View log</a>`;
+          }
+          btn.disabled = false;
+          btn.textContent = 'Sync to Remote';
+        }
+      })
+      .catch(() => {
+        statusEl.textContent = 'Lost connection while polling — check Sync Settings for status.';
+        btn.disabled = false;
+        btn.textContent = 'Sync to Remote';
+      });
+  }
+
+  btn.addEventListener('click', function() {
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+    statusEl.textContent = '';
+    progressWrap.style.display = 'block';
+    bar.style.width = '0%';
+    text.textContent = 'Starting sync...';
+
+    fetch('{% url "trigger_sync" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) {
+          statusEl.textContent = 'Error: ' + data.error;
+          btn.disabled = false;
+          btn.textContent = 'Sync to Remote';
+          return;
+        }
+        btn.textContent = 'Syncing...';
+        poll(data.run_id);
+      })
+      .catch(err => {
+        statusEl.textContent = 'Network error: ' + err.message;
+        btn.disabled = false;
+        btn.textContent = 'Sync to Remote';
+      });
+  });
+})();
+</script>
+{% endblock extra_js %}

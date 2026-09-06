@@ -1,0 +1,2970 @@
+<!-- venues_panel.html -->
+<!-- =================================================================== -->
+<!--  POLISHED VENUES PANEL TEMPLATE                                     -->
+<!--  Clean professional design with consistent fonts, proper sidebar    -->
+<!--  navigation that stays open after selection, and text-only icons    -->
+<!-- =================================================================== -->
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venue, Lecturer & Autoscheduler Constraints</title>
+
+  <style>
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      background: #f0f2f5;
+      color: #1d1d1f;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* Force every native control onto the page font/colour so nothing falls
+       back to the browser's default UI font (keeps text consistent & legible) */
+    button, input, select, textarea, optgroup, option {
+      font-family: inherit;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    button {
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       HEADER
+       ============================================================ */
+    .app-header {
+      background: #1a3a2f;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 50px;
+      border-bottom: 2px solid #2d5a4a;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-header .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-header .brand img {
+      height: 32px;
+      display: block;
+    }
+    .app-header .brand h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.3px;
+      margin: 0;
+    }
+    .app-header .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .app-header .header-actions .home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .app-header .header-actions .home-btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    /* ============================================================
+       TOGGLE MENU BUTTON
+       ============================================================ */
+    .menu-toggle-btn {
+      position: fixed;
+      top: 56px;
+      left: 10px;
+      z-index: 50;
+      background: #fff;
+      border: 1px solid #d0d7de;
+      border-radius: 4px;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1d1d1f;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      transition: left 0.25s ease, background 0.15s;
+      line-height: 1.4;
+      font-family: inherit;
+      letter-spacing: 0.2px;
+    }
+    .menu-toggle-btn:hover {
+      background: #f0f2f5;
+    }
+    .menu-toggle-btn .menu-icon {
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    /* ============================================================
+       SIDEBAR OVERLAY
+       ============================================================ */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 50px 0 0 0;
+      background: rgba(0, 0, 0, 0.25);
+      z-index: 35;
+    }
+    .sidebar-overlay.show {
+      display: block;
+    }
+
+    /* ============================================================
+       SIDEBAR NAVIGATION
+       ============================================================ */
+    .nav-sidebar {
+      position: fixed;
+      top: 50px;
+      left: -280px;
+      width: 260px;
+      height: calc(100vh - 50px);
+      background: #ffffff;
+      border-right: 1px solid #e1e4e8;
+      overflow-y: auto;
+      transition: left 0.25s ease;
+      z-index: 40;
+      padding: 6px 0 20px;
+      box-shadow: 2px 0 12px rgba(0, 0, 0, 0.06);
+      flex-shrink: 0;
+    }
+    .nav-sidebar.open {
+      left: 0;
+    }
+
+    .nav-sidebar .nav-section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #8b949e;
+      padding: 10px 18px 4px;
+      font-weight: 700;
+    }
+
+    .nav-sidebar .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 18px;
+      color: #24292e;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      font-family: inherit;
+    }
+    .nav-sidebar .nav-item:hover {
+      background: #f6f8fa;
+    }
+    .nav-sidebar .nav-item.active {
+      background: #f0f7ff;
+      border-left-color: #1a7f37;
+      color: #1a7f37;
+    }
+    .nav-sidebar .nav-item .nav-icon {
+      font-size: 14px;
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+      font-weight: 400;
+      opacity: 0.7;
+    }
+    .nav-sidebar .nav-item.active .nav-icon {
+      opacity: 1;
+    }
+    .nav-sidebar .nav-item .nav-label {
+      flex: 1;
+    }
+    .nav-sidebar .nav-item .nav-badge {
+      margin-left: auto;
+      background: #e1e4e8;
+      color: #57606a;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 0 7px;
+      border-radius: 10px;
+      min-width: 18px;
+      text-align: center;
+    }
+    .nav-sidebar .nav-item.active .nav-badge {
+      background: #d0e6ff;
+      color: #1a7f37;
+    }
+
+    /* ============================================================
+       MAIN CONTENT
+       ============================================================ */
+    .app-wrapper {
+      display: flex;
+      height: calc(100vh - 50px);
+      overflow: hidden;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 20px 30px;
+      margin-left: 0;
+      transition: margin-left 0.25s ease;
+      height: 100%;
+      background: #f0f2f5;
+    }
+    .main-content.shifted {
+      margin-left: 260px;
+    }
+
+    /* Tab panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0.5; }
+      to { opacity: 1; }
+    }
+
+    /* ============================================================
+       PANEL HEADER
+       ============================================================ */
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0 10px;
+      border-bottom: 2px solid #d0d7de;
+      margin-bottom: 14px;
+    }
+    .panel-header h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1a3a2f;
+      margin: 0;
+    }
+    .panel-header .panel-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .panel-description {
+      background: #f6f8fa;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: #57606a;
+      margin-bottom: 14px;
+      border-left: 3px solid #1a7f37;
+      line-height: 1.5;
+    }
+    .panel-description strong {
+      color: #1a3a2f;
+    }
+
+    /* ============================================================
+       FLAT FORM - Excel-like
+       ============================================================ */
+    .flat-form {
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .flat-form .form-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a3a2f;
+      margin: 0 0 10px;
+    }
+    .flat-form .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      align-items: flex-end;
+    }
+    .flat-form .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1 1 150px;
+      min-width: 110px;
+    }
+    .flat-form .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #57606a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .flat-form .form-group input,
+    .flat-form .form-group select,
+    .flat-form .form-group textarea {
+      padding: 5px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+      font-size: 12.5px;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+      color: #1d1d1f;
+      width: 100%;
+    }
+    .flat-form .form-group input:focus,
+    .flat-form .form-group select:focus,
+    .flat-form .form-group textarea:focus {
+      border-color: #1a7f37;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(26, 127, 55, 0.12);
+    }
+    .flat-form .form-group textarea {
+      resize: vertical;
+      min-height: 38px;
+    }
+    .flat-form .form-group .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-top: 4px;
+    }
+    .flat-form .form-group .checkbox-group input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .flat-form .form-group .checkbox-group .checkbox-label {
+      font-size: 12px;
+      color: #57606a;
+      cursor: pointer;
+    }
+    .flat-form .form-actions {
+      display: flex;
+      gap: 6px;
+      padding-top: 10px;
+      flex-wrap: wrap;
+      border-top: 1px solid #eaeef2;
+      margin-top: 8px;
+    }
+
+    /* ============================================================
+       BUTTONS
+       ============================================================ */
+    .btn {
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      background: #f6f8fa;
+      color: #24292e;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: inherit;
+      line-height: 1.6;
+    }
+    .btn:hover {
+      background: #eaeef2;
+    }
+    .btn-primary {
+      background: #1a7f37;
+      border-color: #1a7f37;
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: #146c2e;
+      border-color: #146c2e;
+      color: #ffffff;
+    }
+    .btn-danger {
+      background: #cf222e;
+      border-color: #cf222e;
+      color: #ffffff;
+    }
+    .btn-danger:hover {
+      background: #b01c26;
+      border-color: #b01c26;
+      color: #ffffff;
+    }
+    .btn-edit {
+      background: #ddf4ff;
+      border-color: #b6e3ff;
+      color: #0550ae;
+    }
+    .btn-edit:hover {
+      background: #b6e3ff;
+      border-color: #73c8ff;
+    }
+    .btn-delete {
+      background: #ffe3e6;
+      border-color: #ffc1c8;
+      color: #cf222e;
+    }
+    .btn-delete:hover {
+      background: #ffc1c8;
+      border-color: #ff8f9b;
+    }
+    .btn-sm {
+      padding: 2px 10px;
+      font-size: 11px;
+    }
+    .btn-cancel {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+      color: #57606a;
+    }
+    .btn-cancel:hover {
+      background: #eaeef2;
+    }
+    .btn-secondary {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+      color: #24292e;
+    }
+    .btn-secondary:hover {
+      background: #eaeef2;
+    }
+
+    /* ============================================================
+       DATA TABLE - Excel-like flat design
+       ============================================================ */
+    .data-table-wrap {
+      overflow-x: auto;
+      background: #ffffff;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      min-width: 600px;
+      font-family: inherit;
+    }
+    .data-table thead th {
+      background: #f6f8fa;
+      color: #24292e;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      padding: 6px 10px;
+      border-bottom: 2px solid #d0d7de;
+      text-align: left;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      font-family: inherit;
+    }
+    .data-table tbody td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #eaeef2;
+      vertical-align: middle;
+      color: #1d1d1f;
+      font-family: inherit;
+    }
+    .data-table tbody tr:hover {
+      background: #f8faff;
+    }
+    .data-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .data-table .empty-state {
+      padding: 24px;
+      text-align: center;
+      color: #8b949e;
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    /* ============================================================
+       BADGES
+       ============================================================ */
+    .badge {
+      display: inline-block;
+      padding: 1px 8px;
+      font-size: 10.5px;
+      font-weight: 600;
+      border-radius: 0;
+      background: #f6f8fa;
+      color: #57606a;
+      border: 1px solid #d0d7de;
+      font-family: inherit;
+      letter-spacing: 0.1px;
+    }
+    .badge-yes {
+      background: #dafbe1;
+      border-color: #7ee09c;
+      color: #146c2e;
+    }
+    .badge-no {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+      color: #57606a;
+    }
+    .badge-specialized {
+      background: #ddf4ff;
+      border-color: #b6e3ff;
+      color: #0550ae;
+    }
+    .badge-active {
+      background: #dafbe1;
+      border-color: #7ee09c;
+      color: #146c2e;
+    }
+    .badge-inactive {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+      color: #8b949e;
+    }
+    .badge-blocked {
+      background: #ffe3e6;
+      border-color: #ffc1c8;
+      color: #cf222e;
+    }
+    .badge-exclusive {
+      background: #ffe3e6;
+      border-color: #ffc1c8;
+      color: #cf222e;
+    }
+    .badge-strict {
+      background: #fff8c5;
+      border-color: #f5d742;
+      color: #6b5900;
+    }
+    .badge-time-pref {
+      background: #ddf4ff;
+      border-color: #b6e3ff;
+      color: #0550ae;
+    }
+
+    /* ============================================================
+       ACTION CELL
+       ============================================================ */
+    .action-cell {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    /* ============================================================
+       TOAST
+       ============================================================ */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #24292e;
+      color: #ffffff;
+      padding: 10px 22px;
+      border-radius: 4px;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      font-size: 13px;
+      max-width: 420px;
+      font-family: inherit;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    #toast.show { opacity: 1; }
+    #toast.error { background: #cf222e; }
+
+    /* ============================================================
+       LECTURER TIME PREF - DAY ROW
+       ============================================================ */
+    .ltp-day-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid #eaeef2;
+      flex-wrap: wrap;
+    }
+    .ltp-day-row:last-child {
+      border-bottom: none;
+    }
+    .ltp-day-select {
+      min-width: 120px;
+      padding: 4px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+      background: #fff;
+      font-size: 12.5px;
+      font-family: inherit;
+    }
+    .ltp-slot-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px 10px;
+      align-items: center;
+    }
+    .ltp-slot-group label {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 400;
+      font-family: inherit;
+      color: #1d1d1f;
+    }
+    .ltp-slot-group label input[type="checkbox"] {
+      margin: 0;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .ltp-whole-day-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #1a7f37;
+      font-weight: 600;
+      font-family: inherit;
+    }
+    .ltp-whole-day-label input[type="checkbox"] {
+      margin: 0;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .ltp-remove-btn {
+      padding: 2px 8px;
+      font-size: 11px;
+      background: #ffe3e6;
+      border: 1px solid #ffc1c8;
+      border-radius: 0;
+      cursor: pointer;
+      color: #cf222e;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    .ltp-remove-btn:hover {
+      background: #ffc1c8;
+    }
+    .ltp-add-btn {
+      margin-top: 6px;
+      padding: 4px 14px;
+      font-size: 12px;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      color: #24292e;
+    }
+    .ltp-add-btn:hover {
+      background: #eaeef2;
+    }
+
+    /* ============================================================
+       SR MODAL
+       ============================================================ */
+    .src-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 5000;
+      align-items: center;
+      justify-content: center;
+    }
+    .src-modal {
+      background: #ffffff;
+      padding: 20px 24px;
+      width: 460px;
+      max-width: 94vw;
+      max-height: 88vh;
+      overflow-y: auto;
+      border: 1px solid #d0d7de;
+      font-family: inherit;
+    }
+    .src-modal h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a3a2f;
+      margin: 0 0 4px;
+      font-family: inherit;
+    }
+    .src-modal .src-sub {
+      font-size: 12.5px;
+      color: #57606a;
+      margin-bottom: 14px;
+      font-family: inherit;
+    }
+    .src-type-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .src-type-opt {
+      border: 1px solid #d0d7de;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      background: #fff;
+      font-family: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .src-type-opt:hover {
+      background: #f6f8fa;
+    }
+    .src-type-opt.selected {
+      border-color: #1a7f37;
+      background: #f0f7ff;
+      font-weight: 600;
+    }
+    .src-type-opt small {
+      display: block;
+      color: #57606a;
+      font-weight: 400;
+      font-size: 11.5px;
+      margin-top: 2px;
+    }
+    .src-field {
+      margin-bottom: 10px;
+    }
+    .src-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #57606a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      margin-bottom: 2px;
+      font-family: inherit;
+    }
+    .src-field select,
+    .src-field input,
+    .src-field textarea {
+      width: 100%;
+      padding: 5px 8px;
+      border: 1px solid #d0d7de;
+      border-radius: 0;
+      font-size: 13px;
+      box-sizing: border-box;
+      font-family: inherit;
+      color: #1d1d1f;
+      background: #fff;
+    }
+    .src-field select:focus,
+    .src-field input:focus,
+    .src-field textarea:focus {
+      border-color: #1a7f37;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(26, 127, 55, 0.12);
+    }
+    .src-field textarea {
+      min-height: 50px;
+      resize: vertical;
+    }
+    .src-row2 {
+      display: flex;
+      gap: 10px;
+    }
+    .src-row2 > div {
+      flex: 1;
+    }
+    .src-venue-list {
+      max-height: 140px;
+      overflow-y: auto;
+      border: 1px solid #d0d7de;
+      padding: 6px 10px;
+      background: #fff;
+    }
+    .src-venue-list label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 400;
+      margin: 2px 0;
+      cursor: pointer;
+      font-family: inherit;
+      color: #1d1d1f;
+    }
+    .src-venue-list label input[type="checkbox"] {
+      margin-right: 4px;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .src-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .src-btn-cancel {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      font-family: inherit;
+      color: #24292e;
+    }
+    .src-btn-cancel:hover {
+      background: #eaeef2;
+    }
+    .src-btn-submit {
+      background: #1a7f37;
+      border: 1px solid #1a7f37;
+      color: #ffffff;
+      padding: 6px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    .src-btn-submit:hover {
+      background: #146c2e;
+      border-color: #146c2e;
+    }
+    .src-btn-submit:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    /* ============================================================
+       SR PANEL TABS
+       ============================================================ */
+    .sr-filter-tabs {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .sr-filter-tabs .sr-tab {
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid #d0d7de;
+      background: #fff;
+      color: #24292e;
+      cursor: pointer;
+      text-decoration: none;
+      font-family: inherit;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .sr-filter-tabs .sr-tab:hover {
+      background: #f6f8fa;
+    }
+    .sr-filter-tabs .sr-tab.active {
+      background: #1a7f37;
+      border-color: #1a7f37;
+      color: #fff;
+    }
+    .sr-filter-tabs .sr-tab .sr-count {
+      opacity: 0.6;
+      font-weight: 400;
+    }
+    .sr-filter-tabs .sr-tab.active .sr-count {
+      opacity: 0.8;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 768px) {
+      .app-header .brand h1 {
+        font-size: 13px;
+      }
+      .app-header .header-actions .home-btn span {
+        display: none;
+      }
+      .nav-sidebar {
+        width: 240px;
+        left: -250px;
+      }
+      .main-content.shifted {
+        margin-left: 240px;
+      }
+      .flat-form .form-group {
+        flex: 1 1 100%;
+        min-width: 100%;
+      }
+      .data-table-wrap {
+        font-size: 11px;
+      }
+      .data-table thead th,
+      .data-table tbody td {
+        padding: 4px 6px;
+      }
+      .panel-header {
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .panel-header h2 {
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .nav-sidebar {
+        width: 100%;
+        left: -100%;
+      }
+      .main-content.shifted {
+        margin-left: 0;
+      }
+      .menu-toggle-btn {
+        top: 52px;
+        left: 6px;
+        font-size: 12px;
+        padding: 4px 10px;
+      }
+      .app-header {
+        padding: 0 10px;
+        height: 46px;
+      }
+      .app-wrapper {
+        height: calc(100vh - 46px);
+      }
+      .app-header .brand img {
+        height: 26px;
+      }
+      .src-modal {
+        padding: 14px 16px;
+        width: 96vw;
+      }
+      .main-content {
+        padding: 10px 10px 20px;
+      }
+      .flat-form {
+        padding: 10px 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header class="app-header">
+    <div class="brand">
+      <img src="{% static 'images/chuka.png' %}" alt="Chuka University">
+      <h1>Venue &amp; Lecturer Constraints</h1>
+    </div>
+    <div class="header-actions">
+      <a href="{% url 'autoscheduler_home' %}" class="home-btn">&#8592; <span>Autoscheduler</span></a>
+      <a href="{% url 'timetable_dashboard' %}" class="home-btn">&#8592; <span>Dashboard</span></a>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       TOGGLE MENU BUTTON
+       ============================================================ -->
+  <button class="menu-toggle-btn" id="menuToggleBtn" aria-label="Toggle navigation">
+    <span class="menu-icon">&#9776;</span> Menu
+  </button>
+
+  <!-- ============================================================
+       SIDEBAR OVERLAY
+       ============================================================ -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ============================================================
+       SIDEBAR NAVIGATION
+       ============================================================ -->
+  <nav class="nav-sidebar" id="navSidebar">
+    <div class="nav-section-title">Management</div>
+    <a class="nav-item active" data-tab="buildings" onclick="switchToTab('buildings')">
+      <span class="nav-label">Buildings</span>
+    </a>
+    <a class="nav-item" data-tab="venues" onclick="switchToTab('venues')">
+      <span class="nav-label">Venues</span>
+    </a>
+    <a class="nav-item" data-tab="labs" onclick="switchToTab('labs')">
+      <span class="nav-label">Lab Venues</span>
+    </a>
+    <a class="nav-item" data-tab="specializations" onclick="switchToTab('specializations')">
+      <span class="nav-label">Specializations</span>
+    </a>
+    <a class="nav-item" data-tab="venue_blocks" onclick="switchToTab('venue_blocks')">
+      <span class="nav-label">Blocked Venues</span>
+    </a>
+    <a class="nav-item" data-tab="resit_exclusions" onclick="switchToTab('resit_exclusions')">
+      <span class="nav-label">Resit Exclusions</span>
+    </a>
+
+    <div class="nav-section-title">Lecturer Constraints</div>
+    <a class="nav-item" data-tab="lecturer_blocks" onclick="switchToTab('lecturer_blocks')">
+      <span class="nav-label">Blocked Days/Times</span>
+    </a>
+    <a class="nav-item" data-tab="lecturer_time_prefs" onclick="switchToTab('lecturer_time_prefs')">
+      <span class="nav-label">Day/Time Preferences</span>
+    </a>
+    <a class="nav-item" data-tab="lecturer_venue_prefs" onclick="switchToTab('lecturer_venue_prefs')">
+      <span class="nav-label">Venue Preferences</span>
+    </a>
+
+    <div class="nav-section-title">System</div>
+    <a class="nav-item" data-tab="constraint_toggles" onclick="switchToTab('constraint_toggles')">
+      <span class="nav-label">Constraint Toggles</span>
+    </a>
+    <a class="nav-item" data-tab="special_requests" onclick="switchToTab('special_requests')">
+      <span class="nav-label">Special Requests</span>
+    </a>
+  </nav>
+
+  <!-- ============================================================
+       MAIN CONTENT
+       ============================================================ -->
+  <div class="app-wrapper">
+    <div class="main-content" id="mainContent">
+
+      <!-- ============================================================
+           BUILDINGS TAB
+           ============================================================ -->
+      <div id="tab-buildings" class="tab-pane active">
+        <div class="panel-header">
+          <h2>Buildings</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetBuildingForm();document.getElementById('tab-buildings').scrollIntoView({behavior:'smooth'})">+ New Building</button>
+          </div>
+        </div>
+
+        <div class="flat-form" id="buildingForm">
+          <div class="form-title" id="buildingFormTitle">Add New Building</div>
+          <input type="hidden" id="buildingId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Building Name <span style="color:#cf222e;">*</span></label>
+              <input type="text" id="buildingName" placeholder="e.g. Science Block">
+            </div>
+            <div class="form-group">
+              <label>Building Code <span style="color:#cf222e;">*</span></label>
+              <input type="text" id="buildingCode" placeholder="e.g. BSL">
+            </div>
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Description</label>
+              <input type="text" id="buildingDescription" placeholder="Optional notes">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Workshop</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="buildingIsWorkshop">
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveBuilding()">Save Building</button>
+            <button class="btn btn-cancel hidden" id="buildingCancelBtn" onclick="resetBuildingForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Name</th><th>Code</th><th>Description</th><th>Workshop</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="buildingsTable">
+              {% for b in buildings %}
+                <tr id="building-{{ b.id }}" data-name="{{ b.name }}" data-code="{{ b.code }}" data-description="{{ b.description|default:'' }}" data-workshop="{{ b.is_workshop|yesno:'true,false' }}">
+                  <td class="b-name">{{ b.name }}</td>
+                  <td class="b-code"><strong>{{ b.code }}</strong></td>
+                  <td class="b-description">{{ b.description|default:"—" }}</td>
+                  <td class="b-workshop">{% if b.is_workshop %}<span class="badge badge-yes">Yes</span>{% else %}<span class="badge badge-no">No</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editBuilding({{ b.id }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteBuilding({{ b.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="empty-state">No buildings added yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           VENUES TAB
+           ============================================================ -->
+      <div id="tab-venues" class="tab-pane">
+        <div class="panel-header">
+          <h2>Venues</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetVenueForm();document.getElementById('tab-venues').scrollIntoView({behavior:'smooth'})">+ New Venue</button>
+          </div>
+        </div>
+
+        <div class="flat-form" id="venueForm">
+          <div class="form-title" id="venueFormTitle">Add New Venue</div>
+          <input type="hidden" id="venueId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Venue Code <span style="color:#cf222e;">*</span></label>
+              <input type="text" id="venueCode" placeholder="e.g. BSL 303">
+            </div>
+            <div class="form-group">
+              <label>Building</label>
+              <select id="venueBuilding"><option value="">— None —</option>{% for b in buildings %}<option value="{{ b.id }}">{{ b.name }} ({{ b.code }})</option>{% endfor %}</select>
+            </div>
+            <div class="form-group">
+              <label>Capacity</label>
+              <input type="number" id="venueCapacity" min="0" placeholder="Seats">
+            </div>
+            <div class="form-group">
+              <label>Exam Capacity</label>
+              <input type="number" id="venueExamCapacity" min="0" placeholder="Exam seats">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Description</label>
+              <input type="text" id="venueDescription" placeholder="Optional notes">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Workshop</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="venueIsWorkshop">
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Specialized</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="venueIsSpecialized">
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveVenue()">Save Venue</button>
+            <button class="btn btn-cancel hidden" id="venueCancelBtn" onclick="resetVenueForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Code</th><th>Building</th><th>Capacity</th><th>Exam Cap.</th><th>Workshop</th><th>Specialized</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="venuesTable">
+              {% for v in venues %}
+                <tr id="venue-{{ v.id }}" data-code="{{ v.code }}" data-building-id="{{ v.building.id|default:'' }}" data-capacity="{{ v.capacity|default:'' }}" data-exam-capacity="{{ v.exam_capacity|default:'' }}" data-description="{{ v.description|default:'' }}" data-workshop="{{ v.is_workshop|yesno:'true,false' }}" data-specialized="{{ v.is_specialized|yesno:'true,false' }}">
+                  <td class="v-code"><strong>{{ v.code }}</strong></td>
+                  <td class="v-building">{{ v.building.name|default:"—" }}</td>
+                  <td class="v-capacity">{{ v.capacity|default:"—" }}</td>
+                  <td class="v-exam-capacity">{{ v.exam_capacity|default:"—" }}</td>
+                  <td class="v-workshop">{% if v.is_workshop %}<span class="badge badge-yes">Yes</span>{% else %}<span class="badge badge-no">No</span>{% endif %}</td>
+                  <td class="v-specialized">{% if v.is_specialized %}<span class="badge badge-specialized">Yes</span>{% else %}<span class="badge badge-no">No</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editVenue({{ v.id }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteVenue({{ v.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="7" class="empty-state">No venues added yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           LAB VENUES TAB
+           ============================================================ -->
+      <div id="tab-labs" class="tab-pane">
+        <div class="panel-header">
+          <h2>Lab Venues</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetLabForm();document.getElementById('tab-labs').scrollIntoView({behavior:'smooth'})">+ New Lab</button>
+          </div>
+        </div>
+
+        <div class="flat-form" id="labForm">
+          <div class="form-title" id="labFormTitle">Add New Lab Venue</div>
+          <input type="hidden" id="labId">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Lab Code <span style="color:#cf222e;">*</span></label>
+              <input type="text" id="labCode" placeholder="e.g. CS LAB 1">
+            </div>
+            <div class="form-group">
+              <label>Capacity</label>
+              <input type="number" id="labCapacity" min="0" placeholder="Seats">
+            </div>
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Description</label>
+              <input type="text" id="labDescription" placeholder="Optional notes">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 300px;">
+              <label>Equipment / Resources</label>
+              <input type="text" id="labEquipment" placeholder="e.g. 40 PCs, projector">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveLab()">Save Lab</button>
+            <button class="btn btn-cancel hidden" id="labCancelBtn" onclick="resetLabForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Code</th><th>Capacity</th><th>Description</th><th>Equipment</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="labsTable">
+              {% for l in lab_venues %}
+                <tr id="lab-{{ l.id }}" data-code="{{ l.code }}" data-capacity="{{ l.capacity|default:'' }}" data-description="{{ l.description|default:'' }}" data-equipment="{{ l.equipment|default:'' }}">
+                  <td class="l-code"><strong>{{ l.code }}</strong></td>
+                  <td class="l-capacity">{{ l.capacity|default:"—" }}</td>
+                  <td class="l-description">{{ l.description|default:"—" }}</td>
+                  <td class="l-equipment">{{ l.equipment|default:"—" }}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLab({{ l.id }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLab({{ l.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="empty-state">No lab venues added yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SPECIALIZATIONS TAB
+           ============================================================ -->
+      <div id="tab-specializations" class="tab-pane">
+        <div class="panel-header">
+          <h2>Venue Specializations</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetSpecForm();document.getElementById('tab-specializations').scrollIntoView({behavior:'smooth'})">+ New Rule</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Specializations</strong> — Reserve rooms for specific programs or courses. The scheduler places designated courses <strong>first</strong>. Tick <strong>Exclusive</strong> to prevent other courses from using the room even when free.
+        </div>
+
+        <div class="flat-form" id="specForm">
+          <div class="form-title" id="specFormTitle">Add New Specialization Rule</div>
+          <input type="hidden" id="specId"><input type="hidden" id="specName">
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Reserved Venues <span style="color:#cf222e;">*</span></label>
+              <select id="specVenues" multiple style="min-height:120px;width:100%;">
+                {% for v in venues %}<option value="{{ v.id }}">{{ v.code }}{% if v.capacity %} ({{ v.capacity }}){% endif %}{% if v.building %} — {{ v.building.name }}{% endif %}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1 1 250px;">
+              <label>Assign by</label>
+              <div style="display:flex;gap:12px;padding:4px 0;">
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;"><input type="radio" name="specType" id="specTypeProgram" value="program" checked onchange="onSpecTypeChange()"> Program</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;"><input type="radio" name="specType" id="specTypeCourse" value="course" onchange="onSpecTypeChange()"> Courses</label>
+              </div>
+              <div id="specProgramPanel">
+                <select id="specPrograms" multiple style="min-height:100px;width:100%;">{% for p in programs %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select>
+              </div>
+              <div id="specCoursePanel" style="display:none;">
+                <div style="display:flex;gap:6px;margin-bottom:4px;">
+                  <select id="filterDept" onchange="filterCourseOptions()" style="flex:1;padding:3px 6px;border:1px solid #d0d7de;font-size:11px;font-family:inherit;"><option value="">All Depts</option>{% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}</select>
+                  <select id="filterProgram" onchange="filterCourseOptions()" style="flex:1;padding:3px 6px;border:1px solid #d0d7de;font-size:11px;font-family:inherit;"><option value="">All Programs</option>{% for p in programs %}<option value="{{ p.id }}" data-dept="{{ p.department_id }}">{{ p.name }}</option>{% endfor %}</select>
+                </div>
+                <select id="specCourses" multiple style="min-height:80px;width:100%;">{% for c in courses %}<option value="{{ c.id }}" data-dept="{{ c.program.department_id }}" data-program="{{ c.program_id }}">{{ c.course_code }} — {{ c.course_name }}</option>{% endfor %}</select>
+              </div>
+              <div style="display:flex;gap:12px;padding-top:6px;flex-wrap:wrap;">
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;cursor:pointer;"><input type="checkbox" id="specStrict"> Strict</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#cf222e;cursor:pointer;"><input type="checkbox" id="specExclusive"> Exclusive</label>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveSpec()">Save Rule</button>
+            <button class="btn btn-cancel hidden" id="specCancelBtn" onclick="resetSpecForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Rule Name</th><th>Venues</th><th>Mode</th><th>Designated For</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="specsTable">
+              {% for s in specializations %}
+                <tr id="spec-{{ s.id }}">
+                  <td><strong>{{ s.name }}</strong></td>
+                  <td>{% for v in s.venues.all %}<span class="badge badge-specialized">{{ v.code }}</span> {% empty %}—{% endfor %}</td>
+                  <td>{% if s.exclusive %}<span class="badge badge-exclusive">Exclusive</span>{% endif %}{% if s.strict %}<span class="badge badge-strict">Strict</span>{% endif %}{% if not s.exclusive and not s.strict %}<span style="color:#57606a;font-size:11px;">Priority</span>{% endif %}</td>
+                  <td>{% if s.programs.exists %}{% for p in s.programs.all %}<span style="font-size:11px;display:block;">&#128218; {{ p.name }}</span>{% endfor %}{% endif %}{% if s.courses.exists %}{% for c in s.courses.all %}<span style="font-size:11px;display:block;">&#128214; {{ c.course_code }}</span>{% endfor %}{% endif %}{% if not s.programs.exists and not s.courses.exists %}—{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editSpec({{ s.id }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteSpec({{ s.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="empty-state">No specialization rules yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           VENUE BLOCKS TAB
+           ============================================================ -->
+      <div id="tab-venue_blocks" class="tab-pane">
+        <div class="panel-header">
+          <h2>Blocked Venues</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetBlockForm();document.getElementById('tab-venue_blocks').scrollIntoView({behavior:'smooth'})">+ Block Venue</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Blocked Venues</strong> — Hides a venue from the autoscheduler completely. Use for venues under renovation or reserved for manual use.
+        </div>
+
+        <div class="flat-form" id="blockForm">
+          <div class="form-title" id="blockFormTitle">Block a Venue</div>
+          <input type="hidden" id="blockId">
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Venue <span style="color:#cf222e;">*</span></label>
+              <select id="blockVenue" style="width:100%;"><option value="">— Select —</option>{% for v in venues %}<option value="{{ v.id }}">{{ v.code }}{% if v.building %} ({{ v.building.name }}){% endif %}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Reason</label>
+              <input type="text" id="blockReason" placeholder="e.g. Under renovation">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Active</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="blockActive" checked>
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveBlock()">Save Block</button>
+            <button class="btn btn-cancel hidden" id="blockCancelBtn" onclick="resetBlockForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Venue</th><th>Reason</th><th>Status</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="blocksTable">
+              {% for b in venue_blocks %}
+                <tr id="block-{{ b.id }}">
+                  <td><strong>{{ b.venue.code }}</strong></td>
+                  <td>{{ b.reason|default:"—" }}</td>
+                  <td>{% if b.is_active %}<span class="badge badge-blocked">Blocked</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editBlock({{ b.id }}, {{ b.venue_id }}, '{{ b.reason|escapejs }}', {{ b.is_active|yesno:"true,false" }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteBlock({{ b.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="empty-state">No venues blocked.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           RESIT EXCLUSIONS TAB
+           ============================================================ -->
+      <div id="tab-resit_exclusions" class="tab-pane">
+        <div class="panel-header">
+          <h2>Resit Venue Exclusions</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetResitExclForm();document.getElementById('tab-resit_exclusions').scrollIntoView({behavior:'smooth'})">+ Exclude</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Resit Venue Exclusions</strong> — Removes a venue or building from the <em>resit</em> auto-scheduler only. Separate from blocked venues above.
+        </div>
+
+        <div class="flat-form" id="resitExclForm">
+          <div class="form-title" id="resitExclFormTitle">Exclude from Resits</div>
+          <input type="hidden" id="resitExclId">
+          <div class="form-row">
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Scope</label>
+              <div style="display:flex;gap:10px;padding-top:2px;">
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="radio" name="resitExclScope" value="venue" checked onchange="toggleResitExclScope()"> Venue</label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;"><input type="radio" name="resitExclScope" value="building" onchange="toggleResitExclScope()"> Building</label>
+              </div>
+            </div>
+            <div class="form-group" id="resitExclVenueGroup" style="flex:1 1 180px;">
+              <label>Venue</label>
+              <select id="resitExclVenue" style="width:100%;"><option value="">— Select —</option>{% for v in venues %}<option value="{{ v.id }}">{{ v.code }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group hidden" id="resitExclBuildingGroup" style="flex:1 1 180px;">
+              <label>Building</label>
+              <select id="resitExclBuilding" style="width:100%;"><option value="">— Select —</option>{% for b in buildings %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 160px;">
+              <label>Reason</label>
+              <input type="text" id="resitExclReason" placeholder="Optional">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Active</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="resitExclActive" checked>
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveResitExclusion()">Save Exclusion</button>
+            <button class="btn btn-cancel hidden" id="resitExclCancelBtn" onclick="resetResitExclForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Excludes</th><th>Reason</th><th>Status</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="resitExclTable">
+              {% for e in resit_venue_exclusions %}
+                <tr id="resit-excl-{{ e.id }}">
+                  <td>{% if e.building %}<strong>&#127963; {{ e.building.name }}</strong> <span style="color:#57606a;font-size:11px;">(building)</span>{% else %}<strong>{{ e.venue.code }}</strong>{% if e.venue.building %} <span style="color:#57606a;font-size:11px;">— {{ e.venue.building.name }}</span>{% endif %}{% endif %}</td>
+                  <td>{{ e.reason|default:"—" }}</td>
+                  <td>{% if e.is_active %}<span class="badge badge-blocked">Excluded</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editResitExclusion({{ e.id }}, '{% if e.building %}building{% else %}venue{% endif %}', {{ e.building_id|default:"null" }}, {{ e.venue_id|default:"null" }}, '{{ e.reason|escapejs }}', {{ e.is_active|yesno:"true,false" }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteResitExclusion({{ e.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4" class="empty-state">No resit exclusions configured.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           LECTURER BLOCKS TAB
+           ============================================================ -->
+      <div id="tab-lecturer_blocks" class="tab-pane">
+        <div class="panel-header">
+          <h2>Lecturer Blocked Days/Times</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetLBlockForm();document.getElementById('tab-lecturer_blocks').scrollIntoView({behavior:'smooth'})">+ Block</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Hard rule</strong> — The lecturer will never be scheduled on the blocked day. Leave times blank to block the entire day.
+        </div>
+
+        <div class="flat-form" id="lblockForm">
+          <div class="form-title" id="lblockFormTitle">Block a Lecturer's Day/Time</div>
+          <input type="hidden" id="lblockId">
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 160px;">
+              <label>Lecturer <span style="color:#cf222e;">*</span></label>
+              <select id="lblockLecturer" style="width:100%;"><option value="">— Select —</option>{% for l in lecturers %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 120px;">
+              <label>Day <span style="color:#cf222e;">*</span></label>
+              <select id="lblockDay" style="width:100%;"><option value="">— Select —</option>{% for code, name in day_choices %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:0 0 100px;">
+              <label>Start (optional)</label>
+              <input type="time" id="lblockStart">
+            </div>
+            <div class="form-group" style="flex:0 0 100px;">
+              <label>End (optional)</label>
+              <input type="time" id="lblockEnd">
+            </div>
+            <div class="form-group" style="flex:1 1 140px;">
+              <label>Reason</label>
+              <input type="text" id="lblockReason" placeholder="Optional">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Active</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="lblockActive" checked>
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveLBlock()">Save Block</button>
+            <button class="btn btn-cancel hidden" id="lblockCancelBtn" onclick="resetLBlockForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Lecturer</th><th>Day</th><th>Time</th><th>Reason</th><th>Status</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="lblocksTable">
+              {% for b in lecturer_blocks %}
+                <tr id="lblock-{{ b.id }}">
+                  <td><strong>{{ b.lecturer.name }}</strong></td>
+                  <td>{{ b.day }}</td>
+                  <td>{% if b.start_time and b.end_time %}{{ b.start_time|time:"H:i" }}–{{ b.end_time|time:"H:i" }}{% else %}<span class="badge badge-blocked">ALL DAY</span>{% endif %}</td>
+                  <td>{{ b.reason|default:"—" }}</td>
+                  <td>{% if b.is_active %}<span class="badge badge-blocked">Blocked</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLBlock({{ b.id }}, {{ b.lecturer_id }}, '{{ b.day }}', '{{ b.start_time|time:"H:i"|default:"" }}', '{{ b.end_time|time:"H:i"|default:"" }}', '{{ b.reason|escapejs }}', {{ b.is_active|yesno:"true,false" }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLBlock({{ b.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="6" class="empty-state">No lecturer blocks configured.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           LECTURER TIME PREFERENCES TAB
+           ============================================================ -->
+      <div id="tab-lecturer_time_prefs" class="tab-pane">
+        <div class="panel-header">
+          <h2>Lecturer Day/Time Preferences</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetLTPForm();document.getElementById('tab-lecturer_time_prefs').scrollIntoView({behavior:'smooth'})">+ Add Preference</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Soft rule</strong> — The autoscheduler tries to honour these preferences but won't leave a course unscheduled to do it. Select multiple days and timeslots, or "Whole Day".
+        </div>
+
+        <div class="flat-form" id="ltpForm">
+          <div class="form-title" id="ltpFormTitle">Add Time Preference</div>
+          <input type="hidden" id="ltpId">
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Lecturer <span style="color:#cf222e;">*</span></label>
+              <select id="ltpLecturer" style="width:100%;"><option value="">— Select —</option>{% for l in lecturers %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Notes</label>
+              <input type="text" id="ltpNotes" placeholder="e.g. Prefers mornings">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Active</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="ltpActive" checked>
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #eaeef2;padding-top:10px;margin-top:6px;">
+            <label style="font-weight:600;font-size:12px;color:#57606a;text-transform:uppercase;letter-spacing:0.3px;">Days &amp; Timeslots</label>
+            <div id="ltpDaySlotsContainer"></div>
+            <button type="button" class="ltp-add-btn" onclick="addLtpDayRow()">+ Add Day</button>
+          </div>
+          <div class="form-actions" style="margin-top:10px;">
+            <button class="btn btn-primary" onclick="saveLTP()">Save Preference</button>
+            <button class="btn btn-cancel hidden" id="ltpCancelBtn" onclick="resetLTPForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Lecturer</th><th>Preferred Days/Times</th><th>Notes</th><th>Status</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="ltpTable">
+              {% for p in lecturer_time_prefs %}
+                <tr id="ltp-{{ p.id }}">
+                  <td><strong>{{ p.lecturer.name }}</strong></td>
+                  <td>{% for slot in p.slots.all %}<span class="badge badge-time-pref" style="margin:1px;">{{ slot.day }}{% if slot.is_whole_day %} (Whole Day){% else %} {{ slot.start_time|time:"H:i" }}–{{ slot.end_time|time:"H:i" }}{% endif %}</span> {% endfor %}</td>
+                  <td>{{ p.notes|default:"—" }}</td>
+                  <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLTP({{ p.id }})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLTP({{ p.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="empty-state">No time preferences configured.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           LECTURER VENUE PREFERENCES TAB
+           ============================================================ -->
+      <div id="tab-lecturer_venue_prefs" class="tab-pane">
+        <div class="panel-header">
+          <h2>Lecturer Venue Preferences</h2>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="resetLVPForm();document.getElementById('tab-lecturer_venue_prefs').scrollIntoView({behavior:'smooth'})">+ Add Preference</button>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Soft rule</strong> — The autoscheduler tries to relocate the lecturer's classes into preferred venues when possible.
+        </div>
+
+        <div class="flat-form" id="lvpForm">
+          <div class="form-title" id="lvpFormTitle">Add Venue Preference</div>
+          <input type="hidden" id="lvpId">
+          <div class="form-row">
+            <div class="form-group" style="flex:1 1 180px;">
+              <label>Lecturer <span style="color:#cf222e;">*</span></label>
+              <select id="lvpLecturer" style="width:100%;"><option value="">— Select —</option>{% for l in lecturers %}<option value="{{ l.id }}">{{ l.name }}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 200px;">
+              <label>Preferred Venues <span style="color:#cf222e;">*</span></label>
+              <select id="lvpVenues" multiple style="min-height:80px;width:100%;">{% for v in venues %}<option value="{{ v.id }}">{{ v.code }}{% if v.building %} — {{ v.building.name }}{% endif %}</option>{% endfor %}</select>
+            </div>
+            <div class="form-group" style="flex:1 1 140px;">
+              <label>Notes</label>
+              <input type="text" id="lvpNotes" placeholder="Optional">
+            </div>
+            <div class="form-group" style="flex:0 0 auto;min-width:auto;">
+              <label>Active</label>
+              <div class="checkbox-group">
+                <input type="checkbox" id="lvpActive" checked>
+                <span class="checkbox-label">Toggle</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveLVP()">Save Preference</button>
+            <button class="btn btn-cancel hidden" id="lvpCancelBtn" onclick="resetLVPForm()">Cancel</button>
+          </div>
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Lecturer</th><th>Preferred Venues</th><th>Notes</th><th>Status</th><th style="min-width:120px;">Actions</th></tr>
+            </thead>
+            <tbody id="lvpTable">
+              {% for p in lecturer_venue_prefs %}
+                <tr id="lvp-{{ p.id }}">
+                  <td><strong>{{ p.lecturer.name }}</strong></td>
+                  <td>{% for v in p.venues.all %}<span class="badge">{{ v.code }}</span> {% endfor %}</td>
+                  <td>{{ p.notes|default:"—" }}</td>
+                  <td>{% if p.is_active %}<span class="badge badge-active">Active</span>{% else %}<span class="badge badge-inactive">Inactive</span>{% endif %}</td>
+                  <td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick='editLVP({{ p.id }}, {{ p.lecturer_id }}, [{% for v in p.venues.all %}{{ v.id }}{% if not forloop.last %},{% endif %}{% endfor %}], "{{ p.notes|escapejs }}", {{ p.is_active|yesno:"true,false" }})'>Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLVP({{ p.id }})">Delete</button></div></td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="empty-state">No venue preferences configured.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           CONSTRAINT TOGGLES TAB
+           ============================================================ -->
+      <div id="tab-constraint_toggles" class="tab-pane">
+        <div class="panel-header">
+          <h2>Constraint Category Toggles</h2>
+        </div>
+
+        <div class="panel-description">
+          <strong>Persisted defaults</strong> — These control which constraint categories are enabled by default across all autoscheduler runs. Can be overridden per-run from the confirmation screen.
+        </div>
+
+        <div class="data-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Category</th><th>Description</th><th>Applies To</th><th style="min-width:100px;">Default</th></tr>
+            </thead>
+            <tbody id="constraintTogglesTable">
+              {% for c in constraint_toggles %}
+                <tr id="ctoggle-{{ c.key }}">
+                  <td><strong>{{ c.label }}</strong></td>
+                  <td style="color:#57606a;font-size:12px;">{{ c.description }}</td>
+                  <td>{% if c.applies_to == "both" %}Regular + Exam{% elif c.applies_to == "exam" %}Exam only{% else %}Regular only{% endif %}</td>
+                  <td>
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                      <input type="checkbox" class="ctoggle-input" data-key="{{ c.key }}" {% if c.is_enabled %}checked{% endif %} onchange="setConstraintToggle('{{ c.key }}', this.checked)" style="width:16px;height:16px;cursor:pointer;">
+                      <span class="ctoggle-state" style="font-weight:600;font-size:12px;color:{% if c.is_enabled %}#1a7f37{% else %}#8b949e{% endif %};">{% if c.is_enabled %}ON{% else %}OFF{% endif %}</span>
+                    </label>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============================================================
+           SPECIAL REQUESTS TAB
+           ============================================================ -->
+      <div id="tab-special_requests" class="tab-pane">
+        <div class="panel-header">
+          <h2>Special Requests (SR)</h2>
+          <div class="panel-actions">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;cursor:pointer;">
+              <input type="checkbox" id="srShowArchived" {% if show_archived_sr %}checked{% endif %} onchange="window.location.href='{% url 'venues_panel' %}?show_archived_sr='+(this.checked?'1':'0')+'#tab-special_requests'"> Show archived
+            </label>
+            <a class="btn btn-sm" href="{% url 'export_special_requests_pdf' %}{% if show_archived_sr %}?show_archived=1{% endif %}" target="_blank">&#11015; PDF</a>
+          </div>
+        </div>
+
+        <div class="panel-description">
+          <strong>Special Requests</strong> — Raised by CODs for lecturer accommodations, time slot needs, or venue requirements. SRs carry forward across semesters.
+        </div>
+
+        <div class="sr-filter-tabs">
+          {% for t in sr_panel_tabs %}
+            <a href="?sr_panel={{ t.key }}{% if show_archived_sr %}&show_archived_sr=1{% endif %}#tab-special_requests" class="sr-tab {% if t.key == sr_panel %}active{% endif %}">{{ t.label }} <span class="sr-count">({{ t.count }})</span></a>
+          {% endfor %}
+        </div>
+
+        {% if special_requests_by_department %}
+          {% for grp in special_requests_by_department %}
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 6px;border-bottom:1px solid #d0d7de;">
+                <span style="font-weight:600;font-size:14px;color:#1a3a2f;">{{ grp.department }}</span>
+                <span style="font-size:12px;color:#57606a;">{{ grp.requests|length }} requests</span>
+              </div>
+              <div class="data-table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Scope</th><th>Course</th><th>Lecturer</th><th>Description</th><th>Status</th><th>Semester</th><th>Raised</th><th style="min-width:80px;">Constraint</th></tr>
+                  </thead>
+                  <tbody>
+                    {% for sr in grp.requests %}
+                      <tr{% if sr.archived %} style="opacity:0.6;"{% endif %}>
+                        <td><span class="badge">{{ sr.get_panel_display }}</span><br><span class="badge" style="font-size:10px;">{{ sr.get_scope_display }}</span></td>
+                        <td>{% if sr.course_code %}<strong>{{ sr.course_code }}</strong>{% else %}<span style="color:#8b949e;">—</span>{% endif %}</td>
+                        <td>{% if sr.lecturer %}{{ sr.lecturer.display_name }}{% else %}<span style="color:#8b949e;">—</span>{% endif %}</td>
+                        <td style="font-size:12px;max-width:300px;">{{ sr.description|truncatechars:80 }}</td>
+                        <td>{{ sr.get_status_display }}{% if sr.archived %} <span style="color:#cf222e;font-weight:600;">archived</span>{% endif %}</td>
+                        <td>{{ sr.semester|default:"—" }}</td>
+                        <td style="font-size:11px;color:#57606a;">{{ sr.created_at|date:"d M Y" }}</td>
+                        <td>{% if sr.constraint_applied_type %}<span class="badge badge-active" style="font-size:10px;">&#10003; {{ sr.get_constraint_applied_type_display|truncatechars:20 }}</span>{% endif %}{% if not sr.archived %}<button class="btn btn-sm" style="margin-top:2px;" onclick="openSrConstraintModal({{ sr.id }})">Convert</button>{% endif %}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">No special requests {% if not show_archived_sr %}active{% endif %}.</div>
+        {% endif %}
+      </div>
+
+    </div><!-- end main-content -->
+  </div><!-- end app-wrapper -->
+
+  <!-- ============================================================
+       TOAST
+       ============================================================ -->
+  <div id="toast"></div>
+
+  <!-- ============================================================
+       SR MODAL
+       ============================================================ -->
+  <div id="srcOverlay" class="src-overlay">
+    <div class="src-modal">
+      <h3>Convert SR to Scheduler Constraint</h3>
+      <div class="src-sub" id="srcSub">Loading…</div>
+      <div class="src-type-row" id="srcTypeRow"></div>
+      <div class="src-field" id="srcLecturerField"><label>Lecturer</label><select id="srcLecturer"></select></div>
+      <div id="srcDayTimeFields">
+        <div class="src-row2">
+          <div class="src-field"><label>Day</label><select id="srcDay"></select></div>
+        </div>
+        <div class="src-row2">
+          <div class="src-field"><label>From (optional)</label><input type="text" id="srcStart" placeholder="HH:MM"></div>
+          <div class="src-field"><label>To (optional)</label><input type="text" id="srcEnd" placeholder="HH:MM"></div>
+        </div>
+      </div>
+      <div class="src-field" id="srcVenueField" style="display:none;">
+        <label id="srcVenueLabel">Venue(s)</label>
+        <div class="src-venue-list" id="srcVenueList"></div>
+      </div>
+      <div class="src-field"><label>Reason / notes</label><textarea id="srcNotes"></textarea></div>
+      <div class="src-actions">
+        <button type="button" class="src-btn-cancel" onclick="closeSrConstraintModal()">Cancel</button>
+        <button type="button" class="src-btn-submit" id="srcSubmitBtn" onclick="submitSrConstraint()">Apply constraint</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       JAVASCRIPT
+       ============================================================ -->
+  <script>
+    // ============================================================
+    //  UTILITIES
+    // ============================================================
+    const csrftoken = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+
+    function showToast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = isError ? 'error show' : 'show';
+      setTimeout(() => { t.className = ''; }, 3000);
+    }
+
+    function badgeHtml(val) {
+      return val ? '<span class="badge badge-yes">Yes</span>' : '<span class="badge badge-no">No</span>';
+    }
+
+    function postJson(formData) {
+      return fetch(window.location.href, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrftoken },
+        body: formData
+      }).then(r => r.json());
+    }
+
+    // ============================================================
+    //  SIDEBAR TOGGLE - Stays open after selection
+    // ============================================================
+    const sidebar = document.getElementById('navSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const toggleBtn = document.getElementById('menuToggleBtn');
+    const mainContent = document.getElementById('mainContent');
+    let sidebarOpen = false;
+
+    // Check localStorage for saved state
+    try {
+      sidebarOpen = localStorage.getItem('venuesSidebarOpen') === 'true';
+    } catch (e) {}
+
+    function updateSidebar() {
+      if (sidebarOpen) {
+        sidebar.classList.add('open');
+        overlay.classList.add('show');
+        mainContent.classList.add('shifted');
+        toggleBtn.innerHTML = '<span class="menu-icon">&#10005;</span> Close';
+        toggleBtn.style.left = '270px';
+      } else {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('show');
+        mainContent.classList.remove('shifted');
+        toggleBtn.innerHTML = '<span class="menu-icon">&#9776;</span> Menu';
+        toggleBtn.style.left = '10px';
+      }
+      try { localStorage.setItem('venuesSidebarOpen', sidebarOpen); } catch (e) {}
+    }
+
+    toggleBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      sidebarOpen = !sidebarOpen;
+      updateSidebar();
+    });
+
+    overlay.addEventListener('click', function() {
+      sidebarOpen = false;
+      updateSidebar();
+    });
+
+    // Close sidebar on Escape key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && sidebarOpen) {
+        sidebarOpen = false;
+        updateSidebar();
+      }
+    });
+
+    // Initialize sidebar state
+    updateSidebar();
+
+    // ============================================================
+    //  TABS
+    // ============================================================
+    function switchToTab(tabKey) {
+      // Update nav items
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      const navItem = document.querySelector('.nav-item[data-tab="' + tabKey + '"]');
+      if (navItem) navItem.classList.add('active');
+
+      // Update panes
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = document.getElementById('tab-' + tabKey);
+      if (pane) pane.classList.add('active');
+
+      // Update URL hash
+      if (window.history && window.history.replaceState) {
+        const base = window.location.pathname + window.location.search;
+        window.history.replaceState(null, '', base + '#tab-' + tabKey);
+      }
+
+      try { localStorage.setItem('venuesPanelActiveTab', tabKey); } catch (e) {}
+
+      // If switching to time prefs, ensure a day row exists
+      if (tabKey === 'lecturer_time_prefs') {
+        const container = document.getElementById('ltpDaySlotsContainer');
+        if (container && container.children.length === 0) {
+          addLtpDayRow();
+        }
+      }
+
+      // Close sidebar after selection so the chosen option is immediately usable
+      sidebarOpen = false;
+      updateSidebar();
+    }
+
+    // Initial tab from URL hash or localStorage
+    (function initTab() {
+      const hash = window.location.hash.replace('#tab-', '');
+      if (hash) {
+        const pane = document.getElementById('tab-' + hash);
+        if (pane) { switchToTab(hash); return; }
+      }
+      try {
+        const remembered = localStorage.getItem('venuesPanelActiveTab');
+        if (remembered) {
+          const pane = document.getElementById('tab-' + remembered);
+          if (pane) { switchToTab(remembered); return; }
+        }
+      } catch (e) {}
+      switchToTab('buildings');
+    })();
+
+    // ============================================================
+    //  BUILDINGS CRUD
+    // ============================================================
+    function resetBuildingForm() {
+      document.getElementById('buildingId').value = '';
+      document.getElementById('buildingName').value = '';
+      document.getElementById('buildingCode').value = '';
+      document.getElementById('buildingDescription').value = '';
+      document.getElementById('buildingIsWorkshop').checked = false;
+      document.getElementById('buildingFormTitle').textContent = 'Add New Building';
+      document.getElementById('buildingCancelBtn').classList.add('hidden');
+    }
+
+    function editBuilding(id) {
+      const row = document.getElementById('building-' + id);
+      if (!row) return;
+      document.getElementById('buildingId').value = id;
+      document.getElementById('buildingName').value = row.dataset.name;
+      document.getElementById('buildingCode').value = row.dataset.code;
+      document.getElementById('buildingDescription').value = row.dataset.description;
+      document.getElementById('buildingIsWorkshop').checked = row.dataset.workshop === 'true';
+      document.getElementById('buildingFormTitle').textContent = 'Edit Building';
+      document.getElementById('buildingCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-buildings').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveBuilding() {
+      const id = document.getElementById('buildingId').value;
+      const name = document.getElementById('buildingName').value.trim();
+      const code = document.getElementById('buildingCode').value.trim().toUpperCase();
+      const description = document.getElementById('buildingDescription').value.trim();
+      const isWorkshop = document.getElementById('buildingIsWorkshop').checked;
+      if (!name || !code) { showToast('Name and Code are required.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'building');
+      fd.append('name', name); fd.append('code', code);
+      fd.append('description', description);
+      fd.append('is_workshop', isWorkshop ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        const b = json.building;
+        updateBuildingOption(b);
+        let tr = document.getElementById('building-' + b.id);
+        const html = `<td class="b-name">${b.name}</td><td class="b-code"><strong>${b.code}</strong></td><td class="b-description">${b.description || '—'}</td><td class="b-workshop">${badgeHtml(b.is_workshop)}</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editBuilding(${b.id})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteBuilding(${b.id})">Delete</button></div></td>`;
+        if (tr) { tr.innerHTML = html; } else {
+          document.getElementById('buildings-empty')?.remove();
+          tr = document.createElement('tr'); tr.id = 'building-' + b.id; tr.innerHTML = html;
+          document.getElementById('buildingsTable').appendChild(tr);
+        }
+        tr.dataset.name = b.name; tr.dataset.code = b.code; tr.dataset.description = b.description; tr.dataset.workshop = b.is_workshop;
+        resetBuildingForm();
+        showToast(id ? 'Updated ✓' : 'Added ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteBuilding(id) {
+      if (!confirm('Delete this building?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'building'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error deleting.', true); return; }
+        document.getElementById('building-' + id)?.remove();
+        document.querySelector('#venueBuilding option[value="' + id + '"]')?.remove();
+        if (!document.getElementById('buildingsTable').querySelector('tr[id]')) {
+          document.getElementById('buildingsTable').innerHTML = '<tr><td colspan="5" class="empty-state">No buildings added yet.</td></tr>';
+        }
+        showToast('Deleted ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function updateBuildingOption(b) {
+      const sel = document.getElementById('venueBuilding');
+      let opt = sel.querySelector('option[value="' + b.id + '"]');
+      if (opt) { opt.textContent = b.name + ' (' + b.code + ')'; }
+      else { opt = document.createElement('option'); opt.value = b.id; opt.textContent = b.name + ' (' + b.code + ')'; sel.appendChild(opt); }
+    }
+
+    // ============================================================
+    //  VENUES CRUD
+    // ============================================================
+    function resetVenueForm() {
+      document.getElementById('venueId').value = '';
+      document.getElementById('venueCode').value = '';
+      document.getElementById('venueBuilding').value = '';
+      document.getElementById('venueCapacity').value = '';
+      document.getElementById('venueExamCapacity').value = '';
+      document.getElementById('venueDescription').value = '';
+      document.getElementById('venueIsWorkshop').checked = false;
+      document.getElementById('venueIsSpecialized').checked = false;
+      document.getElementById('venueFormTitle').textContent = 'Add New Venue';
+      document.getElementById('venueCancelBtn').classList.add('hidden');
+    }
+
+    function editVenue(id) {
+      const row = document.getElementById('venue-' + id);
+      if (!row) return;
+      document.getElementById('venueId').value = id;
+      document.getElementById('venueCode').value = row.dataset.code;
+      document.getElementById('venueBuilding').value = row.dataset.buildingId || '';
+      document.getElementById('venueCapacity').value = row.dataset.capacity;
+      document.getElementById('venueExamCapacity').value = row.dataset.examCapacity;
+      document.getElementById('venueDescription').value = row.dataset.description;
+      document.getElementById('venueIsWorkshop').checked = row.dataset.workshop === 'true';
+      document.getElementById('venueIsSpecialized').checked = row.dataset.specialized === 'true';
+      document.getElementById('venueFormTitle').textContent = 'Edit Venue';
+      document.getElementById('venueCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-venues').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveVenue() {
+      const id = document.getElementById('venueId').value;
+      const code = document.getElementById('venueCode').value.trim().toUpperCase();
+      const buildingId = document.getElementById('venueBuilding').value;
+      const capacity = document.getElementById('venueCapacity').value;
+      const examCapacity = document.getElementById('venueExamCapacity').value;
+      const description = document.getElementById('venueDescription').value.trim();
+      const isWorkshop = document.getElementById('venueIsWorkshop').checked;
+      const isSpecialized = document.getElementById('venueIsSpecialized').checked;
+      if (!code) { showToast('Venue Code is required.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'venue');
+      fd.append('code', code); fd.append('building_id', buildingId);
+      fd.append('capacity', capacity); fd.append('exam_capacity', examCapacity);
+      fd.append('description', description);
+      fd.append('is_workshop', isWorkshop ? 'true' : 'false');
+      fd.append('is_specialized', isSpecialized ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        const v = json.venue;
+        const specBadge = v.is_specialized ? '<span class="badge badge-specialized">Yes</span>' : '<span class="badge badge-no">No</span>';
+        let tr = document.getElementById('venue-' + v.id);
+        const html = `<td class="v-code"><strong>${v.code}</strong></td><td class="v-building">${v.building_name}</td><td class="v-capacity">${v.capacity || '—'}</td><td class="v-exam-capacity">${v.exam_capacity || '—'}</td><td class="v-workshop">${badgeHtml(v.is_workshop)}</td><td class="v-specialized">${specBadge}</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editVenue(${v.id})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteVenue(${v.id})">Delete</button></div></td>`;
+        if (tr) { tr.innerHTML = html; } else {
+          document.getElementById('venues-empty')?.remove();
+          tr = document.createElement('tr'); tr.id = 'venue-' + v.id; tr.innerHTML = html;
+          document.getElementById('venuesTable').appendChild(tr);
+        }
+        Object.assign(tr.dataset, { code: v.code, buildingId: v.building_id, buildingName: v.building_name, capacity: v.capacity, examCapacity: v.exam_capacity, description: v.description, workshop: v.is_workshop, specialized: v.is_specialized });
+        const specSel = document.getElementById('specVenues');
+        if (specSel) {
+          let opt = specSel.querySelector('option[value="' + v.id + '"]');
+          const label = v.code + (v.capacity ? ' (cap ' + v.capacity + ')' : '') + (v.building_name !== '—' ? ' — ' + v.building_name : '');
+          if (opt) { opt.textContent = label; } else { opt = document.createElement('option'); opt.value = v.id; opt.textContent = label; specSel.appendChild(opt); }
+        }
+        resetVenueForm();
+        showToast(id ? 'Updated ✓' : 'Added ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteVenue(id) {
+      if (!confirm('Delete this venue?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'venue'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error deleting.', true); return; }
+        document.getElementById('venue-' + id)?.remove();
+        document.querySelector('#specVenues option[value="' + id + '"]')?.remove();
+        if (!document.getElementById('venuesTable').querySelector('tr[id]')) {
+          document.getElementById('venuesTable').innerHTML = '<tr><td colspan="7" class="empty-state">No venues added yet.</td></tr>';
+        }
+        showToast('Deleted ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    // ============================================================
+    //  LAB VENUES CRUD
+    // ============================================================
+    function resetLabForm() {
+      document.getElementById('labId').value = '';
+      document.getElementById('labCode').value = '';
+      document.getElementById('labCapacity').value = '';
+      document.getElementById('labDescription').value = '';
+      document.getElementById('labEquipment').value = '';
+      document.getElementById('labFormTitle').textContent = 'Add New Lab Venue';
+      document.getElementById('labCancelBtn').classList.add('hidden');
+    }
+
+    function editLab(id) {
+      const row = document.getElementById('lab-' + id);
+      if (!row) return;
+      document.getElementById('labId').value = id;
+      document.getElementById('labCode').value = row.dataset.code;
+      document.getElementById('labCapacity').value = row.dataset.capacity;
+      document.getElementById('labDescription').value = row.dataset.description;
+      document.getElementById('labEquipment').value = row.dataset.equipment;
+      document.getElementById('labFormTitle').textContent = 'Edit Lab Venue';
+      document.getElementById('labCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-labs').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveLab() {
+      const id = document.getElementById('labId').value;
+      const code = document.getElementById('labCode').value.trim().toUpperCase();
+      const capacity = document.getElementById('labCapacity').value;
+      const description = document.getElementById('labDescription').value.trim();
+      const equipment = document.getElementById('labEquipment').value.trim();
+      if (!code) { showToast('Lab Code is required.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'lab_venue');
+      fd.append('code', code); fd.append('capacity', capacity);
+      fd.append('description', description); fd.append('equipment', equipment);
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        const l = json.lab;
+        let tr = document.getElementById('lab-' + l.id);
+        const html = `<td class="l-code"><strong>${l.code}</strong></td><td class="l-capacity">${l.capacity || '—'}</td><td class="l-description">${l.description || '—'}</td><td class="l-equipment">${l.equipment || '—'}</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLab(${l.id})">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLab(${l.id})">Delete</button></div></td>`;
+        if (tr) { tr.innerHTML = html; } else {
+          document.getElementById('labs-empty')?.remove();
+          tr = document.createElement('tr'); tr.id = 'lab-' + l.id; tr.innerHTML = html;
+          document.getElementById('labsTable').appendChild(tr);
+        }
+        Object.assign(tr.dataset, { code: l.code, capacity: l.capacity, description: l.description, equipment: l.equipment });
+        resetLabForm();
+        showToast(id ? 'Updated ✓' : 'Added ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteLab(id) {
+      if (!confirm('Delete this lab?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'lab_venue'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error deleting.', true); return; }
+        document.getElementById('lab-' + id)?.remove();
+        if (!document.getElementById('labsTable').querySelector('tr[id]')) {
+          document.getElementById('labsTable').innerHTML = '<tr><td colspan="5" class="empty-state">No lab venues added yet.</td></tr>';
+        }
+        showToast('Deleted ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    // ============================================================
+    //  SPECIALIZATIONS CRUD
+    // ============================================================
+    function filterCourseOptions() {
+      const deptId = document.getElementById('filterDept').value;
+      const programId = document.getElementById('filterProgram').value;
+      Array.from(document.getElementById('filterProgram').options).forEach(o => {
+        if (!o.value) return;
+        o.style.display = (!deptId || o.dataset.dept === deptId) ? '' : 'none';
+      });
+      const progSel = document.getElementById('filterProgram');
+      if (progSel.options[progSel.selectedIndex]?.style?.display === 'none') progSel.value = '';
+      const effectiveProg = document.getElementById('filterProgram').value;
+      Array.from(document.getElementById('specCourses').options).forEach(o => {
+        const matchDept = !deptId || o.dataset.dept === deptId;
+        const matchProg = !effectiveProg || o.dataset.program === effectiveProg;
+        o.style.display = (matchDept && matchProg) ? '' : 'none';
+        if (o.style.display === 'none') o.selected = false;
+      });
+    }
+
+    function onSpecTypeChange() {
+      const isProgram = document.getElementById('specTypeProgram').checked;
+      document.getElementById('specProgramPanel').style.display = isProgram ? '' : 'none';
+      document.getElementById('specCoursePanel').style.display = isProgram ? 'none' : '';
+      if (isProgram) {
+        Array.from(document.getElementById('specCourses').options).forEach(o => o.selected = false);
+        document.getElementById('filterDept').value = '';
+        document.getElementById('filterProgram').value = '';
+        filterCourseOptions();
+      } else {
+        Array.from(document.getElementById('specPrograms').options).forEach(o => o.selected = false);
+      }
+    }
+
+    function _autoName() {
+      const venues = Array.from(document.getElementById('specVenues').selectedOptions).map(o => o.text.split(' ')[0]);
+      const isProgram = document.getElementById('specTypeProgram').checked;
+      let targets;
+      if (isProgram) {
+        targets = Array.from(document.getElementById('specPrograms').selectedOptions).map(o => o.text.split(' —')[0].trim());
+      } else {
+        targets = Array.from(document.getElementById('specCourses').selectedOptions).map(o => o.text.split(' —')[0].trim());
+      }
+      if (!venues.length && !targets.length) return '';
+      const vPart = venues.slice(0, 2).join(', ') + (venues.length > 2 ? ' +' + (venues.length - 2) : '');
+      const tPart = targets.slice(0, 2).join(', ') + (targets.length > 2 ? ' +' + (targets.length - 2) : '');
+      if (vPart && tPart) return vPart + ' → ' + tPart;
+      return vPart || tPart;
+    }
+
+    function resetSpecForm() {
+      document.getElementById('specId').value = '';
+      document.getElementById('specName').value = '';
+      Array.from(document.getElementById('specVenues').options).forEach(o => o.selected = false);
+      Array.from(document.getElementById('specPrograms').options).forEach(o => o.selected = false);
+      Array.from(document.getElementById('specCourses').options).forEach(o => { o.selected = false; o.style.display = ''; });
+      document.getElementById('specStrict').checked = false;
+      document.getElementById('specExclusive').checked = false;
+      document.getElementById('filterDept').value = '';
+      document.getElementById('filterProgram').value = '';
+      Array.from(document.getElementById('filterProgram').options).forEach(o => o.style.display = '');
+      document.getElementById('specTypeProgram').checked = true;
+      onSpecTypeChange();
+      document.getElementById('specFormTitle').textContent = 'Add New Specialization Rule';
+      document.getElementById('specCancelBtn').classList.add('hidden');
+    }
+
+    function editSpec(id) {
+      const fd = new FormData();
+      fd.append('action', 'get'); fd.append('model_type', 'specialization'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Could not load rule.', true); return; }
+        const s = json.spec;
+        document.getElementById('specId').value = s.id;
+        document.getElementById('specName').value = s.name;
+        const isProgram = s.program_ids.length > 0 || s.course_ids.length === 0;
+        document.getElementById('specTypeProgram').checked = isProgram;
+        document.getElementById('specTypeCourse').checked = !isProgram;
+        onSpecTypeChange();
+        Array.from(document.getElementById('specVenues').options).forEach(o => o.selected = s.venue_ids.includes(parseInt(o.value)));
+        Array.from(document.getElementById('specPrograms').options).forEach(o => o.selected = s.program_ids.includes(parseInt(o.value)));
+        Array.from(document.getElementById('specCourses').options).forEach(o => o.selected = s.course_ids.includes(parseInt(o.value)));
+        document.getElementById('specStrict').checked = !!s.strict;
+        document.getElementById('specExclusive').checked = !!s.exclusive;
+        document.getElementById('specFormTitle').textContent = 'Edit Rule';
+        document.getElementById('specCancelBtn').classList.remove('hidden');
+        document.getElementById('tab-specializations').scrollIntoView({ behavior: 'smooth' });
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function saveSpec() {
+      const id = document.getElementById('specId').value;
+      const isProgram = document.getElementById('specTypeProgram').checked;
+      const venueIds = Array.from(document.getElementById('specVenues').selectedOptions).map(o => o.value);
+      const programIds = isProgram ? Array.from(document.getElementById('specPrograms').selectedOptions).map(o => o.value) : [];
+      const courseIds = !isProgram ? Array.from(document.getElementById('specCourses').selectedOptions).map(o => o.value) : [];
+      if (!venueIds.length) { showToast('Select at least one venue.', true); return; }
+      if (isProgram && !programIds.length) { showToast('Select at least one program.', true); return; }
+      if (!isProgram && !courseIds.length) { showToast('Select at least one course.', true); return; }
+      const name = _autoName() || (isProgram ? 'Program Rule' : 'Course Rule');
+      document.getElementById('specName').value = name;
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'specialization');
+      fd.append('name', name); fd.append('notes', '');
+      fd.append('strict', document.getElementById('specStrict').checked ? 'true' : 'false');
+      fd.append('exclusive', document.getElementById('specExclusive').checked ? 'true' : 'false');
+      venueIds.forEach(v => fd.append('venue_ids[]', v));
+      programIds.forEach(p => fd.append('program_ids[]', p));
+      courseIds.forEach(c => fd.append('course_ids[]', c));
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertSpecRow(json.spec);
+        json.spec.venue_ids.forEach(vid => {
+          const tr = document.getElementById('venue-' + vid);
+          if (tr) { tr.dataset.specialized = 'true'; const cell = tr.querySelector('.v-specialized'); if (cell) cell.innerHTML = '<span class="badge badge-specialized">Yes</span>'; }
+        });
+        resetSpecForm();
+        showToast(id ? 'Updated ✓' : 'Created ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteSpec(id) {
+      if (!confirm('Delete this rule?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'specialization'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error deleting.', true); return; }
+        document.getElementById('spec-' + id)?.remove();
+        if (!document.getElementById('specsTable').querySelector('tr[id]')) {
+          document.getElementById('specsTable').innerHTML = '<tr><td colspan="5" class="empty-state">No specialization rules yet.</td></tr>';
+        }
+        showToast('Deleted ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertSpecRow(s) {
+      document.getElementById('specs-empty')?.remove();
+      const venueBadges = s.venue_codes.map(c => '<span class="badge badge-specialized">' + c + '</span>').join(' ');
+      let designatedHtml = '';
+      if (s.prog_names && s.prog_names.length) {
+        s.prog_names.forEach(n => { designatedHtml += '<span style="font-size:11px;display:block;">&#128218; ' + n + '</span>'; });
+      }
+      if (s.course_labels && s.course_labels.length) {
+        s.course_labels.forEach(l => { designatedHtml += '<span style="font-size:11px;display:block;">&#128214; ' + l + '</span>'; });
+      }
+      if (!designatedHtml) designatedHtml = '—';
+      let modeHtml = '<span style="color:#57606a;font-size:11px;">Priority</span>';
+      if (s.exclusive || s.strict) {
+        modeHtml = '';
+        if (s.exclusive) modeHtml += '<span class="badge badge-exclusive">Exclusive</span> ';
+        if (s.strict) modeHtml += '<span class="badge badge-strict">Strict</span>';
+      }
+      let tr = document.getElementById('spec-' + s.id);
+      const html = '<td><strong>' + s.name + '</strong></td><td>' + venueBadges + '</td><td>' + modeHtml + '</td><td>' + designatedHtml + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editSpec(' + s.id + ')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteSpec(' + s.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'spec-' + s.id; tr.innerHTML = html;
+        document.getElementById('specsTable').appendChild(tr);
+      }
+    }
+
+    // ============================================================
+    //  VENUE BLOCKS CRUD
+    // ============================================================
+    function resetBlockForm() {
+      document.getElementById('blockId').value = '';
+      document.getElementById('blockVenue').value = '';
+      document.getElementById('blockReason').value = '';
+      document.getElementById('blockActive').checked = true;
+      document.getElementById('blockFormTitle').textContent = 'Block a Venue';
+      document.getElementById('blockCancelBtn').classList.add('hidden');
+    }
+
+    function editBlock(id, venueId, reason, isActive) {
+      document.getElementById('blockId').value = id;
+      document.getElementById('blockVenue').value = venueId;
+      document.getElementById('blockReason').value = reason || '';
+      document.getElementById('blockActive').checked = isActive;
+      document.getElementById('blockFormTitle').textContent = 'Edit Venue Block';
+      document.getElementById('blockCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-venue_blocks').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveBlock() {
+      const id = document.getElementById('blockId').value;
+      const venueId = document.getElementById('blockVenue').value;
+      const reason = document.getElementById('blockReason').value.trim();
+      const active = document.getElementById('blockActive').checked;
+      if (!venueId) { showToast('Select a venue.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'venue_block');
+      fd.append('venue_id', venueId); fd.append('reason', reason);
+      fd.append('is_active', active ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertBlockRow(json.block);
+        resetBlockForm();
+        showToast(id ? 'Updated ✓' : 'Blocked ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteBlock(id) {
+      if (!confirm('Remove this block?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'venue_block'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error removing.', true); return; }
+        document.getElementById('block-' + id)?.remove();
+        if (!document.getElementById('blocksTable').querySelector('tr[id]')) {
+          document.getElementById('blocksTable').innerHTML = '<tr><td colspan="4" class="empty-state">No venues blocked.</td></tr>';
+        }
+        showToast('Removed ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertBlockRow(b) {
+      document.getElementById('blocks-empty')?.remove();
+      let tr = document.getElementById('block-' + b.id);
+      const statusBadge = b.is_active ? '<span class="badge badge-blocked">Blocked</span>' : '<span class="badge badge-inactive">Inactive</span>';
+      const reasonSafe = (b.reason || '—').replace(/'/g, "\\'");
+      const html = '<td><strong>' + b.venue_code + '</strong></td><td>' + (b.reason || '—') + '</td><td>' + statusBadge + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editBlock(' + b.id + ', ' + b.venue_id + ', \'' + reasonSafe + '\', ' + b.is_active + ')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteBlock(' + b.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'block-' + b.id; tr.innerHTML = html;
+        document.getElementById('blocksTable').appendChild(tr);
+      }
+    }
+
+    // ============================================================
+    //  RESIT EXCLUSIONS CRUD
+    // ============================================================
+    function toggleResitExclScope() {
+      const scope = document.querySelector('input[name="resitExclScope"]:checked').value;
+      document.getElementById('resitExclVenueGroup').classList.toggle('hidden', scope !== 'venue');
+      document.getElementById('resitExclBuildingGroup').classList.toggle('hidden', scope !== 'building');
+    }
+
+    function resetResitExclForm() {
+      document.getElementById('resitExclId').value = '';
+      document.getElementById('resitExclVenue').value = '';
+      document.getElementById('resitExclBuilding').value = '';
+      document.getElementById('resitExclReason').value = '';
+      document.getElementById('resitExclActive').checked = true;
+      document.querySelector('input[name="resitExclScope"][value="venue"]').checked = true;
+      toggleResitExclScope();
+      document.getElementById('resitExclFormTitle').textContent = 'Exclude from Resits';
+      document.getElementById('resitExclCancelBtn').classList.add('hidden');
+    }
+
+    function editResitExclusion(id, scope, buildingId, venueId, reason, isActive) {
+      document.getElementById('resitExclId').value = id;
+      document.querySelector('input[name="resitExclScope"][value="' + scope + '"]').checked = true;
+      toggleResitExclScope();
+      document.getElementById('resitExclVenue').value = venueId || '';
+      document.getElementById('resitExclBuilding').value = buildingId || '';
+      document.getElementById('resitExclReason').value = reason || '';
+      document.getElementById('resitExclActive').checked = isActive;
+      document.getElementById('resitExclFormTitle').textContent = 'Edit Resit Exclusion';
+      document.getElementById('resitExclCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-resit_exclusions').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveResitExclusion() {
+      const id = document.getElementById('resitExclId').value;
+      const scope = document.querySelector('input[name="resitExclScope"]:checked').value;
+      const venueId = document.getElementById('resitExclVenue').value;
+      const buildingId = document.getElementById('resitExclBuilding').value;
+      const reason = document.getElementById('resitExclReason').value.trim();
+      const active = document.getElementById('resitExclActive').checked;
+      if (scope === 'venue' && !venueId) { showToast('Select a venue.', true); return; }
+      if (scope === 'building' && !buildingId) { showToast('Select a building.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'resit_venue_exclusion');
+      fd.append('scope', scope);
+      fd.append('venue_id', venueId); fd.append('building_id', buildingId);
+      fd.append('reason', reason); fd.append('is_active', active ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertResitExclRow(json.exclusion);
+        resetResitExclForm();
+        showToast(id ? 'Updated ✓' : 'Excluded ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteResitExclusion(id) {
+      if (!confirm('Remove this exclusion?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'resit_venue_exclusion'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error removing.', true); return; }
+        document.getElementById('resit-excl-' + id)?.remove();
+        if (!document.getElementById('resitExclTable').querySelector('tr[id]')) {
+          document.getElementById('resitExclTable').innerHTML = '<tr><td colspan="4" class="empty-state">No resit exclusions configured.</td></tr>';
+        }
+        showToast('Removed ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertResitExclRow(e) {
+      document.getElementById('resit-excl-empty')?.remove();
+      let tr = document.getElementById('resit-excl-' + e.id);
+      const statusBadge = e.is_active ? '<span class="badge badge-blocked">Excluded</span>' : '<span class="badge badge-inactive">Inactive</span>';
+      const label = e.scope === 'building' ? '<strong>&#127963; ' + e.building_name + '</strong> <span style="color:#57606a;font-size:11px;">(building)</span>' : '<strong>' + e.venue_code + '</strong>';
+      const reasonSafe = (e.reason || '—').replace(/'/g, "\\'");
+      const html = '<td>' + label + '</td><td>' + (e.reason || '—') + '</td><td>' + statusBadge + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editResitExclusion(' + e.id + ', \'' + e.scope + '\', ' + (e.building_id ?? 'null') + ', ' + (e.venue_id ?? 'null') + ', \'' + reasonSafe + '\', ' + e.is_active + ')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteResitExclusion(' + e.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'resit-excl-' + e.id; tr.innerHTML = html;
+        document.getElementById('resitExclTable').appendChild(tr);
+      }
+    }
+
+    // ============================================================
+    //  LECTURER BLOCKS CRUD
+    // ============================================================
+    function resetLBlockForm() {
+      document.getElementById('lblockId').value = '';
+      document.getElementById('lblockLecturer').value = '';
+      document.getElementById('lblockDay').value = '';
+      document.getElementById('lblockStart').value = '';
+      document.getElementById('lblockEnd').value = '';
+      document.getElementById('lblockReason').value = '';
+      document.getElementById('lblockActive').checked = true;
+      document.getElementById('lblockFormTitle').textContent = "Block a Lecturer's Day/Time";
+      document.getElementById('lblockCancelBtn').classList.add('hidden');
+    }
+
+    function editLBlock(id, lecturerId, day, start, end, reason, isActive) {
+      document.getElementById('lblockId').value = id;
+      document.getElementById('lblockLecturer').value = lecturerId;
+      document.getElementById('lblockDay').value = day;
+      document.getElementById('lblockStart').value = start || '';
+      document.getElementById('lblockEnd').value = end || '';
+      document.getElementById('lblockReason').value = reason || '';
+      document.getElementById('lblockActive').checked = isActive;
+      document.getElementById('lblockFormTitle').textContent = 'Edit Lecturer Block';
+      document.getElementById('lblockCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-lecturer_blocks').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveLBlock() {
+      const id = document.getElementById('lblockId').value;
+      const lecturerId = document.getElementById('lblockLecturer').value;
+      const day = document.getElementById('lblockDay').value;
+      const start = document.getElementById('lblockStart').value;
+      const end = document.getElementById('lblockEnd').value;
+      const reason = document.getElementById('lblockReason').value.trim();
+      const active = document.getElementById('lblockActive').checked;
+      if (!lecturerId || !day) { showToast('Select lecturer and day.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'lecturer_block');
+      fd.append('lecturer_id', lecturerId); fd.append('day', day);
+      fd.append('start_time', start); fd.append('end_time', end);
+      fd.append('reason', reason); fd.append('is_active', active ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertLBlockRow(json.row);
+        resetLBlockForm();
+        showToast(id ? 'Updated ✓' : 'Blocked ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteLBlock(id) {
+      if (!confirm('Remove this block?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'lecturer_block'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error removing.', true); return; }
+        document.getElementById('lblock-' + id)?.remove();
+        if (!document.getElementById('lblocksTable').querySelector('tr[id]')) {
+          document.getElementById('lblocksTable').innerHTML = '<tr><td colspan="6" class="empty-state">No lecturer blocks configured.</td></tr>';
+        }
+        showToast('Removed ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertLBlockRow(b) {
+      document.getElementById('lblocks-empty')?.remove();
+      let tr = document.getElementById('lblock-' + b.id);
+      const timeStr = (b.start_time && b.end_time) ? b.start_time + '–' + b.end_time : '<span class="badge badge-blocked">ALL DAY</span>';
+      const statusBadge = b.is_active ? '<span class="badge badge-blocked">Blocked</span>' : '<span class="badge badge-inactive">Inactive</span>';
+      const reasonSafe = (b.reason || '').replace(/'/g, "\\'");
+      const html = '<td><strong>' + b.lecturer_name + '</strong></td><td>' + b.day + '</td><td>' + timeStr + '</td><td>' + (b.reason || '—') + '</td><td>' + statusBadge + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLBlock(' + b.id + ', ' + b.lecturer_id + ', \'' + b.day + '\', \'' + (b.start_time || '') + '\', \'' + (b.end_time || '') + '\', \'' + reasonSafe + '\', ' + b.is_active + ')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLBlock(' + b.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'lblock-' + b.id; tr.innerHTML = html;
+        document.getElementById('lblocksTable').appendChild(tr);
+      }
+    }
+
+    // ============================================================
+    //  LECTURER TIME PREFERENCES - Multi-day/multi-timeslot
+    // ============================================================
+    const AVAILABLE_TIMESLOTS = [{% for slot in available_timeslots %}["{{ slot.0 }}", "{{ slot.1 }}"]{% if not forloop.last %},{% endif %}{% endfor %}];
+    const DAY_CHOICES = [{% for code, name in day_choices %}["{{ code }}", "{{ name }}"]{% if not forloop.last %},{% endif %}{% endfor %}];
+    let ltpDayRowCount = 0;
+
+    function addLtpDayRow(day, slotIndices, isWholeDay) {
+      const container = document.getElementById('ltpDaySlotsContainer');
+      const rowId = 'ltp-day-row-' + ltpDayRowCount++;
+      let dayOpts = DAY_CHOICES.map(([code, name]) => '<option value="' + code + '"' + (day === code ? ' selected' : '') + '>' + name + '</option>').join('');
+      let slotsHtml = '';
+      if (AVAILABLE_TIMESLOTS.length > 0) {
+        slotsHtml = AVAILABLE_TIMESLOTS.map((slot, idx) => {
+          const checked = slotIndices && slotIndices.includes(idx) ? 'checked' : '';
+          const disabled = isWholeDay ? 'disabled' : '';
+          return '<label><input type="checkbox" class="ltp-slot-cb" data-row="' + rowId + '" value="' + idx + '" ' + checked + ' ' + disabled + '> ' + slot[0] + '–' + slot[1] + '</label>';
+        }).join('');
+      } else {
+        slotsHtml = '<span style="color:#8b949e;font-size:12px;">No timeslots configured</span>';
+      }
+      const wholeDayChecked = isWholeDay ? 'checked' : '';
+      const html = '<div id="' + rowId + '" class="ltp-day-row"><select class="ltp-day-select" data-row="' + rowId + '"><option value="">— Select day —</option>' + dayOpts + '</select><span style="font-size:11px;color:#57606a;font-weight:500;">Timeslots:</span><span class="ltp-slot-group"><label class="ltp-whole-day-label"><input type="checkbox" class="ltp-whole-day-cb" data-row="' + rowId + '" ' + wholeDayChecked + ' onchange="toggleLtpWholeDay(\'' + rowId + '\')"> Whole Day</label>' + slotsHtml + '</span><button type="button" class="ltp-remove-btn" onclick="removeLtpDayRow(\'' + rowId + '\')">✕</button></div>';
+      container.insertAdjacentHTML('beforeend', html);
+    }
+
+    function toggleLtpWholeDay(rowId) {
+      const row = document.getElementById(rowId);
+      const wholeDayCb = row.querySelector('.ltp-whole-day-cb');
+      row.querySelectorAll('.ltp-slot-cb').forEach(cb => { cb.disabled = wholeDayCb.checked; if (wholeDayCb.checked) cb.checked = false; });
+    }
+
+    function removeLtpDayRow(rowId) {
+      const row = document.getElementById(rowId);
+      if (row) row.remove();
+      const container = document.getElementById('ltpDaySlotsContainer');
+      if (container && container.children.length === 0) addLtpDayRow();
+    }
+
+    function getLtpDayData() {
+      const data = {};
+      document.querySelectorAll('#ltpDaySlotsContainer > div[id^="ltp-day-row-"]').forEach(row => {
+        const day = row.querySelector('.ltp-day-select').value;
+        if (!day) return;
+        const wholeDayCb = row.querySelector('.ltp-whole-day-cb');
+        if (wholeDayCb.checked) { data[day] = ['whole_day']; return; }
+        const checkedSlots = [];
+        row.querySelectorAll('.ltp-slot-cb:checked').forEach(cb => checkedSlots.push(parseInt(cb.value)));
+        if (checkedSlots.length > 0) data[day] = checkedSlots;
+      });
+      return data;
+    }
+
+    function resetLTPForm() {
+      document.getElementById('ltpId').value = '';
+      document.getElementById('ltpLecturer').value = '';
+      document.getElementById('ltpNotes').value = '';
+      document.getElementById('ltpActive').checked = true;
+      document.getElementById('ltpFormTitle').textContent = 'Add Time Preference';
+      document.getElementById('ltpCancelBtn').classList.add('hidden');
+      document.getElementById('ltpDaySlotsContainer').innerHTML = '';
+      ltpDayRowCount = 0;
+      addLtpDayRow();
+    }
+
+    function saveLTP() {
+      const id = document.getElementById('ltpId').value;
+      const lecturerId = document.getElementById('ltpLecturer').value;
+      const notes = document.getElementById('ltpNotes').value.trim();
+      const active = document.getElementById('ltpActive').checked;
+      const dayData = getLtpDayData();
+      if (!lecturerId) { showToast('Select a lecturer.', true); return; }
+      if (Object.keys(dayData).length === 0) { showToast('Select at least one day and timeslot.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'lecturer_time_pref');
+      fd.append('lecturer_id', lecturerId); fd.append('notes', notes);
+      fd.append('is_active', active ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      for (const [day, value] of Object.entries(dayData)) {
+        if (value === 'whole_day') { fd.append('day_slots_' + day, 'whole_day'); }
+        else { fd.append('day_slots_' + day, value.join(',')); }
+      }
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertLTPRow(json.row);
+        resetLTPForm();
+        addLtpDayRow();
+        showToast(id ? 'Updated ✓' : 'Added ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function editLTP(id) {
+      const fd = new FormData();
+      fd.append('action', 'get'); fd.append('model_type', 'lecturer_time_pref'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Could not load preference.', true); return; }
+        const p = json.preference;
+        document.getElementById('ltpId').value = p.id;
+        document.getElementById('ltpLecturer').value = p.lecturer_id;
+        document.getElementById('ltpNotes').value = p.notes || '';
+        document.getElementById('ltpActive').checked = p.is_active;
+        document.getElementById('ltpFormTitle').textContent = 'Edit Time Preference';
+        document.getElementById('ltpCancelBtn').classList.remove('hidden');
+        document.getElementById('ltpDaySlotsContainer').innerHTML = '';
+        ltpDayRowCount = 0;
+        const slots = p.slots || [];
+        const slotsByDay = {};
+        slots.forEach(s => { if (!slotsByDay[s.day]) slotsByDay[s.day] = []; slotsByDay[s.day].push(s); });
+        for (const [day, daySlots] of Object.entries(slotsByDay)) {
+          const hasWholeDay = daySlots.some(s => s.is_whole_day);
+          let slotIndices = [];
+          if (!hasWholeDay) {
+            slotIndices = daySlots.map(s => { const start = s.start_time; for (let i = 0; i < AVAILABLE_TIMESLOTS.length; i++) { if (AVAILABLE_TIMESLOTS[i][0] === start) return i; } return null; }).filter(idx => idx !== null);
+          }
+          addLtpDayRow(day, slotIndices, hasWholeDay);
+        }
+        if (Object.keys(slotsByDay).length === 0) addLtpDayRow();
+        document.getElementById('tab-lecturer_time_prefs').scrollIntoView({ behavior: 'smooth' });
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteLTP(id) {
+      if (!confirm('Remove this preference?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'lecturer_time_pref'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error removing.', true); return; }
+        document.getElementById('ltp-' + id)?.remove();
+        if (!document.getElementById('ltpTable').querySelector('tr[id]')) {
+          document.getElementById('ltpTable').innerHTML = '<tr><td colspan="5" class="empty-state">No time preferences configured.</td></tr>';
+        }
+        showToast('Removed ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertLTPRow(p) {
+      document.getElementById('ltp-empty')?.remove();
+      let tr = document.getElementById('ltp-' + p.id);
+      const statusBadge = p.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
+      let daySlotsHtml = '';
+      if (p.slots_by_day) {
+        for (const [day, slots] of Object.entries(p.slots_by_day)) {
+          const hasWholeDay = slots.some(s => s.type === 'whole_day');
+          if (hasWholeDay) {
+            daySlotsHtml += '<span class="badge badge-time-pref" style="margin:1px;">' + day + ' (Whole Day)</span> ';
+          } else {
+            slots.forEach(slot => {
+              daySlotsHtml += '<span class="badge badge-time-pref" style="margin:1px;">' + day + ' ' + slot.start + '–' + slot.end + '</span> ';
+            });
+          }
+        }
+      }
+      if (!daySlotsHtml) daySlotsHtml = '—';
+      const notesSafe = (p.notes || '').replace(/'/g, "\\'");
+      const html = '<td><strong>' + p.lecturer_name + '</strong></td><td>' + daySlotsHtml + '</td><td>' + (p.notes || '—') + '</td><td>' + statusBadge + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick="editLTP(' + p.id + ')">Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLTP(' + p.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'ltp-' + p.id; tr.innerHTML = html;
+        document.getElementById('ltpTable').appendChild(tr);
+      }
+    }
+
+    // Initialize LTP with an empty row if tab is active
+    document.addEventListener('DOMContentLoaded', function() {
+      const tab = document.getElementById('tab-lecturer_time_prefs');
+      if (tab && tab.classList.contains('active')) {
+        const container = document.getElementById('ltpDaySlotsContainer');
+        if (container && container.children.length === 0) addLtpDayRow();
+      }
+      // Observer for tab switching
+      const observer = new MutationObserver(function() {
+        const t = document.getElementById('tab-lecturer_time_prefs');
+        if (t && t.classList.contains('active')) {
+          const c = document.getElementById('ltpDaySlotsContainer');
+          if (c && c.children.length === 0) addLtpDayRow();
+        }
+      });
+      document.querySelectorAll('.tab-pane').forEach(p => observer.observe(p, { attributes: true, attributeFilter: ['class'] }));
+    });
+
+    // ============================================================
+    //  LECTURER VENUE PREFERENCES CRUD
+    // ============================================================
+    function resetLVPForm() {
+      document.getElementById('lvpId').value = '';
+      document.getElementById('lvpLecturer').value = '';
+      Array.from(document.getElementById('lvpVenues').options).forEach(o => o.selected = false);
+      document.getElementById('lvpNotes').value = '';
+      document.getElementById('lvpActive').checked = true;
+      document.getElementById('lvpFormTitle').textContent = 'Add Venue Preference';
+      document.getElementById('lvpCancelBtn').classList.add('hidden');
+    }
+
+    function editLVP(id, lecturerId, venueIds, notes, isActive) {
+      document.getElementById('lvpId').value = id;
+      document.getElementById('lvpLecturer').value = lecturerId;
+      Array.from(document.getElementById('lvpVenues').options).forEach(o => o.selected = venueIds.includes(parseInt(o.value, 10)));
+      document.getElementById('lvpNotes').value = notes || '';
+      document.getElementById('lvpActive').checked = isActive;
+      document.getElementById('lvpFormTitle').textContent = 'Edit Venue Preference';
+      document.getElementById('lvpCancelBtn').classList.remove('hidden');
+      document.getElementById('tab-lecturer_venue_prefs').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function saveLVP() {
+      const id = document.getElementById('lvpId').value;
+      const lecturerId = document.getElementById('lvpLecturer').value;
+      const venueIds = Array.from(document.getElementById('lvpVenues').selectedOptions).map(o => o.value);
+      const notes = document.getElementById('lvpNotes').value.trim();
+      const active = document.getElementById('lvpActive').checked;
+      if (!lecturerId || !venueIds.length) { showToast('Select lecturer and venue(s).', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'create'); fd.append('model_type', 'lecturer_venue_pref');
+      fd.append('lecturer_id', lecturerId);
+      venueIds.forEach(v => fd.append('venue_ids[]', v));
+      fd.append('notes', notes); fd.append('is_active', active ? 'true' : 'false');
+      if (id) fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Error saving.', true); return; }
+        _upsertLVPRow(json.row);
+        resetLVPForm();
+        showToast(id ? 'Updated ✓' : 'Added ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function deleteLVP(id) {
+      if (!confirm('Remove this preference?')) return;
+      const fd = new FormData();
+      fd.append('action', 'delete'); fd.append('model_type', 'lecturer_venue_pref'); fd.append('id', id);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast('Error removing.', true); return; }
+        document.getElementById('lvp-' + id)?.remove();
+        if (!document.getElementById('lvpTable').querySelector('tr[id]')) {
+          document.getElementById('lvpTable').innerHTML = '<tr><td colspan="5" class="empty-state">No venue preferences configured.</td></tr>';
+        }
+        showToast('Removed ✓');
+      }).catch(() => showToast('Network error.', true));
+    }
+
+    function _upsertLVPRow(p) {
+      document.getElementById('lvp-empty')?.remove();
+      let tr = document.getElementById('lvp-' + p.id);
+      const statusBadge = p.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>';
+      const venuesStr = p.venue_codes.join(', ');
+      const notesSafe = (p.notes || '').replace(/'/g, "\\'");
+      const html = '<td><strong>' + p.lecturer_name + '</strong></td><td>' + venuesStr + '</td><td>' + (p.notes || '—') + '</td><td>' + statusBadge + '</td><td><div class="action-cell"><button class="btn btn-edit btn-sm" onclick=\'editLVP(' + p.id + ', ' + p.lecturer_id + ', [' + p.venue_ids.join(',') + '], "' + notesSafe + '", ' + p.is_active + ')\'>Edit</button><button class="btn btn-delete btn-sm" onclick="deleteLVP(' + p.id + ')">Delete</button></div></td>';
+      if (tr) { tr.innerHTML = html; } else {
+        tr = document.createElement('tr'); tr.id = 'lvp-' + p.id; tr.innerHTML = html;
+        document.getElementById('lvpTable').appendChild(tr);
+      }
+    }
+
+    // ============================================================
+    //  CONSTRAINT TOGGLES
+    // ============================================================
+    function setConstraintToggle(key, isEnabled) {
+      const row = document.getElementById('ctoggle-' + key);
+      const fd = new FormData();
+      fd.append('action', 'set'); fd.append('model_type', 'constraint_toggle');
+      fd.append('key', key); fd.append('is_enabled', isEnabled ? 'true' : 'false');
+      postJson(fd).then(json => {
+        if (json.status !== 'success') {
+          showToast('Error updating toggle.', true);
+          const cb = row.querySelector('.ctoggle-input');
+          cb.checked = !isEnabled;
+          return;
+        }
+        const stateLabel = row.querySelector('.ctoggle-state');
+        stateLabel.textContent = isEnabled ? 'ON' : 'OFF';
+        stateLabel.style.color = isEnabled ? '#1a7f37' : '#8b949e';
+        showToast((isEnabled ? 'Enabled' : 'Disabled') + ' ✓');
+      }).catch(() => {
+        showToast('Network error.', true);
+        row.querySelector('.ctoggle-input').checked = !isEnabled;
+      });
+    }
+
+    // ============================================================
+    //  SR MODAL
+    // ============================================================
+    const CONSTRAINT_TYPE_HINTS = {
+      lecturer_block: 'Hard rule — lecturer never scheduled here.',
+      lecturer_time_pref: 'Soft rule — scheduler tries to honour.',
+      lecturer_venue_pref: 'Soft rule — tries to place in these venues.',
+      venue_block: 'Hard rule — venue hidden from scheduler.',
+      venue_specialization: 'Priority pass — designated courses first.',
+      venue_exclusive: 'Priority pass + exclusive — only designated courses.',
+    };
+    const VENUE_CONSTRAINT_TYPES = ['lecturer_venue_pref', 'venue_block', 'venue_specialization', 'venue_exclusive'];
+    const LECTURER_CONSTRAINT_TYPES = ['lecturer_block', 'lecturer_time_pref', 'lecturer_venue_pref'];
+    const DAYTIME_CONSTRAINT_TYPES = ['lecturer_block', 'lecturer_time_pref'];
+    let srcState = { srId: null, selectedType: null, lecturers: [], venues: [] };
+
+    function openSrConstraintModal(srId) {
+      srcState = { srId, selectedType: null, lecturers: [], venues: [] };
+      document.getElementById('srcSub').textContent = 'Loading…';
+      document.getElementById('srcTypeRow').innerHTML = '';
+      document.getElementById('srcOverlay').style.display = 'flex';
+      const fd = new FormData();
+      fd.append('action', 'options'); fd.append('model_type', 'sr_constraint'); fd.append('sr_id', srId);
+      postJson(fd).then(json => {
+        if (json.status !== 'success') { showToast(json.message || 'Could not load SR.', true); closeSrConstraintModal(); return; }
+        srcState.lecturers = json.lecturers;
+        srcState.venues = json.venues;
+        const sr = json.sr;
+        document.getElementById('srcSub').textContent = 'SR (' + sr.scope_display + ')' + (sr.lecturer_name ? ' — ' + sr.lecturer_name : '') + (sr.program_name ? ' — ' + sr.program_name : '') + (sr.constraint_applied_type ? ' — already converted.' : '');
+        const typeRow = document.getElementById('srcTypeRow');
+        typeRow.innerHTML = '';
+        json.constraint_type_order.forEach((key, idx) => {
+          const opt = document.createElement('div');
+          opt.className = 'src-type-opt' + (idx === 0 ? ' selected' : '');
+          opt.dataset.type = key;
+          opt.innerHTML = '<div>' + json.constraint_type_labels[key] + '</div><small>' + (CONSTRAINT_TYPE_HINTS[key] || '') + '</small>';
+          opt.onclick = () => selectSrcType(key);
+          typeRow.appendChild(opt);
+        });
+        srcState.selectedType = json.constraint_type_order[0];
+        const lecSel = document.getElementById('srcLecturer');
+        lecSel.innerHTML = '<option value="">— select lecturer —</option>' + srcState.lecturers.map(l => '<option value="' + l.id + '">' + l.name + '</option>').join('');
+        if (sr.lecturer_id) lecSel.value = sr.lecturer_id;
+        const daySel = document.getElementById('srcDay');
+        daySel.innerHTML = json.day_choices.map(d => '<option value="' + d[0] + '">' + d[1] + '</option>').join('');
+        document.getElementById('srcVenueList').innerHTML = srcState.venues.map(v => '<label><input type="checkbox" class="srcVenueCb" value="' + v.id + '"> ' + v.code + '</label>').join('');
+        document.getElementById('srcNotes').value = sr.description || '';
+        applySrcTypeVisibility();
+      }).catch(() => { showToast('Network error.', true); closeSrConstraintModal(); });
+    }
+
+    function selectSrcType(key) {
+      srcState.selectedType = key;
+      document.querySelectorAll('.src-type-opt').forEach(el => el.classList.toggle('selected', el.dataset.type === key));
+      applySrcTypeVisibility();
+    }
+
+    function applySrcTypeVisibility() {
+      const type = srcState.selectedType;
+      document.getElementById('srcVenueField').style.display = VENUE_CONSTRAINT_TYPES.includes(type) ? 'block' : 'none';
+      document.getElementById('srcVenueLabel').textContent = type === 'lecturer_venue_pref' ? 'Preferred venue(s)' : 'Venue(s)';
+      document.getElementById('srcLecturerField').style.display = LECTURER_CONSTRAINT_TYPES.includes(type) ? 'block' : 'none';
+      document.getElementById('srcDayTimeFields').style.display = DAYTIME_CONSTRAINT_TYPES.includes(type) ? 'block' : 'none';
+    }
+
+    function closeSrConstraintModal() { document.getElementById('srcOverlay').style.display = 'none'; }
+
+    function submitSrConstraint() {
+      if (!srcState.selectedType) { showToast('Select a constraint type.', true); return; }
+      const needsLecturer = LECTURER_CONSTRAINT_TYPES.includes(srcState.selectedType);
+      const needsVenue = VENUE_CONSTRAINT_TYPES.includes(srcState.selectedType);
+      const needsDayTime = DAYTIME_CONSTRAINT_TYPES.includes(srcState.selectedType);
+      const lecturerId = document.getElementById('srcLecturer').value;
+      if (needsLecturer && !lecturerId) { showToast('Select a lecturer.', true); return; }
+      const checkedVenues = Array.from(document.querySelectorAll('.srcVenueCb:checked')).map(cb => cb.value);
+      if (needsVenue && !checkedVenues.length) { showToast('Select at least one venue.', true); return; }
+      const fd = new FormData();
+      fd.append('action', 'apply'); fd.append('model_type', 'sr_constraint');
+      fd.append('sr_id', srcState.srId);
+      fd.append('constraint_type', srcState.selectedType);
+      if (needsLecturer) fd.append('lecturer_id', lecturerId);
+      fd.append('notes', document.getElementById('srcNotes').value);
+      fd.append('reason', document.getElementById('srcNotes').value);
+      if (needsVenue) checkedVenues.forEach(id => fd.append('venue_ids[]', id));
+      if (needsDayTime) {
+        fd.append('day', document.getElementById('srcDay').value);
+        fd.append('start_time', document.getElementById('srcStart').value);
+        fd.append('end_time', document.getElementById('srcEnd').value);
+      }
+      const btn = document.getElementById('srcSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Applying…';
+      postJson(fd).then(json => {
+        btn.disabled = false; btn.textContent = 'Apply constraint';
+        if (json.status === 'success') {
+          showToast('Constraint applied ✓');
+          closeSrConstraintModal();
+          setTimeout(() => window.location.reload(), 700);
+        } else {
+          showToast(json.message || 'Could not apply.', true);
+        }
+      }).catch(() => { btn.disabled = false; btn.textContent = 'Apply constraint'; showToast('Network error.', true); });
+    }
+
+    document.getElementById('srcOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'srcOverlay') closeSrConstraintModal();
+    });
+  </script>
+</body>
+</html>

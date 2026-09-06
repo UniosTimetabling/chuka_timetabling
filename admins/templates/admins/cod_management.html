@@ -1,0 +1,187 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_cod_management.css' %}">
+{% endblock page_css %}
+
+{% block title %}COD Management{% endblock %}
+{% block nav_cod %}active{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+ <h1>COD Management</h1>
+ <p>Create and manage Chairs of Department accounts</p>
+ <div class="header-bar"></div>
+</div>
+
+<!-- Create COD -->
+<div class="card">
+ <div class="card-header">Create New COD</div>
+ <div class="card-body">
+ {% csrf_token %}
+ <div class="form-grid">
+ <div class="form-group">
+ <label>Username</label>
+ <input type="text" id="new_username" class="form-control" placeholder="username">
+ </div>
+ <div class="form-group">
+ <label>Email</label>
+ <input type="email" id="new_email" class="form-control" placeholder="email@example.com">
+ </div>
+ <div class="form-group">
+ <label>Department</label>
+ <select id="new_department" class="form-control">
+ <option value="">Select department</option>
+ {% for dept in departments %}
+ <option value="{{ dept.id }}">{{ dept.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ <div class="form-group">
+ <label>Password</label>
+ <input type="password" id="new_password" class="form-control" placeholder="******">
+ </div>
+ </div>
+ <button class="btn btn-primary mt-3" onclick="createCOD()" id="createBtn">Create COD</button>
+ </div>
+</div>
+
+<!-- Existing CODs -->
+<div class="card">
+ <div class="card-header">Existing CODs</div>
+ <div class="card-body">
+ <div class="table-wrapper">
+ <table>
+ <thead>
+ <tr>
+ <th>USERNAME</th>
+ <th>EMAIL</th>
+ <th>DEPARTMENT</th>
+ <th>FACULTY</th>
+ <th>ACTIONS</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for cod in cods %}
+ <tr>
+ <td>
+ <input type="text" value="{{ cod.username }}" id="username_{{ cod.id }}" class="form-control" style="padding:5px;">
+ </td>
+ <td>
+ <input type="email" value="{{ cod.email }}" id="email_{{ cod.id }}" class="form-control" style="padding:5px;">
+ </td>
+ <td>
+ <select id="department_{{ cod.id }}" class="form-control" style="padding:5px;">
+ {% for dept in departments %}
+ <option value="{{ dept.id }}" {% if dept.leader == cod %}selected{% endif %}>
+ {{ dept.name }}
+ </option>
+ {% endfor %}
+ </select>
+ </td>
+ <td>
+ {% if cod.department %}
+ <span class="badge badge-green">{{ cod.department.faculty.name }}</span>
+ {% else %}
+ <span class="badge">Not assigned</span>
+ {% endif %}
+ </td>
+ <td>
+ <button class="btn btn-success btn-sm" onclick="editCOD({{ cod.id }})">Save</button>
+ <button class="btn btn-warning btn-sm" onclick="resetPassword({{ cod.id }})">Reset</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteCOD({{ cod.id }})">Delete</button>
+ </td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="5" class="text-center" style="padding: 30px;">No CODs found</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+</div>
+
+{% endblock sudo_content %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * admins_admins_cod_management.js
+ * Extracted inline JS from: admins/templates/admins/cod_management.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+const CSRF = '{{ csrf_token }}';
+
+function createCOD() {
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+  
+  fetch("{% url 'create_cod' %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({
+      username: document.getElementById('new_username').value,
+      email: document.getElementById('new_email').value,
+      department: document.getElementById('new_department').value,
+      password: document.getElementById('new_password').value
+    })
+  })
+  .then(r => r.json())
+  .then(resp => {
+    alert(resp.message);
+    if (resp.status === 'success') location.reload();
+  })
+  .catch(() => alert('Network error'))
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Create COD';
+  });
+}
+
+function editCOD(id) {
+  fetch(`/cods/edit/${id}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({
+      username: document.getElementById(`username_${id}`).value,
+      email: document.getElementById(`email_${id}`).value,
+      department: document.getElementById(`department_${id}`).value
+    })
+  })
+  .then(r => r.json())
+  .then(resp => alert(resp.message));
+}
+
+function resetPassword(id) {
+  const pass = prompt('Enter new password:');
+  if (!pass) return;
+  
+  fetch(`/cods/reset_password/${id}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+    body: new URLSearchParams({ password: pass })
+  })
+  .then(r => r.json())
+  .then(resp => alert(resp.message));
+}
+
+function deleteCOD(id) {
+  if (!confirm('Delete this COD?')) return;
+  
+  fetch(`/cods/delete/${id}/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF }
+  })
+  .then(r => r.json())
+  .then(resp => {
+    alert(resp.message);
+    if (resp.status === 'success') location.reload();
+  });
+}
+</script>
+{% endblock extra_js %}

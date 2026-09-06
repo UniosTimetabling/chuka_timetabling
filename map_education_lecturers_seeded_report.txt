@@ -1,0 +1,336 @@
+==========================================================================================
+  EDUCATION DEPARTMENT — LECTURER & ORIGIN-DEPARTMENT MAPPING (seeded)
+  Mode : APPLY (writing to DB)
+  Seed entries loaded: 353
+==========================================================================================
+
+------------------------------------------------------------------------------------------
+Lecturer updates staged           : 140
+Origin department updates staged  : 43
+Already correct (lecturer)        : 87
+Already correct (origin dept)     : 310
+Needs manual review (lecturer)    : 126
+course_code not found in DB       : 0
+payroll_number not found in DB    : 0
+department name not found in DB   : 0
+------------------------------------------------------------------------------------------
+
+── LECTURER CHANGES ─────────────────────────────────────────────────────
+  AGRI 322(EDU2)         '(blank)'                        -> 'Shelmith Wanja Munyiri'
+  AGRI 351(EDU2)         '(blank)'                        -> 'Patrick Njoroge'
+  ANSC 333(EDU2)         '(blank)'                        -> 'James Muita Kinyua'
+  BCOM 214               '(blank)'                        -> 'C Mathenge'
+  BOTA 453(EDU)          '(blank)'                        -> 'James Maina Mwangi'
+  BOTA 453(EDU2)         '(blank)'                        -> 'James Maina Mwangi'
+  EAPE 411(EDU)-A        '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE 411(EDU)-B        '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE 411(EDU2)-A       '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE 411(EDU2)-B       '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE 412(EDU2)-A       '(blank)'                        -> 'Charles Kibet Kiptum'
+  EAPE 412(EDU2)-B       '(blank)'                        -> 'Mary Mukwairu Mugambi'
+  EAPE 412(EDU2)-C       '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE412(EDU)-A         '(blank)'                        -> 'Charles Kibet Kiptum'
+  EAPE412(EDU)-B         '(blank)'                        -> 'Mary Mukwairu Mugambi'
+  EAPE412(EDU)-C         '(blank)'                        -> 'Nelson Oluoch Jagero'
+  EAPE412(EDU)-D         '(blank)'                        -> 'Nelson Oluoch Jagero'
+  ECDE 121               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 122               '(blank)'                        -> 'Mary Wambui Wacuka'
+  ECDE 123               '(blank)'                        -> 'Hannah Wanjiku Kangara'
+  ECDE 131               '(blank)'                        -> 'Bornace Jepkorir Kimeli'
+  ECDE 141               '(blank)'                        -> 'Chris Enidy Boera'
+  ECDE 231               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 232               '(blank)'                        -> 'Bornace Jepkorir Kimeli'
+  ECDE 233               '(blank)'                        -> 'Mary Wambui Wacuka'
+  ECDE 234               '(blank)'                        -> 'Lucy Nyambura Kiriungi'
+  ECDE 235               '(blank)'                        -> 'Chris Enidy Boera'
+  ECDE 236               '(blank)'                        -> 'Hannah Wanjiku Kangara'
+  ECDE 237               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 238               '(blank)'                        -> 'Chris Enidy Boera'
+  ECDE 311               '(blank)'                        -> 'Hannah Wanjiku Kangara'
+  ECDE 321               '(blank)'                        -> 'Bornace Jepkorir Kimeli'
+  ECDE 331               '(blank)'                        -> 'Mary Wambui Wacuka'
+  ECDE 332               '(blank)'                        -> 'Hannah Wanjiku Kangara'
+  ECDE 333               '(blank)'                        -> 'Chris Enidy Boera'
+  ECDE 334               '(blank)'                        -> 'Mary Wambui Wacuka'
+  ECDE 341               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 411               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 412               '(blank)'                        -> 'Bornace Jepkorir Kimeli'
+  ECDE 431               '(blank)'                        -> 'Hannah Wanjiku Kangara'
+  ECDE 432               '(blank)'                        -> 'Linet Kamene Mutua'
+  ECDE 441               '(blank)'                        -> 'Chris Enidy Boera'
+  ECDE 442               '(blank)'                        -> 'Mary Wambui Wacuka'
+  ECDE 443               '(blank)'                        -> 'Bornace Jepkorir Kimeli'
+  ECDE 444               '(blank)'                        -> 'Mary Wambui Wacuka'
+  EDCI 111(EDU)-L        'Lydia Karimi'                   -> 'Eric Thauri'
+  EDCI 111(EDU)-M        'Lydia Karimi'                   -> 'Nduru'
+  EDCI 111(EDU)-N        'Lydia Karimi'                   -> 'Gisoi'
+  EDCI 111(EDU)-O        'Enid Kawira'                    -> 'Catherine Ngaine'
+  EDCI 111(EDU2)-E       '(blank)'                        -> 'Rose Anyango Jakinda'
+  EDCI 111(EDU2)-G       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 203(EDU2)-A       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 203(EDU2)-B       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 211(EDU2)-A       '(blank)'                        -> 'Benedict Mutina Maluni'
+  EDCI 211(EDU2)-B       '(blank)'                        -> 'Benedict Mutina Maluni'
+  EDCI 211(EDU2)-C       '(blank)'                        -> 'Benedict Mutina Maluni'
+  EDCI 211(EDU2)-G       '(blank)'                        -> 'John Otieno Ogembo'
+  EDCI 311(EDU2)-A       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 311(EDU2)-B       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 311(EDU2)-C       '(blank)'                        -> 'John Otieno Ogembo'
+  EDCI 311(EDU2)-D       '(blank)'                        -> 'Benedict Mutina Maluni'
+  EDCI 322(EDU2)-A       '(blank)'                        -> 'Monica Gakii Ituma'
+  EDCI 322(EDU2)-B       '(blank)'                        -> 'Monica Gakii Ituma'
+  EDCI 322(EDU2)-C       '(blank)'                        -> 'Noel Mbaka'
+  EDCI 322(EDU2)-D       '(blank)'                        -> 'Mercy Wanja Njagi'
+  EDFO 111(EDU)-D        'Humphrey Mugambi Kararwa'       -> 'Humprey Mugambi'
+  EDFO 111(EDU)-E        'Humphrey Mugambi Kararwa'       -> 'Humprey Mugambi'
+  EDFO 111(EDU2)-A       '(blank)'                        -> 'Agnes Kendi'
+  EDFO 111(EDU2)-B       '(blank)'                        -> 'Agnes Kendi'
+  EDFO 111(EDU2)-D       '(blank)'                        -> 'Humprey Mugambi'
+  EDFO 111(EDU2)-E       '(blank)'                        -> 'Humprey Mugambi'
+  EDFO 111(EDU2)-F       '(blank)'                        -> 'Steve Muthomi'
+  EDFO 111(EDU2)-G       '(blank)'                        -> 'Steve Muthomi'
+  EDFO 211(EDU)-G        'Humphrey Mugambi Kararwa'       -> 'Humprey Mugambi'
+  EDFO 211(EDU)-H        'Humphrey Mugambi Kararwa'       -> 'Humprey Mugambi'
+  EDFO 211(EDU2)-G       '(blank)'                        -> 'Humprey Mugambi'
+  EDFO 321(EDU)-A        'Humphrey Mugambi Kararwa'       -> 'Humprey Mugambi'
+  EDFO 321(EDU)-D        '(blank)'                        -> 'Prisca Kobia'
+  EDFO 321(EDU2)-A       '(blank)'                        -> 'Humprey Mugambi'
+  EDFO 321(EDU2)-C       '(blank)'                        -> 'Marcella Kamami'
+  EDFO 321(EDU2)-D       '(blank)'                        -> 'Prisca Kobia'
+  ENGL 313(EDU)-A        '(blank)'                        -> 'Miriam Mutegi'
+  ENGL 313(EDU)-B        '(blank)'                        -> 'Miriam Mutegi'
+  ENGL 351(EDU)          '(blank)'                        -> 'Emmanuel Njuki'
+  ENGL 411               '(blank)'                        -> 'C.Patrick Kihara'
+  ENGL 412               '(blank)'                        -> 'Diana Kaburo'
+  EPSC 111(EDU)-M        'Charles Kibet Kiptum'           -> 'Lydia Karimi'
+  EPSC 111(EDU)-N        'Monene Justine'                 -> 'Harriet Kagendo'
+  EPSC 111(EDU)-O        'Monene Justine'                 -> 'Enid Kawira'
+  EPSC 111(EDU2)-A       '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC 111(EDU2)-B       '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC 111(EDU2)-C       '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC 111(EDU2)-D       '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 111(EDU2)-E       '(blank)'                        -> 'Lucy Nyambura Kiriungi'
+  EPSC 111(EDU2)-F       '(blank)'                        -> 'Lucy Nyambura Kiriungi'
+  EPSC 222(EDU)-G        'Grace Gatune Murithi'           -> 'Grace Murith'
+  EPSC 222(EDU2)-D       '(blank)'                        -> 'Charles Kibet Kiptum'
+  EPSC 222(EDU2)-E       '(blank)'                        -> 'Charles Kibet Kiptum'
+  EPSC 222(EDU2)-G       '(blank)'                        -> 'Grace Murith'
+  EPSC 311(EDU)-C        '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 311(EDU)-D        '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 311(EDU)-E        '(blank)'                        -> 'John Mwithali Kamoyo'
+  EPSC 311(EDU2)-C       '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 311(EDU2)-D       '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 331(AGE)          '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC 431(EDU2)-A       '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC 431(EDU2)-B       '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC431(EDU)-A         '(blank)'                        -> 'Grace Gatune Murithi'
+  EPSC431(EDU)-B         '(blank)'                        -> 'Mercy Nkinga Kariuki'
+  EPSC431(EDU)-D         '(blank)'                        -> 'John Mwithali Kamoyo'
+  FREN 130(EDU)          'Chrispus Mwakazi Mwakundia'     -> 'Crispus Mwakundia'
+  FREN 240(EDU)          'Chrispus Mwakazi Mwakundia'     -> 'Crispus Mwakundia'
+  FREN 243(EDU)          'Chrispus Mwakazi Mwakundia'     -> 'Crispus Mwakundia'
+  FREN 344(EDU)          '(blank)'                        -> 'Eunice Magu'
+  FREN 345(EDU)          '(blank)'                        -> 'Crispus Mwakundia'
+  FREN 350               '(blank)'                        -> 'Sawa Wambua'
+  FREN 441(EDU)          '(blank)'                        -> 'Eunice Magu'
+  FREN 448(EDU)          '(blank)'                        -> 'Crispus Mwakundia'
+  HIST 347               '(blank)'                        -> 'Murati'
+  HIST 412               '(blank)'                        -> 'Martha Wanjiru Muraya'
+  HIST 447               '(blank)'                        -> 'Paul Njoroge Muiru'
+  HIST361(EDU)           '(blank)'                        -> 'Martha Wanjiru Muraya'
+  HOSC 111(EDU2)         '(blank)'                        -> 'Susan Muthoni Kinyua'
+  HOSC 131(EDU2)         '(blank)'                        -> 'Alice Njeri Ngunu'
+  HOSC 211(EDU2)         '(blank)'                        -> 'Alice Njeri Ngunu'
+  HOSC 221(EDU2)         '(blank)'                        -> 'Alice Njeri Ngunu'
+  HOSC 251(EDU2)         '(blank)'                        -> 'Alice Njeri Ngunu'
+  HOSC 341               '(blank)'                        -> 'Alice Njeri Ngunu'
+  KISW 303(EDU)          '(blank)'                        -> 'Dorcas Muendi Musyimi'
+  LITT 313               '(blank)'                        -> 'Muriungi Kanaa'
+  LITT 431(EDU)          '(blank)'                        -> 'Kirimi Kainga'
+  PESP 311-A             '(blank)'                        -> 'Rose Anyango Jakinda'
+  PESP 311-B             '(blank)'                        -> 'Rose Anyango Jakinda'
+  PESP 331               '(blank)'                        -> 'Rose Anyango Jakinda'
+  PESP 441               '(blank)'                        -> 'Rose Anyango Jakinda'
+  RELI 362(EDU)          '(blank)'                        -> 'Lucy Mutare Mathai'
+  RELI 450(EDU)          '(blank)'                        -> 'Lucy Mutare Mathai'
+  SOIL 100(EDU2)         '(blank)'                        -> 'Felsiter Mbaka'
+  SOIL 320(EDU)          '(blank)'                        -> 'Haggai Onyango Ndukhu'
+  SOIL 320(EDU2)         '(blank)'                        -> 'Haggai Onyango Ndukhu'
+
+── ORIGIN DEPARTMENT CHANGES ────────────────────────────────────────────
+  AGRI 101(EDU2)         'Education'                  -> 'Plant Science'
+  AGRI 322(EDU)          'Animal Science'             -> 'Plant Science'
+  AGRI 322(EDU2)         'Education'                  -> 'Plant Science'
+  AGRI 351(EDU2)         'Education'                  -> 'Plant Science'
+  ANSC 333(EDU2)         'Education'                  -> 'Animal Science'
+  BHRM 113(EDU)          'Education'                  -> 'Business Administration'
+  BOTA 453(EDU)          'Education'                  -> 'Biological Sciences'
+  BOTA 453(EDU2)         'Education'                  -> 'Biological Sciences'
+  COMS 101(EDU2)         'Education'                  -> 'Humanities'
+  ENGL 313(EDU)-A        'Education'                  -> 'Humanities'
+  ENGL 313(EDU)-B        'Education'                  -> 'Humanities'
+  ENGL 313(EDU)-C        'Education'                  -> 'Humanities'
+  ENGL 313(EDU)-D        'Education'                  -> 'Humanities'
+  ENGL 313(EDU)-E        'Education'                  -> 'Humanities'
+  ENGL 351(EDU)          'Education'                  -> 'Humanities'
+  ENGL 411               'Education'                  -> 'Humanities'
+  ENGL 412               'Education'                  -> 'Humanities'
+  FREN 344(EDU)          'Education'                  -> 'Humanities'
+  FREN 345(EDU)          'Education'                  -> 'Humanities'
+  FREN 350               'Education'                  -> 'Humanities'
+  FREN 441(EDU)          'Education'                  -> 'Humanities'
+  FREN 448(EDU)          'Education'                  -> 'Humanities'
+  HIST 121-B             'Education'                  -> 'Humanities'
+  HIST 211-B             'Education'                  -> 'Humanities'
+  HIST 347               'Education'                  -> 'Humanities'
+  HIST 412               'Education'                  -> 'Humanities'
+  HIST 447               'Education'                  -> 'Humanities'
+  HIST361(EDU)           'Education'                  -> 'Humanities'
+  KISW 302(EDU)          'Education'                  -> 'Humanities'
+  KISW 303(EDU)          'Education'                  -> 'Humanities'
+  KISW 402(EDU)          'Education'                  -> 'Humanities'
+  KISW 404(EDU)          'Education'                  -> 'Humanities'
+  LITT 313               'Education'                  -> 'Humanities'
+  LITT 323(EDU)          'Education'                  -> 'Humanities'
+  LITT 424(EDU)          'Education'                  -> 'Humanities'
+  LITT 431(EDU)          'Education'                  -> 'Humanities'
+  RELI 340(EDU)          'Education'                  -> 'Humanities'
+  RELI 362(EDU)          'Education'                  -> 'Humanities'
+  RELI 450(EDU)          'Education'                  -> 'Humanities'
+  RELI 475(EDU)          'Education'                  -> 'Humanities'
+  SOIL 100(EDU2)         'Education'                  -> 'Plant Science'
+  SOIL 320(EDU)          'Education'                  -> 'Plant Science'
+  SOIL 320(EDU2)         'Education'                  -> 'Plant Science'
+
+── NEEDS MANUAL REVIEW (lecturer left unchanged) ───────────────────────
+  AGRI 101(EDU2)         AMBIGUOUS lecturer name 'Ms Felister Mbaka/Kimathi' -> Henry Kimathi Mukaria(CHU/0043), Peter Gituma Kimathi(CHU/0184), Kenkelvin Kimathi Mbaka(CHU/0233), Francis Kimathi M'Thuranira(CHU/0285), David Kimathi(CHU/0460), Kenkelvin Kimathi(TEMP0117), Kimathi(TEMP9001), Antony Kimathi(TEMP9004)
+  BHRM 113(EDU)          AMBIGUOUS lecturer name 'DR. H.KIMATHI' -> Henry Kimathi Mukaria(CHU/0043), Peter Gituma Kimathi(CHU/0184), Kenkelvin Kimathi Mbaka(CHU/0233), Francis Kimathi M'Thuranira(CHU/0285), David Kimathi(CHU/0460), Kenkelvin Kimathi(TEMP0117), Kimathi(TEMP9001), Antony Kimathi(TEMP9004)
+  COMS 101(EDU)          multiple lecturers listed with no letter to disambiguate: ['Dr. Jane Kathomi', 'Dr. Elsie Kirimo', 'Dr. Rose Wambugu', 'Jacob Murigi', 'Gideon Munyao']
+  COMS 101(EDU2)         multiple lecturers listed with no letter to disambiguate: ['Dr. Jane Kathomi', 'Dr. Elsie Kirimo', 'Dr. Rose Wambugu', 'Jacob Murigi', 'Gideon Munyao']
+  EAPE 211(AGE)          AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EAPE 411(AGE)-A        doc row found but no lecturer listed for this stream
+  EAPE 411(AGE)-B        doc row found but no lecturer listed for this stream
+  EAPE 411(EDU)-C        AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EAPE 411(EDU)-D        AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EAPE 411(EDU2)-C       AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EDCI 111(EDU)-A        AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU)-B        AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU)-C        AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU)-D        AMBIGUOUS lecturer name 'Dr. Ogembo' -> John Otieno Ogembo(CHU/0203), Ogembo(TEMP0068)
+  EDCI 111(EDU)-F        AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  EDCI 111(EDU)-I        AMBIGUOUS lecturer name 'Dr. Catherine' -> Catherine Kathure Kaimenyi(CHU/0065), Catherine Wairimu Thiong'O(CHU/0146), Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Gatwiri(CHU/0623), Catherine(TEMP0011), Catherine Ngaine(TEMP0015), Catherine Nkirote(TEMP0023)
+  EDCI 111(EDU)-J        AMBIGUOUS lecturer name 'Dr. Catherine' -> Catherine Kathure Kaimenyi(CHU/0065), Catherine Wairimu Thiong'O(CHU/0146), Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Gatwiri(CHU/0623), Catherine(TEMP0011), Catherine Ngaine(TEMP0015), Catherine Nkirote(TEMP0023)
+  EDCI 111(EDU)-K        AMBIGUOUS lecturer name 'Dr. Ogembo' -> John Otieno Ogembo(CHU/0203), Ogembo(TEMP0068)
+  EDCI 111(EDU2)-A       AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU2)-B       AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU2)-C       AMBIGUOUS lecturer name 'Dr. Maluni' -> Benedict Mutina Maluni(CHU/0084), Maluni(TEMP0067)
+  EDCI 111(EDU2)-D       AMBIGUOUS lecturer name 'Dr. Ogembo' -> John Otieno Ogembo(CHU/0203), Ogembo(TEMP0068)
+  EDCI 111(EDU2)-F       AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  EDCI 203(EDU)-C        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU)-D        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU)-E        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU)-F        doc row found but no lecturer listed for this stream
+  EDCI 203(EDU)-G        doc row found but no lecturer listed for this stream
+  EDCI 203(EDU)-H        doc row found but no lecturer listed for this stream
+  EDCI 203(EDU)-L        doc row found but no lecturer listed for this stream
+  EDCI 203(EDU2)-C       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU2)-D       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU2)-E       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 203(EDU2)-F       doc row found but no lecturer listed for this stream
+  EDCI 203(EDU2)-G       doc row found but no lecturer listed for this stream
+  EDCI 211(EDU)-D        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 211(EDU)-E        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 211(EDU)-F        AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 211(EDU)-J        AMBIGUOUS lecturer name 'Mr. Robinson Kenyatta' -> Robinson Kenyatta Jacob(CHU/0228), Robinson Kenyatta(TEMP0097)
+  EDCI 211(EDU)-K        AMBIGUOUS lecturer name 'Mr. Robinson Kenyatta' -> Robinson Kenyatta Jacob(CHU/0228), Robinson Kenyatta(TEMP0097)
+  EDCI 211(EDU)-L        doc row found but no lecturer listed for this stream
+  EDCI 211(EDU2)-D       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 211(EDU2)-E       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDCI 211(EDU2)-F       AMBIGUOUS lecturer name 'Dr. Catherine Nkirote' -> Catherine Nkirote Gichunge(CHU/0234), Catherine Nkirote Kairo(CHU/0288), Catherine Nkirote(TEMP0023)
+  EDFO 111(AGE)-A        doc row found but no lecturer listed for this stream
+  EDFO 111(AGE)-B        doc row found but no lecturer listed for this stream
+  EDFO 111(EDU)-C        AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 111(EDU)-N        doc row found but no lecturer listed for this stream
+  EDFO 111(EDU)-O        doc row found but no lecturer listed for this stream
+  EDFO 111(EDU2)-C       AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(AGE)-A        doc row found but no lecturer listed for this stream
+  EDFO 211(AGE)-B        doc row found but no lecturer listed for this stream
+  EDFO 211(EDU)-A        AMBIGUOUS lecturer name 'Dr James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 211(EDU)-B        AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 211(EDU)-C        AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 211(EDU)-D        AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(EDU)-E        AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(EDU)-F        AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(EDU2)-A       AMBIGUOUS lecturer name 'Dr James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 211(EDU2)-B       AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 211(EDU2)-C       AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 211(EDU2)-D       AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(EDU2)-E       AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 211(EDU2)-F       AMBIGUOUS lecturer name 'Dr. John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EDFO 321(EDU)-B        doc row found but no lecturer listed for this stream
+  EDFO 321(EDU)-E        AMBIGUOUS lecturer name 'Dr Kenkelvin Kimathi' -> Kenkelvin Kimathi Mbaka(CHU/0233), Kenkelvin Kimathi(TEMP0117)
+  EDFO 321(EDU2)-B       doc row found but no lecturer listed for this stream
+  EDFO 422(EDU)-A        AMBIGUOUS lecturer name 'Dr. James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 422(EDU)-B        AMBIGUOUS lecturer name 'Dr. James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 422(EDU)-C        AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 422(EDU)-D        AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EDFO 422(EDU2)-A       AMBIGUOUS lecturer name 'Dr. James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 422(EDU2)-B       AMBIGUOUS lecturer name 'Dr. James Mwenda' -> James Mwenda Murungi(CHU/0086), James Mwenda(TEMP0104)
+  EDFO 422(EDU2)-C       AMBIGUOUS lecturer name 'Dr. Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  ENGL 102(EDU)          AMBIGUOUS lecturer name 'Prof. Christine Atieno' -> Christine Atieno Peter(CHU/0063), Christine Atieno(TEMP0079)
+  ENGL 211(EDU)          AMBIGUOUS lecturer name 'Prof. Christine Atieno' -> Christine Atieno Peter(CHU/0063), Christine Atieno(TEMP0079)
+  ENGL 313(EDU)-C        doc row found but no lecturer listed for this stream
+  ENGL 313(EDU)-D        doc row found but no lecturer listed for this stream
+  ENGL 313(EDU)-E        doc row found but no lecturer listed for this stream
+  EPSC 111(AGE)-A        doc row found but no lecturer listed for this stream
+  EPSC 111(AGE)-B        doc row found but no lecturer listed for this stream
+  EPSC 111(EDU)-G        AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 111(EDU2)-G       AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 222(EDU)-A        doc row found but no lecturer listed for this stream
+  EPSC 222(EDU)-B        doc row found but no lecturer listed for this stream
+  EPSC 222(EDU)-C        AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 222(EDU)-F        AMBIGUOUS lecturer name 'Dr Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EPSC 222(EDU)-H        AMBIGUOUS lecturer name 'Dr John Karauri' -> John Karauri Mbaka(CHU/0276), John Karauri(TEMP0049)
+  EPSC 222(EDU)-I        AMBIGUOUS lecturer name 'Dr Kenkelvin Kimathi' -> Kenkelvin Kimathi Mbaka(CHU/0233), Kenkelvin Kimathi(TEMP0117)
+  EPSC 222(EDU)-K        AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EPSC 222(EDU)-L        AMBIGUOUS lecturer name 'Prof Eric Mwenda' -> Eric Mwenda Elias(CHU/0010), Eric Mwenda(TEMP0119)
+  EPSC 222(EDU2)-A       doc row found but no lecturer listed for this stream
+  EPSC 222(EDU2)-B       doc row found but no lecturer listed for this stream
+  EPSC 222(EDU2)-C       AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 222(EDU2)-F       AMBIGUOUS lecturer name 'Dr Peter Kimanthi' -> Peter Kimanthi Mbaka(CHU/0089), Peter Kimanthi(TEMP0105)
+  EPSC 311(EDU)-A        AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 311(EDU)-B        AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 311(EDU2)-A       AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 311(EDU2)-B       AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC 431(EDU2)-C       AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  EPSC431(EDU)-C         AMBIGUOUS lecturer name 'Dr Benjamin Kanga' -> Benjamin Kanga Mugambi(CHU/0027), Benjamin Kanga(TEMP0059)
+  HIST 211-A             AMBIGUOUS lecturer name 'Dr. Mulati' -> Job Mulati Chebai(CHU/0059), Grp B Dr. Mulati(TEMP0030), Job Mulati(TEMP0195)
+  HIST 211-B             AMBIGUOUS lecturer name 'Dr. mulati' -> Job Mulati Chebai(CHU/0059), Grp B Dr. Mulati(TEMP0030), Job Mulati(TEMP0195)
+  HIST 253-A             AMBIGUOUS lecturer name 'Dr. Mulati' -> Job Mulati Chebai(CHU/0059), Grp B Dr. Mulati(TEMP0030), Job Mulati(TEMP0195)
+  HIST 253-B             AMBIGUOUS lecturer name 'Dr. Mulati' -> Job Mulati Chebai(CHU/0059), Grp B Dr. Mulati(TEMP0030), Job Mulati(TEMP0195)
+  HOSC 321               AMBIGUOUS lecturer name 'Prof Susan Muthoni' -> Susan Muthoni Kinyua(CHU/0039), Susan Muthoni(TEMP0155)
+  KISW 101(EDU)          AMBIGUOUS lecturer name 'Prof. John Kobia' -> John Kobia Mwithalii(CHU/0048), John Kobia(TEMP0082)
+  KISW 302(EDU)          AMBIGUOUS lecturer name 'Dr. Mary Kanyua' -> Mary Kanyua Njeru(CHU/0200), Mary Kanyua(TEMP0147)
+  KISW 402(EDU)          AMBIGUOUS lecturer name 'Dr. Mary Kanyua' -> Mary Kanyua Njeru(CHU/0200), Mary Kanyua(TEMP0147)
+  KISW 404(EDU)          AMBIGUOUS lecturer name 'Dr.Shadrack Kirimi' -> Shadrack Kirimi Nyagah(CHU/0216), Dr.Shadrack Kirimi(TEMP0170)
+  LITT 102(EDU)          AMBIGUOUS lecturer name 'Prof. Waita' -> Zachary Njogu Waita(CHU/0003), Waita(TEMP0080)
+  LITT 323(EDU)          AMBIGUOUS lecturer name 'Dr. Mukasa' -> Antony Mukasa Mate(CHU/0206), Mukasa(TEMP0146)
+  LITT 424(EDU)          AMBIGUOUS lecturer name 'Dr. Mukasa' -> Antony Mukasa Mate(CHU/0206), Mukasa(TEMP0146)
+  PESP 111-A             AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 211-A             AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 211-B             AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 221               AMBIGUOUS lecturer name 'Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 222               AMBIGUOUS lecturer name 'Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 311-C             AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  PESP 311-D             doc row found but no lecturer listed for this stream
+  PESP 311-E             doc row found but no lecturer listed for this stream
+  PESP 442               AMBIGUOUS lecturer name 'Ms. Purity Kananu' -> Purity Kananu Mwongera(CHU/0215), Purity Kananu(CHU/0398)
+  RELI 100(EDU)          AMBIGUOUS lecturer name 'Prof. Bururia' -> David Nyaga Bururia(CHU/0011), Bururia(TEMP0081)
+  RELI 120               AMBIGUOUS lecturer name 'Prof. Nkonge' -> Dickson Nkonge Kagema(CHU/0041), Christopher Nkonge Kiboro(CHU/0077), Nkonge(TEMP0019)
+  RELI 340(EDU)          AMBIGUOUS lecturer name 'Dr.Hellen Orina' -> Hellen Kagwiria Orina(CHU/0189), Dr.Hellen Orina(TEMP0148)
+  RELI 475(EDU)          AMBIGUOUS lecturer name 'Prof. Nkonge' -> Dickson Nkonge Kagema(CHU/0041), Christopher Nkonge Kiboro(CHU/0077), Nkonge(TEMP0019)
+
+==========================================================================================
+  APPLYING CHANGES NOW...
+  DONE. Updated 140 lecturer field(s) and 43 origin_department field(s).
+==========================================================================================

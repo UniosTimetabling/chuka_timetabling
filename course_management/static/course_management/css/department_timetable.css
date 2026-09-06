@@ -1,0 +1,513 @@
+/*
+ * course_management_course_management_department_timetable.css
+ * Extracted from: course_management/templates/course_management/department_timetable.html
+ *
+ * Design system: matches the "Excel flat" theme already established
+ * elsewhere in this app (see dashboards/templates/dashboard/
+ * _excel_flat_theme.html and exam_autosheduler.html) rather than
+ * inventing a new one:
+ *   - real Excel green (#107c41), used sparingly — bars and accents,
+ *     not tinted backgrounds
+ *   - flat: border-radius 0 and box-shadow none, everywhere, no exceptions
+ *   - plain gray grid lines (#ccc) on every cell, like a real spreadsheet
+ *   - header rows are light gray (#f8f9fa), not green — only the day/section
+ *     bars and buttons carry the green
+ *   - body text is plain black, not a spread of muted greens/grays
+ *   - one font ('Inter' — already loaded globally by the root base.html
+ *     <link>; the old 'Segoe UI'/'Plus Jakarta Sans' stack was never
+ *     actually fetched anywhere in the app, so it silently fell back)
+ *
+ * This file also carries small, page-scoped versions of the handful of
+ * Bootstrap utility classes the JS renderer still emits (badge, alert,
+ * list-group, .me-2, etc.) — see department_timetable.html for why
+ * Bootstrap itself is no longer loaded on this page.
+ */
+
+:root {
+    --dt-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+    --dt-green:      #107c41;
+    --dt-green-dark: #0a4e29;
+
+    --dt-grid:       #ccc;          /* cell borders — plain gray, not green */
+    --dt-header-bg:  #f8f9fa;       /* th / venue column — plain light gray */
+    --dt-page-bg:    #f3f2f1;
+    --dt-surface:    #ffffff;
+
+    --dt-text:       #000000;
+    --dt-text-mid:   #333333;
+    --dt-text-muted: #6b6b6b;
+    --dt-text-faint: #bfbfbf;
+
+    --dt-danger:     #c00000;
+    --dt-danger-bg:  #fdecea;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background-color: var(--dt-page-bg);
+    font-family: var(--dt-font);
+    color: var(--dt-text);
+}
+
+.container-fluid {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 16px;
+    font-family: var(--dt-font);
+}
+
+/* ── Flat panel (replaces Bootstrap .card) — no radius, no shadow ───── */
+.card {
+    background: var(--dt-surface);
+    border: 1px solid var(--dt-grid);
+    border-radius: 0;
+    margin-bottom: 16px;
+    box-shadow: none;
+}
+
+.card-header {
+    background: var(--dt-green);
+    color: #ffffff;
+    padding: 12px 16px;
+    border-radius: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.card-header h3, .card-header h5 {
+    margin: 0 0 4px 0;
+    font-weight: 700;
+}
+
+.card-body {
+    padding: 14px 16px;
+}
+
+/* ── Header content layout ─────────────────────────────────────────── */
+.dt-header-main { display: flex; flex-direction: column; }
+.dt-header-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.dt-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+/* ── Badge (also matches JS-emitted "badge bg-light text-dark") ──────── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1.3;
+}
+
+/* badges sitting on the green header bar — translucent white, no fill color */
+.card-header .badge,
+.day-header .badge {
+    background: rgba(255, 255, 255, .2);
+    color: #ffffff;
+}
+
+/* badges sitting on a light/white surface (JS emits bg-light text-dark) */
+.badge.bg-light {
+    background: var(--dt-header-bg);
+    color: var(--dt-text);
+    border: 1px solid var(--dt-grid);
+}
+.badge.text-dark { color: var(--dt-text); }
+
+/* ── Buttons — flat, solid fill, no radius, no shadow ────────────────── */
+.dt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--dt-font);
+    font-size: .82rem;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 0;
+    border: 1px solid var(--dt-grid);
+    background: var(--dt-surface);
+    color: var(--dt-text);
+    cursor: pointer;
+    box-shadow: none;
+    white-space: nowrap;
+}
+.dt-btn:hover { background: var(--dt-page-bg); }
+
+.dt-btn-primary {
+    background: var(--dt-green);
+    border-color: var(--dt-green-dark);
+    color: #ffffff;
+}
+.dt-btn-primary:hover { background: var(--dt-green-dark); }
+
+/* sits on the green header bar */
+.dt-btn-on-dark {
+    background: rgba(255, 255, 255, .12);
+    border-color: rgba(255, 255, 255, .5);
+    color: #ffffff;
+}
+.dt-btn-on-dark:hover { background: rgba(255, 255, 255, .24); }
+
+/* ── Toolbar / filters row ────────────────────────────────────────── */
+.dt-toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    margin-bottom: 14px;
+}
+.dt-toolbar-row:last-child { margin-bottom: 0; }
+.dt-field { display: flex; flex-direction: column; gap: 6px; }
+.dt-field-label {
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--dt-text-muted);
+}
+.dt-field-grow { flex: 1 1 340px; min-width: 260px; }
+.dt-field-narrow { flex: 0 1 220px; min-width: 180px; }
+
+/* Segmented type toggle (Regular / Exam) — plain CSS, no Bootstrap JS needed */
+.dt-segmented {
+    display: inline-flex;
+    border: 1px solid var(--dt-grid);
+}
+.dt-segmented input { position: absolute; opacity: 0; pointer-events: none; }
+.dt-segmented label {
+    padding: 8px 16px;
+    font-size: .84rem;
+    font-weight: 600;
+    color: var(--dt-text);
+    background: var(--dt-surface);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-right: 1px solid var(--dt-grid);
+}
+.dt-segmented label:last-of-type { border-right: none; }
+.dt-segmented input:checked + label { background: var(--dt-green); color: #ffffff; }
+.dt-segmented input:focus-visible + label { outline: 2px solid var(--dt-green); outline-offset: -2px; }
+
+/* Text / date inputs, select — flat, gray grid border */
+.dt-input-group {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--dt-grid);
+    background: var(--dt-surface);
+}
+.dt-input-group:focus-within { border-color: var(--dt-green); }
+.dt-input-icon {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 12px;
+    background: var(--dt-header-bg);
+    color: var(--dt-text-mid);
+    border-right: 1px solid var(--dt-grid);
+    font-size: .85rem;
+}
+.dt-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px 10px;
+    font-family: var(--dt-font);
+    font-size: .88rem;
+    color: var(--dt-text);
+    background: transparent;
+    min-width: 0;
+}
+.dt-input-group .dt-btn {
+    border: none;
+    border-left: 1px solid var(--dt-grid);
+    border-radius: 0;
+}
+
+.dt-select {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: var(--dt-font);
+    font-size: .88rem;
+    color: var(--dt-text);
+    background: var(--dt-surface);
+    border: 1px solid var(--dt-grid);
+    border-radius: 0;
+}
+.dt-select:focus { outline: none; border-color: var(--dt-green); }
+
+.dt-hint { font-size: .78rem; color: var(--dt-text-muted); margin-top: 8px; }
+
+/* Search suggestions (JS emits .list-group / .list-group-item) — border only, no shadow */
+.dt-suggestions-wrap { position: relative; }
+.list-group {
+    position: absolute;
+    z-index: 20;
+    top: 4px; left: 0; right: 0;
+    background: var(--dt-surface);
+    border: 1px solid var(--dt-grid);
+}
+.list-group-item {
+    display: block;
+    padding: 8px 12px;
+    font-size: .85rem;
+    color: var(--dt-text);
+    border-bottom: 1px solid var(--dt-grid);
+    background: var(--dt-surface);
+}
+.list-group-item:last-child { border-bottom: none; }
+.list-group-item-action:hover { background: var(--dt-page-bg); cursor: pointer; }
+.list-group-item strong { color: var(--dt-text); }
+
+/* ── Compact-view toggle — plain checkbox, not a rounded switch ─────── */
+.dt-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.dt-check input { width: 15px; height: 15px; accent-color: var(--dt-green); cursor: pointer; }
+.dt-check-label { font-size: .82rem; color: var(--dt-text); font-weight: 600; }
+
+/* ── Loading overlay / spinner ────────────────────────────────────── */
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, .94);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 30;
+}
+.dt-spinner {
+    width: 30px; height: 30px;
+    border: 3px solid var(--dt-grid);
+    border-top-color: var(--dt-green);
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    animation: dt-spin .7s linear infinite;
+}
+@keyframes dt-spin { to { transform: rotate(360deg); } }
+
+/* ── Empty state ───────────────────────────────────────────────────── */
+.dt-empty-state { text-align: center; padding: 40px 20px; color: var(--dt-text-muted); }
+.dt-empty-state i { color: var(--dt-text-faint); margin-bottom: 10px; }
+.dt-empty-state h4 { color: var(--dt-text); font-size: 1rem; margin-bottom: 4px; }
+
+/* No-exam-schedule message, emitted directly by JS as .text-center.py-5 */
+.text-center.py-5 { text-align: center; padding: 40px 20px; color: var(--dt-text-muted); font-size: .9rem; }
+
+/* ── Error alert (JS-emitted, Bootstrap markup restyled, no Bootstrap JS) ── */
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 0;
+    font-size: .85rem;
+    margin-bottom: 14px;
+    border: 1px solid transparent;
+}
+.alert-danger {
+    background: var(--dt-danger-bg);
+    border-color: var(--dt-danger);
+    color: var(--dt-danger);
+}
+.btn-close {
+    margin-left: auto;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: .6;
+}
+.btn-close:hover { opacity: 1; }
+.btn-close::before { content: '\00d7'; }
+
+/* Tiny spacing utility still emitted by the JS renderer */
+.me-2 { margin-right: 8px; }
+
+/* ── Timetable grid — Excel-style data sheet ─────────────────────── */
+.timetable-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.day-table-container {
+    background: var(--dt-surface);
+    border: 1px solid var(--dt-grid);
+}
+
+.day-header {
+    background: var(--dt-green);
+    color: #ffffff;
+    padding: 8px 14px;
+    font-size: .95rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.exam-date-header { background: var(--dt-green-dark); }
+
+.table-responsive { overflow-x: auto; }
+
+.day-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: var(--dt-font);
+}
+
+.day-table th {
+    background-color: var(--dt-header-bg);
+    color: var(--dt-text);
+    font-weight: 600;
+    padding: 7px 8px;
+    border: 1px solid var(--dt-grid);
+    text-align: center;
+    font-size: .78rem;
+}
+
+.day-table td {
+    padding: 6px 8px;
+    border: 1px solid var(--dt-grid);
+    vertical-align: top;
+    text-align: left;
+    font-size: .8rem;
+}
+
+.venue-header {
+    background-color: var(--dt-header-bg);
+    font-weight: 600;
+    color: var(--dt-text);
+    text-align: left !important;
+    padding-left: 10px !important;
+    width: 150px;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    border-right: 1px solid var(--dt-grid);
+}
+
+.time-header {
+    font-variant-numeric: tabular-nums;
+    min-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.course-cell {
+    background-color: var(--dt-surface);
+    cursor: pointer;
+    position: relative;
+    height: auto;
+    min-height: 46px;
+}
+
+.course-cell:hover { background-color: var(--dt-header-bg); }
+
+.course-cell-content { padding: 0; }
+
+.course-code {
+    display: block;
+    font-weight: 700;
+    color: var(--dt-text);
+    font-size: .82rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.course-name {
+    display: block;
+    color: var(--dt-text-mid);
+    font-size: .76rem;
+    line-height: 1.3;
+    margin-top: 1px;
+}
+
+.course-lecturer {
+    display: block;
+    color: var(--dt-text-muted);
+    font-size: .76rem;
+    margin-top: 1px;
+}
+
+.course-program {
+    display: block;
+    color: var(--dt-text-muted);
+    font-size: .72rem;
+    font-style: italic;
+    line-height: 1.3;
+    margin-top: 1px;
+}
+
+.empty-cell {
+    background-color: var(--dt-surface);
+    color: var(--dt-text-faint);
+}
+
+.compact .course-name,
+.compact .course-lecturer,
+.compact .course-program {
+    display: none;
+}
+.compact .course-cell { min-height: 30px; }
+.compact .course-code { font-size: .78rem; }
+
+.search-highlight {
+    background-color: #fff3a3;
+    color: var(--dt-text);
+    font-weight: 700;
+    padding: 0 2px;
+}
+
+/* ── Tooltip — border only, no shadow ─────────────────────────────── */
+.course-tooltip {
+    position: absolute;
+    background: var(--dt-surface);
+    border: 1px solid var(--dt-grid);
+    padding: 10px 12px;
+    z-index: 1000;
+    min-width: 250px;
+    display: none;
+    font-family: var(--dt-font);
+    font-size: .82rem;
+}
+.dt-tooltip-title {
+    font-weight: 700;
+    color: var(--dt-text);
+    margin-bottom: 6px;
+    font-size: .88rem;
+    border-bottom: 1px solid var(--dt-grid);
+    padding-bottom: 6px;
+}
+.dt-tooltip-row { margin-bottom: 3px; color: var(--dt-text-mid); }
+.dt-tooltip-row:last-child { margin-bottom: 0; }
+.dt-tooltip-row strong { color: var(--dt-text); }
+
+/* ── Misc ──────────────────────────────────────────────────────────── */
+.no-print {}
+
+/* ── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .card-header { flex-direction: column; align-items: flex-start; }
+    .dt-header-actions { width: 100%; }
+    .dt-toolbar-row { flex-direction: column; align-items: stretch; }
+    .dt-field-grow, .dt-field-narrow { flex: 1 1 auto; min-width: 0; }
+}
+
+@media (max-width: 768px) {
+    .day-table { display: block; overflow-x: auto; }
+    .venue-header { position: static; width: auto; }
+    .day-table th, .day-table td { min-width: 120px; }
+}
+
+@media print {
+    .no-print { display: none !important; }
+    .day-table { font-size: 10px; }
+    .course-cell { page-break-inside: avoid; }
+}

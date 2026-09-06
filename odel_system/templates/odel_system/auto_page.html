@@ -1,0 +1,1188 @@
+{% extends "timetable/autoscheduler_base.html" %}
+{% load static %}
+
+{% block title %}ODEL AutoScheduler — Chuka University{% endblock %}
+{% block load_text %}Loading ODEL AutoScheduler…{% endblock %}
+{% block page_title %}ODEL AutoScheduler{% endblock %}
+{% block topbar_badge %}<span class="excel-badge">ODEL</span>{% endblock %}
+
+{% block topbar_actions %}
+  <a href="/timetable/dashboard/" class="btn-topbar">
+    <i class="fas fa-arrow-left"></i> Dashboard
+  </a>
+  <a href="{% url 'odel_system:auto_page' %}" class="btn-topbar">
+    <i class="fas fa-home"></i> Home
+  </a>
+{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── EXCEL CORE FLAT THEME ── */
+  :root {
+    --excel-green:      #107c41;
+    --excel-green-dark: #0a4e29;
+    --excel-border:     #107c41;
+    --excel-grid:       #ccc;
+    --excel-bg-gray:    #f3f2f1;
+    --excel-header-bg:  #f8f9fa;
+    --text-main:        #000000;
+  }
+
+  body {
+    background: var(--excel-bg-gray);
+    color: var(--text-main);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.82rem;
+    margin: 0; padding: 0;
+  }
+
+  /* ── TOPBAR BUTTONS ── */
+  .btn-topbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff !important;
+    background: transparent !important;
+    border: 1px solid rgba(255,255,255,0.35) !important;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    box-sizing: border-box;
+  }
+  .btn-topbar:hover {
+    background: rgba(255,255,255,0.15) !important;
+    color: #fff !important;
+  }
+
+  /* ── EXCEL BADGE ── */
+  .excel-badge {
+    background: var(--excel-green);
+    color: #fff;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* ── TWO-COLUMN WORKSPACE ── */
+  .workspace-container {
+    display: flex;
+    min-height: calc(100vh - 50px);
+    position: relative;
+    border-top: 1px solid var(--excel-green);
+  }
+
+  /* ── LEFT NAV RAIL ── */
+  .excel-nav-rail {
+    width: 65px;
+    background: var(--excel-header-bg);
+    border-right: 1px solid var(--excel-grid);
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 0;
+    gap: 4px;
+    box-sizing: border-box;
+    z-index: 10;
+    overflow-y: auto;
+  }
+  .rail-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    text-align: center;
+    width: 100%;
+  }
+  .rail-anchor {
+    width: 100%;
+    padding: 6px 2px;
+    display: block;
+    border: 1px solid var(--excel-grid);
+    background: #fff;
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  .rail-anchor:hover { background: var(--excel-bg-gray); color: var(--excel-green); }
+
+  /* ── MAIN WORKSPACE ── */
+  .workspace-body {
+    flex: 1;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* ── MODE TOGGLE BAR ── */
+  .mode-toggle-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--excel-border);
+    padding: 8px 14px;
+    gap: 10px;
+    margin-bottom: 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--excel-grid);
+    overflow: hidden;
+    height: 28px;
+  }
+  .mode-toggle-btn {
+    background: #fff;
+    color: var(--text-main);
+    border: none;
+    border-right: 1px solid var(--excel-grid);
+    padding: 0 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .mode-toggle-btn:last-child { border-right: none; }
+  .mode-toggle-btn.active {
+    background: var(--excel-green);
+    color: #fff;
+  }
+  #statusInfoText {
+    font-size: 0.78rem;
+    color: #555;
+    margin-left: 6px;
+  }
+
+  /* ── CONFIG STRIP ── */
+  .config-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid var(--excel-border);
+    border-top: none;
+    padding: 10px 16px;
+    margin-bottom: 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .config-strip label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: #000;
+    font-size: 0.82rem;
+  }
+  .config-strip input[type="date"],
+  .config-strip input[type="time"],
+  .config-strip input[type="number"],
+  .config-strip select {
+    border: 1px solid var(--excel-grid);
+    padding: 4px 6px;
+    font-size: 0.82rem;
+    background: #fff;
+    height: 28px;
+    box-sizing: border-box;
+    outline: none;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .config-strip input:focus,
+  .config-strip select:focus { border-color: var(--excel-green); }
+  .config-strip-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  #configMessage {
+    display: none;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--excel-green);
+  }
+
+  /* ── META STATUS STRIP ── */
+  .meta-status-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--excel-border);
+    border-top: none;
+    padding: 6px 16px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    color: #000;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .meta-divider { width: 1px; background: var(--excel-grid); height: 14px; }
+
+  /* ── DISTRIBUTION MODE SELECTOR ── */
+  .mode-selector-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    padding: 6px 12px;
+    gap: 6px;
+    margin-bottom: 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .mode-selector-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #555;
+    margin-right: 4px;
+  }
+  .mode-seg-btn {
+    background: #fff;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid);
+    height: 28px;
+    padding: 0 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .mode-seg-btn.active {
+    background: var(--excel-green);
+    color: #fff;
+    border-color: var(--excel-green-dark);
+  }
+  .mode-seg-btn:hover:not(.active) { background: var(--excel-bg-gray); }
+
+  /* ── ACTIONS BAR ── */
+  .actions-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    border-top: none;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    gap: 8px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .actions-bar-right { margin-left: auto; display: flex; gap: 6px; }
+
+  /* ── FLAT BUTTONS ── */
+  .btn-excel {
+    background: var(--excel-green);
+    color: #fff;
+    border: 1px solid var(--excel-green-dark);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-decoration: none;
+  }
+  .btn-excel:hover { background: var(--excel-green-dark); color: #fff; }
+
+  .btn-excel-ghost {
+    background: #fff;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-decoration: none;
+  }
+  .btn-excel-ghost:hover { background: var(--excel-bg-gray); }
+
+  .btn-excel-danger {
+    background: #fff;
+    color: #c00;
+    border: 1px solid #c00;
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .btn-excel-danger:hover { background: #fff0f0; }
+
+  /* Integrated select + run group */
+  .excel-input-group {
+    display: inline-flex;
+    border: 1px solid var(--excel-green);
+    overflow: hidden;
+    height: 28px;
+    box-shadow: none !important;
+  }
+  .excel-input-group select {
+    border: none;
+    border-right: 1px solid var(--excel-grid);
+    height: 100%;
+    background: #fff;
+    padding: 0 6px;
+    font-size: 0.82rem;
+    outline: none;
+  }
+  .excel-input-group .btn-excel { border: none; height: 100%; }
+
+  /* ── WORKBOOK TABS ── */
+  .tab-nav {
+    display: flex;
+    background: transparent;
+    border-bottom: 1px solid var(--excel-grid);
+    padding-left: 8px;
+    gap: 2px;
+    border-radius: 0 !important;
+  }
+  .tab-btn {
+    background: #e1dfdd;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid);
+    border-bottom: none;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .tab-btn.active {
+    background: #fff !important;
+    font-weight: 700;
+    color: var(--excel-green);
+    border-top: 2px solid var(--excel-green);
+    position: relative;
+    top: 1px;
+    z-index: 2;
+  }
+  .tab-content {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    padding: 12px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .tab-content.active { display: block; }
+
+  /* ── DATA TABLES ── */
+  .data-table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid var(--excel-grid) !important;
+  }
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse !important;
+    border: none !important;
+    margin: 0;
+  }
+  table.data-table th {
+    background: var(--excel-header-bg) !important;
+    color: var(--text-main);
+    font-weight: 600;
+    border: 1px solid var(--excel-grid) !important;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    text-align: left;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  table.data-table td {
+    background: #fff !important;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid) !important;
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    vertical-align: top;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  table.data-table tr:hover td { background: #fafafa !important; }
+  .cell-muted { color: #aaa; }
+
+  /* ── RESULT / CONFLICT BANNERS ── */
+  .result-banner {
+    display: none;
+    margin-bottom: 10px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    border: 1px solid var(--excel-grid);
+    background: #fff;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .result-banner.success { border-color: #107c41; color: #107c41; background: #f0fdf4; }
+  .result-banner.error   { border-color: #c00;    color: #c00;    background: #fff5f5; }
+  .result-banner.info    { border-color: #0d6efd; color: #0d6efd; background: #eff6ff; }
+
+  .conflicts-panel {
+    display: none;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    padding: 10px 14px;
+    font-size: 0.82rem;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .unsched-item {
+    padding: 3px 0;
+    color: #c00;
+    border-bottom: 1px solid var(--excel-grid);
+  }
+  .unsched-item:last-child { border-bottom: none; }
+
+  /* ── LOADING INDICATOR ── */
+  .loading-indicator {
+    padding: 20px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    margin: 10px 0;
+    display: none;
+  }
+
+  /* ── PROGRESS MODAL ── */
+  .excel-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4) !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  .excel-modal-overlay.show { display: flex !important; }
+  .excel-modal {
+    background: #fff !important;
+    border: 2px solid var(--excel-green) !important;
+    width: 640px;
+    max-width: 100%;
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    box-sizing: border-box;
+  }
+  .excel-modal-head {
+    background: var(--excel-green) !important;
+    color: #fff !important;
+    padding: 10px 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .excel-modal-body {
+    padding: 16px;
+    background: #fff !important;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+  .excel-modal-foot {
+    padding: 10px;
+    background: var(--excel-header-bg) !important;
+    border-top: 1px solid var(--excel-grid) !important;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .prog-wrap {
+    background: var(--excel-bg-gray) !important;
+    border: 1px solid var(--excel-grid) !important;
+    height: 24px;
+    margin: 12px 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .prog-fill {
+    height: 100% !important;
+    width: 0%;
+    text-align: center;
+    font-weight: 700;
+    line-height: 22px;
+    font-size: 0.8rem;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: width 0.15s linear, background-color 0s ease !important;
+  }
+  .stage-yellow { background-color: #ffc107 !important; color: #000 !important; }
+  .stage-blue   { background-color: #0d6efd !important; color: #fff !important; }
+  .stage-green  { background-color: #107c41 !important; color: #fff !important; }
+
+  .modal-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    border: 1px solid var(--excel-grid) !important;
+    margin-bottom: 12px !important;
+    background: #fff !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .ms-card {
+    padding: 8px !important;
+    text-align: center !important;
+    border-right: 1px solid var(--excel-grid) !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .ms-card:last-child { border-right: none !important; }
+  .ms-val { font-size: 1.2rem !important; font-weight: 700 !important; color: #000 !important; }
+  .ms-lbl { font-size: 0.72rem !important; color: #444 !important; text-transform: uppercase !important; font-weight: 600 !important; }
+
+  .action-strip {
+    background: #fff !important;
+    border: 1px solid var(--excel-grid) !important;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+    color: #000 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .console-wrap {
+    background: #000 !important;
+    color: #00ff00 !important;
+    font-family: "Consolas", monospace;
+    font-size: 0.78rem;
+    padding: 10px;
+    height: 120px;
+    overflow-y: auto;
+    border: 1px solid var(--excel-grid) !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="workspace-container">
+
+  <!-- LEFT NAV RAIL -->
+  <aside class="excel-nav-rail" id="leftRailAnchors">
+    <div class="rail-label">Nav</div>
+    <button class="rail-anchor" onclick="window.scrollTo({top:0,behavior:'smooth'})">Top</button>
+    <div style="width:90%;height:1px;background:var(--excel-grid);margin:4px 0;"></div>
+  </aside>
+
+  <main class="workspace-body">
+
+    <!-- MODE TOGGLE BAR -->
+    <div class="mode-toggle-bar">
+      <div class="mode-toggle">
+        <button class="mode-toggle-btn active class-btn" onclick="switchMode('class')">
+          <i class="fas fa-chalkboard-teacher"></i> Class Mode
+        </button>
+        <button class="mode-toggle-btn exam-btn" onclick="switchMode('exam')">
+          <i class="fas fa-pencil-alt"></i> Exam Mode
+        </button>
+      </div>
+      <span id="statusInfoText">Currently in Class Scheduling Mode</span>
+    </div>
+
+    <!-- CONFIG STRIP -->
+    <form id="configForm" class="config-strip" method="post">
+      {% csrf_token %}
+      <label>Start Date
+        <input type="date" id="startDate" name="start_date" value="{{ config.start_date|date:'Y-m-d' }}" required>
+      </label>
+      <label>End Date
+        <input type="date" id="endDate" name="end_date" value="{{ config.end_date|date:'Y-m-d' }}" required>
+      </label>
+      <label>Day Start
+        <input type="time" id="dayStartTime" name="day_start_time" value="{{ config.day_start_time|time:'H:i' }}" required>
+      </label>
+      <label>Day End
+        <input type="time" id="dayEndTime" name="day_end_time" value="{{ config.day_end_time|time:'H:i' }}" required>
+      </label>
+      <label>Class Slots/Day
+        <input type="number" id="classSlotSize" name="class_slot_size" value="{{ config.class_slot_size }}" min="1" max="10" required>
+      </label>
+      <label>Exam Slots/Day
+        <input type="number" id="examSlotSize" name="exam_slot_size" value="{{ config.exam_slot_size }}" min="1" max="10" required>
+      </label>
+      <label>Exam Break
+        <select id="examBreakDuration" name="exam_break_duration">
+          <option value="30"  {% if config.exam_break_duration == 30  %}selected{% endif %}>30 min</option>
+          <option value="60"  {% if config.exam_break_duration == 60  %}selected{% endif %}>1 hr</option>
+          <option value="90"  {% if config.exam_break_duration == 90  %}selected{% endif %}>1.5 hr</option>
+          <option value="120" {% if config.exam_break_duration == 120 %}selected{% endif %}>2 hr</option>
+        </select>
+      </label>
+      <div class="config-strip-actions">
+        <span id="configMessage"></span>
+        <button type="submit" class="btn-excel"><i class="fas fa-save"></i> Save Config</button>
+      </div>
+    </form>
+
+    <!-- META STATUS STRIP -->
+    <div class="meta-status-strip">
+      <span><strong>ODEL Scheduler Config:</strong></span>
+      <div class="meta-divider"></div>
+      <span>Class Drafts: <strong>{{ class_drafts_count }}</strong></span>
+      <div class="meta-divider"></div>
+      <span>Exam Drafts: <strong>{{ exam_drafts_count }}</strong></span>
+    </div>
+
+    <!-- DISTRIBUTION MODE SELECTORS -->
+    <div class="mode-selector-bar" id="classModeSelector">
+      <span class="mode-selector-label">Distribution Logic:</span>
+      <button class="mode-seg-btn active" data-mode="balanced" onclick="selectMode('balanced')">
+        <i class="fas fa-balance-scale"></i> Balanced
+      </button>
+      <button class="mode-seg-btn" data-mode="compact" onclick="selectMode('compact')">
+        <i class="fas fa-compress"></i> Compact
+      </button>
+      <button class="mode-seg-btn" data-mode="spread" onclick="selectMode('spread')">
+        <i class="fas fa-expand"></i> Spread
+      </button>
+    </div>
+
+    <div class="mode-selector-bar" id="examModeSelector" style="display:none">
+      <span class="mode-selector-label">Distribution Logic:</span>
+      <button class="mode-seg-btn active" data-mode="balanced" onclick="selectMode('balanced')">
+        <i class="fas fa-balance-scale"></i> Balanced
+      </button>
+      <button class="mode-seg-btn" data-mode="compact" onclick="selectMode('compact')">
+        <i class="fas fa-compress"></i> Compact
+      </button>
+      <button class="mode-seg-btn" data-mode="spread" onclick="selectMode('spread')">
+        <i class="fas fa-expand"></i> Spread
+      </button>
+    </div>
+
+    <!-- ACTIONS BAR -->
+    <nav class="actions-bar">
+      <div class="excel-input-group">
+        <select id="modeSelectInline" title="Scheduler Logic Profile" onchange="selectModeFromSelect(this.value)">
+          <option value="balanced">Balanced Logic</option>
+          <option value="compact">Compact (Large First)</option>
+          <option value="spread">Spread (Random)</option>
+        </select>
+        <button class="btn-excel" onclick="runScheduler()">
+          <i class="fas fa-play-circle"></i> <span id="runBtnText">Run Class Scheduler</span>
+        </button>
+      </div>
+
+      {% if can_publish %}
+      <button class="btn-excel" onclick="publishTimetable()">
+        <i class="fas fa-check-double"></i> <span id="publishBtnText">Publish Class Timetable</span>
+      </button>
+      {% endif %}
+
+      <button class="btn-excel-danger" onclick="clearDrafts()">
+        <i class="fas fa-trash"></i> <span id="clearBtnText">Clear Class Drafts</span>
+      </button>
+
+      <div class="actions-bar-right">
+        <button class="btn-excel-ghost" onclick="loadStatus()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
+      </div>
+    </nav>
+
+    <!-- RESULT / CONFLICT BANNERS -->
+    <div id="result" class="result-banner"></div>
+    <div id="conflicts" class="conflicts-panel"></div>
+
+    <!-- WORKBOOK TABS -->
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="class">
+        <i class="fas fa-chalkboard-teacher"></i> Class Drafts
+      </button>
+      <button class="tab-btn" data-tab="exam">
+        <i class="fas fa-pencil-alt"></i> Exam Drafts
+      </button>
+    </div>
+
+    <div class="loading-indicator" id="loadingIndicator">
+      <i class="fas fa-spinner fa-spin"></i> Reading spreadsheet records…
+    </div>
+
+    <!-- CLASS DRAFTS TAB -->
+    <div id="class-tab" class="tab-content active">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th><th>Time</th><th>Course</th><th>Venue</th><th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for draft in class_drafts %}
+            <tr>
+              <td>{{ draft.date|date:'Y-m-d' }}</td>
+              <td>{{ draft.start_time|time:'H:i' }} – {{ draft.end_time|time:'H:i' }}</td>
+              <td>
+                <strong>{{ draft.course_allocation.course_code }}</strong><br>
+                <span class="cell-muted">{{ draft.course_allocation.course_name|truncatechars:35 }}</span>
+              </td>
+              <td>{{ draft.venue.code }}</td>
+              <td>{{ draft.course_allocation.number_of_students }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="text-align:center;padding:24px;color:#aaa;">
+                <i class="fas fa-info-circle"></i> No class drafts available. Run the scheduler to populate.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- EXAM DRAFTS TAB -->
+    <div id="exam-tab" class="tab-content">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th><th>Time</th><th>Course</th><th>Venue</th><th>Students</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for draft in exam_drafts %}
+            <tr>
+              <td>{{ draft.date|date:'Y-m-d' }}</td>
+              <td>{{ draft.start_time|time:'H:i' }} – {{ draft.end_time|time:'H:i' }}</td>
+              <td>
+                <strong>{{ draft.course_allocation.course_code }}</strong><br>
+                <span class="cell-muted">{{ draft.course_allocation.course_name|truncatechars:35 }}</span>
+              </td>
+              <td>{{ draft.venue.code }}</td>
+              <td>{{ draft.course_allocation.number_of_students }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" style="text-align:center;padding:24px;color:#aaa;">
+                <i class="fas fa-info-circle"></i> No exam drafts available. Run the scheduler to populate.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- SCHEDULER PROGRESS MODAL -->
+<div class="excel-modal-overlay" id="schedulerProgressModal">
+  <div class="excel-modal">
+    <div class="excel-modal-head">
+      <span id="modalTitle">ODEL Scheduling Processing Engine</span>
+    </div>
+    <div class="excel-modal-body">
+      <div style="display:flex;justify-content:space-between;font-weight:700;color:#000;">
+        <span id="batchInfo">Phase 1: Analyzing rules &amp; resolving allocation slots…</span>
+        <span id="progressPercentage">0%</span>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-fill stage-yellow" id="progressBar">0%</div>
+      </div>
+      <div class="modal-stats">
+        <div class="ms-card">
+          <div class="ms-val" id="scheduledCount">0</div>
+          <div class="ms-lbl">Cells Scheduled</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="remainingCount">0</div>
+          <div class="ms-lbl">Remaining</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="currentBatch">0/0</div>
+          <div class="ms-lbl">Current Batch</div>
+        </div>
+      </div>
+      <div class="action-strip" id="currentAction">Initializing workspace engine metrics…</div>
+      <div style="font-weight:700;color:#000;margin-bottom:4px;"><i class="fas fa-terminal"></i> Process Engine Log:</div>
+      <div class="console-wrap" id="consoleOutput">
+        <div>[SYSTEM] ODEL scheduler initializing…</div>
+      </div>
+    </div>
+    <div class="excel-modal-foot">
+      <button type="button" class="btn-excel-ghost" style="color:#c00;border-color:#c00;font-weight:600;" onclick="cancelScheduling()">
+        Break Execution
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PUBLISH OVERLAY -->
+<div class="excel-modal-overlay" id="pubOverlay">
+  <div class="excel-modal" style="width:400px;text-align:center;">
+    <div class="excel-modal-head"><span>Publishing Timetable</span></div>
+    <div class="excel-modal-body" style="padding:30px 20px;">
+      <i class="fas fa-spinner fa-spin" id="pubSpinner" style="font-size:2rem;color:var(--excel-green);"></i>
+      <i class="fas fa-check" id="pubCheck" style="display:none;font-size:2rem;color:#107c41;"></i>
+      <div id="pubTitle" style="font-weight:700;margin-top:12px;color:#000;">Committing Timetable Records</div>
+      <div id="pubMsg" style="color:#555;font-size:0.78rem;margin-top:4px;">Writing changes into backend registers…</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  let currentMode          = 'class';
+  let currentSchedulerMode = 'balanced';
+  let isScheduling         = false;
+  let progressInterval;
+
+  const urls = {
+    runClass:     "{% url 'odel_system:api_run_class_scheduler' %}",
+    runExam:      "{% url 'odel_system:api_run_exam_scheduler' %}",
+    publishClass: "{% url 'odel_system:api_publish_class' %}",
+    publishExam:  "{% url 'odel_system:api_publish_exam' %}",
+    clearDrafts:  "{% url 'odel_system:api_clear_timetable' %}",
+    updateConfig: "{% url 'odel_system:api_update_config' %}",
+    status:       "{% url 'odel_system:api_scheduler_status' %}"
+  };
+
+  /* ── INIT ── */
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('configForm').addEventListener('submit', updateConfig);
+    initTabs();
+    loadSavedState();
+    setInterval(loadStatus, 30000);
+  });
+
+  /* ── TABS ── */
+  function initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+  }
+
+  /* ── STATE PERSISTENCE ── */
+  function loadSavedState() {
+    const m = localStorage.getItem('odel_scheduler_mode');
+    if (m === 'class' || m === 'exam') switchMode(m);
+    const t = localStorage.getItem('odel_scheduler_type');
+    if (t) { currentSchedulerMode = t; updateModeButtons(); syncInlineSelect(); }
+  }
+  function saveState() {
+    localStorage.setItem('odel_scheduler_mode', currentMode);
+    localStorage.setItem('odel_scheduler_type', currentSchedulerMode);
+  }
+
+  /* ── CLASS / EXAM MODE SWITCH ── */
+  window.switchMode = function (mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-toggle-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.mode-toggle-btn.' + mode + '-btn').classList.add('active');
+
+    const isClass = mode === 'class';
+    document.getElementById('classModeSelector').style.display = isClass ? 'flex' : 'none';
+    document.getElementById('examModeSelector').style.display  = isClass ? 'none' : 'flex';
+
+    document.getElementById('runBtnText').textContent   = isClass ? 'Run Class Scheduler'    : 'Run Exam Scheduler';
+    document.getElementById('clearBtnText').textContent = isClass ? 'Clear Class Drafts'     : 'Clear Exam Drafts';
+    const pb = document.getElementById('publishBtnText');
+    if (pb) pb.textContent = isClass ? 'Publish Class Timetable' : 'Publish Exam Timetable';
+    document.getElementById('statusInfoText').textContent = isClass
+      ? 'Currently in Class Scheduling Mode'
+      : 'Currently in Exam Scheduling Mode';
+
+    /* activate matching tab */
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    const matchTab = document.querySelector(`.tab-btn[data-tab="${mode}"]`);
+    if (matchTab) matchTab.classList.add('active');
+    const matchContent = document.getElementById(`${mode}-tab`);
+    if (matchContent) matchContent.classList.add('active');
+
+    updateModeButtons();
+    saveState();
+  };
+
+  /* ── DISTRIBUTION MODE ── */
+  function updateModeButtons() {
+    const sel = currentMode === 'class' ? '#classModeSelector' : '#examModeSelector';
+    document.querySelectorAll(`${sel} .mode-seg-btn`).forEach(b => b.classList.remove('active'));
+    document.querySelector(`${sel} .mode-seg-btn[data-mode="${currentSchedulerMode}"]`)?.classList.add('active');
+    syncInlineSelect();
+  }
+  window.selectMode = function (mode) { currentSchedulerMode = mode; updateModeButtons(); saveState(); };
+  window.selectModeFromSelect = function (mode) { currentSchedulerMode = mode; updateModeButtons(); saveState(); };
+  function syncInlineSelect() {
+    const sel = document.getElementById('modeSelectInline');
+    if (sel) sel.value = currentSchedulerMode;
+  }
+
+  /* ── CONFIG SAVE ── */
+  async function updateConfig(e) {
+    e.preventDefault();
+    const payload = {
+      start_date:          document.getElementById('startDate').value,
+      end_date:            document.getElementById('endDate').value,
+      day_start_time:      document.getElementById('dayStartTime').value,
+      day_end_time:        document.getElementById('dayEndTime').value,
+      class_slot_size:     document.getElementById('classSlotSize').value,
+      exam_slot_size:      document.getElementById('examSlotSize').value,
+      exam_break_duration: document.getElementById('examBreakDuration').value
+    };
+    showMsg('Writing config parameters…', 'info');
+    try {
+      const r = await fetch(urls.updateConfig, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify(payload)
+      });
+      const d = await r.json();
+      showMsg(d.success ? d.message : (d.error || 'Error saving'), d.success ? 'success' : 'error');
+    } catch (err) { showMsg('Network error', 'error'); }
+  }
+
+  /* ── RUN SCHEDULER ── */
+  window.runScheduler = function () {
+    if (!confirm(`Replace all existing ${currentMode} drafts and re-run the scheduler. Continue?`)) return;
+
+    isScheduling = true;
+    document.getElementById('modalTitle').textContent = `ODEL ${currentMode === 'class' ? 'Class' : 'Exam'} Scheduling Engine`;
+    document.getElementById('progressBar').style.width = '0%';
+    document.getElementById('progressBar').textContent = '0%';
+    document.getElementById('progressBar').className   = 'prog-fill stage-yellow';
+    document.getElementById('schedulerProgressModal').classList.add('show');
+    document.getElementById('consoleOutput').innerHTML = '<div>[SYSTEM] Starting ODEL scheduler…</div>';
+
+    clearInterval(progressInterval);
+
+    fetch(currentMode === 'class' ? urls.runClass : urls.runExam, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+      body: JSON.stringify({ mode: currentSchedulerMode })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.task_id) {
+        progressInterval = setInterval(() => pollProgress(d.task_id), 1000);
+      } else {
+        completeScheduling(d);
+      }
+    })
+    .catch(e => completeScheduling({ success: false, error: e.message }));
+  };
+
+  function pollProgress(taskId) {
+    if (!isScheduling) return;
+    fetch(urls.status + '?task_id=' + taskId)
+      .then(r => r.json())
+      .then(d => {
+        const pct    = typeof d.progress === 'number' ? d.progress : 0;
+        const status = d.status || '';
+
+        if (['completed', 'partial', 'error', 'cancelled'].includes(status) || pct >= 100) {
+          completeScheduling(d); return;
+        }
+
+        const bar = document.getElementById('progressBar');
+        bar.style.width = pct + '%';
+        bar.textContent = pct + '%';
+        document.getElementById('progressPercentage').textContent = pct + '%';
+
+        if (pct < 35) {
+          bar.className = 'prog-fill stage-yellow';
+          document.getElementById('batchInfo').textContent = 'Phase 1: Analyzing rules & resolving allocation slots…';
+        } else if (pct <= 85) {
+          bar.className = 'prog-fill stage-blue';
+          document.getElementById('batchInfo').textContent = 'Phase 2: Executing bulk allocation & processing course matrices…';
+        } else {
+          bar.className = 'prog-fill stage-green';
+          document.getElementById('batchInfo').textContent = 'Phase 3: Final optimization & conflict checks…';
+        }
+
+        document.getElementById('scheduledCount').textContent = d.scheduled_count || 0;
+        document.getElementById('remainingCount').textContent = d.remaining_count || 0;
+        document.getElementById('currentBatch').textContent   = `${d.current_batch || 0}/${d.total_batches || 0}`;
+        document.getElementById('currentAction').textContent  = d.current_action  || 'Processing…';
+
+        if (d.log_entries) {
+          const box = document.getElementById('consoleOutput');
+          box.innerHTML = d.log_entries.slice(-10).map(l => {
+            const text = (l && typeof l === 'object') ? (l.message || JSON.stringify(l)) : String(l);
+            return `<div>${text}</div>`;
+          }).join('');
+          box.scrollTop = box.scrollHeight;
+        }
+      })
+      .catch(() => {});
+  }
+
+  function completeScheduling(data) {
+    clearInterval(progressInterval);
+    isScheduling = false;
+
+    const bar = document.getElementById('progressBar');
+    bar.style.width = '100%';
+    bar.textContent = '100%';
+    bar.className   = 'prog-fill stage-green';
+    document.getElementById('progressPercentage').textContent = '100%';
+    document.getElementById('batchInfo').textContent = 'Execution Sequence Terminated.';
+    document.getElementById('currentAction').textContent = data.message || data.error || 'Done';
+
+    setTimeout(() => {
+      document.getElementById('schedulerProgressModal').classList.remove('show');
+      if (data.success) {
+        showResult(data.message, 'success');
+        if (data.conflict_list?.length) {
+          const cDiv = document.getElementById('conflicts');
+          cDiv.style.display = 'block';
+          cDiv.innerHTML = `<strong>Could not schedule:</strong><div style="margin-top:6px">` +
+            data.conflict_list.map(c => `<div class="unsched-item"><i class="fas fa-times"></i> ${c}</div>`).join('') +
+            '</div>';
+        }
+        setTimeout(() => location.reload(), 1800);
+      } else {
+        showResult(data.error || 'Scheduler error.', 'error');
+      }
+    }, 1800);
+  }
+
+  function cancelScheduling() {
+    if (!confirm('Break processing workflow execution?')) return;
+    isScheduling = false;
+    clearInterval(progressInterval);
+    completeScheduling({ success: false, error: 'Engine halted by operator.' });
+  }
+
+  /* ── PUBLISH ── */
+  window.publishTimetable = function () {
+    if (!confirm(`Publish ${currentMode} timetable? Existing approved entries will be replaced.`)) return;
+    const overlay = document.getElementById('pubOverlay');
+    const spinner = document.getElementById('pubSpinner');
+    const check   = document.getElementById('pubCheck');
+    const title   = document.getElementById('pubTitle');
+    const msg     = document.getElementById('pubMsg');
+
+    spinner.style.display = '';
+    check.style.display   = 'none';
+    title.textContent     = `Publishing ${currentMode} timetable…`;
+    msg.textContent       = 'Moving drafts to approved records…';
+    overlay.classList.add('show');
+
+    fetch(currentMode === 'class' ? urls.publishClass : urls.publishExam, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrftoken }
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        spinner.style.display = 'none';
+        check.style.display   = '';
+        title.textContent     = 'Published Successfully!';
+        setTimeout(() => { overlay.classList.remove('show'); location.reload(); }, 1200);
+      } else { throw new Error(d.error || 'Error'); }
+    })
+    .catch(err => {
+      spinner.style.display = 'none';
+      title.textContent     = 'Publish Error';
+      msg.textContent       = err.message;
+      setTimeout(() => overlay.classList.remove('show'), 3500);
+    });
+  };
+
+  /* ── CLEAR DRAFTS ── */
+  window.clearDrafts = function () {
+    if (!confirm(`Clear all ${currentMode} drafts?`)) return;
+    fetch(urls.clearDrafts, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+      body: JSON.stringify({ target: currentMode })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) { showResult(d.message, 'success'); setTimeout(() => location.reload(), 1500); }
+      else showResult(d.error || 'Error', 'error');
+    })
+    .catch(() => showResult('Network error', 'error'));
+  };
+
+  /* ── STATUS POLL ── */
+  window.loadStatus = function () {
+    fetch(urls.status).then(r => r.json()).catch(() => {});
+  };
+
+  /* ── UI HELPERS ── */
+  function showResult(message, type) {
+    const el = document.getElementById('result');
+    el.textContent   = message;
+    el.className     = `result-banner ${type}`;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('configMessage');
+    el.textContent   = `[${type.toUpperCase()}] ${text}`;
+    el.style.display = 'inline-block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+</script>
+{% endblock page_scripts %}

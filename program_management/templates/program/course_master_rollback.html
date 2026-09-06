@@ -1,0 +1,197 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block title %}Course Master Rollback — Chuka University{% endblock %}
+{% block page_title %}Course Master Rollback{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .cm-container { padding: 1rem; width: 100%; max-width: 100%; margin: 0; }
+    .cm-intro { background: #fefef9; border: 1px solid #eef2e8; border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1.25rem; color: #4a5a44; font-size: 0.88rem; line-height: 1.5; }
+    .cm-intro strong { color: #1e4620; }
+    .cm-empty { padding: 3rem 1rem; text-align: center; color: #7a8a72; background: white; border-radius: 0.75rem; border: 1px solid #e5e9e0; }
+    .cm-dept { background: white; border-radius: 0.75rem; border: 1px solid #e5e9e0; margin-bottom: 1rem; overflow: hidden; }
+    .cm-dept-head { padding: 0.9rem 1.25rem; background: #fafbf8; border-bottom: 1px solid #e5e9e0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .cm-dept-head h3 { margin: 0; font-size: 1.05rem; color: #1e4620; }
+    .cm-dept-count { font-size: 0.78rem; color: #5b6e53; background: #eef2e8; padding: 0.2rem 0.6rem; border-radius: 999px; }
+    .cm-dept-body { padding: 1rem 1.25rem; }
+    .cm-batch { border: 1px solid #eef2e8; border-radius: 0.6rem; margin-bottom: 0.85rem; overflow: hidden; }
+    .cm-batch:last-child { margin-bottom: 0; }
+    .cm-batch-head { padding: 0.7rem 1rem; background: #fbfcf9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
+    .cm-batch-meta { font-size: 0.82rem; color: #5b6e53; }
+    .cm-batch-meta strong { color: #1e4620; }
+    .cm-batch-actions { display: flex; gap: 0.5rem; }
+    .cm-btn { padding: 0.4rem 0.85rem; border-radius: 0.5rem; border: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+    .cm-btn-primary { background: #1e4620; color: white; }
+    .cm-btn-primary:hover { background: #16340f; }
+    .cm-btn-ghost { background: #eef2e8; color: #1e4620; }
+    .cm-btn-ghost:hover { background: #dfe8d8; }
+    .cm-btn-small { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+    table.cm-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table.cm-table th, table.cm-table td { padding: 0.5rem 0.7rem; border-bottom: 1px solid #f0f3ec; text-align: left; }
+    table.cm-table th { color: #5b6e53; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; }
+    .cm-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #eef2e8; color: #1e4620; }
+    .cm-tag-del { background: #fbe6e5; color: #b3261e; }
+    .cm-tag-create { background: #eafaf0; color: #1e7e34; }
+    .cm-tag-edit { background: #eaf1fb; color: #1a4d8f; }
+    .cm-changed { font-size: 0.72rem; color: #7a8a72; }
+    #cmToast { position: fixed; top: 80px; right: 20px; background: #1e4620; color: #fff; padding: 0.75rem 1.25rem; border-radius: 0.5rem; display: none; z-index: 999; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    #cmToast.error { background: #b3261e; }
+</style>
+
+<div class="cm-container">
+    <div class="cm-intro">
+        <strong>Course Master Rollback</strong> — every change made to Programs &amp; Courses (including bulk
+        Import) is backed up automatically. Roll back an <strong>entire import</strong> in one click, or undo
+        a single row. Changes are grouped by department below. Total pending changes:
+        <strong>{{ total_changes }}</strong>.
+    </div>
+
+    {% if not departments %}
+    <div class="cm-empty">Nothing to roll back right now.</div>
+    {% endif %}
+
+    {% for dept in departments %}
+    <div class="cm-dept">
+        <div class="cm-dept-head" data-toggle="dept-{{ forloop.counter }}">
+            <h3>{{ dept.department_name }}</h3>
+            <span class="cm-dept-count">{{ dept.total_changes }} change{{ dept.total_changes|pluralize }}</span>
+        </div>
+        <div class="cm-dept-body" id="dept-{{ forloop.counter }}">
+            {% for batch in dept.batches %}
+            <div class="cm-batch">
+                <div class="cm-batch-head">
+                    <div class="cm-batch-meta">
+                        {% if batch.is_grouped %}
+                            <strong>Import</strong> by {{ batch.by }} on {{ batch.at }} —
+                            {{ batch.count }} row{{ batch.count|pluralize }}
+                        {% else %}
+                            <strong>{{ batch.rows.0.kind }}</strong> by {{ batch.by }} on {{ batch.at }}
+                        {% endif %}
+                    </div>
+                    <div class="cm-batch-actions">
+                        {% if batch.is_grouped %}
+                        <button type="button" class="cm-btn cm-btn-primary cm-undo-batch"
+                                data-request-id="{{ batch.request_id }}"
+                                data-department-id="{{ dept.department_id|default_if_none:'' }}">
+                            Rollback entire import
+                        </button>
+                        {% endif %}
+                        <button type="button" class="cm-btn cm-btn-ghost cm-toggle-rows" data-target="rows-{{ forloop.parentloop.counter }}-{{ forloop.counter }}">
+                            {% if batch.is_grouped %}View rows{% else %}Details{% endif %}
+                        </button>
+                    </div>
+                </div>
+                <div id="rows-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" hidden>
+                    <table class="cm-table">
+                        <thead>
+                            <tr><th>What</th><th>Change</th><th>By</th><th>When</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            {% for row in batch.rows %}
+                            <tr>
+                                <td><span class="cm-tag">{{ row.kind }}</span></td>
+                                <td>
+                                    <span class="cm-tag {% if row.action == 'delete' %}cm-tag-del{% elif row.action == 'create' %}cm-tag-create{% else %}cm-tag-edit{% endif %}">{{ row.action_label }}</span>
+                                    {{ row.label }}
+                                    {% if row.changed_fields %}
+                                    <div class="cm-changed">Changed: {{ row.changed_fields|join:", " }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.by }}</td>
+                                <td>{{ row.at }}</td>
+                                <td><button type="button" class="cm-btn cm-btn-small cm-btn-primary cm-undo-single" data-id="{{ row.id }}">
+                                    {% if row.action == 'delete' %}Restore{% elif row.action == 'create' %}Remove{% else %}Undo edit{% endif %}
+                                </button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="cmToast"></div>
+
+<script>
+(function () {
+    const csrftoken = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+    const actionUrl = "{% url 'course_master_rollback_action' %}";
+
+    function toast(msg, isError) {
+        const el = document.getElementById('cmToast');
+        el.textContent = msg;
+        el.className = isError ? 'error' : '';
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 4500);
+    }
+
+    function post(payload) {
+        return fetch(actionUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(payload),
+        }).then(r => r.json());
+    }
+
+    document.querySelectorAll('.cm-toggle-rows').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const el = document.getElementById(btn.dataset.target);
+            el.hidden = !el.hidden;
+            btn.textContent = el.hidden ? (btn.dataset.grouped === '1' ? 'View rows' : 'Details') : 'Hide';
+        });
+    });
+
+    document.querySelectorAll('.cm-undo-single').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.disabled = true;
+            post({ action: 'undo_single', log_id: btn.dataset.id }).then(res => {
+                if (res.status === 'success') {
+                    toast('Undone.');
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    toast(res.message || 'Could not undo that entry.', true);
+                    btn.disabled = false;
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.cm-undo-batch').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (!confirm('Roll back this ENTIRE import? Every row it created, changed, or deleted will be reverted.')) return;
+            btn.disabled = true;
+            post({
+                action: 'undo_batch',
+                request_id: btn.dataset.requestId,
+                department_id: btn.dataset.departmentId,
+            }).then(res => {
+                if (res.status === 'success' || res.status === 'partial') {
+                    const extra = (res.failed && res.failed.length) ? ` (${res.failed.length} row(s) could not be undone)` : '';
+                    toast(`Rolled back ${res.restored_count} row(s)${extra}.`, res.status === 'partial');
+                    setTimeout(() => window.location.reload(), 900);
+                } else {
+                    toast(res.message || 'Rollback failed.', true);
+                    btn.disabled = false;
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.cm-dept-head').forEach(head => {
+        head.addEventListener('click', () => {
+            const body = document.getElementById(head.dataset.toggle);
+            body.style.display = (body.style.display === 'none') ? '' : 'none';
+        });
+    });
+})();
+</script>
+{% endblock %}

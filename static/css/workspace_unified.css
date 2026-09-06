@@ -1,0 +1,160 @@
+/*
+ * workspace_unified.css
+ * Scoped to workspace pages ONLY via body class selectors.
+ * Applied to panel-page, dashboard-body, sudo-body bodies.
+ * Does NOT affect public entry sites.
+ */
+
+/* ─── Scope: panel pages (timetable/base.html family) ─── */
+body.panel-page,
+body.cod-panel-page {
+  background: #f4f7fb;
+}
+
+/* Panel header = dark navy + orange bottom border */
+body.panel-page .panel-header,
+body.cod-panel-page .panel-header {
+  background: linear-gradient(90deg, #0d1b3e 0%, #1a3260 100%) !important;
+  border-bottom: 2px solid #f47c20 !important;
+}
+body.panel-page .panel-subnav,
+body.cod-panel-page .panel-subnav {
+  background: #102347 !important;
+  border-bottom: 1px solid #2a4f8a !important;
+}
+body.panel-page .panel-header-btn,
+body.cod-panel-page .panel-header-btn {
+  background: rgba(255,255,255,.1) !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  color: #fff !important;
+}
+body.panel-page .panel-header-btn:hover,
+body.cod-panel-page .panel-header-btn:hover {
+  background: rgba(244,124,32,.25) !important;
+  border-color: #f47c20 !important;
+}
+
+/* Slide-out menu (timetable panel, COD panel, course allocation pages) */
+body.panel-page .side-nav,
+body.cod-panel-page .side-nav,
+body.panel-page .menu-panel,
+body.cod-panel-page .menu-panel {
+  background: linear-gradient(180deg, #0d1b3e 0%, #0b1528 100%) !important;
+  
+}
+body.panel-page .nav-head,
+body.cod-panel-page .nav-head {
+  background: #0d1b3e !important;
+  border-bottom-color: #f47c20 !important;
+}
+body.panel-page .nav-btn:hover,
+body.cod-panel-page .nav-btn:hover {
+  background: rgba(244,124,32,.15) !important;
+  color: #fff !important;
+}
+
+/* ─── Scope: dashboard pages (dashboard_base.html family) ─── */
+body.dashboard-body .dash-sidebar {
+  background: linear-gradient(180deg, #0d1b3e 0%, #0b1528 100%) !important;
+  
+}
+body.dashboard-body .dash-topbar {
+  background: #0d1b3e !important;
+  border-bottom: 2px solid #f47c20 !important;
+}
+body.dashboard-body .topbar-breadcrumb a { color: #f47c20 !important; }
+body.dashboard-body .topbar-avatar {
+  background: #f47c20 !important;
+  color: #fff !important;
+}
+body.dashboard-body .sidebar-item:hover,
+body.dashboard-body .sidebar-item.active {
+  background: rgba(244,124,32,.1) !important;
+  color: #fff !important;
+  
+}
+body.dashboard-body .sidebar-section-label {
+  color: rgba(255,255,255,.35) !important;
+}
+/* Page headers inside dashboard pages - use navy instead of green */
+body.dashboard-body .header:not(.dash-topbar) {
+  background: linear-gradient(90deg, #0d1b3e 0%, #1a3260 100%) !important;
+  color: #fff !important;
+}
+body.dashboard-body .home-btn {
+  background: rgba(255,255,255,.12) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+}
+body.dashboard-body .home-btn:hover {
+  background: rgba(244,124,32,.25) !important;
+  border-color: #f47c20 !important;
+}
+/* Fix footer staying at bottom */
+body.dashboard-body .dash-main {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: calc(100vh - var(--topbar-h, 52px)) !important;
+}
+body.dashboard-body .dash-content { flex: 1 !important; }
+body.dashboard-body .dash-footer {
+  flex-shrink: 0 !important;
+  position: static !important;
+  background: #fff !important;
+  border-top: 1px solid #dde6f5 !important;
+  color: #697aa3 !important;
+  font-size: .75rem !important;
+  padding: .6rem 1.5rem !important;
+}
+
+/* ─── Scope: sudo/admin pages ─── */
+body.sudo-body .sudo-topbar {
+  background: linear-gradient(90deg, #0d1b3e 0%, #1a3260 100%) !important;
+  border-bottom: 2px solid #f47c20 !important;
+}
+body.sudo-body .sudo-sidebar {
+  background: linear-gradient(180deg, #0d1b3e 0%, #0b1528 100%) !important;
+}
+body.sudo-body .sudo-nav-link:hover,
+body.sudo-body .sudo-nav-link.active {
+  color: #f47c20 !important;
+  
+  background: rgba(244,124,32,.1) !important;
+}
+
+/* ─── Universal workspace: buttons ─── */
+body.panel-page .btn-save,
+body.panel-page .btn-primary,
+body.cod-panel-page .btn-save,
+body.dashboard-body .btn-primary,
+body.sudo-body .btn-primary {
+  background: linear-gradient(135deg, #f47c20 0%, #d96512 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(244,124,32,.3) !important;
+  font-weight: 600 !important;
+}
+
+/* ─── Table headers: navy ─── */
+body.panel-page table thead tr th,
+body.cod-panel-page table thead tr th,
+body.dashboard-body table thead tr th,
+body.sudo-body table thead tr th {
+  background: #0d1b3e !important;
+  color: #fff !important;
+}
+
+/* ─── COD / Course Allocation pages: app-header ─── */
+body.cod-panel-page .app-header {
+  background: linear-gradient(90deg, #0d1b3e 0%, #1a3260 100%) !important;
+  border-bottom: 3px solid #f47c20 !important;
+}
+body.cod-panel-page .app-header::before {
+  background: linear-gradient(90deg, #f47c20, #ffa048, #f47c20) !important;
+}
+body.cod-panel-page .hdr-btn:hover {
+  background: rgba(244,124,32,.2) !important;
+}
+body.cod-panel-page .hdr-title { color: #fff !important; }
+body.cod-panel-page .hdr-subtitle { color: rgba(255,255,255,.6) !important; }

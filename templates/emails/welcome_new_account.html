@@ -1,0 +1,22 @@
+{% extends "emails/email_base.html" %}
+
+{% block subject %}Welcome to {{ university_name }} — Account Created{% endblock %}
+
+{% block body %}
+<p>Welcome, {{ user_name }}!</p>
+
+<p>Your account has been created on the {{ university_name|default:"University Timetabling System" }}. You can now log in and start using the system.</p>
+
+<p>Your login credentials:</p>
+<p>Username: {{ username }}<br>
+Password: {{ temp_password }}<br>
+{% if role %}Role: {{ role }}{% endif %}</p>
+
+<p>Please change your password after your first login to keep your account secure.</p>
+
+<p>Log in here:</p>
+<p><a href="{{ login_url }}">{{ login_url }}</a></p>
+
+<hr>
+<p>If you have any issues accessing your account, please contact support at <a href="mailto:{{ support_email|default:contact_email }}">{{ support_email|default:contact_email }}</a>.</p>
+{% endblock %}

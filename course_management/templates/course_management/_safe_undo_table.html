@@ -1,0 +1,30 @@
+{% if logs %}
+<table class="su-table">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>What was deleted</th>
+            <th>Students</th>
+            <th>Intake</th>
+            <th>Deleted by</th>
+            <th>Deleted at</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody id="suTbody">
+        {% for l in logs %}
+        <tr>
+            <td><span class="su-tag">{{ l.kind }}</span></td>
+            <td>{{ l.label }}</td>
+            <td>{{ l.number_of_students }}</td>
+            <td>{{ l.intake }}</td>
+            <td>{{ l.deleted_by }}</td>
+            <td>{{ l.deleted_at }}</td>
+            <td><button class="su-btn su-btn-small su-btn-primary su-restore-one" data-id="{{ l.id }}">Restore</button></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="su-empty">Nothing to restore right now — no deleted records are waiting here.</p>
+{% endif %}

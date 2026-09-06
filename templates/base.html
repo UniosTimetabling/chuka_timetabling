@@ -1,0 +1,481 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#005a48">
+
+  <title>{% block title %}{{ site_settings.university_name|default:"Chuka University" }} · Timetabling &amp; Examinations{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}{{ site_settings.tagline|default:"Directorate of Timetabling & Examinations" }} — {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}">
+  <meta name="robots" content="{% block robots %}noindex, nofollow{% endblock %}">
+
+  <link rel="icon" type="image/png" href="{% url 'site_logo' %}">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/unified.css' %}">
+
+  {% block page_css %}{% endblock %}
+  {% block extra_css %}{% endblock %}
+
+  {% comment %}
+     ============================================================
+     FLAT DESIGN SYSTEM PATCH  (root base.html)
+     Loaded last in <head> so it wins over base.css / unified.css
+     without needing !important on every rule.
+
+     Req 1 – Strip box-shadow / gradient borders from all cards.
+     Req 2 – Notification panel links rendered as action buttons.
+     Req 3 – Same rules enforced inside every modal / overlay.
+
+     IMPORTANT SCOPE NOTE:
+     The .nm-action-btn styling below is cosmetic only — it just
+     defines what a "button-styled link" looks like. It does NOT
+     by itself touch any <a> tag on the page. The actual decision
+     of WHICH <a> tags get converted happens only in the JS at the
+     bottom, and that JS is scoped strictly to #nmAlerts and
+     #nmSubmissions (the notification panels). Nothing here should
+     ever rewrite nav, footer, or in-page content links.
+     ============================================================
+  {% endcomment %}
+  <style>
+  /* ── TOKENS ────────────────────────────────────────────────── */
+  :root {
+    --flat-border      : 1px solid #e2e6ea;
+    --flat-border-muted: 1px solid #edf0f3;
+    --btn-radius       : 4px;
+    --btn-font         : 500 12px/1 'Inter', sans-serif;
+  }
+
+  /* ── 1. CARD / WIDGET FLATTENING ───────────────────────────── */
+
+  /*
+   * Targets every card-like surface across the application:
+   * Bootstrap cards, custom widget/panel classes, Tailwind
+   * shadow utilities, and gradient-border patterns.
+   * We use a single grouped rule so specificity stays low and
+   * child overrides inside components still work normally.
+   */
+  .card,
+  .card-body,
+  .card-header,
+  .card-footer,
+  .widget,
+  .widget-card,
+  .dashboard-card,
+  .summary-card,
+  .stat-card,
+  .info-card,
+  .data-card,
+  .content-card,
+  .allocation-card,
+  .panel,
+  .panel-body,
+  [class*="-card"]:not(.nm-action-btn),
+  [class*="card-"]:not(.nm-action-btn),
+  [class*="-widget"],
+  [class*="widget-"] {
+    box-shadow        : none !important;
+    -webkit-box-shadow: none !important;
+    background-image  : none !important;   /* removes gradient borders  */
+    border            : var(--flat-border) !important;
+  }
+
+  /* Bootstrap utility shadows */
+  .shadow,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow        : none !important;
+    -webkit-box-shadow: none !important;
+  }
+
+  /* Tailwind JIT / CDN utilities */
+  [class~="shadow-sm"],
+  [class~="shadow"],
+  [class~="shadow-md"],
+  [class~="shadow-lg"],
+  [class~="shadow-xl"],
+  [class~="shadow-2xl"] {
+    --tw-shadow: 0 0 #0000 !important;
+    box-shadow : var(--tw-ring-offset-shadow, 0 0 #0000),
+                 var(--tw-ring-shadow, 0 0 #0000),
+                 var(--tw-shadow) !important;
+  }
+
+  /* ── 2. NOTIFICATION PANEL ACTION BUTTONS ──────────────────── */
+
+  /*
+   * Base class applied by renderNotificationLink() (see JS below)
+   * and by the MutationObserver that auto-upgrades raw <a> tags
+   * — but ONLY inside #nmAlerts / #nmSubmissions. This class never
+   * gets attached to links outside those two containers.
+   */
+  .nm-action-btn {
+    display           : inline-flex;
+    align-items       : center;
+    gap               : 6px;
+    margin-top        : 8px;
+    padding           : 6px 14px;
+    font              : var(--btn-font);
+    border-radius     : var(--btn-radius);
+    border            : 1.5px solid transparent;
+    cursor            : pointer;
+    text-decoration   : none;
+    box-shadow        : none;          /* always flat */
+    transition        : background .14s, color .14s, border-color .14s;
+    white-space       : nowrap;
+  }
+
+  .nm-action-btn.nm-btn-primary   { background:#1a56db; color:#fff;     border-color:#1a56db; }
+  .nm-action-btn.nm-btn-primary:hover { background:#1447c0; border-color:#1447c0; }
+
+  .nm-action-btn.nm-btn-secondary { background:#f3f4f6; color:#374151;  border-color:#d1d5db; }
+  .nm-action-btn.nm-btn-secondary:hover { background:#e5e7eb; border-color:#9ca3af; }
+
+  .nm-action-btn.nm-btn-danger    { background:#fef2f2; color:#dc2626;  border-color:#fca5a5; }
+  .nm-action-btn.nm-btn-danger:hover { background:#fee2e2; border-color:#f87171; }
+
+  /* Suppress any raw <a> that slips through into notif panels */
+  #nmAlerts     a:not(.nm-action-btn),
+  #nmSubmissions a:not(.nm-action-btn) {
+    pointer-events: none;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Notification item card – flat */
+  .nm-item,
+  .notif-item,
+  .notification-card {
+    box-shadow : none !important;
+    border     : var(--flat-border-muted) !important;
+    border-radius: 6px;
+  }
+
+  /* ── 3. MODALS / OVERLAYS / SLIDE-OVERS ────────────────────── */
+
+  /*
+   * Covers Bootstrap modals, the custom notif-modal, and any
+   * slide-over / dialog element present across the app.
+   * Card rules above already cascade in, but these selectors
+   * add belt-and-suspenders coverage for the modal wrappers.
+   */
+  .modal-content,
+  .notif-modal,
+  .slide-over,
+  [role="dialog"] {
+    box-shadow        : none !important;
+    -webkit-box-shadow: none !important;
+    border            : var(--flat-border) !important;
+  }
+
+  /* Cards nested inside any modal context */
+  .modal             .card,
+  .modal-body        .card,
+  .modal             [class*="-card"]:not(.nm-action-btn),
+  .modal-body        [class*="-card"]:not(.nm-action-btn),
+  .notif-overlay     .card,
+  .notif-overlay     [class*="-card"]:not(.nm-action-btn),
+  .slide-over        .card,
+  .slide-over        [class*="-card"]:not(.nm-action-btn),
+  [role="dialog"]    .card,
+  [role="dialog"]    [class*="-card"]:not(.nm-action-btn) {
+    box-shadow        : none !important;
+    -webkit-box-shadow: none !important;
+    background-image  : none !important;
+    border            : var(--flat-border) !important;
+  }
+
+  /* Django system messages – flat */
+  .django-msg {
+    box-shadow : none !important;
+    border-left: 3px solid currentColor;
+  }
+
+  /* ── 4. Host/Remote sync status badge (superusers only) ────── */
+  .sync-status-badge {
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
+    z-index: 9999;
+    font-family: 'Inter', Arial, sans-serif;
+  }
+  .sync-status-badge .sync-status-link {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #1a2e4a;
+    color: #fff;
+    text-decoration: none;
+    padding: 7px 13px 7px 10px;
+    border-radius: 999px;
+    font-size: .74rem;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(0,0,0,.22) !important;
+    transition: transform .15s, background .15s;
+  }
+  .sync-status-badge .sync-status-link:hover { transform: translateY(-1px); background:#22385c; }
+  .sync-status-badge .sync-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: #9aa3b8;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.12);
+  }
+  .sync-status-badge[data-state="connected"] .sync-status-dot { background:#2ecc71; }
+  .sync-status-badge[data-state="disconnected"] .sync-status-dot { background:#e74c3c; animation: syncPulse 1.4s ease-in-out infinite; }
+  .sync-status-badge[data-state="unknown"] .sync-status-dot { background:#f5a623; }
+  .sync-status-badge[data-state="unconfigured"] .sync-status-dot { background:#9aa3b8; }
+  @keyframes syncPulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+  @media (max-width: 640px) {
+    .sync-status-badge { right: 10px; bottom: 10px; }
+    .sync-status-badge .sync-status-text { display:none; }
+    .sync-status-badge .sync-status-link { padding: 9px; }
+  }
+  </style>
+
+  <script>
+  window.SITE = {
+    name   : "{{ site_settings.university_name|default:'Chuka University'|escapejs }}",
+    tagline: "{{ site_settings.tagline|default:'Timetabling & Examinations'|escapejs }}",
+    csrf   : document.querySelector('meta[name="csrf-token"]')?.content || ""
+  };
+  </script>
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  {% block navbar %}{% endblock navbar %}
+
+  {% if sync_status_badge %}
+  <div id="syncStatusBadge" class="sync-status-badge" data-state="unknown" role="status" aria-live="polite">
+    <a href="{% url 'sync_settings' %}" class="sync-status-link" title="Host/Remote sync status — click to open Sync Settings">
+      <span class="sync-status-dot"></span>
+      <span class="sync-status-text">Sync: checking…</span>
+    </a>
+  </div>
+  {% endif %}
+
+  {% if messages %}
+  <div class="django-messages" role="alert" aria-live="polite">
+    {% for msg in messages %}
+    <div class="django-msg django-msg--{{ msg.tags }} alert-auto-dismiss" data-duration="5000">
+      {{ msg|escape }}
+      <button class="alert-close" aria-label="Dismiss">&times;</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main id="main-content">
+    {% block content %}{% endblock content %}
+  </main>
+
+  {% block quick_bar %}{% endblock quick_bar %}
+
+  {% block footer %}{% endblock footer %}
+
+  {% block extra_js %}{% endblock extra_js %}
+
+  {% comment %}
+     ============================================================
+     FLAT DESIGN SYSTEM – RUNTIME JS
+
+     • renderNotificationLink(url, labelOverride?)
+         Public helper for notification renderers. Returns the
+         HTML string for a flat .nm-action-btn. Infers the right
+         label, variant, and icon from URL patterns.
+
+     • MutationObserver (notif panels — SCOPED)
+         Auto-upgrades any raw <a> injected into #nmAlerts or
+         #nmSubmissions by legacy notification code. This observer
+         is attached directly to each of those two elements, so it
+         physically cannot see or touch links anywhere else on the
+         page (nav, footer, page content, other modals, etc).
+
+     • MutationObserver (inline shadow strip — SCOPED to document.body
+         but only ever touches box-shadow/filter style props on a
+         fixed list of card-like selectors; never touches <a> tags
+         or link behaviour).
+     ============================================================
+  {% endcomment %}
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── Label / variant inference ─────────────────────────── */
+    var PATTERNS = [
+      { re: /\.(pdf|docx?|xlsx?|csv|zip|rar)(\?|$)/i, label:'Download Report',      variant:'primary',   icon:'fa-download'         },
+      { re: /download/i,                               label:'Download File',        variant:'primary',   icon:'fa-download'         },
+      { re: /report/i,                                 label:'View Report',          variant:'primary',   icon:'fa-file-alt'         },
+      { re: /timetable/i,                              label:'Open Timetable',       variant:'secondary', icon:'fa-calendar-alt'     },
+      { re: /allocat/i,                                label:'View Allocation',      variant:'secondary', icon:'fa-table'            },
+      { re: /resit/i,                                  label:'View Resit Details',   variant:'secondary', icon:'fa-clipboard-list'   },
+      { re: /submission/i,                             label:'View Submission',      variant:'secondary', icon:'fa-inbox'            },
+      { re: /delete|remove|reject/i,                   label:'Review Action',        variant:'danger',    icon:'fa-exclamation-circle'},
+    ];
+
+    function inferMeta(url) {
+      for (var i = 0; i < PATTERNS.length; i++) {
+        if (PATTERNS[i].re.test(url)) return PATTERNS[i];
+      }
+      return { label:'View Details', variant:'secondary', icon:'fa-external-link-alt' };
+    }
+
+    /* ── Public helper ─────────────────────────────────────── */
+    /**
+     * renderNotificationLink(url, labelOverride?)
+     * Call this from your notification rendering code instead of
+     * writing a raw <a href="..."> tag.
+     *
+     * @param  {string} url
+     * @param  {string} [labelOverride]  – optional explicit label
+     * @returns {string} HTML for a flat action button
+     *
+     * Example:
+     *   itemEl.insertAdjacentHTML('beforeend',
+     *     renderNotificationLink(notif.url, notif.link_text));
+     */
+    window.renderNotificationLink = function (url, labelOverride) {
+      if (!url) return '';
+      var m = inferMeta(url);
+      return '<a href="' + url + '" class="nm-action-btn nm-btn-' + m.variant
+           + '" target="_blank" rel="noopener">'
+           + '<i class="fas ' + m.icon + '" aria-hidden="true"></i>'
+           + (labelOverride || m.label)
+           + '</a>';
+    };
+
+    /* ── Auto-upgrade raw <a> tags — ONLY inside notif panels ── */
+    function upgradeLinks(root) {
+      root.querySelectorAll('a:not(.nm-action-btn):not(.nav-btn):not(.skip-link)')
+        .forEach(function (a) {
+          var href = a.getAttribute('href');
+          if (!href || href === '#') return;
+          var m   = inferMeta(href);
+          var btn = document.createElement('a');
+          btn.href      = href;
+          btn.target    = '_blank';
+          btn.rel       = 'noopener';
+          btn.className = 'nm-action-btn nm-btn-' + m.variant;
+          btn.innerHTML = '<i class="fas ' + m.icon + '" aria-hidden="true"></i>'
+                        + ((a.textContent || '').trim() || m.label);
+          a.parentNode.replaceChild(btn, a);
+        });
+    }
+
+    /*
+     * watchContainer(id) deliberately does NOT touch document.body.
+     * It looks up one specific container by id, runs the initial
+     * upgrade only on that container's existing children, then
+     * observes only that container going forward. If the container
+     * doesn't exist on a given page, this is a complete no-op —
+     * nothing elsewhere on that page is ever affected.
+     */
+    function watchContainer(id) {
+      var el = document.getElementById(id);
+      if (!el) return; // no notif panel on this page → do absolutely nothing
+      upgradeLinks(el);
+      new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          m.addedNodes.forEach(function (n) { if (n.nodeType === 1) upgradeLinks(n); });
+        });
+      }).observe(el, { childList: true, subtree: true });
+    }
+
+    /* ── Strip inline box-shadows set by widget JS ─────────── */
+    var CARD_SEL = [
+      '.card','.widget','.widget-card','.dashboard-card','.summary-card',
+      '.stat-card','.info-card','.panel','.notif-modal','.nm-item',
+      '.modal-content','.notification-card'
+    ].join(',');
+
+    function stripShadows(root) {
+      (root || document).querySelectorAll(CARD_SEL).forEach(function (el) {
+        if (el.style.boxShadow)       el.style.boxShadow       = 'none';
+        if (el.style.webkitBoxShadow) el.style.webkitBoxShadow = 'none';
+        if (el.style.filter && el.style.filter.indexOf('drop-shadow') !== -1) {
+          el.style.filter = el.style.filter.replace(/drop-shadow\([^)]*\)/g, '').trim();
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      watchContainer('nmAlerts');
+      watchContainer('nmSubmissions');
+      stripShadows();
+      new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+          m.addedNodes.forEach(function (n) { if (n.nodeType === 1) stripShadows(n); });
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+
+  })();
+  </script>
+
+  {% if sync_status_badge %}
+  <script>
+  (function () {
+    'use strict';
+    var badge = document.getElementById('syncStatusBadge');
+    if (!badge) return;
+
+    var textEl  = badge.querySelector('.sync-status-text');
+    var linkEl  = badge.querySelector('.sync-status-link');
+    var STATUS_URL = "{% url 'sync_connection_status_api' %}";
+    var TEST_URL   = "{% url 'sync_test_connection_api' %}";
+    var csrfMeta   = document.querySelector('meta[name="csrf-token"]');
+    var csrfToken  = csrfMeta ? csrfMeta.content : '';
+
+    function applyState(state, label) {
+      badge.dataset.state = state;
+      if (textEl) textEl.textContent = 'Sync: ' + label;
+      if (linkEl) linkEl.title = label + ' — click to open Sync Settings';
+    }
+
+    function triggerActiveCheck() {
+      fetch(TEST_URL, { method: 'POST', headers: { 'X-CSRFToken': csrfToken } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { if (data && data.success) applyState(data.state, data.label); })
+        .catch(function () { /* keep last known state; next poll will retry */ });
+    }
+
+    function refresh() {
+      fetch(STATUS_URL)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.success) return;
+          applyState(data.state, data.label);
+          // HOST only: an active connectivity test is the only way to know
+          // the remote is ACTUALLY reachable right now (as opposed to "was
+          // reachable last time we happened to check") — so whenever the
+          // cached result is stale (including "never checked"), fire a
+          // real probe immediately. This is what makes the badge correct
+          // right after opening any page even if the network dropped, or
+          // sync was paused and just resumed, since neither of those
+          // events notifies us on their own.
+          if (data.mode === 'host' && data.stale) {
+            triggerActiveCheck();
+          }
+        })
+        .catch(function () { applyState('unknown', 'connection check failed'); });
+    }
+
+    refresh();
+    setInterval(refresh, 45000);
+  })();
+  </script>
+  {% endif %}
+
+</body>
+</html>

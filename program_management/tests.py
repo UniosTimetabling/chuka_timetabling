@@ -1,0 +1,16 @@
+python manage.py shell < seed_dedu.py
+python manage.py shell < seed_dbad_course_allocations.py
+python manage.py shell < seed_course_allocations_ls.py
+python manage.py shell < seed_cosc_allocations.py
+python manage.py shell < seed_ansc_allocations_copy.py
+python manage.py shell < seed_nursing_allocations.py
+python manage.py shell < seed_ansc_allocations.py
+python manage.py shell < seed_management_science_allocations.py
+python manage.py shell < seed_all_allocations.py
+python manage.py shell < seed_humanities_allocations.py
+python manage.py shell < script.py
+python manage.py shell < seed_feedback.py
+python manage.py shell < seed_eeng_allocations.py
+python manage.py shell < seed_dssc.py
+python manage.py shell < seed_dplsc_course_allocations.py
+python manage.py shell < seed_derd_allocations.py

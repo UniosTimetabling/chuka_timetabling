@@ -1,0 +1,159 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_official_timetable_pdf.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>{{ title }}</title>
+</head>
+<body>
+
+ <div class="header">
+ <div class="logo-line">
+ <span>CHUKA</span>
+ <img src="{{ logo_url }}" alt="Logo">
+ <span>UNIVERSITY</span>
+ </div>
+ <div class="subtext">
+ Knowledge is Wealth (Sapientia Divitia Est) • Akili ni Mali
+ <br>
+ <strong>DIRECTORATE OF EXAMINATIONS AND TIMETABLING</strong>
+ </div>
+ <div class="meta">
+ Telephones: 020-2310512/18
+ Email: extt@chuka.ac.ke
+ P.O. Box 109–60400, Chuka
+ Website: www.chuka.ac.ke
+ <hr>
+ {{ now|date:"d M Y" }} 
+ Ref: CU/EXTT/REGU/{{ now|date:"d M Y" }}
+ </div>
+ <h3>TEACHING TIMETABLE ({{semester}}-{{ now.year }})</h3>
+ </div>
+
+ {% for day, rows in day_grids.items %}
+ <div class="day-section">
+ <div class="day-title">{{ day }}</div>
+ <div class="table-container">
+ <table>
+ <thead>
+ <tr>
+ <th class="venue-col">Venue (Capacity)</th>
+ {% for slot in time_slots %}
+ <th class="time-col">{{ slot }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in rows %}
+ <tr>
+ <td class="venue-col">{{ row.venue_key }}</td>
+ {% for cell in row.cells %}
+ <td>
+ {% if cell.entries %}
+ {% for entry in cell.entries %}
+ <div><strong>{{ entry.course_code }}</strong></div>
+ {% if not forloop.last %}
+ <hr style="border:0;border-top:1px dotted #666;margin:3px 0;">
+ {% endif %}
+ {% endfor %}
+ {% else %}
+ <span class="empty-cell">–</span>
+ {% endif %}
+ </td>
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ {% if not forloop.last %}
+ <div class="page-break"></div>
+ {% endif %}
+ {% endfor %}
+
+ {% if merged_table %}
+ <div class="page-break"></div>
+ <h3>Merged Course Sessions</h3>
+ <div class="additional-table">
+ <table>
+ <thead>
+ <tr>
+ <th>Merged Code</th>
+ <th>Courses Combined</th>
+ <th>Venue</th>
+ <th>Date</th>
+ <th>Time</th>
+ <th>Total Students</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in merged_table %}
+ <tr>
+ <td>{{ row.merged_code }}</td>
+ <td>{{ row.courses }}</td>
+ <td>{{ row.venue }}</td>
+ <td>{{ row.date }}</td>
+ <td>{{ row.start }} – {{ row.end }}</td>
+ <td>{{ row.total_students }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% endif %}
+
+ {% if lab_table %}
+ <div class="page-break"></div>
+ <h3>Lab Timetable</h3>
+ <div class="additional-table">
+ <table>
+ <thead>
+ <tr>
+ <th>Course</th>
+ <th>Lab</th>
+ <th>Day</th>
+ <th>Start</th>
+ <th>End</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for l in lab_table %}
+ <tr>
+ <td>{{ l.course_code }}</td>
+ <td>{{ l.lab }}</td>
+ <td>{{ l.day }}</td>
+ <td>{{ l.start }}</td>
+ <td>{{ l.end }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% endif %}
+
+ <div class="footer">
+NB: All queries to be channeled via email address (extt@chuka.ac.ke) or visit the office at Science Complex (S102)
+
+KEY:
+- PAV H (PAVILION HALL UPSTAIRS)
+- MSH 03–10 (MALE STUDENTS' HOSTEL COMMON ROOMS)
+- MS (01–34) – MEDIA SCHOOL COMPLEX
+- S (SGT1–S602) – SCIENCE COMPLEX
+- BSL (BSL001–503) BUSINESS SCHOOL LEFT WING
+- BSR (BSR001–503) BUSINESS SCHOOL RIGHT WING
+- LLB 1–3: FACULTY OF LAW (BSRC COMPLEX)
+- L1–L4: AREA NEAR EGERTON HOUSE
+- FTC B01–FTC 605: FOOD TECHNOLOGY CENTRE
+- SRP B01–SRP 305: SCIENCE RESEARCH PARK COMPLEX
+
+Prepared by: <strong>J.K. KATHURU</strong>
+Director (Examinations and Timetabling)
+JKK/gmk
+Final, September – December 2025 Teaching Timetable
+Generated on {{ now|date:"d M Y, H:i" }}
+ </div>
+
+</body>
+</html>

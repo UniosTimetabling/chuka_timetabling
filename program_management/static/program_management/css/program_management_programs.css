@@ -1,0 +1,210 @@
+/* program_management_programs.css — extracted from programs.html */
+/* ── Button fix: hardcode green so it never depends on missing tokens ── */
+  .btn-primary {
+    background: linear-gradient(135deg, #27ae60, #1e8449) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #1e8449, #155f36) !important;
+    box-shadow: 0 3px 12px rgba(30,132,73,.38) !important;
+    transform: translateY(-1px);
+  }
+
+  /* ── Submit buttons inside course-forms (inline add course) ── */
+  .course-form-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    color: #fff;
+    transition: var(--transition);
+    margin-top: 4px;
+  }
+  .course-form-submit:hover {
+    background: linear-gradient(135deg, #1e8449, #155f36);
+    box-shadow: 0 3px 10px rgba(30,132,73,.35);
+    transform: translateY(-1px);
+  }
+
+  /* ═══════════════════════════════════════
+     PROGRAMS PAGE — LOCAL STYLES
+  ═══════════════════════════════════════ */
+
+  .prog-container {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* Section headings */
+  .prog-section-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--navy-700);
+    padding-left: 12px;
+    
+    margin: 28px 0 16px;
+  }
+  .prog-section-title:first-child { margin-top: 0; }
+
+  /* Add Program form card */
+  .prog-form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 20px 22px;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* Inline course-form inside each program row/card */
+  .course-form {
+    margin-top: 14px;
+    background: var(--green-20);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .course-form .form-row-2 { gap: 10px; }
+  .course-form .form-label { font-size: 11.5px; }
+
+  /* Desktop table wrapper */
+  .prog-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-top: 4px;
+  }
+
+  /* Course list inside table td */
+  .course-list { list-style: none; padding: 0; margin: 0; }
+
+  .course-list li {
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .course-list li:last-child { border-bottom: none; }
+
+  .course-info {
+    font-weight: 500;
+    font-size: 13px;
+    flex: 1;
+    color: var(--text);
+  }
+
+  .action-btns  { display: flex; gap: 5px; flex-wrap: wrap; }
+  .action-btns-col { display: flex; flex-direction: column; gap: 5px; }
+
+  /* Mobile card grid */
+  .programs-grid {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 4px;
+  }
+
+  .program-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .program-card-head {
+    background: linear-gradient(100deg, var(--navy-50), var(--green-20));
+    border-bottom: 2px solid var(--border-light);
+    padding: 12px 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .program-name  { font-size: 1rem; font-weight: 800; color: var(--navy-700); margin-bottom: 2px; }
+  .program-dept  { font-size: 12px; color: var(--text-muted); }
+  .program-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .program-card-body { padding: 14px 16px; }
+
+  .courses-list-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .course-item {
+    background: var(--bg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .course-item:last-of-type { margin-bottom: 0; }
+
+  .course-code      { font-weight: 700; color: var(--navy-600); font-size: 13px; }
+  .course-name      { font-size: 13px; color: var(--text); }
+  .course-meta      { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+  .course-item-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .course-item-actions .btn { flex: 1; justify-content: center; }
+
+  /* Debug panel - remove in production */
+  .debug-info {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    display: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .prog-container { padding: 14px 12px; }
+    .form-row-2 { grid-template-columns: 1fr; }
+    .desktop-table-wrap { display: none !important; }
+    .programs-grid { display: flex; }
+  }
+
+  @media (max-width: 480px) { .prog-container { padding: 10px 8px; } }
+
+  @media print {
+    .prog-form-card, .course-form, .btn,
+    .program-actions, .action-btns,
+    .action-btns-col, .course-item-actions { display: none !important; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  @media (prefers-contrast: high) {
+    .program-card, .prog-form-card { border: 2px solid #000; }
+  }

@@ -1,0 +1,64 @@
+{% extends "backup_system/base.html" %}
+{% block title %}Confirm Undo{% endblock %}
+{% block breadcrumb_current %}Confirm Undo{% endblock %}
+
+{% block backup_content %}
+
+<div class="bk-header">
+  <h1>Confirm Undo</h1>
+  <p>Review every change that will be reversed before committing. This runs as a single transaction — if anything fails, nothing changes.</p>
+</div>
+
+<div class="bk-card">
+  <div class="bk-card-head">{{ undo_action.description }}</div>
+  <div class="bk-card-body">
+
+    <div class="bk-alert bk-alert-warn" style="margin-bottom:1.2rem;">
+      The changes below will be reversed together. If you are unsure, click Cancel — nothing has been modified yet.
+    </div>
+
+    <div class="bk-table-wrap">
+      <table class="bk-table">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Action</th>
+            <th>Table</th>
+            <th>Record</th>
+            <th>What will happen</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in preview %}
+          <tr>
+            <td style="font-size:.78rem;">{{ item.timestamp|date:"Y-m-d H:i:s" }}</td>
+            <td>{{ item.action }}</td>
+            <td>{{ item.table_name }}</td>
+            <td>#{{ item.record_id }}</td>
+            <td>{{ item.summary }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <form method="post" style="margin-top:1.2rem;"
+      action="{% if undo_action.undo_type == 'single' %}{% url 'backup_system:undo_single' undo_action.audit_logs.first.id %}{% elif undo_action.undo_type == 'multiple' %}{% url 'backup_system:undo_multiple' %}{% else %}{% url 'backup_system:undo_time_range' %}{% endif %}">
+      {% csrf_token %}
+      <input type="hidden" name="confirm" value="yes">
+      {% for log in undo_action.audit_logs.all %}
+      <input type="hidden" name="audit_log_ids" value="{{ log.id }}">
+      {% endfor %}
+      {% if undo_action.undo_type == 'time_range' %}
+      <input type="hidden" name="preset" value="custom">
+      <input type="hidden" name="start_time" value="{{ undo_action.undo_start_time|date:'c' }}">
+      <input type="hidden" name="end_time" value="{{ undo_action.undo_end_time|date:'c' }}">
+      {% endif %}
+      <div class="bk-actions">
+        <button type="submit" class="bk-btn bk-btn-primary">Confirm &amp; Execute Undo</button>
+        <a href="{% url 'backup_system:audit_log' %}" class="bk-btn bk-btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

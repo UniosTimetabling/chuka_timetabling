@@ -1,0 +1,181 @@
+{% load static %}
+{% comment %}
+Shared Safe Undo body. Include with:
+  {% include "backup_system/safe_undo_body.html" with
+     su_action_url=<resolved url string>
+     su_scope_label=<e.g. department.name>
+     su_heading="Lab Allocations"
+     su_note="Optional extra sentence for the intro paragraph." %}
+Expects `logs` and `available_dates` in context (as produced by
+backup_system.page_undo.build_views).
+{% endcomment %}
+<style>
+    .su-container { padding: 1rem; width: 100%; max-width: 100%; margin: 0; }
+    .su-card { background: white; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #e5e9e0; overflow: hidden; width: 100%; }
+    .su-card-header { padding: 1rem 1.5rem; background: #fafbf8; border-bottom: 1px solid #e5e9e0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    .su-card-header h2 { font-size: 1.25rem; font-weight: 600; color: #1e4620; margin: 0; }
+    .su-card-body { padding: 1.25rem 1.5rem; }
+    .su-note { font-size: 0.85rem; color: #5b6e53; margin-top: 0.25rem; }
+    .su-filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.25rem; background: #fefef9; padding: 1rem; border-radius: 0.75rem; border: 1px solid #eef2e8; }
+    .su-filter-group { display: flex; flex-direction: column; gap: 0.35rem; min-width: 160px; }
+    .su-filter-group label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: #5b6e53; }
+    .su-filter-group input, .su-filter-group select { padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cfdec5; background: white; font-size: 0.85rem; }
+    .su-btn { padding: 0.55rem 1.1rem; border-radius: 0.5rem; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .su-btn-primary { background: #1e4620; color: white; }
+    .su-btn-primary:hover { background: #16340f; }
+    .su-btn-small { padding: 0.35rem 0.75rem; font-size: 0.78rem; }
+    table.su-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+    table.su-table th, table.su-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #eef2e8; text-align: left; }
+    table.su-table th { background: #f4f7f1; color: #1e4620; font-weight: 700; }
+    .su-empty { padding: 2rem; text-align: center; color: #7a8a72; }
+    .su-tag { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; background: #eef2e8; color: #1e4620; margin-left: 0.25rem; }
+    .su-tag-del { background: #fbe6e5; color: #b3261e; }
+    .su-tag-edit { background: #eaf1fb; color: #1a4d8f; }
+    .su-changed { font-size: 0.75rem; color: #7a8a72; }
+    #suToast { position: fixed; top: 80px; right: 20px; background: #1e4620; color: #fff; padding: 0.75rem 1.25rem; border-radius: 0.5rem; display: none; z-index: 999; font-size: 0.85rem; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+    #suToast.error { background: #b3261e; }
+</style>
+
+<div class="su-container">
+    <div class="su-card">
+        <div class="su-card-header">
+            <h2>&#128737;&#65039; Safe Undo{% if su_heading %} — {{ su_heading }}{% endif %}</h2>
+            {% if su_scope_label %}<span class="su-tag">{{ su_scope_label }}</span>{% endif %}
+        </div>
+        <div class="su-card-body">
+            <p class="su-note">
+                Reverse a deletion or an edit{% if su_scope_label %} for <strong>{{ su_scope_label }}</strong>{% endif %}.
+                Undo one entry at a time, or undo everything that happened on a given
+                date, or narrow it to a specific time window on that date.
+                Once an entry is undone it disappears from this list.
+                {% if su_note %}{{ su_note }}{% endif %}
+            </p>
+
+            <div class="su-filters">
+                <div class="su-filter-group">
+                    <label for="suDate">Date</label>
+                    <input type="date" id="suDate">
+                </div>
+                <div class="su-filter-group">
+                    <label for="suStart">Start time (optional)</label>
+                    <input type="time" id="suStart" value="00:00">
+                </div>
+                <div class="su-filter-group">
+                    <label for="suEnd">End time (optional)</label>
+                    <input type="time" id="suEnd" value="23:59">
+                </div>
+                <button class="su-btn su-btn-primary" id="suUndoDateBtn">Undo whole date</button>
+                <button class="su-btn su-btn-primary" id="suUndoTimeBtn">Undo time window</button>
+            </div>
+
+            <div id="suTableWrap">
+                {% include "backup_system/_safe_undo_table.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="suToast"></div>
+
+<script>
+(function () {
+    const csrftoken = document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+    const actionUrl = "{{ su_action_url }}";
+
+    function toast(msg, isError) {
+        const el = document.getElementById('suToast');
+        el.textContent = msg;
+        el.className = isError ? 'error' : '';
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    function post(payload) {
+        const body = new URLSearchParams(payload);
+        return fetch(actionUrl, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body,
+        }).then(r => r.json());
+    }
+
+    function refreshTable() {
+        post({ action: 'list_logs' }).then(res => {
+            if (res.status !== 'success') return;
+            const tbody = document.getElementById('suTbody');
+            if (!tbody) return;
+            if (!res.logs.length) {
+                document.getElementById('suTableWrap').innerHTML =
+                    '<p class="su-empty">Nothing to undo right now.</p>';
+                return;
+            }
+            tbody.innerHTML = res.logs.map(rowHtml).join('');
+            attachRowHandlers();
+        });
+    }
+
+    function rowHtml(l) {
+        const tagClass = l.action === 'delete' ? 'su-tag su-tag-del' : 'su-tag su-tag-edit';
+        const btnLabel = l.action === 'delete' ? 'Restore' : 'Undo edit';
+        const changed = (l.changed_fields && l.changed_fields.length)
+            ? `<div class="su-changed">Changed: ${l.changed_fields.join(', ')}</div>` : '';
+        return `<tr>
+            <td><span class="su-tag">${l.kind}</span> <span class="${tagClass}">${l.action_label}</span></td>
+            <td>${l.label}${changed}</td>
+            <td>${l.by}</td>
+            <td>${l.at}</td>
+            <td><button class="su-btn su-btn-small su-btn-primary su-undo-one" data-id="${l.id}">${btnLabel}</button></td>
+        </tr>`;
+    }
+
+    function attachRowHandlers() {
+        document.querySelectorAll('.su-undo-one').forEach(btn => {
+            btn.addEventListener('click', () => {
+                post({ action: 'undo_single', log_id: btn.dataset.id }).then(res => {
+                    if (res.status === 'success') {
+                        toast('Undone.');
+                        refreshTable();
+                    } else {
+                        toast(res.message || 'Could not undo that entry.', true);
+                    }
+                });
+            });
+        });
+    }
+    attachRowHandlers();
+
+    document.getElementById('suUndoDateBtn').addEventListener('click', () => {
+        const date = document.getElementById('suDate').value;
+        if (!date) { toast('Pick a date first.', true); return; }
+        post({ action: 'undo_by_date', date }).then(res => {
+            if (res.status === 'success') {
+                const extra = (res.failed && res.failed.length) ? ` (${res.failed.length} could not be undone)` : '';
+                toast(`Undone ${res.restored_count} entr${res.restored_count === 1 ? 'y' : 'ies'}${extra}.`);
+                refreshTable();
+            } else {
+                toast(res.message || 'Nothing undone.', true);
+            }
+        });
+    });
+
+    document.getElementById('suUndoTimeBtn').addEventListener('click', () => {
+        const date = document.getElementById('suDate').value;
+        const start_time = document.getElementById('suStart').value || '00:00';
+        const end_time = document.getElementById('suEnd').value || '23:59';
+        if (!date) { toast('Pick a date first.', true); return; }
+        post({ action: 'undo_by_time', date, start_time, end_time }).then(res => {
+            if (res.status === 'success') {
+                const extra = (res.failed && res.failed.length) ? ` (${res.failed.length} could not be undone)` : '';
+                toast(`Undone ${res.restored_count} entr${res.restored_count === 1 ? 'y' : 'ies'}${extra}.`);
+                refreshTable();
+            } else {
+                toast(res.message || 'Nothing undone.', true);
+            }
+        });
+    });
+})();
+</script>

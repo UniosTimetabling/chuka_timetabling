@@ -1,0 +1,893 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+
+{% block title %}Smart Importer 2.0{% endblock %}
+{% block breadcrumb_current %}Smart Importer 2.0{% endblock %}
+
+{% block sudo_content %}
+<style>
+/* ══════════════════════════════════════════════
+   SMART IMPORTER 2.0  –  UI Design System
+   ══════════════════════════════════════════════ */
+
+/* Page layout */
+.si2-page { max-width: 1180px; margin: 0 auto; padding: 0 0 5rem; }
+
+/* Header strip */
+.si2-header { margin-bottom: 1.5rem; }
+.si2-header h1 { font-size: 1.45rem; font-weight: 800; color: #0b1f4a; margin: 0 0 .2rem; display: flex; align-items: center; gap: .6rem; }
+.si2-header p  { color: #5a6a82; font-size: .87rem; margin: 0; }
+.si2-ver-badge { font-size: .68rem; font-weight: 800; padding: .22rem .6rem; border-radius: 20px;
+  background: linear-gradient(135deg,#1a56db,#7c3aed); color: #fff; letter-spacing: .04em; }
+.si2-ai-badge  { font-size: .7rem; font-weight: 700; padding: .18rem .55rem; border-radius: 20px;
+  margin-left: .3rem; }
+.si2-ai-on  { background: #d1fae5; color: #065f46; }
+.si2-ai-off { background: #fef3c7; color: #92400e; }
+
+/* Stage progress rail */
+.si2-rail { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; overflow-x: auto; padding-bottom: .3rem; }
+.si2-rail-step {
+  flex: 1; min-width: 64px; display: flex; flex-direction: column;
+  align-items: center; gap: .25rem; position: relative; cursor: default;
+}
+.si2-rail-step + .si2-rail-step::before {
+  content: ""; position: absolute; left: calc(-50% + 14px); right: calc(50% + 14px);
+  top: 14px; height: 2px; background: #dde3ee; z-index: 0;
+}
+.si2-rail-step.done + .si2-rail-step::before { background: #1e8449; }
+.si2-rail-dot {
+  width: 28px; height: 28px; border-radius: 50%; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800; border: 2px solid #dde3ee;
+  background: #f5f7fc; color: #9aabb8; transition: all .3s;
+}
+.si2-rail-step.active .si2-rail-dot { border-color: #1a56db; background: #1a56db; color: #fff; box-shadow: 0 0 0 3px rgba(26,86,219,.2); }
+.si2-rail-step.done   .si2-rail-dot { border-color: #1e8449; background: #1e8449; color: #fff; }
+.si2-rail-step.error  .si2-rail-dot { border-color: #c0392b; background: #c0392b; color: #fff; }
+.si2-rail-label { font-size: .64rem; font-weight: 600; color: #9aabb8; text-align: center; white-space: nowrap; }
+.si2-rail-step.active .si2-rail-label { color: #1a56db; }
+.si2-rail-step.done   .si2-rail-label { color: #1e8449; }
+
+/* Cards */
+.si2-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 1.5rem 1.7rem; margin-bottom: 1.25rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+}
+.si2-card-title {
+  font-size: .78rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .07em; color: #7b8fa6; margin: 0 0 1.1rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.si2-card-title i { font-size: .9rem; }
+
+/* Classification banner */
+.si2-classify-banner {
+  border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem;
+  display: flex; align-items: flex-start; gap: .75rem; font-size: .83rem;
+}
+.si2-classify-ok   { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+.si2-classify-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #92400e; }
+.si2-classify-block{ background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+.si2-classify-banner i { font-size: 1.1rem; flex-shrink: 0; margin-top: .05rem; }
+
+/* Form elements */
+.si2-label { font-size: .8rem; font-weight: 700; color: #374151; display: block; margin-bottom: .35rem; }
+.si2-input, .si2-select, .si2-textarea {
+  width: 100%; padding: .55rem .8rem; border: 1px solid #d1d8e0; border-radius: 8px;
+  font-size: .85rem; color: #1a2e4a; background: #f9fafb; box-sizing: border-box;
+  transition: border-color .2s;
+}
+.si2-input:focus, .si2-select:focus, .si2-textarea:focus {
+  outline: none; border-color: #1a56db; background: #fff;
+  box-shadow: 0 0 0 3px rgba(26,86,219,.09);
+}
+.si2-textarea { min-height: 80px; resize: vertical; }
+.si2-hint { font-size: .74rem; color: #8fa3b8; margin-top: .3rem; }
+
+/* Drop zone */
+.si2-dropzone {
+  border: 2px dashed #c5d0dc; border-radius: 12px; padding: 2.2rem 1rem;
+  text-align: center; cursor: pointer; transition: all .2s; background: #f8fafc;
+  position: relative;
+}
+.si2-dropzone:hover, .si2-dropzone.drag { border-color: #1a56db; background: #f0f4ff; }
+.si2-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.si2-dropzone-icon { font-size: 2.2rem; color: #9aabb8; margin-bottom: .6rem; }
+.si2-dropzone-text { font-size: .87rem; color: #5a6a82; font-weight: 600; }
+.si2-dropzone-sub  { font-size: .75rem; color: #9aabb8; margin-top: .3rem; }
+.si2-file-info { font-size: .82rem; color: #1a56db; font-weight: 700; margin-top: .6rem; }
+
+/* Model pills */
+.si2-pills { display: flex; flex-wrap: wrap; gap: .45rem; }
+.si2-pill {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .3rem .75rem; border-radius: 20px; border: 1px solid #d1d8e0;
+  font-size: .76rem; font-weight: 600; color: #4b5563; cursor: pointer;
+  transition: all .18s; user-select: none;
+}
+.si2-pill input[type=checkbox] { width: 13px; height: 13px; accent-color: #1a56db; }
+.si2-pill:has(input:checked) { background: #e8f0fe; border-color: #1a56db; color: #1a56db; }
+
+/* Buttons */
+.si2-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  padding: .62rem 1.25rem; border-radius: 8px; font-size: .84rem;
+  font-weight: 700; cursor: pointer; border: none; transition: all .18s; text-decoration: none;
+}
+.si2-btn-primary   { background: #1a56db; color: #fff; }
+.si2-btn-primary:hover  { background: #1547c0; }
+.si2-btn-success   { background: #1e8449; color: #fff; }
+.si2-btn-success:hover  { background: #196438; }
+.si2-btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #d1d8e0; }
+.si2-btn-secondary:hover{ background: #e2e8f0; }
+.si2-btn-warn      { background: #d97706; color: #fff; }
+.si2-btn-warn:hover { background: #b45309; }
+.si2-btn-danger    { background: #c0392b; color: #fff; }
+.si2-btn-danger:hover{ background: #a93226; }
+.si2-btn-sm        { padding: .38rem .8rem; font-size: .77rem; }
+.si2-btn:disabled  { opacity: .5; cursor: not-allowed; }
+
+/* Grid */
+.si2-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.si2-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+@media(max-width:680px){ .si2-grid2, .si2-grid3 { grid-template-columns: 1fr; } }
+
+/* Summary bar */
+.si2-summary-bar {
+  background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 9px;
+  padding: .75rem 1rem; font-size: .83rem; color: #1a2e4a;
+  margin-bottom: 1rem; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+.si2-summary-bar i { color: #1a56db; font-size: 1rem; }
+.si2-count-pill {
+  display: inline-flex; align-items: center; gap: .3rem;
+  padding: .22rem .65rem; border-radius: 20px; font-size: .75rem; font-weight: 800;
+}
+.si2-count-valid { background: #d1fae5; color: #065f46; }
+.si2-count-warn  { background: #fef3c7; color: #92400e; }
+.si2-count-error { background: #fee2e2; color: #991b1b; }
+
+/* Sticky action row above table */
+.si2-sticky-bar {
+  position: sticky; top: 52px; z-index: 50;
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+  background: rgba(245,247,252,.97); border: 1px solid #e2e8f0; border-radius: 9px;
+  padding: .55rem .85rem; margin-bottom: .85rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07); backdrop-filter: blur(4px);
+}
+
+/* Preview table */
+.si2-table-wrap { overflow-x: auto; max-height: 62vh; border-radius: 9px; border: 1px solid #e2e8f0; }
+.si2-table { width: 100%; border-collapse: collapse; font-size: .79rem; }
+.si2-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: #f1f5f9; padding: .6rem .85rem; text-align: left;
+  font-weight: 800; color: #374151; border-bottom: 2px solid #e2e8f0; white-space: nowrap;
+}
+.si2-table td { padding: .5rem .85rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.si2-table tr:last-child td { border-bottom: none; }
+.si2-table tr:hover td { background: #f8fafc; }
+.si2-table td[contenteditable=true] {
+  outline: none; background: #fffde7; border-radius: 3px; cursor: text;
+  min-width: 80px; transition: background .15s;
+}
+.si2-table td[contenteditable=true]:focus { background: #fff9c4; box-shadow: 0 0 0 2px #f59e0b; }
+
+/* Status badges */
+.si2-status { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 20px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
+.si2-status-valid { background: #d1fae5; color: #065f46; }
+.si2-status-warn  { background: #fef3c7; color: #92400e; }
+.si2-status-error { background: #fee2e2; color: #991b1b; }
+.conf-high   { background: #d1fae5; color: #065f46; padding: .12rem .45rem; border-radius: 10px; font-size: .68rem; font-weight: 700; }
+.conf-medium { background: #fef3c7; color: #92400e; padding: .12rem .45rem; border-radius: 10px; font-size: .68rem; font-weight: 700; }
+.conf-low    { background: #fee2e2; color: #991b1b; padding: .12rem .45rem; border-radius: 10px; font-size: .68rem; font-weight: 700; }
+
+/* Issues + suggestions */
+.si2-issues   { font-size: .71rem; color: #991b1b; margin-top: .3rem; }
+.si2-issue-tag{ background: #fee2e2; padding: .1rem .42rem; border-radius: 4px; display: inline-block; margin: .1rem .15rem .1rem 0; }
+.si2-suggest  { font-size: .71rem; color: #92400e; margin-top: .2rem; }
+.si2-suggest a{ color: #d97706; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.si2-corrections { font-size: .7rem; color: #065f46; margin-top: .25rem; }
+.si2-corr-tag { background: #d1fae5; padding: .1rem .4rem; border-radius: 4px; display: inline-block; margin: .1rem .1rem .1rem 0; }
+
+/* Row delete btn */
+.si2-row-del { background: none; border: none; color: #c0392b; cursor: pointer; padding: .22rem .4rem; border-radius: 4px; transition: background .15s; }
+.si2-row-del:hover { background: #fee2e2; }
+
+/* Refine panel */
+.si2-refine-panel { display: none; }
+.si2-refine-panel.visible { display: block; }
+
+/* Commit result */
+.si2-commit-result { border-radius: 9px; padding: 1rem 1.2rem; font-size: .84rem; }
+.si2-commit-ok   { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+.si2-commit-warn { background: #fffbeb; border: 1px solid #fcd34d; color: #78350f; }
+
+/* Loading overlay */
+.si2-loading {
+  display: none; position: fixed; inset: 0; z-index: 9999;
+  background: rgba(11,31,74,.55); backdrop-filter: blur(3px);
+  align-items: center; justify-content: center; flex-direction: column; gap: 1rem;
+}
+.si2-loading.visible { display: flex; }
+.si2-loading-card {
+  background: #fff; border-radius: 14px; padding: 2rem 2.4rem;
+  text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,.22); min-width: 260px;
+}
+.si2-loading-spinner {
+  width: 48px; height: 48px; border: 5px solid #e2e8f0;
+  border-top-color: #1a56db; border-radius: 50%;
+  animation: si2-spin 0.8s linear infinite; margin: 0 auto 1rem;
+}
+@keyframes si2-spin { to { transform: rotate(360deg); } }
+.si2-loading-text { font-size: .9rem; font-weight: 700; color: #1a2e4a; margin: 0 0 .3rem; }
+.si2-loading-sub  { font-size: .77rem; color: #7b8fa6; margin: 0; }
+
+/* Pipeline stages legend */
+.si2-pipeline-stages { display: flex; flex-direction: column; gap: .4rem; }
+.si2-stage-row { display: flex; align-items: center; gap: .75rem; font-size: .79rem; color: #374151; }
+.si2-stage-num {
+  width: 22px; height: 22px; border-radius: 50%; background: #1a56db; color: #fff;
+  font-size: .66rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.si2-stage-desc { color: #5a6a82; font-size: .76rem; }
+
+/* Collapsible raw text */
+.si2-raw-text {
+  background: #1e2b3c; color: #a8d8a8; padding: .8rem 1rem; border-radius: 8px;
+  font-family: monospace; font-size: .73rem; max-height: 180px;
+  overflow-y: auto; white-space: pre-wrap; margin-top: .75rem; display: none;
+}
+.si2-raw-text.visible { display: block; }
+</style>
+
+<!-- Loading Overlay -->
+<div class="si2-loading" id="si2Loading">
+  <div class="si2-loading-card">
+    <div class="si2-loading-spinner"></div>
+    <p class="si2-loading-text" id="si2LoadingText">Processing…</p>
+    <p class="si2-loading-sub" id="si2LoadingSub">This may take a moment for large files</p>
+  </div>
+</div>
+
+<div class="si2-page">
+
+  <!-- ── Header ── -->
+  <div class="si2-header">
+    <h1>
+      <i class="fas fa-database" style="color:#1a56db"></i>
+      Smart Importer
+      <span class="si2-ver-badge">2.0</span>
+      <span class="si2-ai-badge {% if ai_configured %}si2-ai-on{% else %}si2-ai-off{% endif %}">
+        <i class="fas fa-{% if ai_configured %}robot{% else %}exclamation-triangle{% endif %}"></i>
+        AI {% if ai_configured %}Active{% else %}Inactive{% endif %}
+      </span>
+    </h1>
+    <p>12-stage ETL pipeline: Extract → Normalize → Validate → Correct → AI Assist → Human Review → Import</p>
+  </div>
+
+  <!-- ── Stage Progress Rail ── -->
+  <div class="si2-rail" id="si2Rail">
+    {% for stage in pipeline_stages %}
+    <div class="si2-rail-step" id="si2Rail{{ forloop.counter }}" title="Stage {{ forloop.counter }}: {{ stage }}">
+      <div class="si2-rail-dot">{{ forloop.counter }}</div>
+      <div class="si2-rail-label">{{ stage }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ══ PANEL 1: Upload & Configure ══ -->
+  <div id="si2Panel1">
+
+    <div class="si2-grid2">
+
+      <!-- Upload card -->
+      <div class="si2-card">
+        <div class="si2-card-title"><i class="fas fa-cloud-upload-alt"></i> Upload Document</div>
+        <div class="si2-dropzone" id="si2Dropzone">
+          <input type="file" id="si2File" accept=".csv,.xlsx,.xls,.pdf,.docx,.txt">
+          <div class="si2-dropzone-icon"><i class="fas fa-file-upload"></i></div>
+          <div class="si2-dropzone-text">Drop file here or click to browse</div>
+          <div class="si2-dropzone-sub">CSV · Excel · PDF · Word · TXT</div>
+          <div class="si2-file-info" id="si2FileName"></div>
+        </div>
+      </div>
+
+      <!-- Config card -->
+      <div class="si2-card">
+        <div class="si2-card-title"><i class="fas fa-sliders-h"></i> Pipeline Configuration</div>
+
+        <label class="si2-label">Target model(s) <span style="color:#8fa3b8;font-weight:400">(optional — leave blank to auto-detect)</span></label>
+        <div class="si2-pills" id="si2ModelPills">
+          {% for model in models %}
+          <label class="si2-pill">
+            <input type="checkbox" name="target_model" value="{{ model }}"> {{ model }}
+          </label>
+          {% endfor %}
+        </div>
+        <div class="si2-hint" style="margin-top:.6rem">Selecting models speeds up extraction and reduces AI hallucinations.</div>
+
+        <div style="margin-top:1rem">
+          <label class="si2-label">Academic Year <span style="color:#8fa3b8;font-weight:400">(optional, for enrollment data)</span></label>
+          <input type="text" class="si2-input" id="si2AcademicYear" placeholder="e.g. 2025/2026">
+        </div>
+
+        <div style="margin-top:1.2rem; display:flex; gap:.6rem; flex-wrap:wrap;">
+          <button class="si2-btn si2-btn-primary" id="si2BtnExtract" disabled>
+            <i class="fas fa-play"></i> Run Pipeline
+          </button>
+          <a id="si2CsvLink" class="si2-btn si2-btn-secondary si2-btn-sm" href="#" style="display:none">
+            <i class="fas fa-download"></i> CSV Template
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline explanation -->
+    <div class="si2-card">
+      <div class="si2-card-title"><i class="fas fa-info-circle"></i> How It Works</div>
+      <div class="si2-pipeline-stages">
+        <div class="si2-stage-row"><div class="si2-stage-num">1</div><div><strong>Classification</strong> <span class="si2-stage-desc">— Identifies document type; blocks non-university files before extraction begins</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">2-3</div><div><strong>Extraction</strong> <span class="si2-stage-desc">— CSV/Excel: direct read (no AI). PDF/Word: text extraction → AI structures the rows</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">4</div><div><strong>Normalization</strong> <span class="si2-stage-desc">— Course codes, names, designations normalised to canonical forms</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">5</div><div><strong>Validation</strong> <span class="si2-stage-desc">— Exact + fuzzy match against live DB (departments, programs, lecturers, codes)</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">6</div><div><strong>Correction Engine</strong> <span class="si2-stage-desc">— 50+ built-in rules + learned corrections from previous imports applied automatically</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">7</div><div><strong>AI Assist</strong> <span class="si2-stage-desc">— Resolves ambiguity, explains errors, suggests probable matches (AI never writes to DB)</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">8-9</div><div><strong>Review + Partial Import</strong> <span class="si2-stage-desc">— Valid rows import immediately; warnings and errors stay editable. One bad row never blocks 96 good ones</span></div></div>
+        <div class="si2-stage-row"><div class="si2-stage-num">10-12</div><div><strong>Commit, Learn, Audit</strong> <span class="si2-stage-desc">— Staged write to DB. User corrections stored for future runs. Full transcript saved per import</span></div></div>
+      </div>
+    </div>
+
+  </div><!-- /Panel 1 -->
+
+  <!-- ══ PANEL 2: Review & Import ══ -->
+  <div id="si2Panel2" style="display:none">
+
+    <!-- Classification result banner -->
+    <div id="si2ClassifyBanner" class="si2-classify-banner si2-classify-ok" style="display:none"></div>
+
+    <!-- Summary bar -->
+    <div class="si2-summary-bar" id="si2SummaryBar" style="display:none">
+      <i class="fas fa-info-circle"></i>
+      <span id="si2SummaryText"></span>
+      <span class="si2-count-pill si2-count-valid" id="si2CountValid" style="display:none"></span>
+      <span class="si2-count-pill si2-count-warn"  id="si2CountWarn"  style="display:none"></span>
+      <span class="si2-count-pill si2-count-error" id="si2CountError" style="display:none"></span>
+    </div>
+
+    <!-- Raw text preview toggle -->
+    <div id="si2RawToggleRow" style="display:none; margin-bottom:.75rem;">
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2ToggleRaw()">
+        <i class="fas fa-file-alt"></i> Toggle Extracted Text Preview
+      </button>
+      <div class="si2-raw-text" id="si2RawText"></div>
+    </div>
+
+    <!-- Sticky action bar -->
+    <div class="si2-sticky-bar">
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2Reset()">
+        <i class="fas fa-arrow-left"></i> New Import
+      </button>
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" id="si2BtnRefineToggle" onclick="si2ToggleRefine()">
+        <i class="fas fa-magic"></i> AI Refine
+      </button>
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2FilterRows('ALL')">All</button>
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2FilterRows('VALID')" style="color:#065f46">✅ Valid</button>
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2FilterRows('WARNING')" style="color:#92400e">⚠️ Warn</button>
+      <button class="si2-btn si2-btn-secondary si2-btn-sm" onclick="si2FilterRows('ERROR')" style="color:#991b1b">❌ Error</button>
+      <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
+        <label style="font-size:.76rem;color:#5a6a82;display:flex;align-items:center;gap:.4rem;cursor:pointer;">
+          <input type="checkbox" id="si2SkipErrors" checked> Skip ERROR rows on commit
+        </label>
+        <button class="si2-btn si2-btn-success" id="si2BtnCommit" onclick="si2Commit()">
+          <i class="fas fa-database"></i> Commit to DB
+        </button>
+      </div>
+    </div>
+
+    <!-- AI Refine panel -->
+    <div class="si2-card si2-refine-panel" id="si2RefinePanel">
+      <div class="si2-card-title"><i class="fas fa-magic"></i> AI Refinement</div>
+      <p style="font-size:.82rem;color:#5a6a82;margin:0 0 .8rem">
+        Describe a correction to apply across the extracted records. The AI will update matching rows intelligently.
+      </p>
+      <div style="display:flex;gap:.6rem;align-items:flex-end;">
+        <div style="flex:1">
+          <label class="si2-label">Instruction</label>
+          <textarea class="si2-textarea" id="si2RefinePrompt" rows="2"
+            placeholder='e.g. "All COSC courses are for BSc Computer Science Year 4" or "Change lecturer for BBIT301 to Dr Mwangi"'></textarea>
+        </div>
+        <button class="si2-btn si2-btn-warn" onclick="si2Refine()" style="flex-shrink:0;height:fit-content">
+          <i class="fas fa-paper-plane"></i> Apply
+        </button>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div class="si2-card" style="padding:0;overflow:hidden;">
+      <div class="si2-table-wrap">
+        <table class="si2-table" id="si2Table">
+          <thead id="si2TableHead"></thead>
+          <tbody id="si2TableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Commit result -->
+    <div id="si2CommitResult" style="display:none"></div>
+
+  </div><!-- /Panel 2 -->
+
+</div><!-- /page -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Smart Importer 2.0 — Frontend Controller
+// ═══════════════════════════════════════════════════════════════════
+
+const MODEL_SCHEMA = {{ model_schema_json|safe }};
+let SI2_RECORDS = [];          // current staged records
+let SI2_FILTER  = 'ALL';       // current table filter
+let SI2_USER_CORRECTIONS = []; // user-made corrections (for Stage 11)
+
+// ── Utilities ────────────────────────────────────────────────────
+
+function si2Csrf() {
+  const el = document.cookie.match(/csrftoken=([^;]+)/);
+  return el ? el[1] : '';
+}
+
+function si2Loading(show, text = 'Processing…', sub = 'This may take a moment for large files') {
+  const el = document.getElementById('si2Loading');
+  el.classList.toggle('visible', show);
+  document.getElementById('si2LoadingText').textContent = text;
+  document.getElementById('si2LoadingSub').textContent = sub;
+}
+
+function si2SetRailStage(n, status = 'active') {
+  // status: 'active' | 'done' | 'error' | 'pending'
+  for (let i = 1; i <= 12; i++) {
+    const el = document.getElementById('si2Rail' + i);
+    if (!el) continue;
+    el.classList.remove('active', 'done', 'error');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add(status === 'error' ? 'error' : 'active');
+  }
+}
+
+function si2ShowPanel(n) {
+  document.getElementById('si2Panel1').style.display = n === 1 ? '' : 'none';
+  document.getElementById('si2Panel2').style.display = n === 2 ? '' : 'none';
+}
+
+function si2Reset() {
+  SI2_RECORDS = [];
+  SI2_USER_CORRECTIONS = [];
+  si2ShowPanel(1);
+  si2SetRailStage(1);
+  document.getElementById('si2CommitResult').style.display = 'none';
+  document.getElementById('si2File').value = '';
+  document.getElementById('si2FileName').textContent = '';
+  document.getElementById('si2BtnExtract').disabled = true;
+  document.getElementById('si2CsvLink').style.display = 'none';
+}
+
+function si2ToggleRefine() {
+  document.getElementById('si2RefinePanel').classList.toggle('visible');
+}
+
+function si2ToggleRaw() {
+  document.getElementById('si2RawText').classList.toggle('visible');
+}
+
+// ── File selection ────────────────────────────────────────────────
+
+const fileInput = document.getElementById('si2File');
+const dropzone  = document.getElementById('si2Dropzone');
+
+fileInput.addEventListener('change', () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  document.getElementById('si2FileName').textContent = `📎 ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+  document.getElementById('si2BtnExtract').disabled = false;
+  // Update CSV template link based on first checked model
+  updateCsvLink();
+});
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) {
+    fileInput.files = e.dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change'));
+  }
+});
+
+document.querySelectorAll('input[name=target_model]').forEach(cb => {
+  cb.addEventListener('change', updateCsvLink);
+});
+
+function updateCsvLink() {
+  const checked = [...document.querySelectorAll('input[name=target_model]:checked')].map(c => c.value);
+  const link = document.getElementById('si2CsvLink');
+  if (checked.length === 1) {
+    link.href = `/sudo-dashboard/smart-import-v2/csv/?model=${checked[0]}`;
+    link.style.display = '';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+// ── Stage 1-7: Extract ────────────────────────────────────────────
+
+document.getElementById('si2BtnExtract').addEventListener('click', si2Extract);
+
+async function si2Extract() {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const targets = [...document.querySelectorAll('input[name=target_model]:checked')].map(c => c.value);
+
+  si2Loading(true, 'Running pipeline…', 'Stage 1: Classifying document');
+  si2SetRailStage(1);
+
+  const fd = new FormData();
+  fd.append('document', file);
+  fd.append('target_models', targets.join(','));
+  fd.append('csrfmiddlewaretoken', si2Csrf());
+
+  try {
+    // Stage 1: classify (fast pre-check)
+    si2Loading(true, 'Stage 1: Classifying…', 'Identifying document type');
+    si2SetRailStage(1);
+    const classRes = await fetch('/sudo-dashboard/smart-import-v2/classify/', {
+      method: 'POST', body: fd,
+    });
+    const classData = await classRes.json();
+
+    if (classData.blocked) {
+      si2Loading(false);
+      si2SetRailStage(1, 'error');
+      showClassifyBanner(classData, 'block');
+      si2ShowPanel(2);
+      return;
+    }
+    showClassifyBanner(classData, classData.confidence === 'low' ? 'warn' : 'ok');
+
+    // Stages 2-7: full extraction
+    si2Loading(true, 'Stages 2-7: Extracting & validating…', 'Normalising, correcting, AI-assisting');
+    si2SetRailStage(7);
+
+    const fd2 = new FormData();
+    fd2.append('document', file);
+    fd2.append('target_models', targets.join(','));
+    fd2.append('csrfmiddlewaretoken', si2Csrf());
+    if (document.getElementById('si2AcademicYear').value.trim()) {
+      fd2.append('academic_year', document.getElementById('si2AcademicYear').value.trim());
+    }
+
+    const res = await fetch('/sudo-dashboard/smart-import-v2/extract/', {
+      method: 'POST', body: fd2,
+    });
+
+    if (res.status === 422) {
+      // Blocked at extraction stage too
+      const data = await res.json();
+      si2Loading(false);
+      si2SetRailStage(1, 'error');
+      showClassifyBanner(data, 'block');
+      si2ShowPanel(2);
+      return;
+    }
+
+    const data = await res.json();
+    si2Loading(false);
+
+    if (data.error) {
+      alert('Extraction error: ' + data.error);
+      si2SetRailStage(2, 'error');
+      return;
+    }
+
+    SI2_RECORDS = data.records || [];
+
+    // Show summary
+    const summary = document.getElementById('si2SummaryBar');
+    summary.style.display = '';
+    document.getElementById('si2SummaryText').textContent = data.summary || '';
+    const counts = data.counts || si2CountStatus(SI2_RECORDS);
+    si2UpdateCountPills(counts);
+
+    // Raw text preview
+    if (data.raw_text_preview) {
+      document.getElementById('si2RawText').textContent = data.raw_text_preview;
+      document.getElementById('si2RawToggleRow').style.display = '';
+    }
+
+    // Classify banner
+    if (data.classification) {
+      showClassifyBanner(data.classification, data.classification.confidence === 'low' ? 'warn' : 'ok');
+    }
+
+    si2SetRailStage(8);
+    si2RenderTable(SI2_RECORDS);
+    si2ShowPanel(2);
+
+  } catch (err) {
+    si2Loading(false);
+    si2SetRailStage(2, 'error');
+    alert('Network error: ' + err.message);
+  }
+}
+
+function showClassifyBanner(data, type) {
+  const banner = document.getElementById('si2ClassifyBanner');
+  banner.className = 'si2-classify-banner si2-classify-' + type;
+  const icons = { ok: 'check-circle', warn: 'exclamation-triangle', block: 'ban' };
+  const icon = icons[type] || 'info-circle';
+  let msg = '';
+  if (type === 'block') {
+    msg = `<i class="fas fa-${icon}"></i><div><strong>Document Blocked</strong> — ${data.reason || data.doc_type}</div>`;
+  } else {
+    const friendly = (data.doc_type || 'unknown').replace(/_/g, ' ');
+    const conf = data.confidence || '';
+    const models = data.suggested_models ? data.suggested_models.join(', ') : 'all';
+    msg = `<i class="fas fa-${icon}"></i><div>Document classified as <strong>${friendly}</strong> (${conf} confidence). Suggested models: <strong>${models}</strong>. ${data.reason || ''}</div>`;
+  }
+  banner.innerHTML = msg;
+  banner.style.display = '';
+}
+
+// ── Table rendering ───────────────────────────────────────────────
+
+function si2CountStatus(records) {
+  const c = { VALID: 0, WARNING: 0, ERROR: 0 };
+  records.forEach(r => { c[r.status] = (c[r.status] || 0) + 1; });
+  return c;
+}
+
+function si2UpdateCountPills(counts) {
+  const pv = document.getElementById('si2CountValid');
+  const pw = document.getElementById('si2CountWarn');
+  const pe = document.getElementById('si2CountError');
+  pv.textContent = `✅ ${counts.VALID || 0} Valid`;   pv.style.display = '';
+  pw.textContent = `⚠️ ${counts.WARNING || 0} Warn`;  pw.style.display = '';
+  pe.textContent = `❌ ${counts.ERROR || 0} Error`;    pe.style.display = '';
+}
+
+function si2FilterRows(status) {
+  SI2_FILTER = status;
+  si2RenderTable(SI2_RECORDS);
+}
+
+function si2RenderTable(records) {
+  if (!records || records.length === 0) {
+    document.getElementById('si2TableHead').innerHTML = '';
+    document.getElementById('si2TableBody').innerHTML =
+      '<tr><td style="padding:2rem;text-align:center;color:#8fa3b8;font-size:.85rem">No records extracted.</td></tr>';
+    return;
+  }
+
+  // Determine columns from first record's data
+  const allFields = new Set();
+  records.forEach(r => Object.keys(r.data || {}).forEach(k => allFields.add(k)));
+  const fields = [...allFields];
+
+  // Header
+  const thead = document.getElementById('si2TableHead');
+  thead.innerHTML = `<tr>
+    <th>#</th>
+    <th>Model</th>
+    <th>Status</th>
+    <th>Confidence</th>
+    ${fields.map(f => `<th>${f}</th>`).join('')}
+    <th>Issues / Corrections</th>
+    <th></th>
+  </tr>`;
+
+  // Body
+  const tbody = document.getElementById('si2TableBody');
+  tbody.innerHTML = '';
+
+  records.forEach((rec, idx) => {
+    const status = rec.status || 'ERROR';
+    if (SI2_FILTER !== 'ALL' && status !== SI2_FILTER) return;
+
+    const statusClass = { VALID: 'si2-status-valid', WARNING: 'si2-status-warn', ERROR: 'si2-status-error' }[status] || '';
+    const statusIcon  = { VALID: '✅', WARNING: '⚠️', ERROR: '❌' }[status] || '';
+    const confClass   = { high: 'conf-high', medium: 'conf-medium', low: 'conf-low' }[rec.confidence] || 'conf-low';
+
+    // Issue tags
+    const issueTags = (rec.issues || []).map(i =>
+      `<span class="si2-issue-tag">${si2Escape(i)}</span>`).join('');
+
+    // Suggestion links
+    const suggestLines = Object.entries(rec.suggestions || {}).map(([f, v]) =>
+      `<div class="si2-suggest">💡 ${f}: <a onclick="si2ApplySuggestion(${idx},'${f}','${si2Escape(v)}')">${si2Escape(v)}</a></div>`
+    ).join('');
+
+    // Applied corrections
+    const corrLines = (rec.corrections_applied || []).length > 0
+      ? `<div class="si2-corrections">${(rec.corrections_applied).map(c =>
+          `<span class="si2-corr-tag">🔧 ${si2Escape(c)}</span>`).join('')}</div>`
+      : '';
+
+    const issueSect = issueTags ? `<div class="si2-issues">${issueTags}</div>` : '';
+
+    // Data cells (editable)
+    const dataCells = fields.map(f => {
+      const val = (rec.data || {})[f] || '';
+      return `<td contenteditable="true" data-idx="${idx}" data-field="${f}"
+               onblur="si2CellEdit(this)">${si2Escape(val)}</td>`;
+    }).join('');
+
+    const tr = document.createElement('tr');
+    tr.dataset.idx = idx;
+    tr.dataset.status = status;
+    tr.innerHTML = `
+      <td style="font-weight:700;color:#9aabb8">${idx + 1}</td>
+      <td><span style="font-size:.75rem;font-weight:700;color:#1a56db">${si2Escape(rec.model)}</span></td>
+      <td><span class="si2-status ${statusClass}">${statusIcon} ${status}</span></td>
+      <td><span class="${confClass}">${rec.confidence}</span></td>
+      ${dataCells}
+      <td style="min-width:200px">${issueSect}${suggestLines}${corrLines}</td>
+      <td><button class="si2-row-del" title="Remove row" onclick="si2DeleteRow(${idx})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Update count pills after filter
+  const counts = si2CountStatus(
+    SI2_FILTER === 'ALL' ? records : records.filter(r => r.status === SI2_FILTER)
+  );
+  si2UpdateCountPills(si2CountStatus(records));
+}
+
+function si2Escape(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Cell editing (user corrections for Stage 11) ──────────────────
+
+function si2CellEdit(td) {
+  const idx   = parseInt(td.dataset.idx);
+  const field = td.dataset.field;
+  const newVal = td.textContent.trim();
+  const oldVal = (SI2_RECORDS[idx].data || {})[field] || '';
+
+  if (newVal === oldVal) return;
+
+  // Update record
+  SI2_RECORDS[idx].data[field] = newVal;
+
+  // Track for Stage 11 learning
+  if (oldVal && newVal && oldVal !== newVal) {
+    const existing = SI2_USER_CORRECTIONS.findIndex(c => c.field === field && c.original === oldVal);
+    if (existing === -1) {
+      SI2_USER_CORRECTIONS.push({ field, original: oldVal, corrected: newVal });
+    }
+  }
+}
+
+function si2ApplySuggestion(idx, field, value) {
+  const rec = SI2_RECORDS[idx];
+  if (!rec) return;
+  const old = (rec.data || {})[field] || '';
+  rec.data[field] = value;
+  if (old && old !== value) {
+    SI2_USER_CORRECTIONS.push({ field, original: old, corrected: value });
+  }
+  si2RenderTable(SI2_RECORDS);
+}
+
+function si2DeleteRow(idx) {
+  SI2_RECORDS.splice(idx, 1);
+  si2RenderTable(SI2_RECORDS);
+}
+
+// ── AI Refine (Stage 7 continued) ────────────────────────────────
+
+async function si2Refine() {
+  const prompt = document.getElementById('si2RefinePrompt').value.trim();
+  if (!prompt) { alert('Enter a refinement instruction.'); return; }
+
+  si2Loading(true, 'AI Refining…', 'Applying your instruction across records');
+  try {
+    const res = await fetch('/sudo-dashboard/smart-import-v2/refine/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': si2Csrf() },
+      body: JSON.stringify({ records: SI2_RECORDS, prompt }),
+    });
+    const data = await res.json();
+    si2Loading(false);
+    if (data.error) { alert('Refine error: ' + data.error); return; }
+    SI2_RECORDS = data.records || SI2_RECORDS;
+    document.getElementById('si2SummaryText').textContent = data.summary || '';
+    si2UpdateCountPills(si2CountStatus(SI2_RECORDS));
+    si2RenderTable(SI2_RECORDS);
+    document.getElementById('si2RefinePrompt').value = '';
+    document.getElementById('si2RefinePanel').classList.remove('visible');
+  } catch (err) {
+    si2Loading(false);
+    alert('Network error: ' + err.message);
+  }
+}
+
+// ── Stage 10: Commit ──────────────────────────────────────────────
+
+async function si2Commit() {
+  if (!SI2_RECORDS.length) { alert('No records to commit.'); return; }
+
+  const skipErrors = document.getElementById('si2SkipErrors').checked;
+  const toCommit = skipErrors
+    ? SI2_RECORDS.filter(r => r.status !== 'ERROR')
+    : SI2_RECORDS;
+
+  if (!toCommit.length) {
+    alert('All records have ERROR status. Fix them or uncheck "Skip ERROR rows".');
+    return;
+  }
+
+  const errCount = SI2_RECORDS.filter(r => r.status === 'ERROR').length;
+  const msg = skipErrors && errCount > 0
+    ? `Commit ${toCommit.length} record(s) to the database? ${errCount} ERROR row(s) will be skipped.`
+    : `Commit all ${toCommit.length} record(s) to the database?`;
+  if (!confirm(msg)) return;
+
+  si2Loading(true, 'Stage 10: Committing to DB…', 'Writing approved records via staging layer');
+  si2SetRailStage(10);
+
+  try {
+    const res = await fetch('/sudo-dashboard/smart-import-v2/commit/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': si2Csrf() },
+      body: JSON.stringify({
+        records: toCommit,
+        user_corrections: SI2_USER_CORRECTIONS,  // Stage 11
+      }),
+    });
+    const data = await res.json();
+    si2Loading(false);
+
+    if (data.error) { alert('Commit error: ' + data.error); return; }
+
+    const created  = (data.created  || []).length;
+    const updated  = (data.updated  || []).length;
+    const errors   = (data.errors   || []);
+    const skipped  = (data.skipped  || []).length;
+
+    const hasProblems = errors.length > 0;
+    const resultDiv = document.getElementById('si2CommitResult');
+    resultDiv.className = 'si2-commit-result ' + (hasProblems ? 'si2-commit-warn' : 'si2-commit-ok');
+    resultDiv.style.display = '';
+
+    let html = `<strong><i class="fas fa-${hasProblems ? 'exclamation-triangle' : 'check-circle'}"></i>
+      Import ${hasProblems ? 'Completed with Issues' : 'Successful'}</strong><br>
+      <span style="font-size:.82rem">
+        ✅ <b>${created}</b> created &nbsp;|&nbsp;
+        🔄 <b>${updated}</b> updated &nbsp;|&nbsp;
+        ⏭ <b>${skipped}</b> skipped (ERROR) &nbsp;|&nbsp;
+        ❌ <b>${errors.length}</b> commit error(s)
+      </span>`;
+
+    if (errors.length) {
+      html += `<div style="margin-top:.7rem;font-size:.77rem;color:#991b1b;">
+        <strong>Commit errors:</strong><br>
+        ${errors.map(e => `• ${si2Escape(e)}`).join('<br>')}
+      </div>`;
+    }
+
+    resultDiv.innerHTML = html;
+
+    si2SetRailStage(12, 'done');
+    window.scrollTo({ top: resultDiv.offsetTop - 80, behavior: 'smooth' });
+
+  } catch (err) {
+    si2Loading(false);
+    alert('Network error: ' + err.message);
+  }
+}
+</script>
+{% endblock %}

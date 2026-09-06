@@ -1,0 +1,846 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}{{ site_settings.university_name|default:"Chuka University" }} · Timetabling &amp; Exams{% endblock %}
+
+{% block body_class %}page-public page-home{% endblock %}
+
+{% block nav_links %}
+ <a href="{% url 'view_timetable' %}">Programmes Timetable</a>
+ <a href="{% url 'student_portal' %}">Student Portal</a>
+ <a href="{% url 'staff_portal' %}" class="nav-badge">Staff Login</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Timetable group labels inside the downloads section ── */
+.tt-group { margin-bottom: 2.5rem; }
+.tt-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--navy, #1a2e5a);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-left: none !important;
+  padding: 6px 0 6px 0 !important;
+  margin-bottom: 1.5rem;
+  background: transparent !important;
+  border-radius: 0;
+}
+.tt-group-header i { 
+  color: var(--orange, #f47c20); 
+  font-size: 1.1rem;
+  background: rgba(244,124,32,0.12);
+  padding: 8px;
+  border-radius: 50%;
+}
+
+/* Unified Section Spacing and Layout alignment across pages */
+.odel-downloads-section {
+  padding: 4rem 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.container-custom {
+  padding: 0 1.5rem;
+  width: 100%;
+}
+
+/* Single-card row — don't stretch to full width */
+.odel-downloads-grid--single { justify-content: flex-start; }
+.odel-downloads-grid--single .odel-download-card { max-width: 320px; }
+
+/* ── Hero Overlay Redesign (Removed dark muddy backdrop; crisp text visibility with high contrast text shadows) ── */
+/* (hero-overlay--portal-contrast rules removed — replaced by the
+   split hy-hero-copy / hy-hero-visual layout below) */
+
+/* ── Remove carousel dots ── */
+.hero-carousel .carousel-dots {
+    display: none !important;
+}
+
+/* ── Inspire ticker now sits directly above the footer ── */
+.motivation-ticker-wrapper {
+    margin-top: 0;
+    position: relative;
+    z-index: 5;
+    background: #1a1a2e;
+    border-top: 4px solid #c0392b;
+    border-bottom: 4px solid #c0392b;
+}
+
+/* ── Make marquee text visible ── */
+.motivation-ticker-track {
+    color: #ffffff;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.motivation-ticker-badge {
+    background: #f47c20;
+    color: white;
+}
+.motivation-ticker-mute {
+    background: rgba(255,255,255,0.2);
+    color: white;
+}
+.motivation-ticker-mute:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+/* ── Access Chips Layout / Fix Text Clipping inside Green/Blue Portals ── */
+.access-chip {
+    border-radius: 40px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 16px !important; /* Optimized padding for button text stability */
+    min-height: 38px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.access-chip span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.access-chip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+}
+
+/* ── Responsibilities: solid yellow background, SHARP corners ONLY for resp cards ── */
+.responsibilities--solid-bg {
+    background-color: #eef0ee;
+    padding: 4rem 0;
+    margin: 0;
+    box-shadow: none;
+    background-image: none !important;
+}
+
+/* ONLY responsibilities cards get sharp corners (0px border-radius) */
+.resp-card--sharp {
+    background: white;
+    border-radius: 0px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: none;
+    transition: all 0.2s ease;
+}
+.resp-card--sharp:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+/* ══════════════════════════════════════════════════════════
+   FIXED/STICKY LEFT SIDEBAR (desktop only)
+   .portal-sidebar--left already spans the full height of the
+   hero+main grid row (align-items:stretch on .portal-shell), so it's
+   taller than its own content. Making the INNER wrapper sticky (not
+   the aside itself) pins the visible brand+links to the viewport
+   while the tall outer aside scrolls underneath — it naturally
+   un-sticks the moment the aside's bottom edge (= end of the main
+   content, right where the Inspire ticker begins) comes into view.
+   No JS needed for this part.
+   ══════════════════════════════════════════════════════════ */
+@media(min-width:1025px){
+  /* The brand (logo + name) is pulled out of normal flow entirely and
+     fixed to the viewport, so it PERMANENTLY spans across the navbar
+     and the left sidebar at every scroll position — not just at the
+     top of the page. This matches the existing "unified brand block"
+     spec already noted in website.css ("must appear ONCE, spanning
+     from the top navbar down into the left sidebar"). */
+  .page-home .sidebar-brand{
+    position:fixed;
+    top:24px;
+    left:1.8rem;
+    z-index:220;   /* above .navbar's z-index:200 */
+    margin:0;
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  /* Once the navbar has shrunk into its floating pill, the logo+name
+     moves INTO that pill instead (see .nav-logo rules below) — so the
+     separate fixed brand block fades out rather than floating over
+     everything indefinitely. Toggled by the same scroll JS that adds
+     .navbar--floating, via a class on <body>. */
+  body.page-home.hy-nav-scrolled .sidebar-brand{
+    opacity:0;
+    transform:translateY(-6px);
+    pointer-events:none;
+  }
+  /* Reserve room below the fixed brand so the nav links never start
+     underneath it — applied both to the sidebar's own top padding
+     (the *unstuck* state) and to the sticky offset below (the
+     *stuck* state), using the same viewport-relative value so there
+     is no visible jump when stickiness engages. */
+  .page-home .portal-sidebar--left{
+    padding-top:110px;
+  }
+  .sidebar-sticky-inner{
+    position:sticky;
+    top:176px;
+    max-height:calc(100vh - 176px);
+    overflow-y:auto;
+    scrollbar-width:thin;
+    padding-bottom:1.5rem;
+  }
+  /* Compact, height-aware spacing so all 7 links + CTA comfortably
+     fit within common desktop viewport heights (no cut-off links) —
+     gaps flex slightly with viewport height via clamp(). */
+  .sidebar-sticky-inner .sidebar-links a:not(.sidebar-link--cta){
+    padding: clamp(9px, 1.6vh, 14px) 0;
+  }
+  .sidebar-sticky-inner .sidebar-links-title{margin-bottom:clamp(.5rem,1.4vh,.9rem);}
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCROLL-AWARE FLOATING NAVBAR (desktop only)
+   At the very top of the page (over the hero) the navbar stays
+   full-width, square, flush with the top, and the logo+name sit in
+   their own fixed block spanning the navbar+sidebar (.sidebar-brand).
+   As soon as the user scrolls past the hero, the navbar morphs into
+   a rounded floating pill inset beside the fixed sidebar, the fixed
+   brand block fades out, and the logo+name reappear INSIDE that pill
+   instead (the navbar's own .nav-logo, normally hidden on this page).
+   It stays that minimized pill — brand included — for the rest of
+   the page, all the way to the footer. Classes are toggled by JS in
+   the extra_js block below.
+   ══════════════════════════════════════════════════════════ */
+@media(min-width:1025px){
+  .page-home .navbar{
+    transition: margin .4s cubic-bezier(.4,0,.2,1), width .4s cubic-bezier(.4,0,.2,1),
+                top .4s cubic-bezier(.4,0,.2,1), border-radius .4s cubic-bezier(.4,0,.2,1),
+                box-shadow .4s cubic-bezier(.4,0,.2,1), background-color .4s ease;
+  }
+  .page-home .navbar.navbar--floating{
+    top:14px;
+    margin-left:284px;      /* 260px sidebar + 24px gap */
+    margin-right:24px;
+    width:calc(100% - 284px - 24px);
+    border-radius:999px;
+    border-bottom-color:transparent;
+    box-shadow:0 10px 30px rgba(20,40,38,.14);
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(10px);
+    justify-content:space-between; /* website.css sets .page-public .navbar to
+      flex-end (logo hidden there normally); once floating, the logo reappears
+      and needs to sit at the left end while the links stay at the right */
+  }
+  /* website.css hides .nav-logo on all .page-public pages (since the
+     homepage normally shows the brand via the fixed .sidebar-brand
+     instead) — but once scrolled into the floating pill, the fixed
+     brand fades out (see .sidebar-brand rules above) and the navbar's
+     own logo+name takes over here instead, so the brand is never
+     just gone, it has simply moved into the minimized nav. */
+  .page-home .navbar.navbar--floating .nav-logo{
+    display:flex !important;
+  }
+}
+
+.responsibilities--solid-bg .resp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 420px));
+    justify-content: center;
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+/* Long responsibility lists get their own scroll area instead of
+   endlessly growing the page height — applied to the WHOLE section
+   (eyebrow + title + grid) so scrolling happens around the cards,
+   not through the middle of them. Nested scroll is native browser
+   behavior: scrolling while the cursor is over this panel scrolls IT
+   first (until content is exhausted), then further scroll input
+   naturally bubbles up and continues the page scroll — no JS needed
+   for that hand-off. */
+.responsibilities--solid-bg .responsibilities-section {
+    max-height: min(720px, calc(100vh - 200px));
+    overflow-y: auto;
+    padding-right: 1.4rem; /* room so the scrollbar doesn't crowd card content */
+    scrollbar-width: thin;
+    scrollbar-color: var(--cu-teal-deep, #14524c) transparent;
+}
+.responsibilities--solid-bg .responsibilities-section::-webkit-scrollbar{width:8px;}
+.responsibilities--solid-bg .responsibilities-section::-webkit-scrollbar-track{background:transparent;}
+.responsibilities--solid-bg .responsibilities-section::-webkit-scrollbar-thumb{
+  background:var(--cu-teal-deep, #14524c);
+  border-radius:8px;
+  opacity:.5;
+}
+@media(max-width:760px){
+    .responsibilities--solid-bg .resp-grid{grid-template-columns:minmax(0,420px);}
+}
+@media(max-width:1024px){
+    /* Shorter cap + tighter scrollbar gutter on tablet/mobile, where
+       screen height is already at a premium alongside the stacked
+       (non-fixed) sidebar above this section. */
+    .responsibilities--solid-bg .responsibilities-section{
+        max-height:min(70vh, calc(100vh - 160px));
+        padding-right:.8rem;
+    }
+}
+@media(max-width:480px){
+    .responsibilities--solid-bg .responsibilities-section{
+        padding-right:.4rem;
+    }
+}
+
+/* ── All other cards REMAIN ROUNDED (border-radius preserved) ── */
+.odel-download-card,
+.contact-card {
+    border-radius: 12px !important;
+}
+.odel-download-card {
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.odel-download-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--orange, #f47c20);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.1);
+}
+.contact-card {
+    border-radius: 16px !important;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* ── Back to Top Button Styles ── */
+.back-to-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--orange, #f47c20);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.4rem;
+    text-decoration: none;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    cursor: pointer;
+    border: none;
+}
+.back-to-top.show {
+    opacity: 1;
+    visibility: visible;
+}
+.back-to-top:hover {
+    background: #d45c0c;
+    transform: translateY(-3px);
+}
+
+/* ══════════════════════════════════════════════════════════
+   "HOST LOVELY EVENTS" SCREENSHOT PALETTE — scoped to .page-home
+   only, so no other page (student/staff portal, dashboards) is
+   affected. Structure/content of every section below is untouched;
+   this block only recolors and reshapes the existing markup.
+   ══════════════════════════════════════════════════════════ */
+.page-home{
+  --hy-yellow: #f4e04d;
+  --hy-yellow-deep: #e6cf2e;
+  --hy-ink: #15130f;
+  --hy-paper: #f3f2ec;
+  --hy-line: #e6e3d8;
+  --hy-muted: #6f6a5e;
+}
+body.page-home{ background:var(--hy-paper); }
+
+/* ── Navbar ── */
+.page-home .navbar{ background:#fff; border-bottom:1px solid var(--hy-line); box-shadow:none; }
+.page-home .navbar.navbar--floating{ background:rgba(255,255,255,.96); }
+.page-home .nav-links a{ color:var(--hy-ink); font-weight:600; }
+.page-home .nav-links a:not(.nav-badge):hover{ color:var(--hy-yellow-deep); }
+.page-home .nav-badge{
+  background:var(--hy-yellow) !important; color:var(--hy-ink) !important;
+  border-radius:999px; padding:.65rem 1.5rem; font-weight:800; border:none;
+}
+.page-home .nav-badge:hover{ background:var(--hy-yellow-deep) !important; }
+
+/* ── Left "quick downloads" sidebar ── */
+.page-home .portal-sidebar--left{ background:#fff; border-color:var(--hy-line); }
+.page-home .sidebar-brand strong{ color:var(--hy-ink); }
+.page-home .sidebar-tagline{ color:var(--hy-muted); font-weight:600; }
+.page-home .sidebar-links-title{ color:var(--hy-ink); }
+.page-home .sidebar-links a:not(.sidebar-link--cta){
+  color:var(--hy-ink); text-decoration:none; border-bottom:1px solid var(--hy-line); font-weight:700;
+}
+.page-home .sidebar-links a:not(.sidebar-link--cta):hover{
+  color:var(--hy-yellow-deep); padding-left:4px; border-bottom-color:var(--hy-yellow);
+}
+.page-home .sidebar-links a.sidebar-link--cta{ background:var(--hy-ink); color:#fff; border-radius:999px; }
+.page-home .sidebar-links a.sidebar-link--cta:hover{ background:var(--hy-yellow); color:var(--hy-ink); }
+
+/* ── Hero: split copy/visual layout matching the reference screenshot ── */
+/* website.css still carries the OLD full-bleed-hero rules (min-height:52vh,
+   max-height:560px on the section, plus height:auto!important / min-height:0!important
+   on .hero-slide/.hero-static so the photo would shrink to nothing once it stopped
+   being a flex child). That layout no longer applies here — this section is now a
+   two-column grid, so those constraints must be neutralised for the homepage. */
+.page-home .hero-full--with-bar{
+  background:var(--hy-paper); padding:3rem 3rem 2rem;
+  display:block !important; min-height:0 !important; max-height:none !important;
+}
+.hy-hero-grid{
+  display:grid; grid-template-columns:minmax(320px,460px) 1fr; gap:3rem; align-items:stretch;
+  max-width:1280px; margin:0 auto; position:relative;
+}
+.hy-hero-title{
+  font-family:var(--font-display); font-weight:800; font-size:clamp(2.6rem,5vw,3.6rem);
+  line-height:1.05; color:var(--hy-ink); margin-bottom:1.4rem;
+}
+.hy-hero-sub{ font-size:1.02rem; color:var(--hy-muted); line-height:1.6; max-width:420px; margin-bottom:2rem; }
+.hy-hero-buttons{ display:flex; align-items:center; gap:1.6rem; flex-wrap:wrap; }
+.hy-hero-buttons .hy-btn-fill{
+  background:var(--hy-yellow) !important; color:var(--hy-ink) !important; border:none !important;
+  padding:1rem 1.8rem; border-radius:10px; font-weight:800;
+}
+.hy-hero-buttons .hy-btn-fill:hover{ background:var(--hy-yellow-deep) !important; }
+.hy-hero-buttons .hy-btn-link{
+  background:none !important; border:none !important; color:var(--hy-ink) !important;
+  text-decoration:underline; text-underline-offset:4px; font-weight:700; padding:0 !important;
+  display:inline-flex; align-items:center; gap:8px;
+}
+
+.hy-hero-visual{ position:relative; height:100%; min-height:280px; }
+/* website.css applies `.hero-full--with-bar > .hero-static{ height:auto!important;
+   min-height:0!important }` (and the same for .hero-slide) left over from the old
+   flex-column hero. A plain height rule here can't out-rank that !important no
+   matter the source order or specificity math. The fix is structural, not a
+   specificity fight: absolutely position the photo layer with inset:0 inside a
+   box that HAS real dimensions (.hy-hero-visual, set above). For an absolutely
+   positioned element, if height is auto but top+bottom are both set, the box
+   stretches to fill the gap between them — so height:auto!important stops being
+   a "shrink to zero" and becomes "fill the parent" instead. */
+/* The clip-path/objectBoundingBox approach that was here previously broke on
+   this box's wide, non-square aspect ratio — objectBoundingBox scales x and y
+   independently, so a "circle" in 0–1 space became a heavily stretched
+   ellipse, and the resulting path self-intersected, which is exactly why the
+   photo rendered as two disconnected chunks with a gap. Simpler and reliably
+   correct: keep the photo itself a plain rounded rectangle, and fake the
+   reference screenshot's top-left "bite" with a separate solid circle
+   (page-background colored) layered on top of the photo's corner — an
+   occlusion trick rather than a real clip, so there's no path geometry that
+   can go wrong. */
+.hy-hero-visual .hero-carousel, .hy-hero-visual .hero-static{
+  position:absolute !important; inset:0 !important; top:0 !important; right:0 !important;
+  bottom:0 !important; left:0 !important; width:100% !important; height:100% !important;
+  border-radius:28px; border:5px solid var(--hy-yellow);
+  overflow:hidden !important;
+}
+.hy-hero-visual .hero-carousel-track{ position:absolute; inset:0; height:100%; }
+.hy-hero-visual .hero-slide{ position:absolute; inset:0; height:100% !important; }
+/* The dark gradient below was built so text could sit legibly on top
+   of the photo. That text has moved into hy-hero-copy, so the
+   gradient now just darkens the photo for no reason — strip it. */
+.hy-hero-visual .hero-slide::before,
+.hy-hero-visual .hero-static::before{ content:none; display:none; }
+
+/* Top-left "bite" — a solid circle in the page's own background color,
+   sitting above the photo so it looks like a chunk is missing from the
+   corner (matching the reference screenshot) without ever clipping the
+   actual photo element. */
+.hy-hero-bite{
+  position:absolute; z-index:4;
+  width:52%; height:52%; border-radius:50%;
+  background:var(--hy-paper);
+  pointer-events:none;
+}
+.hy-hero-bite--tl{ top:-14%; left:-14%; }
+.hy-hero-bite--tr{ top:-14%; right:-14%; }
+.hy-hero-bite--bl{ bottom:-14%; left:-14%; }
+.hy-hero-bite--br{ bottom:-14%; right:-14%; }
+
+/* ── Quick download list: red PDF glyph per item ── */
+.sidebar-links a .sidebar-link-pdf{
+  color:#e2211c; font-size:.95em; margin-right:8px; width:1em; text-align:center;
+}
+
+@media(max-width:640px){
+  .hy-hero-bite{ width:40%; height:40%; }
+  .hy-hero-bite--tl,.hy-hero-bite--tr{ top:-10%; }
+  .hy-hero-bite--bl,.hy-hero-bite--br{ bottom:-10%; }
+  .hy-hero-bite--tl,.hy-hero-bite--bl{ left:-10%; }
+  .hy-hero-bite--tr,.hy-hero-bite--br{ right:-10%; }
+}
+
+@media(max-width:1024px){
+  .hy-hero-grid{ grid-template-columns:1fr; }
+  .hy-hero-visual{ min-height:340px; height:340px; margin-top:1.5rem; }
+}
+@media(max-width:640px){
+  .page-home .hero-full--with-bar{ padding:2rem 1.2rem 1.5rem; }
+  .hy-hero-title{ font-size:2.1rem; }
+}
+
+/* ── Key Responsibilities section ── */
+.page-home .responsibilities--solid-bg{ background:#fff !important; }
+.page-home .resp-icon{ background:var(--hy-yellow); color:var(--hy-ink); }
+.page-home .resp-card--sharp{ border-top:3px solid var(--hy-ink) !important; }
+.page-home .resp-card--sharp h3::after{ background:var(--hy-yellow-deep); }
+
+/* ── Feedback / contact sidebar ── */
+.page-home .portal-sidebar--right{ background:#fff; border-color:var(--hy-line); }
+.page-home .portal-sidebar--right h3{ color:var(--hy-ink); }
+.page-home .btn-sidebar-feedback{ background:var(--hy-ink); }
+.page-home .btn-sidebar-feedback:hover{ background:var(--hy-yellow); color:var(--hy-ink); }
+.page-home .sidebar-contact-list i{ color:var(--hy-yellow-deep); }
+
+/* ── Inspire ticker ── */
+.page-home .motivation-ticker-wrapper{ background:var(--hy-ink) !important; border-color:var(--hy-yellow) !important; }
+.page-home .motivation-ticker-badge{ background:var(--hy-yellow) !important; color:var(--hy-ink) !important; }
+
+/* ── Quick download bar ── */
+.page-home .quick-group{ background:#fff; border-color:var(--hy-line); }
+.page-home .quick-item{ background:var(--hy-paper); border-color:var(--hy-line); color:var(--hy-ink); font-weight:600; }
+.page-home .quick-item a:hover{ color:var(--hy-yellow-deep); }
+
+/* ── Footer: proper redesign, not just a recolor ── */
+.page-home footer.footer-dark{
+  background:var(--hy-ink) !important;
+  padding:5rem 40px 2.4rem;
+  border-top:4px solid var(--hy-yellow) !important;
+}
+.page-home footer.footer-dark::before{ background:var(--hy-yellow) !important; height:4px; }
+.page-home .footer-col h4{
+  color:#fff; border-bottom:2px solid var(--hy-yellow); padding-bottom:14px; font-weight:800;
+}
+.page-home .footer-col p{ color:rgba(255,255,255,.68); }
+.page-home .footer-col ul li a i{ color:var(--hy-yellow); }
+.page-home .footer-col ul li a:hover{ color:var(--hy-yellow); }
+.page-home .footer-links-list li{ border-bottom:1px solid rgba(255,255,255,.12); }
+.page-home .footer-col ul.contact-info li i{ color:var(--hy-yellow); }
+.page-home .social-links a{
+  border-radius:999px; width:38px; height:38px; background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.14);
+}
+.page-home .social-links a:hover{ background:var(--hy-yellow) !important; color:var(--hy-ink) !important; border-color:var(--hy-yellow) !important; }
+.page-home .footer-bottom{ border-top-color:rgba(255,255,255,.12); color:rgba(255,255,255,.4); }
+.page-home .footer-bottom a:hover{ color:var(--hy-yellow); }
+
+/* ── Floating "Timetabling Assistant" widget ── */
+.page-home #cu-feedback-widget .cu-fb-trigger{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-trigger:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-header{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-msg-icon{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-msg.user .cu-fb-msg-icon{ background:var(--hy-yellow); color:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-msg.bot .cu-fb-bubble{ background:var(--hy-paper); border-color:var(--hy-line); color:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-msg.user .cu-fb-bubble{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-input:focus{ border-color:var(--hy-yellow-deep); }
+.page-home #cu-feedback-widget .cu-fb-send{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-send:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-contact-form{ background:var(--hy-paper); border-color:var(--hy-line); }
+.page-home #cu-feedback-widget .cu-fb-contact-form input:focus,
+.page-home #cu-feedback-widget .cu-fb-contact-form textarea:focus{ border-color:var(--hy-yellow-deep); }
+.page-home #cu-feedback-widget .cu-fb-submit-btn{ background:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-submit-btn:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-home #cu-feedback-widget .cu-fb-typing span{ background:var(--hy-yellow-deep); }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="portal-shell">
+
+<aside class="portal-sidebar portal-sidebar--left" aria-label="Quick downloads">
+ <a href="{% url 'homepage' %}" class="sidebar-brand" aria-label="{{ site_settings.university_name|default:'Chuka University' }} home">
+  <img src="{% url 'site_logo' %}" alt="{{ site_settings.university_name|default:'Chuka University' }} crest"
+   onerror="this.style.display='none';">
+  <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+  <span class="sidebar-tagline">Excellence in Learning</span>
+ </a>
+ <div class="sidebar-sticky-inner">
+  <nav class="sidebar-links">
+   <span class="sidebar-links-title">Quick Downloads</span>
+   <a href="{% url 'latest_download_redirect' 'regular' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Regular Timetable</a>
+   <a href="{% url 'latest_download_redirect' 'exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Exam Timetable</a>
+   <a href="{% url 'latest_download_redirect' 'campus_class' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Campus Regular</a>
+   <a href="{% url 'latest_download_redirect' 'campus_exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Campus Exam</a>
+   <a href="{% url 'latest_download_redirect' 'odel_class' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> ODEL Regular</a>
+   <a href="{% url 'latest_download_redirect' 'odel_exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> ODEL Exam</a>
+   <a href="{% url 'latest_download_redirect' 'resit' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Resit Timetable</a>
+   <a href="{% url 'student_portal' %}" class="sidebar-link--cta"><i class="fas fa-arrow-right" aria-hidden="true"></i> Student Portal</a>
+  </nav>
+ </div>
+</aside>
+
+<section class="hero-full hero-full--with-bar hy-hero" aria-label="Hero banner">
+<div class="hy-hero-grid">
+
+ <div class="hy-hero-copy">
+  <h1 class="hy-hero-title">Directorate of Timetabling &amp; Examinations</h1>
+  <p class="hy-hero-sub">{{ site_settings.tagline|default:"Planning, organizing and coordinating the academic calendar, schedules and examination processes for all programmes." }}</p>
+  <div class="hero-buttons hy-hero-buttons">
+   <a href="{% url 'student_portal' %}" class="btn-white hy-btn-fill">Student Portal</a>
+   <a href="{% url 'staff_portal' %}" class="btn-outline-white hy-btn-link"><i class="fas fa-lock-open" aria-hidden="true"></i> Staff Portal</a>
+  </div>
+ </div>
+
+ <div class="hy-hero-visual">
+
+{% if carousel_photos %}
+ <div class="hero-carousel" id="heroCarousel" aria-roledescription="carousel">
+  <div class="hero-carousel-track" id="heroTrack">
+
+   {% for photo in carousel_photos %}{% if photo.id %}
+   <div class="hero-slide js-slide"
+    data-src="/site/photo/{{ photo.id }}/"
+    data-fallback="https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1950&q=80"
+    aria-roledescription="slide"
+    aria-label="Slide {{ forloop.counter }} of {{ carousel_photos|length }}{% if photo.caption %} — {{ photo.caption }}{% endif %}">
+   </div>
+   {% endif %}{% endfor %}
+
+  </div>
+ </div>
+
+{% else %}
+ <div class="hero-static js-static-hero" style="background-image: url('https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1950&q=80'); background-size: cover; background-position: center;"></div>
+{% endif %}
+
+  <div class="hy-hero-bite hy-hero-bite--tl" aria-hidden="true"></div>
+  <div class="hy-hero-bite hy-hero-bite--tr" aria-hidden="true"></div>
+
+ </div>
+
+</div>
+</section>
+
+<div class="portal-main">
+
+<section class="responsibilities-wrapper responsibilities--solid-bg" aria-label="Key responsibilities">
+ <div class="responsibilities-section">
+
+  <span class="section-eyebrow" style="display:block;text-align:center;color:#0d2f6e;">What We Do</span>
+  <h2 class="section-title section-title--center">Key Responsibilities</h2>
+  <div class="resp-grid">
+
+   <div class="resp-card resp-card--sharp">
+    <div class="resp-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></div>
+    <h3>Academic Planning &amp; Coordination</h3>
+    <ul class="resp-list">
+     <li>Preparing the university academic calendar for all programmes</li>
+     <li>Creating teaching and consultation timetables each semester</li>
+     <li>Preparing examination timetables for all courses</li>
+     <li>Coordinating with Deans and Heads of Departments</li>
+     <li>Ensuring teaching and examination schedules are observed</li>
+     <li>Coordinating lecture halls, labs and workshops</li>
+     <li>Scheduling academic field trips</li>
+     <li>Managing timetable conflicts and resource allocation</li>
+    </ul>
+   </div>
+
+   <div class="resp-card resp-card--sharp">
+    <div class="resp-icon"><i class="fas fa-pencil-ruler" aria-hidden="true"></i></div>
+    <h3>Examinations &amp; Quality Assurance</h3>
+    <ul class="resp-list">
+     <li>Coordinating the processing and conduct of examinations</li>
+     <li>Managing venue logistics and invigilation assignments</li>
+     <li>Ensuring examination integrity and confidentiality</li>
+     <li>Facilitating special examination arrangements</li>
+     <li>Supporting Deans and HODs for curriculum delivery</li>
+     <li>Facilitating external examiner involvement and visits</li>
+     <li>Maintaining records and statutory compliance</li>
+     <li>Supporting audit and accreditation requirements</li>
+    </ul>
+   </div>
+
+  </div>
+ </div>
+</section>
+
+</div><!-- /.portal-main -->
+
+<aside class="portal-sidebar portal-sidebar--right" aria-label="Feedback">
+ <div>
+  <h3>Questions or Feedback?</h3>
+  <p>Report a timetable clash, ask about exam arrangements, or share suggestions with the Directorate.</p>
+  <a href="{% url 'feedback_page' %}" class="btn-sidebar-feedback"><i class="fas fa-paper-plane" aria-hidden="true"></i> Submit Feedback</a>
+ </div>
+ <div class="sidebar-divider"></div>
+ <div>
+  <h3 style="font-size:1rem;">Need Help?</h3>
+  <ul class="sidebar-contact-list">
+   <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i>{{ site_settings.contact_location|default:"Science Complex (S102), Main Campus" }}</li>
+   {% if site_settings.contact_email %}<li><i class="fas fa-envelope" aria-hidden="true"></i><a href="mailto:{{ site_settings.contact_email }}" style="color:inherit;">{{ site_settings.contact_email }}</a></li>{% endif %}
+   <li><i class="fas fa-clock" aria-hidden="true"></i>Mon – Fri, 8:00 AM – 5:00 PM</li>
+  </ul>
+ </div>
+</aside>
+
+</div><!-- /.portal-shell -->
+
+{% comment %}
+<section class="leadership-section" aria-label="Directorate leadership and structure">
+ <span class="section-eyebrow">Meet The Directorate</span>
+ <h2 class="section-title section-title--center">Our Working Structure &amp; How We Work</h2>
+ <p class="section-subtitle">The Directorate is organised around three leadership functions, each accountable for a distinct part of the timetabling and examinations process.</p>
+ <div class="leadership-grid">
+
+  <div class="leadership-card">
+   <div class="leadership-avatar">DR</div>
+   <span class="leadership-role">Director, Timetabling</span>
+   <h4>{{ site_settings.director_timetabling_name|default:"J. Kathuru" }}</h4>
+   <p>Oversees academic scheduling, teaching timetables, and coordination with Deans and Heads of Department.</p>
+  </div>
+
+  <div class="leadership-card">
+   <div class="leadership-avatar">DR</div>
+   <span class="leadership-role">Director, Examinations</span>
+   <h4>{{ site_settings.director_examinations_name|default:"Gabuchi" }}</h4>
+   <p>Leads examination scheduling, venue allocation, invigilation, and the integrity of the examination process.</p>
+  </div>
+
+  <div class="leadership-card">
+   <div class="leadership-avatar">SD</div>
+   <span class="leadership-role">Sub-Director</span>
+   <h4>{{ site_settings.sub_director_name|default:"G. Mwabia" }}</h4>
+   <p>Supports ODEL, branch campus scheduling, and day-to-day coordination across the directorate's units.</p>
+  </div>
+
+ </div>
+</section>
+{% endcomment %}
+
+<div class="motivation-ticker-wrapper" id="motivationTicker" aria-label="Motivational quotes" role="marquee">
+  <div class="motivation-ticker-inner">
+    <div class="motivation-ticker-badge">
+      <i class="fas fa-bolt" aria-hidden="true"></i>
+      <span>Inspire</span>
+    </div>
+    <div class="motivation-ticker-track-wrap">
+      <div class="motivation-ticker-track" id="tickerTrack"></div>
+    </div>
+    <button class="motivation-ticker-mute" id="tickerToggle" title="Pause / Resume ticker" aria-label="Pause motivational ticker">
+      <i class="fas fa-pause" id="tickerToggleIcon" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block quick_bar %}
+<div class="quick-bar">
+ <div class="quick-group">
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'regular' %}">Regular PDF</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'exam' %}">Exam PDF</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'campus_class' %}">Campus Regular</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'campus_exam' %}">Campus Exam</a></span>
+  <span class="quick-item"><a href="{% url 'export_global_regular_pdf' %}">Global Regular</a></span>
+  <span class="quick-item"><a href="{% url 'export_global_exam_pdf' %}">Global Exam</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'odel_class' %}">ODEL Regular</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'odel_exam' %}">ODEL Exam</a></span>
+  <span class="quick-item"><a href="{% url 'latest_download_redirect' 'resit' %}">Resit Timetable</a></span>
+  <span class="quick-item"><a href="{% url 'student_portal' %}">Student Portal</a></span>
+  <span class="quick-item"><a href="{% url 'staff_portal' %}">Staff Portal</a></span>
+ </div>
+</div>
+{% endblock %}
+
+{% block footer_links %}
+ <li><a href="{% url 'student_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Student Portal</a></li>
+ <li><a href="{% url 'staff_portal' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Staff Portal</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'regular' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Regular PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'exam' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Exam PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'campus_class' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Campus Regular PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'campus_exam' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Campus Exam PDF</a></li>
+ <li><a href="{% url 'export_global_regular_pdf' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Global Regular PDF</a></li>
+ <li><a href="{% url 'export_global_exam_pdf' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Global Exam PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'odel_class' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> ODEL Regular PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'odel_exam' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> ODEL Exam PDF</a></li>
+ <li><a href="{% url 'latest_download_redirect' 'resit' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Resit Timetable PDF</a></li>
+ <li><a href="{% url 'feedback_page' %}"><i class="fas fa-chevron-right" aria-hidden="true"></i> Feedback</a></li>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'dashboards/js/dashboards_dashboard_unios_homepage.js' %}"></script>
+<script src="{% static 'dashboards/js/motivation_ticker.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dotsContainer = document.querySelector('.hero-carousel .carousel-dots');
+    if (dotsContainer) {
+        dotsContainer.style.display = 'none';
+    }
+});
+
+// ========== BACK TO TOP BUTTON ==========
+(function() {
+    if (!document.getElementById('backToTopBtn')) {
+        const backBtn = document.createElement('a');
+        backBtn.id = 'backToTopBtn';
+        backBtn.className = 'back-to-top';
+        backBtn.setAttribute('aria-label', 'Back to top');
+        backBtn.innerHTML = '<i class="fas fa-chevron-up" aria-hidden="true"></i>';
+        backBtn.href = '#';
+        document.body.appendChild(backBtn);
+        
+        backBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 400) {
+                backBtn.classList.add('show');
+            } else {
+                backBtn.classList.remove('show');
+            }
+        });
+    }
+})();
+// ========== SCROLL-AWARE FLOATING NAVBAR ==========
+// Desktop only: navbar is full-width only at the very top of the page
+// (over the hero). As soon as the user scrolls past the hero, it
+// becomes a rounded floating pill inset beside the fixed sidebar —
+// and it STAYS that minimized pill all the way down the page,
+// including near the bottom/footer. It never widens back out.
+(function() {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) return;
+
+    function isDesktop() {
+        return window.innerWidth >= 1025;
+    }
+
+    function updateNavbar() {
+        if (!isDesktop()) {
+            navbar.classList.remove('navbar--floating', 'navbar--wide');
+            document.body.classList.remove('hy-nav-scrolled');
+            return;
+        }
+        const scrolled = window.scrollY > 24;
+        navbar.classList.toggle('navbar--floating', scrolled);
+        document.body.classList.toggle('hy-nav-scrolled', scrolled);
+    }
+
+    let ticking = false;
+    function onScroll() {
+        if (ticking) return;
+        ticking = true;
+        window.requestAnimationFrame(function() {
+            updateNavbar();
+            ticking = false;
+        });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    updateNavbar();
+})();
+
+</script>
+{% endblock %}
+
+{% block dashboard_js %}
+<script src="{% static 'dashboards/js/feedback-widget.js' %}"></script>
+{% endblock dashboard_js %}

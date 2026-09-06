@@ -1,0 +1,1212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import Resit Allocations — {{ department.name|default:"COD Panel" }}</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      min-height: 100vh; background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif; font-size: 15px; line-height: 1.5;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #004d26; padding: 0 22px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      border-bottom: 3px solid #007a3d; height: 62px; position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-center { flex: 1; }
+    .header-center h1 {
+      font-size: 1.1rem; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    header .logo { height: 38px; }
+    .btn-back {
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.32); border-radius: 5px;
+      padding: 7px 15px; cursor: pointer; font-size: 14px; font-weight: 600;
+      text-decoration: none; transition: background 0.2s; white-space: nowrap;
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── PAGE BODY ── */
+    .page-wrap { max-width: 1200px; margin: 0 auto; padding: 24px 16px 80px; }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff; border-radius: 10px; border: 1px solid #ccddd0;
+      box-shadow: 0 2px 10px rgba(0,50,20,0.07); margin-bottom: 20px; overflow: hidden;
+    }
+    .card-header {
+      padding: 13px 20px; background: #f7fbf8; border-bottom: 2px solid #e4efe6;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      flex-wrap: wrap;
+    }
+    .card-header h2 { font-size: 1.05rem; font-weight: 700; color: #004d26; }
+    .card-header .meta { font-size: 12px; color: #6a8a6e; }
+    .card-body { padding: 20px; }
+
+    /* ── SECTION LABELS ── */
+    .section-label {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .08em; color: #5a8a66; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: #d8e8da;
+    }
+
+    /* ── ARCHIVED GROUP CARD ── */
+    .archive-group {
+      border: 1px solid #ccddd0; border-radius: 8px; margin-bottom: 16px; overflow: hidden;
+    }
+    .archive-group-header {
+      padding: 10px 16px; background: #f0f7f2;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; gap: 12px;
+    }
+    .archive-group-header:hover { background: #e6f2e8; }
+    .archive-group-title { font-weight: 700; font-size: 14px; color: #1a3a22; }
+    .archive-group-meta { font-size: 12px; color: #6a8a6e; }
+    .archive-group-toggle { font-size: 18px; color: #5a8a66; transition: transform 0.2s; }
+    .archive-group.collapsed .archive-group-toggle { transform: rotate(-90deg); }
+    .archive-group-body { display: block; }
+    .archive-group.collapsed .archive-group-body { display: none; }
+
+    /* ── SELECT BAR ── */
+    .select-bar {
+      display: flex; align-items: center; gap: 14px; padding: 9px 16px;
+      background: #f7fbf8; border-bottom: 1px solid #e4efe6; font-size: 13px; flex-wrap: wrap;
+    }
+    .select-bar label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; color: #1a3a22; }
+    .select-bar input[type="checkbox"] { width: 16px; height: 16px; accent-color: #2e7d32; cursor: pointer; }
+    .sel-info { color: #666; font-size: 12px; }
+
+    /* ── TABLE ── */
+    .tbl-wrap { overflow-x: auto; max-height: 380px; overflow-y: auto; }
+    .tbl-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+    .tbl-wrap::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 680px; }
+    table th {
+      background: linear-gradient(to bottom, #eff7f1, #e3eee5); color: #1a3a22;
+      font-weight: 700; padding: 9px 11px; border: 1px solid #c8ddc8;
+      text-align: left; position: sticky; top: 0; z-index: 5;
+    }
+    table td { padding: 8px 11px; border: 1px solid #d8e8da; vertical-align: middle; }
+    table tr:hover td { background: #f4fbf5; }
+    tr.is-dup td { opacity: 0.55; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block; padding: 2px 7px; border-radius: 3px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .badge-new { background: #e8f5e9; color: #2e7d32; }
+    .badge-dup { background: #fff3cd; color: #856404; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      padding: 9px 20px; border-radius: 7px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 700; transition: all 0.18s; white-space: nowrap; line-height: 1.3;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: linear-gradient(135deg,#30d175,#1c9448); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: linear-gradient(135deg,#27b861,#16783b); transform: translateY(-1px); }
+    .btn-primary:disabled { background: #b0c4b4; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #f4f9f5; color: #1a3a22; border: 2px solid #c4d8c8; }
+    .btn-secondary:hover { background: #e4efe6; }
+    .btn-sm { padding: 5px 13px; font-size: 12px; }
+
+    /* ── IMPORT ACTION BAR ── */
+    .import-bar {
+      position: sticky; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 2px solid #e4efe6;
+      padding: 14px 22px; display: flex; align-items: center; justify-content: space-between;
+      gap: 14px; box-shadow: 0 -4px 16px rgba(0,50,20,0.09); flex-wrap: wrap; z-index: 50;
+    }
+    .import-bar-left { font-size: 14px; color: #444; }
+    .import-bar-left strong { color: #004d26; }
+
+    /* ── PROGRESS OVERLAY ── */
+    #progressOverlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,30,15,0.55);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    #progressOverlay.visible { display: flex; }
+    .progress-box {
+      background: #fff; border-radius: 14px; padding: 36px 42px;
+      text-align: center; min-width: 340px; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .progress-title { font-size: 1.15rem; font-weight: 800; color: #004d26; margin-bottom: 6px; }
+    .progress-sub   { font-size: 13px; color: #6a8a6e; margin-bottom: 22px; }
+    .progress-track {
+      background: #e4efe6; border-radius: 99px; height: 10px;
+      overflow: hidden; margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg,#27ae60,#30d175);
+      border-radius: 99px; transition: width 0.4s ease;
+      width: 0%;
+    }
+    .progress-pct { font-size: 13px; color: #5a8a66; font-weight: 600; }
+
+    /* ── SUCCESS PANEL ── */
+    #successPanel { display: none; }
+    .success-banner {
+      background: linear-gradient(135deg,#e8f5e9,#c8e6c9);
+      border: 2px solid #27ae60; border-radius: 10px; padding: 36px 28px; text-align: center;
+    }
+    .success-icon { font-size: 3.5rem; margin-bottom: 10px; }
+    .success-banner h2 { color: #1a3a22; font-size: 1.5rem; margin-bottom: 8px; }
+    .success-banner p  { color: #2e7d32; font-size: 15px; margin-bottom: 22px; }
+    .stat-row { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; margin-bottom: 24px; }
+    .stat-box {
+      background: rgba(255,255,255,0.72); border-radius: 8px; padding: 10px 24px;
+      text-align: center; border: 1px solid #a5d6a7; min-width: 90px;
+    }
+    .stat-num { font-size: 2rem; font-weight: 800; color: #004d26; }
+    .stat-lbl { font-size: 11px; color: #5a8a66; font-weight: 700; text-transform: uppercase; }
+
+    /* ── INFO/WARN BOXES ── */
+    .info-box {
+      background: #e3f2fd; border: 1px solid #90caf9; border-radius: 7px;
+      padding: 11px 15px; font-size: 13px; color: #1565c0; line-height: 1.5;
+    }
+    .warn-box {
+      background: #fff3e0; border: 1px solid #ffcc80; border-radius: 7px;
+      padding: 11px 15px; font-size: 13px; color: #e65100; margin-top: 14px;
+    }
+    .empty-row td { text-align: center; padding: 30px; color: #aaa; font-style: italic; }
+
+    /* ── SKELETON LOADER ── */
+    .skeleton { background: #e8f0ea; border-radius: 5px; animation: pulse 1.3s ease-in-out infinite; }
+    .skeleton-row td { padding: 10px 12px; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+      animation: spin 0.7s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 80px; right: 22px; z-index: 9999;
+      background: #1a3a22; color: #fff; padding: 12px 20px; border-radius: 8px;
+      font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+      transition: opacity 0.3s; opacity: 0; pointer-events: none; max-width: 360px;
+    }
+    #toast.show { opacity: 1; }
+    #toast.err  { background: #c0392b; }
+
+    @media(max-width:640px) {
+      .import-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="logo">
+  </div>
+  <div class="header-center">
+    <h1>Import Resit Allocations &mdash; {{ department.name|default:"COD Panel" }}</h1>
+  </div>
+  <div class="header-right">
+    <a href="{% url 'resit_cod_panel' %}" class="btn-back">&#8592; Back to Resit Panel</a>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  {% if error %}
+  <div class="warn-box" style="margin-bottom:18px;">⚠️ {{ error }}</div>
+  {% else %}
+
+  <!-- INFO BAR -->
+  <div class="info-box" style="margin-bottom:20px;">
+    ℹ️ Importing into <strong>{{ department.name }}</strong>.
+    Courses that already exist as resit allocations (matched by program + course code + academic year + semester)
+    are automatically marked as duplicates and skipped — nothing is overwritten.
+    Check the rows you want, then click <strong>Import Selected</strong>.
+  </div>
+
+  <!-- ══════════ RESIT VENUE EXCLUSIONS (read-only summary, quick toggle for admins) ══════════ -->
+  <div class="card" id="venueExclCard">
+    <div class="card-header">
+      <h2>🚫 Venues Excluded From Resits</h2>
+      <span class="meta">{{ resit_venue_exclusions|length }} exclusion{{ resit_venue_exclusions|length|pluralize }} on record</span>
+    </div>
+    <div class="card-body">
+      <div class="info-box" style="margin-bottom:14px;">
+        These venues (or whole buildings) are removed from the resit auto-scheduler's candidate pool — it will
+        never place a resit exam in them while the exclusion is active. This is separate from the regular
+        scheduler's venue blocks.
+        {% if can_manage_venue_exclusions %}
+          Toggle a row below to switch it on/off instantly, or manage the full list (add/remove/whole-building
+          rules) on the <a href="{% url 'venues_panel' %}#tab-resit_exclusions" target="_blank">Venues panel</a>.
+        {% else %}
+          Only Timetable Admins, the Director of Timetabling, or Sudo can add, remove, or toggle these — contact
+          one of them if a venue needs to be freed up or excluded for this resit cycle.
+        {% endif %}
+      </div>
+
+      {% if resit_venue_exclusions %}
+        <div class="table-container" style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+            <thead>
+              <tr style="text-align:left;border-bottom:2px solid #e4efe6;">
+                <th style="padding:8px 6px;">Excludes</th>
+                <th style="padding:8px 6px;">Reason</th>
+                <th style="padding:8px 6px;">Status</th>
+                {% if can_manage_venue_exclusions %}<th style="padding:8px 6px;">Toggle</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody id="venueExclTbody">
+              {% for e in resit_venue_exclusions %}
+                <tr id="venue-excl-row-{{ e.id }}" style="border-bottom:1px solid #eef2ef;">
+                  <td style="padding:8px 6px;">
+                    {% if e.building %}
+                      <strong>🏢 {{ e.building.name }}</strong>
+                      <span style="color:#8a9a8e;font-size:12px;">(whole building)</span>
+                    {% else %}
+                      <strong>{{ e.venue.code }}</strong>
+                      {% if e.venue.building %}<span style="color:#8a9a8e;font-size:12px;"> — {{ e.venue.building.name }}</span>{% endif %}
+                    {% endif %}
+                  </td>
+                  <td style="padding:8px 6px;">{{ e.reason|default:"—" }}</td>
+                  <td style="padding:8px 6px;" id="venue-excl-status-{{ e.id }}">
+                    {% if e.is_active %}
+                      <span class="badge" style="background:#fde2e2;color:#a11;padding:2px 8px;border-radius:10px;font-size:12px;">Excluded</span>
+                    {% else %}
+                      <span class="badge" style="background:#e2e2e2;color:#555;padding:2px 8px;border-radius:10px;font-size:12px;">Inactive</span>
+                    {% endif %}
+                  </td>
+                  {% if can_manage_venue_exclusions %}
+                    <td style="padding:8px 6px;">
+                      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:12.5px;">
+                        <input type="checkbox" onchange="toggleVenueExclusion({{ e.id }}, this.checked)" {% if e.is_active %}checked{% endif %}>
+                        Active
+                      </label>
+                    </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="color:#8a9a8e;font-size:13.5px;">
+          No venues or buildings are currently excluded — the resit auto-scheduler can use every venue in the system.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ══════════ CURRENT COURSE ALLOCATIONS ══════════ -->
+  <div class="card" id="caCard">
+    <div class="card-header">
+      <h2>📋 Current Course Allocations</h2>
+      <span class="meta" id="caMeta">Loading…</span>
+    </div>
+    <div class="select-bar" id="caSelectBar" style="display:none;">
+      <label>
+        <input type="checkbox" id="caAll" onchange="toggleSection('ca', this)"> Select all eligible
+      </label>
+      <span class="sel-info" id="caSelInfo"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px;"></th>
+            <th>Code</th>
+            <th>Course Name</th>
+            <th>Program</th>
+            <th>Yr / Sem</th>
+            <th>Lecturer</th>
+            <th style="text-align:center;">Students</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="caTbody">
+          <tr class="skeleton-row"><td colspan="8"><div class="skeleton" style="height:14px;width:60%;"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="8"><div class="skeleton" style="height:14px;width:75%;"></div></td></tr>
+          <tr class="skeleton-row"><td colspan="8"><div class="skeleton" style="height:14px;width:50%;"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ ARCHIVED COURSE ALLOCATIONS ══════════ -->
+  <div class="card" id="arCard">
+    <div class="card-header">
+      <h2>🗄️ Archived Course Allocations</h2>
+      <span class="meta" id="arMeta">Loading…</span>
+    </div>
+    <div class="card-body" id="arBody">
+      <div class="skeleton" style="height:48px;border-radius:8px;margin-bottom:10px;"></div>
+      <div class="skeleton" style="height:48px;border-radius:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ RESIT ARCHIVE ALLOCATIONS ══════════ -->
+  <div class="card" id="raCard">
+    <div class="card-header">
+      <h2>📦 Resit Archive Allocations</h2>
+      <span class="meta" id="raMeta">Loading…</span>
+    </div>
+    <div class="card-body" id="raBody">
+      <div class="skeleton" style="height:48px;border-radius:8px;margin-bottom:10px;"></div>
+      <div class="skeleton" style="height:48px;border-radius:8px;"></div>
+    </div>
+  </div>
+
+  <!-- ══════════ IMPORT STUDENTS FROM CSV/EXCEL ══════════ -->
+  <div class="card" id="studentImportCard">
+    <div class="card-header">
+      <h2>📋 Import Students for Resit Courses</h2>
+      <span class="meta">Upload CSV/Excel with student registrations</span>
+    </div>
+    <div class="card-body">
+      <div class="info-box" style="margin-bottom:16px;">
+        📌 <strong>Required columns (only 2 needed):</strong>
+        <ul style="margin:6px 0 6px 18px; line-height:2;">
+          <li><code>reg_no</code> — Student registration number in any format (e.g. <em>EB1/66791/23</em> or just <em>66791</em>)</li>
+          <li><code>course_code</code> — Course code as registered in the system (e.g. <em>CSC301</em>)</li>
+        </ul>
+        ✅ <strong>program_name</strong> and <strong>student_name</strong> are <em>not required</em> — resolved automatically.<br>
+        🔍 Registration numbers are normalised automatically (only the numeric portion is matched).
+      </div>
+
+      <!-- Template download -->
+      <div style="margin-bottom:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="downloadTemplate('csv')">⬇ Download CSV Template</button>
+        <button class="btn btn-secondary btn-sm" onclick="downloadTemplate('xlsx')">⬇ Download Excel Template</button>
+      </div>
+
+      <!-- ── Step 1: file + options ── -->
+      <div id="siStep1">
+        <div style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:2; min-width:200px;">
+            <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Academic Year <span style="color:#999;font-weight:400;">(optional)</span></label>
+            <select id="importAcademicYear" style="width:100%;padding:8px;border:1px solid #c8ddc8;border-radius:6px;">
+              <option value="">-- Auto from config --</option>
+              <option>2023/2024</option>
+              <option>2024/2025</option>
+              <option>2025/2026</option>
+              <option>2026/2027</option>
+            </select>
+          </div>
+          <div style="flex:1; min-width:150px;">
+            <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Semester <span style="color:#999;font-weight:400;">(optional)</span></label>
+            <select id="importSemester" style="width:100%;padding:8px;border:1px solid #c8ddc8;border-radius:6px;">
+              <option value="">-- Auto from config --</option>
+              <option>S1</option>
+              <option>S2</option>
+            </select>
+          </div>
+          <div style="flex:2;">
+            <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">File</label>
+            <input type="file" id="studentFileInput" accept=".csv,.xlsx,.xls" style="padding:8px;border:1px solid #c8ddc8;border-radius:6px;width:100%;">
+          </div>
+          <div>
+            <button class="btn btn-secondary" id="previewStudentsBtn" style="white-space:nowrap;">🔍 Preview</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Step 2: preview results (hidden until preview runs) ── -->
+      <div id="siStep2" style="display:none; margin-top:20px;">
+
+        <!-- preview summary banner -->
+        <div id="siPreviewBanner" style="
+          background:#f0f7f2; border:1px solid #a5d6a7; border-radius:8px;
+          padding:14px 18px; margin-bottom:14px;
+          display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <span style="font-weight:700;color:#1a3a22;font-size:15px;">📊 Preview</span>
+            <span id="siPreviewSubtitle" style="color:#5a8a66;font-size:13px;margin-left:8px;"></span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="siReset()">✏ Change File</button>
+        </div>
+
+        <!-- per-course preview table -->
+        <div class="tbl-wrap" style="max-height:320px;margin-bottom:16px;">
+          <table id="siPreviewTable">
+            <thead>
+              <tr>
+                <th>Course Code</th>
+                <th>Course Name</th>
+                <th>Program</th>
+                <th>Department</th>
+                <th style="text-align:center;">Students</th>
+                <th style="text-align:center;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="siPreviewTbody"></tbody>
+          </table>
+        </div>
+
+        <!-- warnings (not-found courses) -->
+        <div id="siPreviewWarnings" style="display:none;" class="warn-box" style="margin-bottom:14px;"></div>
+
+        <!-- confirm / cancel -->
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="confirmImportBtn">✅ Confirm Import</button>
+          <button class="btn btn-secondary" onclick="siReset()">✖ Cancel</button>
+          <span id="siConfirmNote" style="font-size:12px;color:#6a8a6e;"></span>
+        </div>
+      </div>
+
+      <!-- ── Step 3: result (hidden until import completes) ── -->
+      <div id="siStep3" style="display:none; margin-top:20px;"></div>
+
+    </div>
+  </div>
+
+  <!-- SUCCESS PANEL (shown after import) -->
+  <div id="successPanel">
+    <div class="card">
+      <div class="card-header"><h2>Import Complete</h2></div>
+      <div class="card-body" id="successBody"></div>
+    </div>
+  </div>
+
+  <!-- STICKY IMPORT BAR -->
+  <div class="import-bar" id="importBar">
+    <div class="import-bar-left">
+      <span id="totalSelLabel"><strong>0</strong> records selected across all sources</span>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="deselectAll()">Deselect All</button>
+      <button class="btn btn-primary" id="btnImport" onclick="startImport()" disabled>
+        ✅ Import Selected
+      </button>
+    </div>
+  </div>
+
+  <!-- PROGRESS OVERLAY -->
+  <div id="progressOverlay">
+    <div class="progress-box">
+      <div class="progress-title">Importing…</div>
+      <div class="progress-sub" id="progressSub">Please wait</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-pct" id="progressPct">0%</div>
+    </div>
+  </div>
+
+  {% endif %}
+</div><!-- /page-wrap -->
+
+<div id="toast"></div>
+
+<script>
+  const CSRF       = (document.cookie.split('; ').find(r=>r.startsWith('csrftoken='))||'=').split('=')[1];
+  const IMPORT_URL = "{% url 'resit_import_panel' %}";
+  const COD_URL    = "{% url 'resit_cod_panel' %}";
+  const DEPT_NAME  = "{{ department.name|escapejs|default:'your department' }}";
+
+  // Global selection state: { id -> { source, row } }
+  const selected = new Map();
+  // All rows by source, keyed by id
+  const allRows = { course_allocation: {}, archived: {}, resit_archive: {} };
+
+  /* ── utils ── */
+  const $ = id => document.getElementById(id);
+  function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function showToast(msg, isErr=false){
+    const t=$('toast'); t.textContent=msg;
+    t.className='show'+(isErr?' err':'');
+    clearTimeout(t._t); t._t=setTimeout(()=>{t.className='';},3800);
+  }
+
+  function toggleVenueExclusion(id, isActive){
+    postJSON({ action: 'toggle_resit_venue_exclusion', id: id, is_active: isActive ? 'true' : 'false' })
+      .then(json => {
+        if (json.status !== 'success') {
+          showToast(json.message || 'Could not update exclusion.', true);
+          return;
+        }
+        const statusCell = $('venue-excl-status-' + id);
+        if (statusCell) {
+          statusCell.innerHTML = json.is_active
+            ? '<span class="badge" style="background:#fde2e2;color:#a11;padding:2px 8px;border-radius:10px;font-size:12px;">Excluded</span>'
+            : '<span class="badge" style="background:#e2e2e2;color:#555;padding:2px 8px;border-radius:10px;font-size:12px;">Inactive</span>';
+        }
+        showToast(json.is_active ? 'Venue excluded from resits ✓' : 'Venue re-enabled for resits ✓');
+      })
+      .catch(err => showToast(err.message || 'Network error.', true));
+  }
+
+  function postJSON(data){
+    return fetch(IMPORT_URL,{
+      method:'POST',
+      headers:{
+        'X-Requested-With':'XMLHttpRequest',
+        'X-CSRFToken':CSRF,
+        'Content-Type':'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams(data)
+    }).then(r=>{
+      if(!r.ok){
+        // Peek at the body to surface the real server error message
+        return r.text().then(txt=>{
+          // Try to extract a meaningful message if it's a Django HTML error page
+          const match = txt.match(/<pre class="exception_value">([\s\S]*?)<\/pre>/);
+          const msg = match ? match[1].trim() : `Server error ${r.status}`;
+          throw new Error(msg);
+        });
+      }
+      return r.json();
+    });
+  }
+
+  function syncImportBar(){
+    const n = selected.size;
+    $('totalSelLabel').innerHTML = `<strong>${n}</strong> record${n!==1?'s':''} selected across all sources`;
+    $('btnImport').disabled = n === 0;
+  }
+
+  function deselectAll(){
+    selected.clear();
+    document.querySelectorAll('input.rcb').forEach(cb=>{cb.checked=false;});
+    document.querySelectorAll('input[id$="All"]').forEach(cb=>{cb.checked=false;});
+    document.querySelectorAll('[id$="SelInfo"]').forEach(el=>{ el.textContent='0 selected'; });
+    syncImportBar();
+  }
+
+  /* ── checkbox handlers ── */
+  function onCb(cb, source){
+    const id = parseInt(cb.dataset.id);
+    if(cb.checked){
+      const rowMap = source==='course_allocation' ? allRows.course_allocation
+                   : source==='archived'          ? allRows.archived
+                   :                               allRows.resit_archive;
+      selected.set(id+'|'+source, {source, row: rowMap[id]});
+    } else {
+      selected.delete(id+'|'+source);
+    }
+    updateSectionCount(source);
+    syncImportBar();
+  }
+
+  function toggleSection(prefix, masterCb){
+    const source = prefix==='ca' ? 'course_allocation'
+                 : prefix==='ar' ? 'archived'
+                 :                 'resit_archive';
+    document.querySelectorAll(`.rcb-${prefix}:not([disabled])`).forEach(cb=>{
+      cb.checked = masterCb.checked;
+      const id = parseInt(cb.dataset.id);
+      const rowMap = source==='course_allocation' ? allRows.course_allocation
+                   : source==='archived'          ? allRows.archived
+                   :                               allRows.resit_archive;
+      if(masterCb.checked) selected.set(id+'|'+source, {source, row: rowMap[id]});
+      else selected.delete(id+'|'+source);
+    });
+    updateSectionCount(source);
+    syncImportBar();
+  }
+
+  function updateSectionCount(source){
+    const prefix = source==='course_allocation' ? 'ca'
+                 : source==='archived'          ? 'ar'
+                 :                               'ra';
+    const cbs = document.querySelectorAll(`.rcb-${prefix}:not([disabled])`);
+    const checked = [...cbs].filter(c=>c.checked).length;
+    const infoEl = $(prefix+'SelInfo');
+    if(infoEl) infoEl.textContent = `${checked} of ${cbs.length} eligible selected`;
+    // sync select-all checkbox
+    const masterCb = $(prefix+'All');
+    if(masterCb) masterCb.checked = cbs.length>0 && checked===cbs.length;
+  }
+
+  /* ── row builder ── */
+  function makeRow(r, source){
+    const prefix = source==='course_allocation' ? 'ca'
+                 : source==='archived'          ? 'ar'
+                 :                               'ra';
+    const badge = r.is_duplicate
+      ? '<span class="badge badge-dup">⚠ Duplicate</span>'
+      : '<span class="badge badge-new">✓ New</span>';
+    const disabled = r.is_duplicate ? 'disabled title="Already exists — will be skipped"' : '';
+    return `
+      <tr class="${r.is_duplicate?'is-dup':''}">
+        <td style="text-align:center;">
+          <input type="checkbox" class="rcb rcb-${prefix}" data-id="${r.id}"
+            ${disabled} onchange="onCb(this,'${source}')">
+        </td>
+        <td><strong>${esc(r.course_code)}</strong></td>
+        <td>${esc(r.course_name)}</td>
+        <td style="font-size:12px;color:#555;">${esc(r.program_name||'—')}</td>
+        <td style="font-size:12px;font-weight:700;">${esc(r.academic_year||'—')} / S${esc(String(r.semester||'?'))}</td>
+        <td style="font-size:12px;">${esc(r.lecturer_name||'—')}</td>
+        <td style="text-align:center;">${r.students||0}</td>
+        <td>${badge}</td>
+      </tr>`;
+  }
+
+  /* ── render resit archive groups (mirrors renderAR) ── */
+  function renderRA(data){
+    const body = $('raBody');
+    const total = data.total || 0;
+    $('raMeta').textContent = data.available
+      ? `${total} record${total!==1?'s':''} across ${(data.groups||[]).length} period${(data.groups||[]).length!==1?'s':''}`
+      : 'Not available';
+
+    if(!data.available){
+      body.innerHTML = `<div class="info-box">No resit archive allocations available for this department.</div>`;
+      return;
+    }
+    if(data.error){
+      body.innerHTML = `<div class="warn-box">⚠ ${esc(data.error)}</div>`;
+      return;
+    }
+    const groups = data.groups || [];
+    if(groups.length===0){
+      body.innerHTML = `<div style="color:#aaa;text-align:center;padding:24px;font-style:italic;">No resit archive allocations found for this department.</div>`;
+      return;
+    }
+
+    // index rows
+    groups.forEach(g=>{
+      (g.rows||[]).forEach(r=>{ allRows.resit_archive[r.id]=r; });
+    });
+
+    body.innerHTML = groups.map((g,gi)=>{
+      const eligible = (g.rows||[]).filter(r=>!r.is_duplicate).length;
+      const groupId = `rag${gi}`;
+      const tableRows = (g.rows||[]).map(r=>makeRow(r,'resit_archive')).join('') ||
+        '<tr class="empty-row"><td colspan="8">No records</td></tr>';
+
+      return `
+        <div class="archive-group" id="${groupId}">
+          <div class="archive-group-header" onclick="toggleGroup('${groupId}')">
+            <div>
+              <span class="archive-group-title">📦 ${esc(g.label)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span class="archive-group-meta">${g.rows.length} record${g.rows.length!==1?'s':''}, ${eligible} eligible</span>
+              <span class="archive-group-toggle">▾</span>
+            </div>
+          </div>
+          <div class="archive-group-body">
+            <div class="select-bar">
+              <label>
+                <input type="checkbox" class="rag-master" data-group="${gi}"
+                  onchange="toggleResitArchiveGroupRows(${gi}, this)"> Select all eligible
+              </label>
+              <span class="sel-info rag-info" id="ragInfo${gi}">0 selected</span>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:32px;"></th>
+                    <th>Code</th><th>Course Name</th><th>Program</th>
+                    <th>Yr / Sem</th><th>Lecturer</th>
+                    <th style="text-align:center;">Students</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    groups.forEach((_,gi)=>syncResitArchiveGroupInfo(gi));
+    syncImportBar();
+  }
+
+  function toggleResitArchiveGroupRows(gi, masterCb){
+    const group = document.getElementById('rag'+gi);
+    const cbs = group.querySelectorAll('.rcb-ra:not([disabled])');
+    cbs.forEach(cb=>{
+      cb.checked=masterCb.checked;
+      const id=parseInt(cb.dataset.id);
+      if(masterCb.checked) selected.set(id+'|resit_archive',{source:'resit_archive',row:allRows.resit_archive[id]});
+      else selected.delete(id+'|resit_archive');
+    });
+    syncResitArchiveGroupInfo(gi);
+    syncImportBar();
+  }
+
+  function syncResitArchiveGroupInfo(gi){
+    const group = document.getElementById('rag'+gi);
+    if(!group) return;
+    const cbs = group.querySelectorAll('.rcb-ra:not([disabled])');
+    const checked=[...cbs].filter(c=>c.checked).length;
+    const info=$('ragInfo'+gi); if(info) info.textContent=`${checked} of ${cbs.length} eligible selected`;
+    const master=group.querySelector('.rag-master'); if(master) master.checked=cbs.length>0&&checked===cbs.length;
+  }
+
+  /* ── render current allocations table ── */
+  function renderCA(data){
+    const tbody = $('caTbody');
+    const rows = data.rows || [];
+    $('caMeta').textContent = data.available
+      ? `${rows.length} record${rows.length!==1?'s':''} found`
+      : 'Not available';
+
+    if(!data.available){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="8">CourseAllocation model not available in this project.</td></tr>`;
+      return;
+    }
+    if(data.error){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="8">⚠ ${esc(data.error)}</td></tr>`;
+      return;
+    }
+    if(rows.length===0){
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="8">No current allocations found for this department.</td></tr>`;
+      return;
+    }
+
+    // index
+    rows.forEach(r=>{ allRows.course_allocation[r.id]=r; });
+
+    tbody.innerHTML = rows.map(r=>makeRow(r,'course_allocation')).join('');
+
+    $('caSelectBar').style.display='';
+    updateSectionCount('course_allocation');
+    syncImportBar();
+  }
+
+  /* ── render archived groups ── */
+  function renderAR(data){
+    const body = $('arBody');
+    const total = data.total || 0;
+    $('arMeta').textContent = data.available ? `${total} record${total!==1?'s':''} across ${(data.groups||[]).length} period${(data.groups||[]).length!==1?'s':''}` : 'Not available';
+
+    if(!data.available){
+      body.innerHTML = `<div class="info-box">ArchivedCourseAllocation model not available in this project.</div>`;
+      return;
+    }
+    if(data.error){
+      body.innerHTML = `<div class="warn-box">⚠ ${esc(data.error)}</div>`;
+      return;
+    }
+    const groups = data.groups || [];
+    if(groups.length===0){
+      body.innerHTML = `<div style="color:#aaa;text-align:center;padding:24px;font-style:italic;">No archived allocations found for this department.</div>`;
+      return;
+    }
+
+    // index rows
+    groups.forEach(g=>{
+      (g.rows||[]).forEach(r=>{ allRows.archived[r.id]=r; });
+    });
+
+    body.innerHTML = groups.map((g,gi)=>{
+      const eligible = (g.rows||[]).filter(r=>!r.is_duplicate).length;
+      const groupId = `ag${gi}`;
+      const tableRows = (g.rows||[]).map(r=>makeRow(r,'archived')).join('') ||
+        '<tr class="empty-row"><td colspan="8">No records</td></tr>';
+
+      return `
+        <div class="archive-group" id="${groupId}">
+          <div class="archive-group-header" onclick="toggleGroup('${groupId}')">
+            <div>
+              <span class="archive-group-title">📁 ${esc(g.label)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <span class="archive-group-meta">${g.rows.length} record${g.rows.length!==1?'s':''}, ${eligible} eligible</span>
+              <span class="archive-group-toggle">▾</span>
+            </div>
+          </div>
+          <div class="archive-group-body">
+            <div class="select-bar">
+              <label>
+                <input type="checkbox" class="ag-master" data-group="${gi}"
+                  onchange="toggleGroupRows(${gi}, this)"> Select all eligible
+              </label>
+              <span class="sel-info ag-info" id="agInfo${gi}">0 selected</span>
+            </div>
+            <div class="tbl-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:32px;"></th>
+                    <th>Code</th><th>Course Name</th><th>Program</th>
+                    <th>Yr / Sem</th><th>Lecturer</th>
+                    <th style="text-align:center;">Students</th><th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // sync group sel info
+    groups.forEach((_,gi)=>syncGroupInfo(gi));
+    syncImportBar();
+  }
+
+  function toggleGroup(id){
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  function toggleGroupRows(gi, masterCb){
+    const group = document.getElementById('ag'+gi);
+    const cbs = group.querySelectorAll('.rcb-ar:not([disabled])');
+    cbs.forEach(cb=>{
+      cb.checked=masterCb.checked;
+      const id=parseInt(cb.dataset.id);
+      if(masterCb.checked) selected.set(id+'|archived',{source:'archived',row:allRows.archived[id]});
+      else selected.delete(id+'|archived');
+    });
+    syncGroupInfo(gi);
+    syncImportBar();
+  }
+
+  function syncGroupInfo(gi){
+    const group = document.getElementById('ag'+gi);
+    if(!group) return;
+    const cbs = group.querySelectorAll('.rcb-ar:not([disabled])');
+    const checked=[...cbs].filter(c=>c.checked).length;
+    const info=$('agInfo'+gi); if(info) info.textContent=`${checked} of ${cbs.length} eligible selected`;
+    const master=group.querySelector('.ag-master'); if(master) master.checked=cbs.length>0&&checked===cbs.length;
+  }
+
+  /* ── auto-load on page open ── */
+  async function autoLoad(){
+    try{
+      const json = await postJSON({action:'auto_load'});
+      if(json.status!=='success') throw new Error(json.message||'Load failed');
+      renderCA(json.course_allocation);
+      renderAR(json.archived);
+      renderRA(json.resit_archive || {available:true, groups:[], total:0});
+    } catch(e){
+      $('caTbody').innerHTML=`<tr class="empty-row"><td colspan="8">⚠ Failed to load: ${esc(e.message)}</td></tr>`;
+      $('arBody').innerHTML=`<div class="warn-box">⚠ Failed to load: ${esc(e.message)}</div>`;
+      $('raBody').innerHTML=`<div class="warn-box">⚠ Failed to load: ${esc(e.message)}</div>`;
+      showToast('Failed to load allocations: '+e.message, true);
+    }
+  }
+
+  /* ── import with animated progress ── */
+  async function startImport(){
+    if(selected.size===0){ showToast('Select at least one record to import.', true); return; }
+
+    // Split by source
+    const bySource = {course_allocation: [], archived: [], resit_archive: []};
+    for(const {source, row} of selected.values()){
+      if(row) bySource[source].push(row.id);
+    }
+
+    const sources = Object.entries(bySource).filter(([,ids])=>ids.length>0);
+    const totalCount = sources.reduce((s,[,ids])=>s+ids.length, 0);
+
+    // show overlay
+    $('progressOverlay').classList.add('visible');
+    $('progressFill').style.width='0%';
+    $('progressPct').textContent='0%';
+    $('progressSub').textContent=`Importing ${totalCount} record${totalCount!==1?'s':''}…`;
+
+    let imported=0, skipped=0, errors=0;
+    const allErrors=[];
+    let done=0;
+
+    for(const [source, ids] of sources){
+      const label = source==='course_allocation' ? 'current allocations'
+                  : source==='archived'          ? 'archived allocations'
+                  :                               'resit archive allocations';
+      $('progressSub').textContent=`Processing ${label}…`;
+      try{
+        const json = await postJSON({
+          action: 'do_import',
+          source,
+          ids: JSON.stringify(ids),
+        });
+        if(json.status!=='success') throw new Error(json.message||'Import failed');
+        imported += json.imported||0;
+        skipped  += json.skipped||0;
+        errors   += json.errors||0;
+        allErrors.push(...(json.error_details||[]));
+      } catch(e){
+        errors += ids.length;
+        allErrors.push(e.message);
+      }
+      done += ids.length;
+      const pct = Math.round((done/totalCount)*100);
+      $('progressFill').style.width=pct+'%';
+      $('progressPct').textContent=pct+'%';
+    }
+
+    // brief pause so progress hits 100%
+    await new Promise(r=>setTimeout(r,500));
+    $('progressOverlay').classList.remove('visible');
+    showSuccess(imported, skipped, errors, allErrors);
+  }
+
+  function showSuccess(imported, skipped, errors, errorDetails){
+    // hide source cards and import bar
+    $('caCard').style.display='none';
+    $('arCard').style.display='none';
+    $('raCard').style.display='none';
+    $('importBar').style.display='none';
+
+    const errHtml = errorDetails.length
+      ? `<div class="warn-box"><strong>Some entries had errors:</strong><br>${errorDetails.map(e=>esc(e)).join('<br>')}</div>`
+      : '';
+
+    $('successBody').innerHTML = `
+      <div class="success-banner">
+        <div class="success-icon">🎉</div>
+        <h2>Import Complete!</h2>
+        <p>Resit allocations have been added to <strong>${esc(DEPT_NAME)}</strong>.</p>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-num">${imported}</div>
+            <div class="stat-lbl">Imported</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" style="color:#856404;">${skipped}</div>
+            <div class="stat-lbl">Skipped</div>
+          </div>
+          ${errors>0?`<div class="stat-box"><div class="stat-num" style="color:#c0392b;">${errors}</div><div class="stat-lbl">Errors</div></div>`:''}
+        </div>
+        ${errHtml}
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:${errHtml?'16px':'0'};">
+          <a href="${COD_URL}" class="btn btn-primary">&#8592; Go to Resit Panel</a>
+          <button class="btn btn-secondary" onclick="location.reload()">&#8635; Import More</button>
+        </div>
+      </div>`;
+
+    $('successPanel').style.display='block';
+    window.scrollTo({top:0,behavior:'smooth'});
+
+    // auto-redirect after 8 seconds if no errors
+    if(errors===0){
+      let countdown=8;
+      const cdEl=document.createElement('p');
+      cdEl.style.cssText='margin-top:14px;font-size:12px;color:#888;';
+      $('successBody').querySelector('.success-banner').appendChild(cdEl);
+      const iv=setInterval(()=>{
+        cdEl.textContent=`Redirecting to Resit Panel in ${countdown}s…`;
+        countdown--;
+        if(countdown<0){ clearInterval(iv); location.href=COD_URL; }
+      },1000);
+    }
+  }
+
+  // ── Student import: two-step preview → confirm ────────────────────────────
+  (function() {
+    const fileInput      = document.getElementById('studentFileInput');
+    const previewBtn     = document.getElementById('previewStudentsBtn');
+    const confirmBtn     = document.getElementById('confirmImportBtn');
+    const step1          = document.getElementById('siStep1');
+    const step2          = document.getElementById('siStep2');
+    const step3          = document.getElementById('siStep3');
+    const previewTbody   = document.getElementById('siPreviewTbody');
+    const previewSubtitle= document.getElementById('siPreviewSubtitle');
+    const previewWarnings= document.getElementById('siPreviewWarnings');
+    const confirmNote    = document.getElementById('siConfirmNote');
+
+    // Stash the file reference so it survives between preview & confirm clicks.
+    // We can't re-read input.files[0] after the preview fetch because the input
+    // is still holding the same File object — but we keep a reference anyway.
+    let pendingFile = null;
+
+    function getAY()  { return document.getElementById('importAcademicYear').value; }
+    function getSem() { return document.getElementById('importSemester').value; }
+
+    async function postFormData(action, file) {
+      const fd = new FormData();
+      fd.append('action', action);
+      fd.append('students_file', file);
+      fd.append('academic_year', getAY());
+      fd.append('semester', getSem());
+      const r = await fetch(IMPORT_URL, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': CSRF },
+        credentials: 'same-origin',
+        body: fd,
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        const m = txt.match(/<pre class="exception_value">([\s\S]*?)<\/pre>/);
+        throw new Error(m ? m[1].trim() : `Server error ${r.status}`);
+      }
+      return r.json();
+    }
+
+    // ── Preview ────────────────────────────────────────────────────────────
+    previewBtn.addEventListener('click', async () => {
+      pendingFile = fileInput.files[0];
+      if (!pendingFile) { showToast('Please select a file first.', true); return; }
+
+      previewBtn.disabled = true;
+      previewBtn.innerHTML = '<span class="spinner"></span> Parsing…';
+
+      try {
+        const json = await postFormData('preview_students_csv', pendingFile);
+
+        if (json.status !== 'ok') {
+          showToast(json.message || 'Preview failed.', true);
+          return;
+        }
+
+        // Build preview table rows
+        const notFound = [];
+        let eligibleCount = 0;
+        let alreadyCount  = 0;
+        previewTbody.innerHTML = (json.courses || []).map(c => {
+          let statusBadge, rowClass = '';
+          if (!c.found) {
+            notFound.push(c.course_code);
+            statusBadge = '<span class="badge" style="background:#fdecea;color:#c0392b;">✗ Not found</span>';
+            rowClass = 'is-dup';
+          } else if (c.already_allocated) {
+            alreadyCount++;
+            statusBadge = '<span class="badge badge-dup">⚠ Existing allocation</span>';
+          } else {
+            eligibleCount++;
+            statusBadge = '<span class="badge badge-new">✓ New</span>';
+          }
+          return `
+            <tr class="${rowClass}">
+              <td><strong>${esc(c.course_code)}</strong></td>
+              <td>${esc(c.course_name)}</td>
+              <td style="font-size:12px;color:#555;">${esc(c.program||'—')}</td>
+              <td style="font-size:12px;color:#555;">${esc(c.department||'—')}</td>
+              <td style="text-align:center;">${c.student_count}</td>
+              <td>${statusBadge}</td>
+            </tr>`;
+        }).join('') || '<tr class="empty-row"><td colspan="6">No courses detected.</td></tr>';
+
+        previewSubtitle.textContent =
+          `${json.total_rows} row${json.total_rows!==1?'s':''} · ${json.course_count} course${json.course_count!==1?'s':''}` +
+          (json.academic_year ? ` · ${json.academic_year}` : '') +
+          (json.semester ? ` Sem ${json.semester}` : '');
+
+        if (notFound.length) {
+          previewWarnings.style.display = '';
+          previewWarnings.innerHTML = `<strong>⚠ ${notFound.length} course code${notFound.length!==1?'s':''} not found in any program — will be skipped:</strong><br>${notFound.map(esc).join(', ')}`;
+        } else {
+          previewWarnings.style.display = 'none';
+        }
+
+        confirmNote.textContent = eligibleCount > 0
+          ? `${eligibleCount} new allocation${eligibleCount!==1?'s':''} will be created.`
+          + (alreadyCount ? ` ${alreadyCount} already exist and will be updated.` : '')
+          : 'No new allocations to create.';
+
+        confirmBtn.disabled = eligibleCount === 0 && alreadyCount === 0;
+
+        step1.style.display = 'none';
+        step2.style.display = '';
+        step3.style.display = 'none';
+
+      } catch (err) {
+        showToast('Preview error: ' + err.message, true);
+      } finally {
+        previewBtn.disabled = false;
+        previewBtn.innerHTML = '🔍 Preview';
+      }
+    });
+
+    // ── Confirm import ─────────────────────────────────────────────────────
+    confirmBtn.addEventListener('click', async () => {
+      if (!pendingFile) { showToast('No file to import.', true); return; }
+
+      confirmBtn.disabled = true;
+      confirmBtn.innerHTML = '<span class="spinner"></span> Importing…';
+
+      try {
+        const json = await postFormData('import_students_csv', pendingFile);
+
+        step2.style.display = 'none';
+        step3.style.display = '';
+
+        if (json.status === 'success') {
+          const s = json.summary;
+          let html = `
+            <div class="success-banner" style="padding:22px;">
+              <div class="success-icon">✅</div>
+              <h3 style="margin-bottom:10px;">Import Complete!</h3>
+              <div class="stat-row" style="margin-top:12px;">
+                <div class="stat-box"><div class="stat-num">${s.allocations_created}</div><div class="stat-lbl">New Allocations</div></div>
+                <div class="stat-box"><div class="stat-num">${s.allocations_updated}</div><div class="stat-lbl">Updated</div></div>
+                <div class="stat-box"><div class="stat-num">${s.students_registered}</div><div class="stat-lbl">Students Registered</div></div>
+                <div class="stat-box"><div class="stat-num" style="color:#856404;">${s.duplicates_skipped}</div><div class="stat-lbl">Duplicates Skipped</div></div>
+              </div>`;
+          if (s.not_found_courses && s.not_found_courses.length) {
+            html += `<div class="warn-box" style="margin-top:12px;">
+              <strong>⚠ Courses not found:</strong><br>${s.not_found_courses.map(esc).join('<br>')}
+            </div>`;
+          }
+          if (s.errors_count > 0) {
+            html += `<div class="warn-box" style="margin-top:12px;">
+              <strong>⚠ ${s.errors_count} error${s.errors_count!==1?'s':''} occurred:</strong><br>
+              ${(json.errors||[]).slice(0,5).map(esc).join('<br>')}
+              ${(json.errors||[]).length > 5 ? `<br><em>…and ${json.errors.length - 5} more</em>` : ''}
+            </div>`;
+          }
+          html += `<div style="margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="siReset()">📥 Import Another File</button>
+            <button class="btn btn-secondary" onclick="location.reload()">🔄 Refresh Page</button>
+          </div></div>`;
+          step3.innerHTML = html;
+        } else {
+          step3.innerHTML = `<div class="warn-box">❌ ${esc(json.message || 'Import failed.')}</div>
+            <div style="margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="siReset()">Try Again</button></div>`;
+        }
+      } catch (err) {
+        step2.style.display = 'none';
+        step3.style.display = '';
+        step3.innerHTML = `<div class="warn-box">❌ Network error: ${esc(err.message)}</div>
+          <div style="margin-top:10px;"><button class="btn btn-secondary btn-sm" onclick="siReset()">Try Again</button></div>`;
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '✅ Confirm Import';
+      }
+    });
+  })();
+
+  function siReset() {
+    document.getElementById('siStep1').style.display = '';
+    document.getElementById('siStep2').style.display = 'none';
+    document.getElementById('siStep3').style.display = 'none';
+    document.getElementById('studentFileInput').value = '';
+  }
+
+
+  // ── Template download ──────────────────────────────────────────────────────
+  function downloadTemplate(fmt) {
+    const rows = [
+      ['reg_no', 'course_code'],
+      ['EB1/66791/23', 'CSC301'],
+      ['EB1/66792/23', 'MATH201'],
+      ['SCH/12345/22', 'PHY101'],
+      ['66793', 'ENG201'],
+    ];
+    const bom = '\uFEFF';
+    const csv = bom + rows.map(r => r.join(',')).join('\n');
+    const mime = fmt === 'csv' ? 'text/csv' : 'application/vnd.ms-excel';
+    const ext  = fmt === 'csv' ? '.csv' : '.xlsx';
+    const blob = new Blob([csv], { type: mime });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'resit_students_template' + ext;
+    a.click();
+  }
+
+  // Boot
+  document.addEventListener('DOMContentLoaded', autoLoad);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,119 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Backup & Recovery" }} — System Admin{% endblock %}
+
+{% block sudo_css %}
+<style>
+/* ── Backup & Recovery — matches sudo page design language ── */
+.bk-page { max-width: 1100px; margin: 0 auto; padding-bottom: 3rem; }
+
+.bk-header { margin-bottom: 1.5rem; }
+.bk-header h1 { font-size: 1.4rem; font-weight: 700; color: #0b1f4a; margin: 0 0 .25rem; }
+.bk-header p  { color: #5a6a82; font-size: .88rem; margin: 0; }
+
+/* Cards */
+.bk-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 1.2rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.bk-card-head {
+  padding: .75rem 1.2rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: .82rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: #7b8fa6;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.bk-card-body { padding: 1.2rem 1.4rem; }
+
+/* Grid helpers */
+.bk-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.bk-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+@media(max-width: 760px) { .bk-grid-2, .bk-grid-3 { grid-template-columns: 1fr; } }
+
+/* Form elements */
+.bk-label { display: block; font-size: .8rem; font-weight: 600; color: #374151; margin-bottom: .3rem; }
+.bk-input, .bk-select, .bk-textarea {
+  width: 100%; padding: .52rem .72rem; border: 1px solid #d1d8e0; border-radius: 7px;
+  font-size: .84rem; color: #1a2e4a; background: #f9fafb; box-sizing: border-box;
+  margin-bottom: .8rem; transition: border-color .2s;
+}
+.bk-input:focus, .bk-select:focus, .bk-textarea:focus {
+  outline: none; border-color: #1a56db; background: #fff;
+  box-shadow: 0 0 0 3px rgba(26,86,219,.1);
+}
+.bk-textarea { resize: vertical; min-height: 70px; }
+.bk-hint { font-size: .74rem; color: #8fa3b8; margin-top: -.5rem; margin-bottom: .8rem; }
+.bk-checkbox-row { display: flex; align-items: center; gap: .45rem; margin-bottom: .6rem; font-size: .84rem; color: #374151; }
+.bk-checkbox-row input[type=checkbox] { width: 14px; height: 14px; accent-color: #1a56db; margin: 0; }
+
+/* Buttons */
+.bk-btn {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .52rem 1.1rem; border-radius: 7px; font-size: .82rem; font-weight: 600;
+  cursor: pointer; border: none; text-decoration: none; transition: all .18s;
+}
+.bk-btn-primary  { background: #1a56db; color: #fff; }
+.bk-btn-primary:hover  { background: #1547c0; }
+.bk-btn-success  { background: #1e8449; color: #fff; }
+.bk-btn-success:hover  { background: #176039; }
+.bk-btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #d1d8e0; }
+.bk-btn-secondary:hover { background: #e2e8f0; }
+.bk-btn-danger   { background: #c0392b; color: #fff; }
+.bk-btn-danger:hover   { background: #a93226; }
+.bk-btn-sm { padding: .32rem .7rem; font-size: .76rem; }
+.bk-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+/* Badges */
+.bk-badge { display: inline-block; padding: .15rem .55rem; border-radius: 12px; font-size: .7rem; font-weight: 700; white-space: nowrap; }
+.bk-badge-success { background: #d1fae5; color: #065f46; }
+.bk-badge-failed  { background: #fee2e2; color: #991b1b; }
+.bk-badge-pending { background: #fef3c7; color: #92400e; }
+.bk-badge-running { background: #dbeafe; color: #1e40af; }
+.bk-badge-online  { background: #d1fae5; color: #065f46; }
+.bk-badge-offline { background: #fee2e2; color: #991b1b; }
+
+/* Tables */
+.bk-table-wrap { overflow-x: auto; }
+.bk-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.bk-table th {
+  background: #0b1f4a; color: #fff;
+  padding: .6rem .9rem; text-align: left; font-weight: 600; font-size: .8rem;
+  white-space: nowrap;
+}
+.bk-table td { padding: .55rem .9rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.bk-table tr:last-child td { border-bottom: none; }
+.bk-table tr:hover td { background: #f8fafc; }
+.bk-table .muted { color: #9aabb8; }
+.bk-table code { font-family: monospace; font-size: .78rem; color: #5a6a82; }
+
+/* Alert strips */
+.bk-alert { padding: .75rem 1rem; border-radius: 7px; font-size: .84rem; margin-bottom: 1rem; }
+.bk-alert-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.bk-alert-success { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+.bk-alert-warn    { background: #fff3e0; border: 1px solid #fcd34d; color: #92400e; }
+.bk-alert-danger  { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; }
+
+/* Stat row */
+.bk-stat-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.bk-stat { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: .7rem 1.1rem; font-size: .8rem; min-width: 110px; }
+.bk-stat strong { display: block; font-size: 1.15rem; font-weight: 800; color: #0b1f4a; }
+.bk-stat span { color: #5a6a82; }
+
+/* Button row */
+.bk-actions { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-top: .8rem; }
+
+/* Danger zone */
+.bk-danger-zone { border: 1px solid #fca5a5; border-radius: 8px; padding: 1rem 1.2rem; background: #fff5f5; margin-top: 1rem; }
+.bk-danger-zone-title { font-size: .82rem; font-weight: 700; color: #991b1b; margin: 0 0 .6rem; text-transform: uppercase; letter-spacing: .05em; }
+</style>
+{% endblock sudo_css %}
+
+{% block breadcrumb %}
+<a href="{% url 'sudo_homepage' %}">Home</a> &rsaquo;
+<a href="{% url 'backup_system:dashboard' %}">Backup &amp; Recovery</a> &rsaquo;
+<span>{% block breadcrumb_current %}{{ page_title|default:"Dashboard" }}{% endblock %}</span>
+{% endblock breadcrumb %}
+
+{% block sudo_content %}
+<div class="bk-page">
+  {% block backup_content %}{% endblock %}
+</div>
+{% endblock sudo_content %}

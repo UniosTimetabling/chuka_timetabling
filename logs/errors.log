@@ -1,0 +1,30 @@
+ERROR 2026-09-06 19:06:14,888 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-06 19:06:14,897 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-06 19:06:33,452 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-06 19:10:12,504 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-06 19:11:02,026 django.request middleware:45 Unhandled exception on GET /media/timetable_logos/university_logo.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+ERROR 2026-09-06 19:11:05,345 django.request middleware:45 Unhandled exception on GET /media/timetable_logos/university_logo.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist

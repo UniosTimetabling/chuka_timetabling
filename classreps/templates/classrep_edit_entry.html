@@ -1,0 +1,50 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Edit Entry{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'classreps/css/classrep_edit_entry.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<div class="container">
+ <div class="form-card">
+ <div class="form-header">
+ <h3>Edit Timetable Entry</h3>
+ <p>Update the schedule details</p>
+ </div>
+ 
+ <form method="POST">
+ {% csrf_token %}
+ 
+ <div class="form-group">
+ <label for="day">Day:</label>
+ <input type="text" id="day" name="day" value="{{ entry.day }}" required>
+ </div>
+ 
+ <div class="form-group">
+ <label for="start_time">Start Time:</label>
+ <input type="time" id="start_time" name="start_time" value="{{ entry.start_time|time:'H:i' }}" required>
+ </div>
+ 
+ <div class="form-group">
+ <label for="end_time">End Time:</label>
+ <input type="time" id="end_time" name="end_time" value="{{ entry.end_time|time:'H:i' }}" required>
+ </div>
+ 
+ <div class="form-group">
+ <label for="venue">Venue:</label>
+ <input type="text" id="venue" name="venue" value="{{ entry.venue }}" required>
+ </div>
+ 
+ <button type="submit" class="btn">Save Changes</button>
+ </form>
+ 
+ <a href="#" class="back-link">← Back to Dashboard</a>
+ </div>
+ </div>
+{% endblock content %}
+
+{% block footer %}<footer style="background:var(--panel-navy,#0d1b3e);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:1px solid rgba(255,255,255,.08);" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}

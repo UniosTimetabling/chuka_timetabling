@@ -1,0 +1,38 @@
+{% if logs %}
+<table class="su-table">
+    <thead>
+        <tr>
+            <th>Type</th>
+            <th>Record</th>
+            <th>By</th>
+            <th>When</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="suTbody">
+        {% for l in logs %}
+        <tr>
+            <td>
+                <span class="su-tag">{{ l.kind }}</span>
+                <span class="su-tag {% if l.action == 'delete' %}su-tag-del{% else %}su-tag-edit{% endif %}">{{ l.action_label }}</span>
+            </td>
+            <td>
+                {{ l.label }}
+                {% if l.changed_fields %}
+                <div class="su-changed">Changed: {{ l.changed_fields|join:", " }}</div>
+                {% endif %}
+            </td>
+            <td>{{ l.by }}</td>
+            <td>{{ l.at }}</td>
+            <td>
+                <button class="su-btn su-btn-small su-btn-primary su-undo-one" data-id="{{ l.id }}">
+                    {% if l.action == "delete" %}Restore{% else %}Undo edit{% endif %}
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p class="su-empty">Nothing to undo right now.</p>
+{% endif %}

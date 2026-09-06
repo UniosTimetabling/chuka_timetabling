@@ -1,0 +1,732 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Timetable Workspace</title>
+  <style>
+    /* ===== STRICT EXCEL INDUSTRIAL THEMING ===== */
+    :root {
+      --excel-green: #107c41;
+      --excel-green-dark: #0a4d28;
+      --excel-green-light: #e1dfdd;
+      --excel-grid-green: #107c41; /* Green color for the grid lines */
+      --text-main: #000000;
+      --text-muted: #444444;
+      --bg-workspace: #f3f2f1;
+      --bg-sheet: #ffffff;
+      --bg-header: #f9f9f9;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important; /* Forces strict linear edges everywhere */
+      box-shadow: none !important;  /* Strict rule against layout depth */
+      text-shadow: none !important;
+      transition: none !important;  /* Absolute hover animations eliminated */
+    }
+
+    body {
+      font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+      background: var(--bg-workspace);
+      color: var(--text-main);
+      font-size: 0.82rem; /* Crisp, high-density baseline text */
+      line-height: 1.2;
+    }
+
+    /* ===== EXCEL APPLICATION FRAME HEADER ===== */
+    .app-ribbon {
+      background: var(--excel-green);
+      color: #ffffff;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--excel-green-dark);
+    }
+
+    .app-ribbon h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* ===== WORKSPACE WRAPPER ===== */
+    .workspace-container {
+      padding: 8px;
+    }
+
+    /* ===== CONFIG & META STRIPS (TOP) ===== */
+    .config-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      background: var(--bg-sheet);
+      border: 1px solid var(--excel-grid-green);
+      padding: 6px 12px;
+      margin-bottom: 4px;
+    }
+
+    .config-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .config-label {
+      font-weight: bold;
+      color: var(--text-muted);
+    }
+
+    .config-input {
+      border: 1px solid var(--excel-grid-green);
+      background: var(--bg-sheet);
+      color: var(--text-main);
+      padding: 2px 6px;
+      font-size: 0.82rem;
+      height: 24px;
+    }
+    
+    .form-control {
+      border: 1px solid var(--excel-grid-green);
+      background: var(--bg-sheet);
+      color: var(--text-main);
+      padding: 6px;
+      font-size: 0.85rem;
+      width: 100%;
+      height: 34px; /* Increased height for form fields */
+    }
+
+    /* Compact Inline Meta Row */
+    .meta-status-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-sheet);
+      border: 1px solid var(--excel-grid-green);
+      border-top: none;
+      padding: 4px 12px;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .meta-divider {
+      width: 1px;
+      background: var(--excel-grid-green);
+      height: 12px;
+    }
+
+    /* ===== ACTION NAVIGATION BAR ===== */
+    .action-nav-bar {
+      display: flex;
+      align-items: center;
+      background: var(--bg-header);
+      border: 1px solid var(--excel-grid-green);
+      padding: 4px 8px;
+      margin-bottom: 8px;
+    }
+
+    .system-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .system-links a {
+      color: var(--excel-green);
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .system-links a:hover {
+      text-decoration: underline;
+    }
+
+    /* Top Right Integrated Select-and-Run Engine Group */
+    .scheduler-engine-group {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--excel-grid-green);
+      background: var(--bg-sheet);
+    }
+
+    .scheduler-engine-group select {
+      border: none;
+      padding: 2px 6px;
+      font-size: 0.82rem;
+      height: 26px;
+      background: var(--bg-sheet);
+      outline: none;
+    }
+
+    /* ===== SYSTEM ACTIONS BUTTONS (EXCEL GREEN) ===== */
+    .btn-sys {
+      background: var(--excel-green);
+      border: 1px solid var(--excel-green-dark);
+      color: #ffffff;
+      padding: 2px 12px;
+      font-size: 0.82rem;
+      font-weight: bold;
+      cursor: pointer;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-sys:hover {
+      background: var(--excel-green-dark);
+    }
+
+    .btn-commit {
+      height: 40px; /* Enhanced height for the main submission button */
+      font-size: 0.9rem;
+    }
+
+    /* ===== MAIN GRID WORKSPACE LAYOUT ===== */
+    .main-grid-layout {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    /* Sticky Left Navigation Rail */
+    .sticky-left-rail {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 8px;
+      width: 45px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 10;
+    }
+
+    .rail-anchor {
+      width: 100%;
+      height: 30px;
+      background: var(--bg-sheet);
+      border: 1px solid var(--excel-grid-green);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 0.78rem;
+    }
+
+    .rail-anchor:hover {
+      background: var(--excel-green-light);
+      color: var(--excel-green-dark);
+    }
+
+    /* Left Allocation Panel (Increased width and padding dimensions) */
+    .left-entry-panel {
+      width: 340px; /* Increased width from 260px */
+      background: var(--bg-sheet);
+      border: 1px solid var(--excel-grid-green);
+      padding: 16px; /* Increased internal padding */
+    }
+
+    .panel-section-title {
+      background: var(--excel-green);
+      color: #ffffff;
+      padding: 6px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      border: 1px solid var(--excel-green-dark);
+      text-align: center;
+    }
+
+    .form-row-block {
+      margin-bottom: 12px; /* Increased spacing between form items */
+    }
+
+    .form-row-block label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .venues-manifest {
+      margin-top: 20px;
+    }
+
+    .venues-manifest-list {
+      list-style: none;
+      max-height: 150px;
+      overflow-y: scroll;
+      border: 1px solid var(--excel-grid-green);
+    }
+
+    .venues-manifest-list li {
+      padding: 4px 8px;
+      border-bottom: 1px solid var(--excel-grid-green);
+      background: #fff;
+    }
+
+    /* Right Timetable Workspace Frame */
+    .right-grid-frame {
+      flex: 1;
+      background: var(--bg-sheet);
+      border: 1px solid var(--excel-grid-green);
+      padding: 8px;
+      overflow-x: auto;
+    }
+
+    .day-block-container {
+      margin-bottom: 16px;
+    }
+
+    .grid-day-label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: var(--excel-green-dark);
+      margin-bottom: 4px;
+      padding-left: 2px;
+      border-left: 3px solid var(--excel-green);
+    }
+
+    /* ===== CORE EXCEL TIMETABLE GRID ===== */
+    .excel-table-matrix {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .excel-table-matrix th, 
+    .excel-table-matrix td {
+      border: 1px solid var(--excel-grid-green) !important; /* Crisp excel green grid boundaries */
+      padding: 6px !important;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.82rem;
+    }
+
+    /* Headers and Descriptor Blocks painting */
+    .excel-table-matrix th,
+    .excel-table-matrix td.row-descriptor {
+      background: #f9f9f9 !important;
+      font-weight: normal;
+      color: var(--text-muted);
+      border: 1px solid var(--excel-grid-green) !important;
+    }
+
+    .excel-table-matrix th {
+      text-align: center;
+      font-weight: bold;
+      height: 28px;
+    }
+
+    .excel-table-matrix td.row-descriptor {
+      font-weight: bold;
+      text-align: center;
+      color: var(--text-main);
+      width: 100px;
+    }
+
+    /* Absolute Hover Elimination: Constant White Background Painting */
+    .excel-table-matrix td {
+      background: #ffffff !important;
+      transform: none !important;
+    }
+
+    /* Native Sheet Value Blocks (No Rounded Dashboard Cards) */
+    .excel-cell-value-block {
+      background: transparent !important;
+      border: none !important;
+      padding: 0;
+      margin: 0;
+    }
+
+    .excel-cell-value-block .course-title {
+      font-weight: bold;
+      color: #000;
+    }
+
+    .excel-cell-value-block .meta-text {
+      color: #555;
+      font-size: 0.78rem;
+    }
+
+    .btn-cell-clear {
+      background: transparent;
+      border: none;
+      color: #d32f2f;
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0;
+      margin-top: 2px;
+      text-decoration: underline;
+      display: block;
+    }
+
+    /* ===== PROGRESS ARCHITECTURE MODAL ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .flat-modal-window {
+      background: #ffffff;
+      border: 1px solid #000000;
+      width: 550px;
+      padding: 12px;
+    }
+
+    .modal-sys-header {
+      font-weight: bold;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--excel-grid-green);
+      padding-bottom: 4px;
+    }
+
+    .progress-container-track {
+      width: 100%;
+      background: #eeeeee;
+      border: 1px solid var(--excel-grid-green);
+      height: 18px;
+      margin-bottom: 4px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+    }
+
+    .status-matrix-label {
+      font-weight: bold;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+    }
+
+    /* Raw Terminal Output Logging Frame */
+    .console-log-box {
+      background: #000000;
+      color: #00ff00;
+      font-family: monospace;
+      font-size: 0.75rem;
+      padding: 6px;
+      height: 130px;
+      overflow-y: hidden;
+      white-space: pre-wrap;
+    }
+
+    .hide-engine {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Excel Application Title Frame -->
+  <div class="app-ribbon">
+    <h2>{{ heading }}</h2>
+  </div>
+
+  <div class="workspace-container">
+
+    <!-- Config Strip (Form Row Matrix Layout) -->
+    <section class="config-strip">
+      <form id="config-form" style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px;">
+        <div class="config-group">
+          <span class="config-label">Start Time:</span>
+          <input type="time" name="start_time" value="{{ cfg.start_time|time:'H:i' }}" class="config-input" required>
+        </div>
+        
+        <div class="config-group">
+          <span class="config-label">End Time:</span>
+          <input type="time" name="end_time" value="{{ cfg.end_time|time:'H:i' }}" class="config-input" required>
+        </div>
+        
+        <div class="config-group">
+          <span class="config-label">Slot Size (hrs):</span>
+          <input type="number" name="slot_size" value="{{ cfg.slot_size }}" min="1" max="12" class="config-input" required>
+        </div>
+
+        <div class="config-group">
+          <span class="config-label">Days Focus:</span>
+          <label style="display:inline-flex; align-items:center; gap:2px;"><input type="checkbox" checked> M</label>
+          <label style="display:inline-flex; align-items:center; gap:2px;"><input type="checkbox" checked> T</label>
+          <label style="display:inline-flex; align-items:center; gap:2px;"><input type="checkbox" checked> W</label>
+          <label style="display:inline-flex; align-items:center; gap:2px;"><input type="checkbox" checked> R</label>
+          <label style="display:inline-flex; align-items:center; gap:2px;"><input type="checkbox" checked> F</label>
+        </div>
+        
+        <button type="submit" class="btn-sys">Update Grid Setup</button>
+      </form>
+    </section>
+
+    <!-- Compact Meta Status Strip -->
+    <div class="meta-status-strip">
+      <span>Auto-Collision Processing: Active</span>
+      <div class="meta-divider"></div>
+      <span>Evening Allocation Matrix: Disabled</span>
+      <div class="meta-divider"></div>
+      <span>Weekend Block Target Execution: Off</span>
+    </div>
+
+    <!-- Action Navigation Bar -->
+    <div class="action-nav-bar">
+      <div class="system-links">
+        <a href="{% url 'timetable_dashboard' %}">📁 Return to Dashboard Overview</a>
+        <a href="#">📥 Export Sheet Schema (.csv)</a>
+      </div>
+
+      <!-- Integrated Select-and-Run Engine Group (Top Right Corner) -->
+      <div class="scheduler-engine-group">
+        <select id="engine-strategy-select">
+          <option value="standard">Standard Linear Allocation</option>
+          <option value="dense">High-Density Venue Packing</option>
+          <option value="backfill">Backfill Optimization Routine</option>
+        </select>
+        <button onclick="triggerAutoSchedulerEngine()" class="btn-sys">Run Autoscheduler</button>
+      </div>
+    </div>
+
+    <!-- Main Sheet Grid Work Area -->
+    <div class="main-grid-layout">
+      
+      <!-- Tiny Sticky Left Navigation Rail -->
+      <div class="sticky-left-rail">
+        {% for d in weekdays %}
+          <a href="#day-anchor-{{ forloop.counter }}" class="rail-anchor" title="Jump to {{ d }}">{{ d|slice:":3"|upper }}</a>
+        {% endfor %}
+      </div>
+
+      <!-- Enhanced Left Allocation Panel (Increased height & width) -->
+      <div class="left-entry-panel">
+        <div class="panel-section-title">Data Entry Form</div>
+        <form id="allocation-form">
+          <div class="form-row-block">
+            <label>Course Target Vector:</label>
+            <select name="allocation_id" class="form-control" required>
+              {% for alloc in all_allocations %}
+                <option value="{{ alloc.id }}">
+                  {{ alloc.all_course_codes }} {% if alloc.is_workshop_course %}[WS]{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-row-block">
+            <label>Target Field Venue:</label>
+            <select name="venue" class="form-control" required>
+              {% for v in venues %}
+                <option value="{{ v.code }}">{{ v.code }} (C: {{ v.capacity }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-row-block">
+            <label>Operating Day Allocation:</label>
+            <select name="day" class="form-control" required>
+              {% for d in weekdays %}
+                <option value="{{ d }}">{{ d }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-row-block">
+            <label>Target Matrix Window:</label>
+            <select name="start_time" class="form-control" required>
+              {% for st, lbl in time_slots %}
+                <option value="{{ st }}">{{ lbl }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="btn-sys btn-commit" style="width: 100%; margin-top: 8px;">Commit Allocation</button>
+        </form>
+
+        <div class="venues-manifest">
+          <div class="panel-section-title">Active Index List</div>
+          <ul class="venues-manifest-list">
+            {% for v in venues %}
+              <li>{{ v.code }}</li>
+            {% empty %}
+              <li>No indexed labels</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Main Spreadsheet Matrix -->
+      <div class="right-grid-frame">
+        {% for day in weekdays %}
+          <div class="day-block-container" id="day-anchor-{{ forloop.counter }}">
+            <div class="grid-day-label">{{ day }}</div>
+            <table class="excel-table-matrix">
+              <thead>
+                <tr>
+                  <th style="width:90px;">Venue / Time</th>
+                  {% for st, lbl in time_slots %}
+                    <th>{{ lbl }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for v in venues %}
+                  <tr>
+                    <td class="row-descriptor">{{ v.code }}</td>
+                    {% for st, lbl in time_slots %}
+                      <td>
+                        {% for t in timetables %}
+                          {% if t.day == day and t.start_time|time:"H:i" == st and t.lab_venue.id == v.id %}
+                            <div class="excel-cell-value-block">
+                              <div class="course-title">
+                                {{ t.lab_allocation.all_course_codes }}
+                                {% if t.lab_allocation.is_workshop_course %}<span>[WS]</span>{% endif %}
+                              </div>
+                              <div class="meta-text">{{ t.lab_allocation.lecturer.display_name|default:"No Staff" }}</div>
+                              <button class="btn-cell-clear btn-delete" data-id="{{ t.id }}">Clear Cell [✖]</button>
+                            </div>
+                          {% endif %}
+                        {% endfor %}
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Multi-Stage Color-Changing Progressive Processing Engine Modal -->
+  <div id="scheduler-modal-layer" class="modal-overlay hide-engine">
+    <div class="flat-modal-window">
+      <div class="modal-sys-header">Engine Process Matrix Tracker</div>
+      
+      <!-- Core Track Wrapper -->
+      <div class="progress-container-track">
+        <div id="progress-bar-fluid" class="progress-bar-fill"></div>
+      </div>
+      
+      <div id="status-label-engine" class="status-matrix-label">Initializing calculation subroutines...</div>
+      
+      <div class="modal-sys-header" style="font-size:0.75rem; border-top:1px solid var(--excel-grid-green); margin-top:8px; padding-top:4px;">Live Process Log Console</div>
+      <div id="console-terminal" class="console-log-box"></div>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+  $(function(){
+    // Form handlers
+    $("#config-form").on("submit", function(e){
+      e.preventDefault();
+      $.post("{% url 'lab_timetable_api' %}", $(this).serialize() + "&action=update_config&csrfmiddlewaretoken={{ csrf_token }}")
+      .done(() => location.reload()).fail(() => alert("Grid update exception."));
+    });
+
+    $("#allocation-form").on("submit", function(e){
+      e.preventDefault();
+      $.post("{% url 'lab_timetable_api' %}", $(this).serialize() + "&action=create_entry&csrfmiddlewaretoken={{ csrf_token }}")
+      .done(() => location.reload()).fail(() => alert("Cell collision or storage failure."));
+    });
+
+    $(document).on("click", ".btn-delete", function(){
+      if(!confirm("Clear target sheet matrix cell coordinates?")) return;
+      $.post("{% url 'lab_timetable_api' %}", {
+        csrfmiddlewaretoken: '{{ csrf_token }}',
+        action: "delete_entry",
+        entry_id: $(this).data("id")
+      }).done(() => location.reload()).fail(() => alert("Cell clear error."));
+    });
+  });
+
+  function triggerAutoSchedulerEngine() {
+    if (!confirm("This process will drop existing values inside target allocation cells. Proceed?")) return;
+    
+    const modal = $("#scheduler-modal-layer");
+    const bar = $("#progress-bar-fluid");
+    const label = $("#status-label-engine");
+    const consoleBox = $("#console-terminal");
+    
+    modal.removeClass("hide-engine");
+    consoleBox.empty();
+    
+    let currentPct = 0;
+    const terminalLogs = [
+      "[SYS]: Instantiating baseline memory maps...",
+      "[SYS]: Scanning database schema constraints...",
+      "[RULE-CHECK]: Verifying instructor capacity records...",
+      "[MATRIX]: Core matrix dimensions mapped out successfully.",
+      "[ALLOCATION]: Running bulk row placement calculation sequences...",
+      "[OPTIMIZATION]: Sorting alternative structural allocations...",
+      "[CLEANUP]: Flushing unassigned cache buffers...",
+      "[VERIFY]: Executing multi-pass validation checks...",
+      "[COMMIT]: Writing records to structural ledger blocks...",
+      "[SUCCESS]: Routine processing cycle finished."
+    ];
+
+    function appendLog(text) {
+      consoleBox.append(text + "\n");
+      const lines = consoleBox.text().split("\n");
+      if(lines.length > 11) {
+        consoleBox.text(lines.slice(lines.length - 11).join("\n"));
+      }
+    }
+
+    const interval = setInterval(() => {
+      currentPct += 2;
+      bar.css("width", currentPct + "%");
+      
+      if (currentPct % 10 === 0 && terminalLogs.length > 0) {
+        appendLog(terminalLogs.shift());
+      }
+
+      if (currentPct < 35) {
+        bar.css("background-color", "#ffc107");
+        label.text("Phase 1 (" + currentPct + "%): Analyzing rules & resolving venue spaces...");
+      } 
+      else if (currentPct >= 35 && currentPct <= 85) {
+        bar.css("background-color", "#0d6efd");
+        label.text("Phase 2 (" + currentPct + "%): Executing bulk allocation & processing course matrices...");
+      } 
+      else if (currentPct > 85 && currentPct < 100) {
+        bar.css("background-color", "#198754");
+        label.text("Phase 3 (" + currentPct + "%): Final optimization routines & conflict check passes...");
+      } 
+      else if (currentPct >= 100) {
+        clearInterval(interval);
+        
+        fetch("{% url 'run_lab_autoscheduler' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": "{{ csrf_token }}" }
+        })
+        .then((res) => res.json())
+        .then((data) => {
+          modal.addClass("hide-engine");
+          alert(data.message);
+          location.reload();
+        })
+        .catch(() => {
+          alert("Matrix Engine processing exception.");
+          modal.addClass("hide-engine");
+        });
+      }
+    }, 80);
+  }
+  </script>
+</body>
+</html>
