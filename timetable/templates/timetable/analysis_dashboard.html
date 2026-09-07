@@ -124,6 +124,7 @@
   table.matrix-table thead th{background:var(--green);color:#fff;white-space:nowrap;position:sticky;top:0;z-index:1;}
   table.matrix-table thead th:first-child{position:sticky;left:0;z-index:2;}
   table.matrix-table td.mx-venue{background:#F4F9F5;font-weight:700;color:var(--green-dark);white-space:nowrap;position:sticky;left:0;z-index:1;}
+  table.matrix-table td.mx-venue .mx-venue-cap{font-weight:500;color:#7a8a7c;font-size:.78em;}
   table.matrix-table td.mx-filled{background:#fff;min-width:150px;max-width:220px;white-space:normal;}
   table.matrix-table td.mx-empty{background:#FAFCFB;min-width:60px;}
   table.matrix-table tr:nth-child(even) td.mx-filled,table.matrix-table tr:nth-child(even) td.mx-empty{background:#FBFDFC;}
@@ -828,6 +829,15 @@ function buildMatrixTables(matches, opts){
     return ia - ib;
   });
 
+  // Venue → capacity, gathered once across every match so the venue column
+  // can show "how many can this room hold" alongside its name.
+  const venueCapacity = {};
+  for (const m of scheduled){
+    if (m.venue && venueCapacity[m.venue] === undefined && m.venue_capacity != null){
+      venueCapacity[m.venue] = m.venue_capacity;
+    }
+  }
+
   let html = '';
 
   for (const day of days){
@@ -851,7 +861,9 @@ function buildMatrixTables(matches, opts){
     html += `</tr></thead><tbody>`;
 
     for (const v of venues){
-      html += `<tr><td class="mx-venue">${escapeHtml(v)}</td>`;
+      const cap = venueCapacity[v];
+      const capLabel = cap != null ? ` <span class="mx-venue-cap">(Cap: ${escapeHtml(String(cap))})</span>` : '';
+      html += `<tr><td class="mx-venue">${escapeHtml(v)}${capLabel}</td>`;
       for (const sk of slotKeys){
         const occupants = cellMap[`${v}__${sk}`] || [];
         if (!occupants.length){

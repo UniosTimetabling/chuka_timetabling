@@ -784,6 +784,7 @@
     /* ========== Course row: checkbox column + right-click "Add to Group/Stem" menu ========== */
     .chk-col { width: 34px; display: none; text-align: center; }
     #allocTable.select-mode .chk-col { display: table-cell; }
+    #siTable.select-mode .chk-col { display: table-cell; }
     .course-row { cursor: context-menu; }
     .course-row.row-picked { background: #fff8e1 !important; }
     .row-ctx-menu {
@@ -3130,8 +3131,12 @@
         </div>
         <div class="si-wrap">
           <table id="siTable">
+            <colgroup>
+              <col class="chk-col"><col><col><col><col><col><col><col>
+            </colgroup>
             <thead>
               <tr>
+                <th class="chk-col"></th>
                 <th>Code</th><th>Course Name</th><th>Program</th>
                 <th>Origin Dept</th><th>Students</th><th>Lecturer</th>
                 <th>Actions</th>
@@ -3140,59 +3145,22 @@
             <tbody id="siTableBody">
               {# ── Own-dept special intake first ── #}
               {% for a in own_dept_special %}
-              <tr id="sialloc-{{ a.id }}">
-                <td>
-                  <strong>{{ a.course_code }}</strong><br>
-                  <span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">SPECIAL</span>
-                  {% if a.student_group %}
-                  <br><span style="font-size:10px;color:#0d47a1;font-weight:600;">{{ a.student_group.name }}</span>
-                  {% endif %}
-                </td>
-                <td>{{ a.course_name }}</td>
-                <td>{% if a.program %}{{ a.program.name }}{% else %}<em style="color:#bbb;">-</em>{% endif %}</td>
-                <td>{% if a.origin_department %}{{ a.origin_department.name }}{% else %}<em style="color:#bbb;">-</em>{% endif %}</td>
-                <td>{{ a.number_of_students }}</td>
-                <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<em style="color:#bbb;">Unassigned</em>{% endif %}</td>
-                <td>
-                  <button class="btn-act btn-edit" onclick="editRow({{ a.id }})">Edit</button>
-                  <button class="btn-act btn-delete" onclick="deleteRow({{ a.id }})">Delete</button>
-                    <button class="btn-act btn-sr" title="Special Request (SR)" onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.course_code|escapejs }}&quot;)">SR ▾</button>
-                </td>
-              </tr>
+                {% include "course_management/_cod_alloc_row.html" with a=a is_cross=False id_prefix="sialloc" badge="SPECIAL" %}
               {% endfor %}
               {# ── Cross-dept special intake divider + courses ── #}
               {% if cross_dept_special %}
               <tr>
-                <td colspan="7" style="padding:7px 16px;background:linear-gradient(to right,#e3f2fd,#ede7f6);border-top:2px dashed #90caf9;border-bottom:1px solid #bbdefb;font-size:12.5px;font-weight:800;color:#1565c0;letter-spacing:.05em;">
+                <td colspan="8" style="padding:7px 16px;background:linear-gradient(to right,#e3f2fd,#ede7f6);border-top:2px dashed #90caf9;border-bottom:1px solid #bbdefb;font-size:12.5px;font-weight:800;color:#1565c0;letter-spacing:.05em;">
                   &nbsp;Special Intake — Courses from Other Departments
                 </td>
               </tr>
               {% for a in cross_dept_special %}
-              <tr id="sialloc-{{ a.id }}">
-                <td>
-                  <strong>{{ a.course_code }}</strong><br>
-                  <span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">SPECIAL</span>
-                  <br><span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">{{ a.program.department.name }}</span>
-                  {% if a.student_group %}
-                  <br><span style="font-size:10px;color:#0d47a1;font-weight:600;">{{ a.student_group.name }}</span>
-                  {% endif %}
-                </td>
-                <td>{{ a.course_name }}</td>
-                <td>{% if a.program %}{{ a.program.name }}{% else %}<em style="color:#bbb;">-</em>{% endif %}</td>
-                <td>{% if a.origin_department %}{{ a.origin_department.name }}{% else %}<em style="color:#bbb;">-</em>{% endif %}</td>
-                <td>{{ a.number_of_students }}</td>
-                <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<em style="color:#bbb;">Unassigned</em>{% endif %}</td>
-                <td>
-                  <button class="btn-act btn-edit" onclick="editRow({{ a.id }})">Edit</button>
-                  <button class="btn-act btn-delete" onclick="deleteRow({{ a.id }})">Delete</button>
-                    <button class="btn-act btn-sr" title="Special Request (SR)" onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.course_code|escapejs }}&quot;)">SR ▾</button>
-                </td>
-              </tr>
+                {% include "course_management/_cod_alloc_row.html" with a=a is_cross=True id_prefix="sialloc" badge="SPECIAL" %}
               {% endfor %}
               {% endif %}
               {% if not special_intake_allocations %}
               <tr id="siEmptyRow">
-                <td colspan="7" style="text-align:center;padding:30px;color:#bbb;">No special intake allocations yet. Use the <strong>+ Add Special Intake</strong> button above or set Intake Type to <em>Special</em> on any allocation form.</td>
+                <td colspan="8" style="text-align:center;padding:30px;color:#bbb;">No special intake allocations yet. Use the <strong>+ Add Special Intake</strong> button above or set Intake Type to <em>Special</em> on any allocation form.</td>
               </tr>
               {% endif %}
             </tbody>
@@ -7526,7 +7494,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const tbody = document.getElementById('siTableBody');
 
       if (!json.allocations || !json.allocations.length) {
-        tbody.innerHTML = `<tr id="siEmptyRow"><td colspan="7" style="text-align:center;padding:30px;color:#bbb;">No special intake allocations yet.</td></tr>`;
+        tbody.innerHTML = `<tr id="siEmptyRow"><td colspan="8" style="text-align:center;padding:30px;color:#bbb;">No special intake allocations yet.</td></tr>`;
         document.getElementById('siCount').textContent = '0 allocation(s)';
         return;
       }
@@ -7563,7 +7531,7 @@ document.addEventListener("DOMContentLoaded", function () {
               data-semester="${g.semester || ''}"
               data-intake="special"
               oncontextmenu="showGroupContextMenu(event, this); return false;">
-            <td colspan="7" style="padding:6px 12px;font-size:12.5px;font-weight:800;color:#0d47a1;letter-spacing:.03em;">
+            <td colspan="8" style="padding:6px 12px;font-size:12.5px;font-weight:800;color:#0d47a1;letter-spacing:.03em;">
               ${g.program_name}${yearLabel}${semLabel}
               <span style="font-weight:500;font-size:10.5px;color:#5c8db8;margin-left:8px;">(right-click for options)</span>
             </td>
@@ -7604,18 +7572,36 @@ document.addEventListener("DOMContentLoaded", function () {
             const label = sg.key === 'shared' ? 'Shared Courses' : `${sg.name}`;
             html += `
               <tr class="si-subgroup-header">
-                <td colspan="7" style="padding:4px 12px 4px 28px;font-size:11.5px;font-weight:700;color:#5c8db8;background:#f4f8fd;border-top:1px dashed #c5dbf2;">
+                <td colspan="8" style="padding:4px 12px 4px 28px;font-size:11.5px;font-weight:700;color:#5c8db8;background:#f4f8fd;border-top:1px dashed #c5dbf2;">
                   ${label}
                 </td>
               </tr>`;
           }
           sg.rows.forEach(a => {
+            // Mirror the server-rendered row (_cod_alloc_row.html): same
+            // class, checkbox cell, and data-* attributes as the normal
+            // allocations table, so the shared right-click context menu
+            // (showCourseRowContextMenu) works on these rows too.
+            const codeEsc = escapeHtml(a.course_code || '');
             html += `
-              <tr id="sialloc-${a.id}">
+              <tr id="sialloc-${a.id}"
+                  class="course-row"
+                  data-program-course-id="${a.program_course_id || ''}"
+                  data-program-id="${a.program_id || ''}"
+                  data-program-name="${escapeHtml(a.program_name || '')}"
+                  data-year="${a.year || ''}"
+                  data-course-code="${codeEsc}"
+                  data-course-name="${escapeHtml(a.course_name || '')}"
+                  data-in-group="${a.selection_group_id || ''}"
+                  data-in-stem="${a.specialization_stem_id || ''}"
+                  data-student-group="${a.student_group_id || ''}"
+                  data-student-group-name="${escapeHtml(a.student_group_name || '')}"
+                  oncontextmenu="showCourseRowContextMenu(event, this); return false;">
+                <td class="chk-col"><input type="checkbox" class="alloc-row-chk" value="${a.id}" onclick="event.stopPropagation(); onAllocRowChkChange();"></td>
                 <td>
                   <strong>${a.course_code}</strong><br>
                   <span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">SPECIAL</span>
-                  ${(!showSubHeaders && a.student_group_name) ? `<br><span style="font-size:10px;color:#0d47a1;font-weight:600;">${a.student_group_name}</span>` : ''}
+                  ${(!showSubHeaders && a.student_group_name) ? `<br><span style="font-size:10px;color:#0d47a1;font-weight:600;">${escapeHtml(a.student_group_name)}</span>` : ''}
                 </td>
                 <td>${a.course_name}</td>
                 <td>${a.program || '-'}</td>
@@ -7625,7 +7611,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>
                   <button class="btn-act btn-edit" onclick="editRow(${a.id})">Edit</button>
                   <button class="btn-act btn-delete" onclick="deleteRow(${a.id})">Delete</button>
-                  <button class="btn-act btn-sr" title="Special Request (SR)" onclick="openSrMenu(event, ${a.id}, '${a.course_code}')">SR ▾</button>
+                  <button class="btn-act btn-sr" title="Special Request (SR)" onclick="openSrMenu(event, ${a.id}, '${codeEsc}')">SR ▾</button>
                 </td>
               </tr>`;
           });
@@ -7646,6 +7632,11 @@ document.addEventListener("DOMContentLoaded", function () {
         '<tr id="siEmptyRow"><td colspan="7" style="text-align:center;padding:30px;color:#bbb;">No special intake allocations yet.</td></tr>';
     }
   }
+
+  // Exposed so the row right-click menu (in a separate IIFE further down
+  // the page) can refresh this table after actions like "Move to Year…"
+  // that don't patch the DOM in place.
+  window.loadSpecialIntakeAllocations = loadSpecialIntakeAllocations;
 
   loadRejected();
   renderSgInline();
@@ -9472,11 +9463,17 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ── Select-mode plumbing (checkboxes column) ──────────────────────────
+  // Special Intake rows (#siTable) share the same course-row markup and
+  // right-click menu as the normal allocations table, so selection-mode
+  // needs to span both tables, not just #allocTable.
+  function selectModeTables() {
+    return [document.getElementById('allocTable'), document.getElementById('siTable')].filter(Boolean);
+  }
   function allCourseRows() {
-    return Array.prototype.slice.call(document.querySelectorAll('#allocTable tr.course-row'));
+    return Array.prototype.slice.call(document.querySelectorAll('#allocTable tr.course-row, #siTable tr.course-row'));
   }
   function checkedRows() {
-    return Array.prototype.slice.call(document.querySelectorAll('#allocTable .alloc-row-chk:checked'));
+    return Array.prototype.slice.call(document.querySelectorAll('#allocTable .alloc-row-chk:checked, #siTable .alloc-row-chk:checked'));
   }
   window.onAllocRowChkChange = function () {
     var checked = checkedRows();
@@ -9501,7 +9498,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // chosen from the right-click menu; picking it again while active exits
   // selection and hides the column.
   window.enterAllocSelectMode = function (preCheckRow) {
-    table.classList.add('select-mode');
+    selectModeTables().forEach(function (t) { t.classList.add('select-mode'); });
     toolbar.classList.add('active');
     if (preCheckRow) {
       var chk = preCheckRow.querySelector('.alloc-row-chk');
@@ -9511,9 +9508,9 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   window.exitAllocSelectMode = function () {
-    table.classList.remove('select-mode');
+    selectModeTables().forEach(function (t) { t.classList.remove('select-mode'); });
     toolbar.classList.remove('active');
-    document.querySelectorAll('#allocTable .alloc-row-chk').forEach(function (c) { c.checked = false; });
+    document.querySelectorAll('#allocTable .alloc-row-chk, #siTable .alloc-row-chk').forEach(function (c) { c.checked = false; });
     if (selectAllChk) selectAllChk.checked = false;
     allCourseRows().forEach(function (r) { r.classList.remove('row-picked'); });
     onAllocRowChkChange();
@@ -9537,6 +9534,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // an ungrouped course — use "Add to Combined Group…" for that).
     rcmMoveCombinedBtn.style.display =
       (!selecting && rowEl.getAttribute('data-combined-group-id')) ? 'block' : 'none';
+    // Selection Group / Specialization Stem / Combined Group actions patch
+    // the row back into the *normal* allocations table (#allocationsTable)
+    // once saved — they don't know about the Special Intake table, so
+    // running them from a Special Intake row would end up creating/moving
+    // a row into the wrong table. Hide those specific actions here; Move
+    // to Year, Delete, and Select multiple all work the same regardless.
+    var isSpecialIntake = rowEl.id.indexOf('sialloc-') === 0;
+    rcmAddClassGroupBtn.style.display = isSpecialIntake ? 'none' : 'block';
+    rcmAddGroupBtn.style.display      = isSpecialIntake ? 'none' : 'block';
+    rcmAddStemBtn.style.display       = isSpecialIntake ? 'none' : 'block';
+    rcmAddCombinedBtn.style.display   = isSpecialIntake ? 'none' : 'block';
+    if (isSpecialIntake) rcmMoveCombinedBtn.style.display = 'none';
+    // "Select multiple…" feeds the floating toolbar's "Add to Selection
+    // Group / Stem" buttons, which aren't Special-Intake-aware — keep
+    // Special Intake rows on single-row actions only (Move to Year,
+    // Delete) so a mixed selection can't trigger that unsupported path.
+    rcmSelectBtn.style.display = (isSpecialIntake && !selecting) ? 'none' : 'block';
     rowMenu.style.display = 'block';
     var w = rowMenu.offsetWidth || 230, h = rowMenu.offsetHeight || 100;
     var left = evt.clientX, top = evt.clientY;
@@ -9669,6 +9683,12 @@ document.addEventListener("DOMContentLoaded", function () {
           if (table.classList.contains('select-mode')) exitAllocSelectMode();
           if (typeof window.softRefreshAllocationsTable === 'function') {
             window.softRefreshAllocationsTable();
+          }
+          // A moved course may belong to the Special Intake table too
+          // (softRefreshAllocationsTable only patches #allocationsTable),
+          // so re-fetch it as well to keep its year grouping in sync.
+          if (typeof window.loadSpecialIntakeAllocations === 'function') {
+            window.loadSpecialIntakeAllocations();
           }
         } else if (window.showToast) {
           window.showToast(json.message || 'Move failed.', 'error');

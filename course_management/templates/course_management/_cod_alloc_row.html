@@ -1,5 +1,5 @@
 {% with cg_info=a.cg_info %}
-<tr id="alloc-{{ a.id }}"{% if cg_info %} style="background:#f0f7ff;"{% endif %}
+<tr id="{{ id_prefix|default:'alloc' }}-{{ a.id }}"{% if cg_info %} style="background:#f0f7ff;"{% endif %}
     class="course-row"
     data-program-course-id="{{ a.program_course_id }}"
     data-program-id="{{ a.program.id|default:'' }}"
@@ -20,8 +20,14 @@
   <td class="chk-col"><input type="checkbox" class="alloc-row-chk" value="{{ a.id }}" onclick="event.stopPropagation(); onAllocRowChkChange();"></td>
   <td>
     <strong>{{ a.course_code }}</strong>
+    {% if badge %}
+    <br><span style="font-size:11px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">{{ badge }}</span>
+    {% endif %}
     {% if is_cross %}
     <br><span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:3px;padding:1px 5px;font-weight:700;">🔀 {{ a.program.department.name }}</span>
+    {% endif %}
+    {% if badge and a.student_group %}
+    <br><span style="font-size:10px;color:#0d47a1;font-weight:600;">{{ a.student_group.name }}</span>
     {% endif %}
     {% if not a.specialization_stem_id and a.specialization_stems.exists %}
     <br><span style="font-size:10px;background:#fff3e0;color:#e65100;border-radius:3px;padding:1px 5px;font-weight:700;" title="Shared across: {% for st in a.specialization_stems.all %}{{ st.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — clashes normally against other courses in these stems.">🔀 Shared: {% for st in a.specialization_stems.all %}{{ st.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</span>

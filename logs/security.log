@@ -14,3 +14,5 @@ INFO 2026-09-07 11:05:56,397 security views:84 Login success | user=social_scien
 INFO 2026-09-07 11:27:51,391 security views:139 Logout | user=social_sciences | ip=127.0.0.1
 WARNING 2026-09-07 11:27:59,799 security views:129 Login failure | attempted_user=business_administration | ip=127.0.0.1
 INFO 2026-09-07 11:28:21,585 security views:84 Login success | user=managementscience | ip=127.0.0.1
+INFO 2026-09-07 20:10:06,256 security views:139 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-07 20:10:18,265 security views:84 Login success | user=computer_science | ip=127.0.0.1

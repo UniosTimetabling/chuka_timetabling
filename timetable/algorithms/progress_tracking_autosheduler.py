@@ -47,6 +47,20 @@ CACHE_KEY      = "exam_scheduler_progress"
 CACHE_TIMEOUT  = 60 * 60 * 4   # 4 hours — outlasts any realistic run
 MAX_LOG_ENTRIES = 300
 
+# Real mutual-exclusion lock for "is a run in progress", separate from the
+# CACHE_KEY progress snapshot. cache.add() is atomic (only succeeds if the
+# key does not already exist), so it closes the race that a plain
+# read-status-then-write-status check cannot: two near-simultaneous POSTs
+# to /autoscheduler/exam/run/ (double-click, a duplicate frontend submit,
+# or two requests landing on different worker processes) can both read
+# status="idle" before either has written status="running", both pass that
+# check, and both launch a scheduler_thread — two independent SchedulerState
+# instances then place courses into the same venue/slot with no awareness
+# of each other, which is how a room ends up holding more students than it
+# has seats for. cache.add() lets only one of those requests "win".
+RUN_LOCK_KEY     = "exam_scheduler_run_lock"
+RUN_LOCK_TIMEOUT = 60 * 60 * 4  # matches CACHE_TIMEOUT; released explicitly on finish/error
+
 # ── Thread-local lock (guards the SSE queue only — cache is its own lock) ───
 _lock      = threading.Lock()
 _log_queue: queue.Queue = queue.Queue(maxsize=2000)
@@ -280,6 +294,12 @@ def run_scheduler_in_thread(disabled_constraints=None):
         _append_log("error", f"FATAL: {exc}")
         _append_log("debug", tb)
 
+    finally:
+        # Always release the run lock when this thread ends, success or not,
+        # so a genuinely finished/crashed run never permanently blocks the
+        # next real attempt via StartSchedulingView.
+        cache.delete(RUN_LOCK_KEY)
+
 
 # ── Django views ──────────────────────────────────────────────────────────────
 
@@ -398,8 +418,15 @@ class StartSchedulingView(View):
     def post(self, request):
         global scheduler_thread
 
-        current = _get_progress()
-        if current.get("status") == "running":
+        # Atomic acquire: cache.add() only succeeds if RUN_LOCK_KEY is not
+        # already set, so exactly one concurrent request can win this race —
+        # unlike the old "read status, then later write status" check, there
+        # is no window between check and act for a second request to slip
+        # through. If this returns False, a run is already in progress
+        # (started by this request or another one) and we bail out here,
+        # before any second SchedulerState/thread gets created.
+        acquired = cache.add(RUN_LOCK_KEY, True, RUN_LOCK_TIMEOUT)
+        if not acquired:
             return JsonResponse(
                 {"status": "already_running", "message": "Scheduler is already running"},
                 status=409,
@@ -434,11 +461,17 @@ class StartSchedulingView(View):
         if disabled_constraints:
             _append_log("info", f"Constraints disabled for this run: {sorted(disabled_constraints)}")
 
-        scheduler_thread = threading.Thread(
-            target=run_scheduler_in_thread, args=(disabled_constraints,),
-            daemon=True, name="ExamScheduler"
-        )
-        scheduler_thread.start()
+        try:
+            scheduler_thread = threading.Thread(
+                target=run_scheduler_in_thread, args=(disabled_constraints,),
+                daemon=True, name="ExamScheduler"
+            )
+            scheduler_thread.start()
+        except Exception:
+            # Thread never started — release the lock immediately so a retry
+            # isn't permanently blocked by a run that never happened.
+            cache.delete(RUN_LOCK_KEY)
+            raise
 
         return JsonResponse({"status": "started", "message": "Scheduling process started"})
 

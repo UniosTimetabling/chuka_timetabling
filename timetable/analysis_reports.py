@@ -1075,14 +1075,32 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
     (appended, sorted by start time) — so nothing is silently dropped just
     because it doesn't align with the standard slot size.
 
-    Returns: list of (day_label, Table).
+    Exam entries (ExamTimetable) carry a real calendar `date` field, unlike
+    regular Timetable entries which only have a recurring weekday name —
+    an exam period spans multiple weeks, so the same weekday (e.g. every
+    "Monday") recurs on several different dates. Grouping by weekday name
+    alone would silently merge all of those different dates' exams into
+    one table (and even into the same grid cell, if they share a venue +
+    timeslot). So: if the entries carry a `date` attribute, group by
+    (date, day) — one table per actual date — instead of by day alone.
+    Regular Timetable entries have no `date` field and keep the original
+    day-only grouping.
+
+    Returns: list of (label, Table) — label is the day name for regular
+    entries, or "<Day> — <dd Mon yyyy>" per date for exam entries.
     """
     table_style_fn = table_style_fn or _standard_table_style
     base_slots = _build_time_slots()
 
-    by_day = defaultdict(list)
-    for tt in tt_iterable:
-        by_day[tt.day or 'Unspecified'].append(tt)
+    entries_all = list(tt_iterable)
+    has_date = bool(entries_all) and hasattr(entries_all[0], 'date')
+
+    by_group = defaultdict(list)
+    for tt in entries_all:
+        if has_date:
+            by_group[(tt.date, tt.day or 'Unspecified')].append(tt)
+        else:
+            by_group[tt.day or 'Unspecified'].append(tt)
 
     # Combined-group awareness: several member allocations of the same
     # CombinedCourseGroup are taught together (same venue/day/time), so they
@@ -1093,7 +1111,7 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
     combined_group_of_alloc = {}
     all_alloc_ids = {
         tt.course_allocation_id
-        for entries in by_day.values()
+        for entries in by_group.values()
         for tt in entries
         if tt.course_allocation_id
     }
@@ -1105,20 +1123,30 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
                 combined_group_of_alloc[member_id] = group.base_course_code
 
     tables = []
-    ordered_days = [d for d in DAY_ORDER if d in by_day] + [d for d in by_day if d not in DAY_ORDER]
+    if has_date:
+        # One table per actual calendar date, earliest first.
+        ordered_keys = sorted(by_group.keys(), key=lambda k: k[0])
+    else:
+        ordered_keys = [d for d in DAY_ORDER if d in by_group] + [d for d in by_group if d not in DAY_ORDER]
 
-    for day in ordered_days:
-        entries = [e for e in by_day[day] if e.venue and e.start_time and e.end_time]
+    for group_key in ordered_keys:
+        entries = [e for e in by_group[group_key] if e.venue and e.start_time and e.end_time]
         if not entries:
             continue
+
+        if has_date:
+            date_val, day_name = group_key
+            label = f"{day_name} — {date_val.strftime('%d %b %Y')}"
+        else:
+            label = group_key
 
         slot_set = list(base_slots)
         known = set(slot_set)
         for tt in entries:
-            key = (tt.start_time, tt.end_time)
-            if key not in known:
-                slot_set.append(key)
-                known.add(key)
+            slot_key = (tt.start_time, tt.end_time)
+            if slot_key not in known:
+                slot_set.append(slot_key)
+                known.add(slot_key)
         slot_set.sort(key=lambda s: s[0])
 
         venues_sorted = sorted({tt.venue.code for tt in entries})
@@ -1181,7 +1209,7 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
 
         table = Table(rows, colWidths=col_widths, repeatRows=1)
         table.setStyle(table_style_fn())
-        tables.append((day, table))
+        tables.append((label, table))
 
     return tables
 

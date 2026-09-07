@@ -2744,3 +2744,1904 @@ INFO 2026-09-07 15:41:00,725 django.server basehttp:212 "GET /api/notifications/
 INFO 2026-09-07 15:41:14,473 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
 INFO 2026-09-07 15:42:00,942 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
 INFO 2026-09-07 15:42:35,170 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:42:56,026 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:43:14,298 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:43:27,629 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:43:51,850 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:44:14,405 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:44:41,428 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:45:58,336 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:46:14,179 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:46:24,001 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:46:38,652 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:47:07,503 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:47:14,213 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:47:30,632 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:48:14,218 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:49:14,158 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:49:14,674 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:49:39,732 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:49:51,823 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:50:14,139 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:50:24,688 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:50:47,330 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:51:34,226 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:52:14,102 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:52:42,429 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:53:06,694 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:53:14,212 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:53:25,425 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:53:48,176 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:54:27,899 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:55:14,211 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:55:15,299 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:56:14,452 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:56:40,058 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:57:15,176 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:57:54,552 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:58:14,258 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:58:18,892 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:58:56,976 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 15:59:14,224 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 15:59:39,715 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:00:48,486 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:01:14,310 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 16:01:17,825 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:01:45,091 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:01:58,209 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:02:14,213 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 16:02:38,276 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:03:20,913 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:04:14,133 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 16:04:49,399 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 16:05:14,280 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 5034
+INFO 2026-09-07 16:05:36,812 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+ERROR 2026-09-07 16:06:01,346 notifications.notification_apis notification_apis:793 Notification generator error (_gen_cod): (2006, 'Server has gone away')
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (2006, 'Server has gone away')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 791, in _run_all
+    fn()
+    ~~^^
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 407, in _gen_cod
+    course_code__iexact=strip_course_code_tag(a.course_code)).first()
+                                                              ~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1059, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1886, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 102, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 84, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.OperationalError: (2006, 'Server has gone away')
+WARNING 2026-09-07 16:06:01,368 notifications.notification_apis notification_apis:571 ExamTimetable model unavailable: (2006, 'Server has gone away')
+WARNING 2026-09-07 16:06:01,399 notifications.notification_apis notification_apis:571 ExamTimetable model unavailable: (2006, 'Server has gone away')
+WARNING 2026-09-07 16:06:01,400 notifications.notification_apis notification_apis:563 Timetable model unavailable: (2006, 'Server has gone away')
+ERROR 2026-09-07 16:06:01,424 notifications.notification_apis notification_apis:793 Notification generator error (_gen_cod): (2006, 'Server has gone away')
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (2006, 'Server has gone away')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 791, in _run_all
+    fn()
+    ~~^^
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 407, in _gen_cod
+    course_code__iexact=strip_course_code_tag(a.course_code)).first()
+                                                              ~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1059, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1886, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 102, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 84, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.OperationalError: (2006, 'Server has gone away')
+INFO 2026-09-07 17:08:22,302 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:09:15,331 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:09:36,022 django.server basehttp:212 "GET / HTTP/1.1" 200 58827
+INFO 2026-09-07 17:09:36,156 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+WARNING 2026-09-07 17:09:36,707 django.server basehttp:212 "GET /site/photo/1/ HTTP/1.1" 404 21
+INFO 2026-09-07 17:09:37,738 django.server basehttp:212 "GET /staff/portal/ HTTP/1.1" 200 45878
+INFO 2026-09-07 17:09:37,810 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+WARNING 2026-09-07 17:09:38,011 django.server basehttp:212 "GET /site/photo/1/ HTTP/1.1" 404 21
+INFO 2026-09-07 17:09:39,147 django.server basehttp:212 "GET /portal/admin/ HTTP/1.1" 200 25754
+INFO 2026-09-07 17:09:39,206 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+INFO 2026-09-07 17:09:40,197 django.server basehttp:212 code 400, message Bad request version ('4\\\x80\x84\x9b{å\x8c\x05;\\¡Q\x95)Zr>uÉªAÓl&ÌHëH.\x98&')
+ERROR 2026-09-07 17:09:40,197 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+INFO 2026-09-07 17:09:40,199 django.server basehttp:212 code 400, message Bad request version ('ÊÊ\x13\x01\x13\x02\x13\x03À+À/À,À0Ì©Ì¨À\x13À\x14\x00\x9c\x00\x9d\x00/\x005\x01\x00\x06s\x9a\x9a\x00\x00\x00-\x00\x02\x01\x01\x00')
+ERROR 2026-09-07 17:09:40,199 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+INFO 2026-09-07 17:10:03,063 django.server basehttp:212 "GET /cod/ HTTP/1.1" 200 544561
+WARNING 2026-09-07 17:10:03,235 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 17:10:03,241 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 17:10:03,243 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 17:10:03,245 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+INFO 2026-09-07 17:10:04,004 django.server basehttp:212 "GET /api/course-codes/?user_dept_id= HTTP/1.1" 200 874812
+INFO 2026-09-07 17:10:06,975 django.server basehttp:212 "GET / HTTP/1.1" 200 58530
+WARNING 2026-09-07 17:10:07,190 django.server basehttp:212 "GET /site/photo/1/ HTTP/1.1" 404 21
+INFO 2026-09-07 17:10:07,303 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+INFO 2026-09-07 17:10:10,619 django.server basehttp:212 "GET /staff/portal/ HTTP/1.1" 200 45878
+INFO 2026-09-07 17:10:10,792 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+WARNING 2026-09-07 17:10:11,006 django.server basehttp:212 "GET /site/photo/1/ HTTP/1.1" 404 21
+INFO 2026-09-07 17:10:12,805 django.server basehttp:212 "GET /portal/admin/ HTTP/1.1" 200 25754
+INFO 2026-09-07 17:10:13,012 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+INFO 2026-09-07 17:10:13,957 django.server basehttp:212 "GET /timetable/dashboard/ HTTP/1.1" 200 89060
+WARNING 2026-09-07 17:10:14,584 django.server basehttp:212 "GET /favicon.ico HTTP/1.1" 404 101077
+INFO 2026-09-07 17:10:16,998 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 96177
+INFO 2026-09-07 17:10:17,420 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:10:17,426 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 166339
+INFO 2026-09-07 17:10:17,475 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:10:23,409 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 72183
+INFO 2026-09-07 17:10:26,219 django.server basehttp:212 "POST /update-exam-config/ HTTP/1.1" 200 56
+INFO 2026-09-07 17:10:27,097 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 17:10:27,465 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:10:27,501 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:10:27,554 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 166339
+INFO 2026-09-07 17:10:31,560 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 72183
+INFO 2026-09-07 17:10:32,112 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 17:10:34,878 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 17:10:35,726 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:36,671 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:37,703 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:38,699 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:39,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:40,695 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:41,811 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:42,747 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:43,776 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:44,702 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:45,790 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:46,711 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:47,672 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:48,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:49,729 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:50,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:10:51,793 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+ERROR 2026-09-07 17:10:52,693 scheduler exam_timetable_autosheduler_algorith:3894 Exam autoscheduler v51 fatal error: name 'PreSchedulingIntelligence' is not defined
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py", line 3652, in run_optimized_autoscheduler_thread
+    psi = PreSchedulingIntelligence(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'PreSchedulingIntelligence' is not defined
+
+ERROR 2026-09-07 17:10:52,711 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: name 'PreSchedulingIntelligence' is not defined | scheduled=0 remaining=2975
+INFO 2026-09-07 17:10:52,740 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 660
+INFO 2026-09-07 17:10:53,808 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 948
+INFO 2026-09-07 17:10:56,002 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:10:56,041 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:10:56,045 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:10:56,046 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:11:31,004 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 17:11:33,166 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 17:11:34,147 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:11:35,160 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:11:36,218 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:11:37,441 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:11:38,430 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+ERROR 2026-09-07 17:11:38,815 scheduler exam_timetable_autosheduler_algorith:3894 Exam autoscheduler v51 fatal error: name 'PreSchedulingIntelligence' is not defined
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py", line 3652, in run_optimized_autoscheduler_thread
+    psi = PreSchedulingIntelligence(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'PreSchedulingIntelligence' is not defined
+
+ERROR 2026-09-07 17:11:38,848 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: name 'PreSchedulingIntelligence' is not defined | scheduled=0 remaining=2975
+INFO 2026-09-07 17:11:39,244 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 947
+INFO 2026-09-07 17:11:41,315 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:11:41,325 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:11:41,348 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:11:41,350 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:16:11,777 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 17:16:22,039 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:16:33,254 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 17:16:33,322 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:16:33,322 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:16:33,322 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:16:33,323 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:16:36,986 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 17:16:39,496 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 17:16:40,368 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:16:41,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 868
+INFO 2026-09-07 17:16:42,369 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 962
+INFO 2026-09-07 17:16:43,370 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 962
+INFO 2026-09-07 17:16:44,374 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 962
+INFO 2026-09-07 17:16:45,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 962
+INFO 2026-09-07 17:16:46,367 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1037
+INFO 2026-09-07 17:16:47,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1037
+INFO 2026-09-07 17:16:48,415 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:49,420 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:50,445 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:51,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:52,452 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:53,504 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:54,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:55,466 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:56,454 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:57,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:58,448 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:16:59,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:00,459 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:01,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:02,421 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:03,443 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:04,452 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:05,481 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:06,454 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:07,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:08,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:09,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:10,446 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:11,451 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:12,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:13,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:14,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:15,371 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:16,447 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:17,440 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:18,404 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:19,373 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:20,448 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:21,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:22,459 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:23,474 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:24,422 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:25,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:26,468 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:27,450 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:28,444 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:29,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:30,447 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:31,367 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:32,377 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:33,363 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:34,453 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:35,436 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:36,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:37,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:38,478 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:39,460 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:40,463 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:41,477 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:42,469 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:43,473 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:44,487 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:45,479 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:46,440 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:47,475 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:48,483 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:49,459 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:50,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:51,478 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:52,491 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:53,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:54,417 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:55,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:56,458 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:57,485 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:58,437 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:17:59,484 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:00,479 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:01,446 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:02,445 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:03,437 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:04,458 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:05,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:06,439 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:07,456 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:08,438 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:09,435 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:10,451 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:11,484 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:12,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:13,487 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:14,449 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:15,447 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:16,459 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:17,478 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:18,464 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:19,483 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:20,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:21,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:22,463 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:23,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:24,454 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:25,416 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:26,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:27,460 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:28,448 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:29,495 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:30,476 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:31,446 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:32,460 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:33,514 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:34,450 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:35,411 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:36,456 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:37,452 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:38,482 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:39,421 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:40,439 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:41,485 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:42,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:43,469 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:44,443 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:45,475 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:46,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:47,444 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:48,488 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:49,453 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:50,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:51,470 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:52,467 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:53,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:54,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:55,502 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:56,475 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:57,518 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:58,443 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:18:59,497 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:00,453 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:01,490 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:02,463 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:03,456 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:04,460 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:05,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:06,458 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:07,450 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:08,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:09,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:10,513 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:11,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:12,500 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:13,456 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1230
+INFO 2026-09-07 17:19:14,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:15,459 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:16,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:17,464 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:18,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:19,440 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:20,474 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:21,451 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:22,454 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:23,464 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:24,464 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:25,493 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1328
+INFO 2026-09-07 17:19:26,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1432
+INFO 2026-09-07 17:19:27,466 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:28,444 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:29,464 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:30,467 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:31,439 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:32,448 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:33,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:34,460 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:35,468 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:36,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:37,493 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:38,369 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:39,455 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:40,496 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:41,497 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:42,456 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:43,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:44,457 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:45,458 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:46,466 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:47,443 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:48,469 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:49,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:50,370 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:51,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:52,431 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:53,436 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:54,441 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:55,475 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:56,447 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:57,462 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:58,439 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:19:59,471 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:20:00,461 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:20:01,426 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:20:02,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:20:03,371 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 1520
+INFO 2026-09-07 17:20:04,368 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:05,363 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:06,367 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:07,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:08,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:09,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:10,363 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:11,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:12,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:13,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:14,377 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:15,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:16,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:17,367 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:18,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:19,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:20,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:21,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:22,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:23,364 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:24,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:25,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:26,365 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:27,366 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4424
+INFO 2026-09-07 17:20:28,375 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4555
+INFO 2026-09-07 17:20:29,371 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4555
+INFO 2026-09-07 17:20:30,446 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 4870
+INFO 2026-09-07 17:20:31,379 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 6366
+INFO 2026-09-07 17:20:33,484 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:20:33,594 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 1067585
+INFO 2026-09-07 17:20:33,594 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 375643
+INFO 2026-09-07 17:20:34,223 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 76621
+INFO 2026-09-07 17:30:31,264 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 17:30:34,457 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:30:42,044 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:30:51,590 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 17:30:53,162 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 17:30:54,130 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:30:55,128 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:30:56,127 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:30:57,128 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:30:58,128 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:30:59,130 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:31:00,129 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:31:01,135 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:31:02,128 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:31:03,129 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:31:04,191 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+ERROR 2026-09-07 17:31:04,313 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute 'slot_total_remaining' | scheduled=0 remaining=2975
+INFO 2026-09-07 17:31:05,136 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 770
+INFO 2026-09-07 17:31:07,192 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:31:07,194 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:31:07,195 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:31:07,196 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:33:42,642 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 17:33:45,977 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:33:57,066 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:34:04,077 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 17:34:04,185 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:34:04,187 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:34:04,191 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 17:34:04,193 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 21
+INFO 2026-09-07 17:34:07,275 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 17:34:09,601 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 17:34:10,544 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:11,543 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:12,543 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:13,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:14,546 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:15,541 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:16,539 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:17,538 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:18,547 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:19,554 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:20,552 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:21,554 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:22,549 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:23,549 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:24,552 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:25,546 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:26,553 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:27,559 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:28,550 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:29,549 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:30,558 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:31,569 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:32,554 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:33,547 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:34,552 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:35,560 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:36,546 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:37,587 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:38,579 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:39,553 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:40,561 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:41,574 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:42,582 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:43,573 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:44,580 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:45,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:46,573 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:47,547 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:48,539 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:49,600 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:50,584 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:51,564 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:52,538 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:53,603 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:54,559 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:55,625 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:56,579 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:57,585 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:58,585 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:34:59,597 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:00,596 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:01,553 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:02,541 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:03,571 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:04,581 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:05,579 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:06,584 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:07,569 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:08,572 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:09,547 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:10,547 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:11,565 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:12,553 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:13,557 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:14,570 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:15,569 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:16,560 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:17,589 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:18,589 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:19,587 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:20,607 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:21,583 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:22,577 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:23,561 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:24,554 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:25,573 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:26,576 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:27,578 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:28,567 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:29,607 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:30,601 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:31,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:32,571 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:33,574 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:34,570 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:35,564 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:36,581 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:37,548 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:38,542 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:39,541 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:40,572 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:41,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:42,538 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:43,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:44,581 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:45,546 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:46,541 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:47,541 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:48,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:49,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:50,538 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:51,538 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:52,539 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:53,540 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:54,546 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 17:35:55,558 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 893
+INFO 2026-09-07 17:35:57,615 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 17:35:57,719 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 280063
+INFO 2026-09-07 17:35:57,917 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 924647
+INFO 2026-09-07 17:35:58,361 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 66236
+INFO 2026-09-07 17:39:55,038 django.server basehttp:212 "POST /autoscheduler/publish/exam/ HTTP/1.1" 302 0
+INFO 2026-09-07 17:39:55,397 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1726320
+INFO 2026-09-07 17:39:57,098 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1726320
+INFO 2026-09-07 17:40:00,277 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 17:40:01,013 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 1920517
+INFO 2026-09-07 17:40:02,199 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 195035
+INFO 2026-09-07 17:40:02,824 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 918834
+INFO 2026-09-07 17:40:09,428 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=complete HTTP/1.1" 200 140185
+INFO 2026-09-07 17:42:25,997 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 17:42:36,035 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 17:52:36,625 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728479
+INFO 2026-09-07 17:52:39,248 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 17:52:39,823 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 1920517
+INFO 2026-09-07 17:52:40,660 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 195035
+INFO 2026-09-07 17:52:41,172 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 918834
+INFO 2026-09-07 17:52:45,305 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=complete HTTP/1.1" 200 140185
+INFO 2026-09-07 17:58:11,591 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 17:58:14,450 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 17:58:15,200 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 1920517
+INFO 2026-09-07 17:58:16,266 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 195035
+INFO 2026-09-07 17:58:16,840 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 918834
+INFO 2026-09-07 17:58:22,100 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=complete HTTP/1.1" 200 140185
+INFO 2026-09-07 17:59:09,480 django.server basehttp:212 "GET /timetable/dashboard/ HTTP/1.1" 200 89060
+INFO 2026-09-07 17:59:14,520 django.server basehttp:212 "GET /timetable/analysis/ HTTP/1.1" 200 245316
+INFO 2026-09-07 17:59:16,651 django.server basehttp:212 "GET /timetable/analysis/?scope=exam HTTP/1.1" 200 245357
+INFO 2026-09-07 17:59:19,221 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=timetable HTTP/1.1" 200 253
+INFO 2026-09-07 17:59:21,433 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam HTTP/1.1" 200 255
+INFO 2026-09-07 17:59:24,561 django.server basehttp:212 "GET /timetable/analysis/query-course-schedule/?scope=exam&code=edfo+111 HTTP/1.1" 200 9404
+INFO 2026-09-07 17:59:49,742 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-07 18:00:26,264 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 18:00:26,574 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 18:00:26,594 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 18:00:26,722 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 280063
+INFO 2026-09-07 18:00:27,457 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 66236
+INFO 2026-09-07 18:00:29,760 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 18:00:29,895 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 18:00:29,931 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 18:00:29,934 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 280063
+INFO 2026-09-07 18:00:30,730 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 66236
+INFO 2026-09-07 18:00:32,620 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 18:00:34,736 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 18:00:35,707 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:36,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:37,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:38,737 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:39,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:40,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:41,694 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:42,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:43,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:44,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:45,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:46,675 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:47,692 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:48,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:49,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:50,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:51,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:52,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:53,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:54,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:55,673 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:56,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:57,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:58,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:00:59,683 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:02,537 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:02,679 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:05,099 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:05,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:06,677 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:07,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:08,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:09,693 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:10,675 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:11,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:12,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:13,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:14,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:15,675 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:16,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:17,677 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:18,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:19,679 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:20,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:21,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:22,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:23,679 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:24,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:25,673 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:26,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:27,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:28,679 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:29,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:30,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:31,677 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:32,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:33,679 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:34,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:35,677 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:36,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:37,672 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:38,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:39,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:40,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:41,672 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:42,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:43,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:44,670 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:45,673 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:46,688 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:47,685 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:48,685 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:49,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:50,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:51,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:52,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:53,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:54,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:55,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:56,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:57,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:58,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:01:59,690 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:00,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:01,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:02,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:03,693 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:04,692 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:05,694 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:06,710 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:07,691 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:08,715 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:09,721 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:10,701 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:11,715 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:12,683 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:13,727 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:14,719 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:15,699 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:16,743 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:17,745 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:18,764 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:19,724 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:20,713 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:21,710 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:22,713 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:23,712 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:24,732 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:25,705 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:26,717 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:27,709 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:28,722 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:29,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:30,715 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:31,694 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:32,703 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:33,718 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:34,712 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:35,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:36,712 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:37,713 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:38,732 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:39,722 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:40,712 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:41,719 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:42,715 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:43,722 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:44,711 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:45,710 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:46,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:47,702 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:48,694 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:49,700 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:50,696 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:51,695 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:52,697 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:53,670 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:54,680 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:55,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:56,700 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:57,692 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:58,684 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:02:59,659 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:00,675 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:01,697 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:02,702 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:03,719 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:04,716 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:05,729 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:06,703 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:07,730 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:08,686 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:09,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:10,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:11,696 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:12,705 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:13,725 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:14,672 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:15,750 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:16,703 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:17,695 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:18,731 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:19,695 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:20,708 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:21,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:22,671 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:23,708 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:24,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:25,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:26,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:27,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:28,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:29,659 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:30,670 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:31,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:32,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:33,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:34,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:35,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:36,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:37,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:38,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:39,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+WARNING 2026-09-07 18:03:40,029 django.server basehttp:212 "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 101188
+INFO 2026-09-07 18:03:40,041 django.server basehttp:81 - Broken pipe from ('127.0.0.1', 40886)
+INFO 2026-09-07 18:03:40,696 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:03:41,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 894
+INFO 2026-09-07 18:03:44,002 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 18:03:44,003 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 225969
+INFO 2026-09-07 18:03:44,006 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 845465
+INFO 2026-09-07 18:03:44,619 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 66163
+INFO 2026-09-07 18:05:31,007 django.server basehttp:212 "POST /autoscheduler/publish/exam/ HTTP/1.1" 302 0
+INFO 2026-09-07 18:05:31,363 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 18:05:32,915 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 18:05:34,987 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 18:05:35,641 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 1759402
+INFO 2026-09-07 18:05:36,765 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 188132
+INFO 2026-09-07 18:05:37,253 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 802217
+INFO 2026-09-07 18:05:43,223 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=complete HTTP/1.1" 200 241049
+INFO 2026-09-07 18:16:25,152 django.server basehttp:212 "GET /timetable/analysis/query-course-schedule/?scope=exam&code=ECON+443-A HTTP/1.1" 200 5047
+INFO 2026-09-07 18:16:32,396 django.server basehttp:212 "GET /timetable/analysis/query-course-schedule/?scope=exam&code=ECON+443 HTTP/1.1" 200 5045
+INFO 2026-09-07 18:17:42,155 django.server basehttp:212 "GET /timetable/analysis/lecturer-workload/?scope=exam&min_consecutive=2 HTTP/1.1" 200 77
+INFO 2026-09-07 18:17:58,050 django.server basehttp:212 "GET /timetable/analysis/program-workload/?scope=exam&min_consecutive=2 HTTP/1.1" 200 76
+INFO 2026-09-07 18:18:00,556 django.server basehttp:212 "GET /timetable/analysis/?scope=timetable HTTP/1.1" 200 245316
+INFO 2026-09-07 18:18:02,504 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=timetable HTTP/1.1" 200 253
+INFO 2026-09-07 18:18:08,632 django.server basehttp:212 "GET /timetable/analysis/lecturer-workload/?scope=timetable&min_consecutive=2 HTTP/1.1" 200 65043
+INFO 2026-09-07 18:18:19,407 django.server basehttp:212 "GET /timetable/analysis/program-workload/?scope=timetable&min_consecutive=2 HTTP/1.1" 200 57034
+INFO 2026-09-07 18:18:49,514 django.server basehttp:212 "GET /timetable/analysis/program-year-weekly-schedule/?program_id=6555&year=1&scope=timetable HTTP/1.1" 200 3842
+INFO 2026-09-07 18:20:01,604 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/progress_tracking_autosheduler.py changed, reloading.
+INFO 2026-09-07 18:20:12,835 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 18:24:26,058 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py changed, reloading.
+INFO 2026-09-07 18:24:28,923 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 18:24:44,225 django.server basehttp:212 "GET /timetable/analysis/?scope=timetable HTTP/1.1" 200 245918
+INFO 2026-09-07 18:24:45,273 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=timetable HTTP/1.1" 200 253
+INFO 2026-09-07 18:24:48,787 django.server basehttp:212 "GET /timetable/analysis/?scope=exam HTTP/1.1" 200 245959
+INFO 2026-09-07 18:24:50,431 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam HTTP/1.1" 200 255
+INFO 2026-09-07 18:25:14,192 django.server basehttp:212 "GET /timetable/analysis/universal-search/?q=ECON%20443&scope=exam HTTP/1.1" 200 4621
+INFO 2026-09-07 18:48:48,969 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 18:48:49,345 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 18:48:49,371 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 18:48:49,459 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 225969
+INFO 2026-09-07 18:48:50,412 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 66163
+INFO 2026-09-07 18:48:54,917 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 18:48:57,471 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 18:48:58,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:48:59,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:00,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:01,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:02,404 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:03,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:04,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:05,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:06,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:07,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:08,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:09,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:10,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:11,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:12,442 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:13,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:14,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:15,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:16,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:17,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:18,404 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:19,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:20,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:21,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:22,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:23,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:24,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:25,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:26,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:27,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:28,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:29,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:30,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:31,419 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:32,428 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:33,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:34,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:35,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:36,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:37,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:38,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:39,418 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:40,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:41,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:42,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:43,430 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:44,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:45,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:46,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:47,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:48,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:49,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:50,413 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:51,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:52,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:53,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:54,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:55,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:56,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:57,416 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:58,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:49:59,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:00,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:01,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:02,397 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:03,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:04,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:05,420 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:06,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:07,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:08,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:09,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:10,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:11,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:12,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:13,429 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:14,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:15,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:16,411 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:17,404 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:18,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:19,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:20,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:21,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:22,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:23,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:24,420 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:25,416 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:26,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:27,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:28,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:29,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:30,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:31,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:32,419 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:33,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:34,411 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:35,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:36,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:37,411 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:38,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:39,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:40,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:41,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:42,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:43,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:44,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:45,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:46,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:47,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:48,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:49,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:50,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:51,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:52,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:53,382 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:54,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:55,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:56,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:57,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:58,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:50:59,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:00,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:01,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:02,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:03,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:04,431 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:05,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:06,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:07,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:08,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:09,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:10,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:11,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:12,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:13,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:14,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:15,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:16,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:17,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:18,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:19,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:20,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:21,395 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:22,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:23,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:24,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:25,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:26,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:27,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:28,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:29,393 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:30,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:31,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:32,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:33,426 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:34,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:35,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:36,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:37,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:38,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:39,425 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:40,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:41,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:42,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:43,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:44,416 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:45,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:46,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:47,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:48,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:49,404 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:50,419 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:51,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:52,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:53,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:54,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:55,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:56,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:57,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:58,413 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:51:59,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:00,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:01,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:02,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:03,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:04,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:05,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:06,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:07,395 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:08,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:09,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:10,414 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:11,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:12,416 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:13,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:14,397 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:15,410 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:16,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:17,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:18,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:19,382 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:20,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:21,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:22,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:23,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:24,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:25,409 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:26,420 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:27,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:28,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:29,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:30,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:31,412 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:32,420 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:33,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:34,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:35,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:36,397 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:37,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:38,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:39,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:40,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:41,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:42,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:43,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:44,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:45,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:46,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:47,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:48,403 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:49,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:50,401 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:51,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:52,406 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:53,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:54,413 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:55,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:56,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:57,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:58,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:52:59,397 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:00,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:01,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:02,382 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:03,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:04,400 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:05,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:06,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:07,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:08,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:09,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:10,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:11,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:12,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:13,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:14,398 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:15,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:16,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:17,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:18,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:19,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:20,407 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:21,415 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:22,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:23,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:24,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:25,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:26,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:27,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:28,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:29,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:30,417 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:31,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:32,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:33,392 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:34,389 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:35,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:36,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:37,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:38,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:39,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:40,402 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:41,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:42,399 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:43,422 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:44,570 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:45,422 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:46,426 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:47,432 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:48,418 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:49,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:50,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:51,417 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:52,405 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:53,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:54,385 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:55,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:56,387 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:57,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:58,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:53:59,391 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:00,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:01,396 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:02,408 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:03,390 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:04,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:05,388 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:06,386 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:07,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:08,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:09,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:10,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:11,383 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:12,384 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:13,452 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 18:54:14,394 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 927
+INFO 2026-09-07 18:54:16,431 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 18:54:16,566 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 282111
+INFO 2026-09-07 18:54:16,610 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 941606
+INFO 2026-09-07 18:54:17,199 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 57118
+INFO 2026-09-07 19:00:43,838 django.server basehttp:212 "POST /autoscheduler/publish/exam/ HTTP/1.1" 302 0
+INFO 2026-09-07 19:00:44,193 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 19:00:45,827 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 19:00:48,550 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 19:00:49,254 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 1956529
+INFO 2026-09-07 19:00:50,237 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 173784
+INFO 2026-09-07 19:00:50,819 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 888280
+INFO 2026-09-07 19:00:56,597 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 19:01:03,211 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:01:13,081 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/core/scheduling_constraints.py changed, reloading.
+INFO 2026-09-07 19:01:16,062 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:01:54,169 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=65&program_id=6403&year=1 HTTP/1.1" 200 285
+INFO 2026-09-07 19:02:01,123 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=65&program_id=6403&year=1 HTTP/1.1" 200 36930
+INFO 2026-09-07 19:02:40,679 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=65&year=1 HTTP/1.1" 200 72536
+INFO 2026-09-07 19:02:42,079 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=65&year=1 HTTP/1.1" 200 246
+INFO 2026-09-07 19:02:46,082 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=65&year=1 HTTP/1.1" 200 72536
+INFO 2026-09-07 19:14:48,570 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/core/scheduling_constraints.py changed, reloading.
+INFO 2026-09-07 19:14:51,891 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:15:15,791 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:15:26,811 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 19:15:27,009 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:15:27,094 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 17
+INFO 2026-09-07 19:15:27,130 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 282111
+INFO 2026-09-07 19:15:27,688 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 57118
+INFO 2026-09-07 19:15:29,957 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 19:15:32,013 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 19:15:32,912 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:33,915 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:34,923 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:35,918 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:36,917 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:37,918 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:38,915 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:39,951 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:40,951 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:41,925 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:42,939 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:43,921 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:44,947 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:45,920 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:46,929 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:47,924 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:48,918 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:49,927 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:50,955 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:51,962 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:52,948 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:53,951 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:54,919 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:55,918 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:56,958 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:57,922 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:58,914 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:15:59,965 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:00,918 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:01,929 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:02,963 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:03,925 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:04,921 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:05,972 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:06,967 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:07,959 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:08,922 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:09,969 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:10,922 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:11,926 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:12,982 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:13,925 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:14,928 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:15,920 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:16,925 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:17,968 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:18,945 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:19,925 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:20,976 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:21,947 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:22,968 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:23,967 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:24,965 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:25,980 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:26,910 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:27,963 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:28,957 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:29,944 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:30,956 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:31,928 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:32,952 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:33,944 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:34,926 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:35,933 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:36,927 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:37,952 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:38,955 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:39,944 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:40,939 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:41,948 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:42,941 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:43,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:44,939 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:45,924 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:46,946 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:47,951 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:48,929 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:49,940 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:50,929 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:51,945 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:52,936 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:53,924 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:54,947 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:55,919 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:56,936 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:57,970 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:58,960 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:16:59,960 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:00,954 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:01,943 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:02,942 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:03,937 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:04,926 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:05,962 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:06,946 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:07,960 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:08,949 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:09,959 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:10,966 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:11,972 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:12,964 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:13,965 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:14,941 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:15,947 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:16,969 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:17,957 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:18,966 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:19,970 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:20,948 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:21,945 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:22,949 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:23,950 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:24,945 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:25,932 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:26,948 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:27,938 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:28,938 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:29,943 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:30,927 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:31,910 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:32,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:33,912 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:34,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:35,919 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:36,915 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:37,928 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:38,914 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:39,913 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:40,910 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:41,910 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:42,913 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:43,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:44,910 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:45,921 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:46,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:47,912 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:48,911 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:49,912 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:50,987 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:17:51,912 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 927
+INFO 2026-09-07 19:17:54,067 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:17:54,084 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 288324
+INFO 2026-09-07 19:17:54,100 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 976870
+INFO 2026-09-07 19:17:54,544 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 70275
+INFO 2026-09-07 19:35:59,226 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 19:36:02,772 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:36:55,027 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 19:36:55,214 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:36:55,371 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 288324
+INFO 2026-09-07 19:36:55,438 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 976870
+INFO 2026-09-07 19:36:56,093 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 70275
+INFO 2026-09-07 19:36:58,700 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 19:37:00,098 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 19:37:01,073 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:02,056 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:03,052 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:04,056 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:05,056 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:06,054 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:07,067 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:08,089 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:09,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:10,065 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:11,056 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:12,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:13,059 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:14,075 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:15,119 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:16,068 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:17,072 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:18,058 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:19,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:20,066 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:21,058 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:22,060 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:23,097 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:24,103 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:25,072 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:26,138 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:27,105 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:28,087 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:29,060 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:30,108 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:31,065 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:32,109 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:33,086 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:34,114 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:35,117 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:36,058 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:37,070 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:38,109 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:39,056 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:40,084 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:41,064 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:42,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:43,096 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:44,106 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:45,068 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:46,102 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:47,073 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:48,098 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:49,064 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:50,105 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:51,061 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:52,067 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:53,097 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:54,094 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:55,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:56,085 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:57,057 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:58,113 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:37:59,097 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:00,065 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:01,102 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:02,149 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:03,070 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:04,104 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:05,098 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:06,099 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:07,051 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:08,070 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:09,103 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:10,109 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:11,094 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:12,094 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:13,077 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:14,099 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:15,076 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:16,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:17,073 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:18,068 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:19,095 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:20,071 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:21,088 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:22,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:23,073 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:24,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:25,090 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:26,077 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:27,064 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:28,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:29,083 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:30,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:31,088 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:32,077 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:33,076 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:34,076 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:35,058 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:36,085 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:37,090 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:38,093 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:39,114 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:40,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:41,108 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:42,076 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:43,090 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:44,093 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:45,083 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:46,082 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:47,102 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:48,083 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:49,110 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:50,127 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:51,075 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:52,100 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:53,078 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:54,079 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:55,113 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:56,138 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:57,081 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:58,097 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:38:59,074 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:00,079 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:01,093 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:02,087 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:03,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:04,073 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:05,105 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:06,091 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:07,078 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:08,084 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:09,070 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:10,064 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:11,052 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:12,050 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:13,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:14,052 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:15,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:16,068 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:17,059 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:18,051 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:19,051 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:20,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:21,052 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:22,057 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:23,054 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:24,061 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:25,059 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:26,066 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:27,052 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:28,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:29,065 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:30,064 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:31,082 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:32,055 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:33,050 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:34,063 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:39:35,079 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 927
+INFO 2026-09-07 19:39:37,176 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:39:37,305 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 286035
+INFO 2026-09-07 19:39:37,338 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 973905
+INFO 2026-09-07 19:39:37,983 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 70275
+INFO 2026-09-07 19:50:02,827 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py changed, reloading.
+INFO 2026-09-07 19:50:10,360 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 19:50:21,251 django.server basehttp:212 "GET /exam-autoscheduler/ HTTP/1.1" 200 95719
+INFO 2026-09-07 19:50:21,641 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:50:21,969 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 973905
+INFO 2026-09-07 19:50:21,978 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 286035
+INFO 2026-09-07 19:50:23,040 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 70275
+INFO 2026-09-07 19:50:25,506 django.server basehttp:212 "GET /scheduler/constraints/summary/?scheduler_type=exam HTTP/1.1" 200 1700
+INFO 2026-09-07 19:50:27,746 django.server basehttp:212 "POST /autoscheduler/exam/run/ HTTP/1.1" 200 62
+INFO 2026-09-07 19:50:28,619 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:29,606 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:30,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:31,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:32,607 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:33,640 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:34,697 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:35,635 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:36,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:37,614 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:38,620 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:39,695 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:40,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:41,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:42,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:43,626 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:44,614 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:45,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:46,650 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:47,630 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:48,629 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:49,619 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:50,637 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:51,877 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:52,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:53,633 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:54,617 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:55,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:56,734 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:57,732 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:58,813 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:50:59,711 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:00,736 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:01,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:02,677 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:03,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:04,667 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:05,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:06,614 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:07,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:08,619 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:09,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:10,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:11,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:12,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:13,683 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:14,670 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:15,797 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:16,792 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:17,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:18,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:19,611 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:20,632 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:21,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:22,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:23,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:24,617 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:25,618 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:26,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:27,629 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:28,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:29,644 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:30,618 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:31,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:32,673 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:33,617 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:34,621 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:36,005 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:36,635 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:37,724 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:38,696 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:39,689 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:40,676 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:41,702 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:42,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:43,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:44,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:45,631 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:46,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:47,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:48,658 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:49,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:50,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:51,709 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:52,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:53,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:54,685 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:55,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:56,682 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:57,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:58,637 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:51:59,664 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:00,635 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:01,643 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:02,643 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:03,848 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:04,715 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:05,654 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:06,653 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:07,678 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:08,659 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:09,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:10,657 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:11,653 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:12,620 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:13,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:14,663 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:15,630 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:16,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:17,653 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:18,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:19,667 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:20,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:21,673 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:22,647 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:23,642 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:24,654 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:25,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:26,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:27,629 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:28,653 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:29,706 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:30,667 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:31,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:32,626 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:33,652 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:34,654 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:35,659 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:36,627 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:37,636 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:38,649 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:39,635 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:40,639 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:41,636 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:42,640 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:43,618 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:44,640 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:45,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:46,638 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:47,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:48,647 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:49,685 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:50,650 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:51,687 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:52,646 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:53,664 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:54,713 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:55,665 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:56,629 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:57,652 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:58,634 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:52:59,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:00,659 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:01,637 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:02,642 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:03,656 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:04,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:05,635 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:06,681 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:07,669 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:08,672 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:09,655 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:10,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:11,632 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:12,675 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:13,670 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:14,668 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:15,864 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:16,655 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:17,661 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:18,697 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:19,655 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:20,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:21,654 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:22,651 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:23,654 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:24,634 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:25,674 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:26,642 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:27,638 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:28,629 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:29,644 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:30,660 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:31,731 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:32,666 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:33,641 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:34,662 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:35,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:36,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:37,621 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:38,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:39,626 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:40,624 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:41,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:42,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:43,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:44,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:45,636 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:46,611 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:47,613 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:48,614 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:49,609 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:50,640 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:51,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:52,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:53,613 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:54,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:55,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:56,612 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:57,610 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:58,615 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 389
+INFO 2026-09-07 19:53:59,616 django.server basehttp:212 "GET /exam-scheduler/progress/ HTTP/1.1" 200 927
+INFO 2026-09-07 19:54:01,692 django.server basehttp:212 "GET /api/exam/venues/ HTTP/1.1" 200 5633
+INFO 2026-09-07 19:54:01,956 django.server basehttp:212 "GET /api/exam/shared/ HTTP/1.1" 200 285272
+INFO 2026-09-07 19:54:01,963 django.server basehttp:212 "GET /api/exam/temp/ HTTP/1.1" 200 975357
+INFO 2026-09-07 19:54:02,615 django.server basehttp:212 "GET /api/exam/merged/ HTTP/1.1" 200 70274
+INFO 2026-09-07 19:56:53,945 django.server basehttp:212 "POST /autoscheduler/publish/exam/ HTTP/1.1" 302 0
+INFO 2026-09-07 19:56:54,255 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 19:56:55,806 django.server basehttp:212 "GET /exam/timetable/ HTTP/1.1" 200 1728334
+INFO 2026-09-07 19:56:58,181 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=initial HTTP/1.1" 200 7759
+INFO 2026-09-07 19:56:58,968 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=timetables HTTP/1.1" 200 2017850
+INFO 2026-09-07 19:56:59,887 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=unscheduled HTTP/1.1" 200 106021
+INFO 2026-09-07 19:57:00,368 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=merged HTTP/1.1" 200 969352
+INFO 2026-09-07 19:57:05,890 django.server basehttp:212 "GET /exam/timetable/load-data/?stage=complete HTTP/1.1" 200 307981
+INFO 2026-09-07 20:06:15,556 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=65&year=1 HTTP/1.1" 200 102363
+INFO 2026-09-07 20:08:55,174 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=62&program_id=6390&year=4 HTTP/1.1" 200 2316
+INFO 2026-09-07 20:08:57,151 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=62&program_id=6390&year=4 HTTP/1.1" 200 301
+INFO 2026-09-07 20:09:24,919 django.server basehttp:212 "GET / HTTP/1.1" 200 58530
+INFO 2026-09-07 20:09:25,050 django.server basehttp:212 "GET /site/logo/ HTTP/1.1" 200 66627
+WARNING 2026-09-07 20:09:25,100 django.server basehttp:212 "GET /site/photo/1/ HTTP/1.1" 404 21
+INFO 2026-09-07 20:10:00,060 django.server basehttp:212 "GET /cod/ HTTP/1.1" 200 544561
+INFO 2026-09-07 20:10:00,097 django.server basehttp:212 "GET /static/images/chuka.png HTTP/1.1" 304 0
+WARNING 2026-09-07 20:10:00,286 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 20:10:00,293 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 20:10:00,297 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 20:10:00,305 django.server basehttp:212 "POST /cod/ HTTP/1.1" 403 77
+WARNING 2026-09-07 20:10:01,117 django.server basehttp:212 "GET /favicon.ico HTTP/1.1" 404 101077
+INFO 2026-09-07 20:10:01,179 django.server basehttp:212 "GET /api/course-codes/?user_dept_id= HTTP/1.1" 200 874812
+INFO 2026-09-07 20:10:06,376 django.server basehttp:212 "GET /logout/ HTTP/1.1" 302 0
+INFO 2026-09-07 20:10:06,473 django.server basehttp:212 "GET /login/ HTTP/1.1" 200 11305
+INFO 2026-09-07 20:10:06,576 django.server basehttp:212 "GET /media/site/logo/chuka.png HTTP/1.1" 200 66627
+INFO 2026-09-07 20:10:18,311 django.server basehttp:212 "POST /login/ HTTP/1.1" 302 0
+INFO 2026-09-07 20:10:21,826 django.server basehttp:212 "GET /cod/ HTTP/1.1" 200 1336780
+INFO 2026-09-07 20:10:22,599 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 37
+INFO 2026-09-07 20:10:22,768 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 9385
+INFO 2026-09-07 20:10:23,046 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 1162
+INFO 2026-09-07 20:10:23,503 django.server basehttp:212 "GET /api/course-codes/?user_dept_id=62 HTTP/1.1" 200 874812
+INFO 2026-09-07 20:10:23,877 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 22551
+INFO 2026-09-07 20:10:39,056 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 803
+INFO 2026-09-07 20:10:39,218 django.server basehttp:212 "GET /api/course-codes/?user_dept_id=62&program_id=6390 HTTP/1.1" 200 5068
+INFO 2026-09-07 20:10:39,312 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 710
+INFO 2026-09-07 20:10:39,757 django.server basehttp:212 "POST /cod/ HTTP/1.1" 200 97142
+WARNING 2026-09-07 20:10:41,152 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 400 120836
+INFO 2026-09-07 20:10:41,189 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:11:53,577 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:13:23,519 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:14:53,599 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:16:23,535 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:17:53,538 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:19:23,521 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:20:53,603 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:22:23,515 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:22:52,894 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py changed, reloading.
+INFO 2026-09-07 20:22:58,002 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-07 20:23:53,553 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:25:23,612 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:25:50,677 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=62&program_id=6390&year=3 HTTP/1.1" 200 2283
+INFO 2026-09-07 20:25:52,742 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=62&program_id=6390&year=3 HTTP/1.1" 200 2283
+INFO 2026-09-07 20:25:53,078 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=62&program_id=6390&year=3 HTTP/1.1" 200 302
+INFO 2026-09-07 20:26:17,082 django.server basehttp:212 "GET /timetable/analysis/export-unscheduled-only/?scope=exam&department_id=62&program_id=6390&year=3 HTTP/1.1" 200 92224
+INFO 2026-09-07 20:26:53,598 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:28:23,573 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:29:08,745 django.server basehttp:212 "GET /timetable/analysis/scheduled-timetable/?scope=exam&department_id=62&program_id=6390&year=4 HTTP/1.1" 200 2316
+INFO 2026-09-07 20:29:10,375 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=62&program_id=6390&year=4 HTTP/1.1" 200 301
+INFO 2026-09-07 20:29:53,546 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:31:23,547 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:32:53,553 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:34:23,589 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:35:53,594 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:37:23,548 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 4994
+INFO 2026-09-07 20:38:11,817 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py changed, reloading.
+INFO 2026-09-07 20:38:15,627 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader

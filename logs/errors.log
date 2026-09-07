@@ -30,3 +30,172 @@ Traceback (most recent call last):
 django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
 ERROR 2026-09-07 06:52:41,237 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
 ERROR 2026-09-07 06:52:41,270 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-07 16:06:01,346 notifications.notification_apis notification_apis:793 Notification generator error (_gen_cod): (2006, 'Server has gone away')
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (2006, 'Server has gone away')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 791, in _run_all
+    fn()
+    ~~^^
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 407, in _gen_cod
+    course_code__iexact=strip_course_code_tag(a.course_code)).first()
+                                                              ~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1059, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1886, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 102, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 84, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.OperationalError: (2006, 'Server has gone away')
+ERROR 2026-09-07 16:06:01,424 notifications.notification_apis notification_apis:793 Notification generator error (_gen_cod): (2006, 'Server has gone away')
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+MySQLdb.OperationalError: (2006, 'Server has gone away')
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 791, in _run_all
+    fn()
+    ~~^^
+  File "/home/dravis/Downloads/chuka_timetabling/notifications/notification_apis.py", line 407, in _gen_cod
+    course_code__iexact=strip_course_code_tag(a.course_code)).first()
+                                                              ~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1059, in first
+    for obj in queryset[:1]:
+               ~~~~~~~~^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+    ~~~~~~~~~~~~~~~^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 1886, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/query.py", line 93, in __iter__
+    results = compiler.execute_sql(
+        chunked_fetch=self.chunked_fetch, chunk_size=self.chunk_size
+    )
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/models/sql/compiler.py", line 1562, in execute_sql
+    cursor.execute(sql, params)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 102, in execute
+    return super().execute(sql, params)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 67, in execute
+    return self._execute_with_wrappers(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        sql, params, many=False, executor=self._execute
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 80, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 84, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/utils.py", line 89, in _execute
+    return self.cursor.execute(sql, params)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/db/backends/mysql/base.py", line 75, in execute
+    return self.cursor.execute(query, args)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 179, in execute
+    res = self._query(mogrified_query)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/cursors.py", line 330, in _query
+    db.query(q)
+    ~~~~~~~~^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/MySQLdb/connections.py", line 280, in query
+    _mysql.connection.query(self, query)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+django.db.utils.OperationalError: (2006, 'Server has gone away')
+ERROR 2026-09-07 17:09:40,197 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-07 17:09:40,199 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-07 17:10:52,693 scheduler exam_timetable_autosheduler_algorith:3894 Exam autoscheduler v51 fatal error: name 'PreSchedulingIntelligence' is not defined
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py", line 3652, in run_optimized_autoscheduler_thread
+    psi = PreSchedulingIntelligence(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'PreSchedulingIntelligence' is not defined
+
+ERROR 2026-09-07 17:10:52,711 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: name 'PreSchedulingIntelligence' is not defined | scheduled=0 remaining=2975
+ERROR 2026-09-07 17:11:38,815 scheduler exam_timetable_autosheduler_algorith:3894 Exam autoscheduler v51 fatal error: name 'PreSchedulingIntelligence' is not defined
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/algorithms/exam_timetable_autosheduler_algorith.py", line 3652, in run_optimized_autoscheduler_thread
+    psi = PreSchedulingIntelligence(
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'PreSchedulingIntelligence' is not defined
+
+ERROR 2026-09-07 17:11:38,848 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: name 'PreSchedulingIntelligence' is not defined | scheduled=0 remaining=2975
+ERROR 2026-09-07 17:31:04,313 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute 'slot_total_remaining' | scheduled=0 remaining=2975

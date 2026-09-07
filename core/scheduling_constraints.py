@@ -213,7 +213,20 @@ def get_designated_venue_rules(disabled_for_run: Optional[Set[str]] = None,
     the two toggles compose the same way they do for get_exclusive_venue_ids().
 
     Each dict: {"venue_ids": set[int], "codes": set[str] (normalised upper
-    course codes), "exclusive": bool, "strict": bool, "priority": int}
+    course codes), "exclusive": bool, "strict": bool, "priority": int,
+    "program_ids": set[int], "course_ids": set[int]}
+
+    "program_ids" and "course_ids" narrow *who* may actually use the
+    designated venue(s): program_ids is every Program this rule scopes to
+    (directly, or expanded from a department), and course_ids is every
+    individual ProgramCourse this rule names explicitly. A course code can
+    be shared by several programs (a "common"/cross-program course) — the
+    code alone is not enough to know whether a *particular* allocation is
+    the one this rule actually reserves the room for. Callers should treat
+    an allocation as eligible for this rule's venues only if its program_id
+    is in program_ids OR its program_course_id is in course_ids; a course
+    whose code matches but whose program/program_course does not is a
+    different section of the same code and must NOT use the reserved venue.
     """
     if not is_enabled("venue_specialization", disabled_for_run, scheduler_type):
         return []
@@ -223,12 +236,19 @@ def get_designated_venue_rules(disabled_for_run: Optional[Set[str]] = None,
     for rule in VenueSpecialization.objects.filter(is_active=True).prefetch_related(
         "venues", "programs__courses", "departments__programs__courses", "courses"
     ):
+        program_ids: Set[int] = set(rule.programs.values_list("id", flat=True))
+        for dept in rule.departments.all():
+            program_ids.update(dept.programs.values_list("id", flat=True))
+        course_ids: Set[int] = set(rule.courses.values_list("id", flat=True))
+
         rules.append({
             "venue_ids": set(rule.venues.values_list("id", flat=True)),
             "codes": rule.get_designated_course_codes(),
             "exclusive": bool(rule.exclusive) and exclusive_enabled,
             "strict": bool(rule.strict),
             "priority": rule.priority,
+            "program_ids": program_ids,
+            "course_ids": course_ids,
         })
     return rules
 

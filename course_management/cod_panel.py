@@ -5671,11 +5671,19 @@ def cod_panel(request):
                     "course_name": a.course_name,
                     "program": a.program.name if a.program else "",
                     "program_id": a.program_id,
+                    "program_name": a.program.name if a.program else "",
                     # Curriculum year/semester of the course itself — used to
                     # group this table by Program / Year / Semester, the same
                     # way the normal allocations table is grouped.
                     "year": a.program_course.year if a.program_course else None,
                     "semester": a.program_course.semester if a.program_course else None,
+                    # Needed by the shared row right-click menu (same fields
+                    # the normal allocations table rows carry as data-*
+                    # attributes) so "Move to Year…" / "Delete…" etc. work
+                    # identically on Special Intake rows.
+                    "program_course_id": a.program_course_id,
+                    "selection_group_id": a.selection_group_id,
+                    "specialization_stem_id": a.specialization_stem_id,
                     "origin_department": a.origin_department.name if a.origin_department else "",
                     "lecturer": a.lecturer.display_name if a.lecturer else "",
                     "number_of_students": a.number_of_students,
