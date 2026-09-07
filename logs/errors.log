@@ -28,3 +28,5 @@ Traceback (most recent call last):
   File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
     raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
 django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+ERROR 2026-09-07 06:52:41,237 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-07 06:52:41,270 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.

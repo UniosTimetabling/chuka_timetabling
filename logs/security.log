@@ -1,2 +1,16 @@
 INFO 2026-09-06 19:06:33,295 security views:139 Logout | user=education | ip=127.0.0.1
 INFO 2026-09-06 19:06:44,608 security views:84 Login success | user=dravis | ip=127.0.0.1
+INFO 2026-09-07 08:13:09,835 security views:139 Logout | user=dravis | ip=127.0.0.1
+WARNING 2026-09-07 08:13:23,688 security views:129 Login failure | attempted_user=animal_science | ip=127.0.0.1
+INFO 2026-09-07 08:13:36,598 security views:84 Login success | user=animal_science | ip=127.0.0.1
+INFO 2026-09-07 08:33:05,475 security views:139 Logout | user=animal_science | ip=127.0.0.1
+INFO 2026-09-07 08:33:45,012 security views:84 Login success | user=agriculture | ip=127.0.0.1
+INFO 2026-09-07 08:58:39,642 security views:139 Logout | user=agriculture | ip=127.0.0.1
+INFO 2026-09-07 08:58:49,752 security views:84 Login success | user=humanities | ip=127.0.0.1
+INFO 2026-09-07 09:33:58,923 security views:139 Logout | user=humanities | ip=127.0.0.1
+INFO 2026-09-07 09:34:23,130 security views:84 Login success | user=agriculture | ip=127.0.0.1
+INFO 2026-09-07 11:05:48,704 security views:139 Logout | user=agriculture | ip=127.0.0.1
+INFO 2026-09-07 11:05:56,397 security views:84 Login success | user=social_sciences | ip=127.0.0.1
+INFO 2026-09-07 11:27:51,391 security views:139 Logout | user=social_sciences | ip=127.0.0.1
+WARNING 2026-09-07 11:27:59,799 security views:129 Login failure | attempted_user=business_administration | ip=127.0.0.1
+INFO 2026-09-07 11:28:21,585 security views:84 Login success | user=managementscience | ip=127.0.0.1

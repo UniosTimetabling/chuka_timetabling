@@ -86,7 +86,7 @@ from course_allocation.models import (
     CourseAllocation, CombinedCourseGroup, StudentGroup, SpecializationStem,
     SelectionGroup,
 )
-from timetable.models import Timetable, SchedulerConfig
+from timetable.models import Timetable, ExamTimetable, SchedulerConfig
 from room_management.models import Venue, VenueBlock, VenueSpecialization
 from program_management.models import Program, ProgramCourse
 from department_management.models import Department
@@ -105,9 +105,97 @@ from timetable.timetable_panel import (
     _get_combined_group_meta_map,
     _get_year_value,
 )
+# Exam-scope equivalent of the "which CourseAllocations are already booked"
+# exclusion set above — deliberately NOT the same query. Exam scheduling has
+# its own notion of "covered" (direct ExamTimetable row, OR a member of a
+# published/draft MergedCourseGroup, OR a SharedVenueExamGroup, OR a
+# CombinedCourseGroup member whose primary is exam-scheduled) which has
+# nothing to do with the regular Timetable table. See _scheduled_excluded_ids()
+# in exam_timetable_panel.py for the authoritative definition.
+from timetable.exam_timetable_panel import _scheduled_excluded_ids as _exam_scheduled_excluded_ids
 from allocation_reports.models import AllocationPdfRun
 
 logger = logging.getLogger(__name__)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SCOPE — every analysis endpoint operates on either the regular Timetable
+# or the ExamTimetable. The scope is chosen once (the front-end asks
+# "Timetable or Exam?" before it ever lands on /timetable/analysis/), sent
+# on the querystring as ?scope=timetable|exam, and pinned in the session so
+# every subsequent AJAX call on the page — even ones that forget to pass it
+# — stays on the same scope as the page the user is looking at.
+# ═══════════════════════════════════════════════════════════════════════════
+
+SCOPE_TIMETABLE = 'timetable'
+SCOPE_EXAM = 'exam'
+SCOPE_SESSION_KEY = 'analysis_scope'
+
+
+def _resolve_scope(request):
+    """Return 'timetable' or 'exam' for this request.
+
+    Precedence: an explicit ?scope=/POST scope= param (also re-pins the
+    session so the choice sticks for the rest of the visit) then the
+    session's last choice, then 'timetable' as the safe default for any
+    old bookmarked/linked URL that never specified one.
+    """
+    raw = (request.GET.get('scope') or request.POST.get('scope') or '').strip().lower()
+    if raw in (SCOPE_TIMETABLE, SCOPE_EXAM):
+        request.session[SCOPE_SESSION_KEY] = raw
+        return raw
+    return request.session.get(SCOPE_SESSION_KEY, SCOPE_TIMETABLE)
+
+
+def _scoped_model(scope):
+    return ExamTimetable if scope == SCOPE_EXAM else Timetable
+
+
+def _scope_title(scope):
+    return "Exam Timetable" if scope == SCOPE_EXAM else "Timetable"
+
+
+def _get_unscheduled_allocations_for_scope(scope):
+    """Scope-aware equivalent of timetable_panel._get_unscheduled_allocations().
+
+    Regular scope defers entirely to the existing, heavily-used
+    timetable_panel implementation (untouched, so nothing else that
+    depends on it changes behavior). Exam scope is built from the real
+    exam-scheduling exclusion set in exam_timetable_panel.py rather than
+    by re-pointing the regular query at ExamTimetable, because "covered"
+    means something different for exams (merged/shared exam groups) than
+    it does for the regular timetable (AutoMergedExamGroup).
+    """
+    if scope == SCOPE_EXAM:
+        exclude_ids = _exam_scheduled_excluded_ids()
+        return (
+            CourseAllocation.objects
+            .select_related('department', 'department__faculty', 'lecturer', 'program')
+            .exclude(id__in=exclude_ids)
+            .filter(
+                Q(department__submission_control__allow_submission_to_tt=True)
+                | Q(department__submission_control__isnull=True)
+            )
+            .order_by('department__faculty__name', 'department__name', 'course_code')
+        )
+    return _get_unscheduled_allocations()
+
+
+def _get_unscheduled_evening_weekend_allocations_for_scope(scope):
+    """Exam-scope sibling of _get_unscheduled_evening_weekend_allocations()."""
+    if scope == SCOPE_EXAM:
+        exclude_ids = _exam_scheduled_excluded_ids()
+        return (
+            CourseAllocation.objects
+            .select_related('department', 'department__faculty', 'lecturer', 'program')
+            .filter(is_evening_weekend=True)
+            .exclude(id__in=exclude_ids)
+            .filter(
+                Q(department__submission_control__allow_submission_to_tt=True)
+                | Q(department__submission_control__isnull=True)
+            )
+            .order_by('department__faculty__name', 'department__name', 'course_code')
+        )
+    return _get_unscheduled_evening_weekend_allocations()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -719,7 +807,7 @@ def _student_group_label(alloc):
     return grp.name or grp.letter or None
 
 
-def _schedule_info_for_allocation(alloc, tt_cache=None, lookup_id=None):
+def _schedule_info_for_allocation(alloc, tt_cache=None, lookup_id=None, model=Timetable):
     """Return {'scheduled': bool, 'day', 'start_time', 'end_time', 'venue'} for one allocation.
 
     lookup_id lets a non-primary CombinedCourseGroup member resolve its
@@ -728,13 +816,18 @@ def _schedule_info_for_allocation(alloc, tt_cache=None, lookup_id=None):
     books one venue/timeslot for the whole merged group, on the primary
     allocation only), so looking up the member's own id would always report
     "Unscheduled" even when the group it belongs to has a slot.
+
+    `model` (Timetable or ExamTimetable) is only consulted when no tt_cache
+    is supplied — every real caller in this file passes a pre-built cache
+    already keyed against the correct scoped model, so this fallback mainly
+    matters for direct/ad-hoc calls.
     """
     tt = None
     key = lookup_id if lookup_id is not None else alloc.id
     if tt_cache is not None:
         tt = tt_cache.get(key)
     else:
-        tt = Timetable.objects.filter(
+        tt = model.objects.filter(
             course_allocation_id=key, venue__isnull=False,
             start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue').first()
@@ -792,14 +885,17 @@ def _dashboard_scope_counts(request):
     on the PDF didn't match the card on screen. Routing both through this
     one function means they can't drift apart again.
     """
-    scheduled_qs = Timetable.objects.filter(
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
+
+    scheduled_qs = Model.objects.filter(
         venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
     )
     scheduled_qs = _apply_scope_filters(scheduled_qs, request, alloc_field_prefix='course_allocation__')
     scheduled_count = scheduled_qs.values('course_allocation_id').distinct().count()
 
-    unscheduled_qs = _apply_scope_filters(_get_unscheduled_allocations(), request)
-    ew_qs = _apply_scope_filters(_get_unscheduled_evening_weekend_allocations(), request)
+    unscheduled_qs = _apply_scope_filters(_get_unscheduled_allocations_for_scope(scope), request)
+    ew_qs = _apply_scope_filters(_get_unscheduled_evening_weekend_allocations_for_scope(scope), request)
     zero_qs = _apply_scope_filters(_get_zero_student_allocations(), request)
 
     return {
@@ -812,7 +908,15 @@ def _dashboard_scope_counts(request):
 
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def analysis_dashboard(request):
-    """Render the Timetable Analysis & Reports page."""
+    """Render the Timetable Analysis & Reports page.
+
+    Requires ?scope=timetable or ?scope=exam (the dashboard's own launch
+    link asks the user which one before it ever links here — see
+    timetabling_dashboard.html). Anyone who lands here without a scope
+    (an old bookmark, a typed URL) falls back to whatever they last picked
+    this session, or 'timetable' the very first time.
+    """
+    scope = _resolve_scope(request)
     faculties = list(Faculty.objects.order_by('name').values('id', 'name'))
     departments = list(Department.objects.order_by('name').values('id', 'name', 'faculty_id'))
     programs = list(Program.objects.order_by('name').values('id', 'name', 'department_id'))
@@ -823,6 +927,9 @@ def analysis_dashboard(request):
         'departments': departments,
         'programs': programs,
         'years': years,
+        'scope': scope,
+        'scope_label': _scope_title(scope),
+        'is_exam_scope': scope == SCOPE_EXAM,
     }
     return render(request, 'timetable/analysis_dashboard.html', context)
 
@@ -835,10 +942,13 @@ def analysis_summary_api(request):
     numbers on screen always match what the "Export" buttons will produce.
     """
     counts = _dashboard_scope_counts(request)
+    scope = _resolve_scope(request)
 
     return JsonResponse({
         'status': 'success',
         'scope_label': _scope_label(request),
+        'exam_or_timetable': scope,
+        'exam_or_timetable_label': _scope_title(scope),
         **counts,
     })
 
@@ -858,7 +968,10 @@ def scheduled_timetable_api(request):
     Returns every matching row, uncapped, sorted Monday→Sunday then by
     start time then venue — same ordering the day-grid PDF uses.
     """
-    qs = Timetable.objects.filter(
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
+
+    qs = Model.objects.filter(
         venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
     ).select_related(
         'venue', 'course_allocation', 'course_allocation__lecturer',
@@ -872,6 +985,7 @@ def scheduled_timetable_api(request):
         alloc = tt.course_allocation
         rows.append({
             'day': tt.day or '',
+            'date': tt.date.isoformat() if scope == SCOPE_EXAM and tt.date else '',
             'start_time': tt.start_time.strftime('%H:%M') if tt.start_time else '',
             'end_time': tt.end_time.strftime('%H:%M') if tt.end_time else '',
             'course_code': alloc.course_code,
@@ -889,13 +1003,14 @@ def scheduled_timetable_api(request):
             day_idx = _DAY_SORT_ORDER.index(r['day'])
         except ValueError:
             day_idx = len(_DAY_SORT_ORDER)
-        return (day_idx, r['start_time'], r['venue'])
+        return (r['date'], day_idx, r['start_time'], r['venue']) if scope == SCOPE_EXAM else (day_idx, r['start_time'], r['venue'])
 
     rows.sort(key=_sort_key)
 
     return JsonResponse({
         'status': 'success',
         'scope_label': _scope_label(request),
+        'exam_or_timetable': scope,
         'count': len(rows),
         'results': rows,
     })
@@ -1341,6 +1456,9 @@ def export_unscheduled_pdf(request):
       3. SERVICED COURSES — courses allocated under one department's
          program but actually taught by another department, printed last.
     """
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
+
     template_config = _get_template_config()
     styles = _styles()
     ref = template_config.get_reference_number(datetime.now().strftime("%d-%b-%Y").upper())
@@ -1370,7 +1488,7 @@ def export_unscheduled_pdf(request):
 
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in Model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -1647,12 +1765,13 @@ def export_unscheduled_only_pdf(request):
     unscheduled course in the whole university. No row cap: whatever the
     scope matches, all of it prints.
     """
+    exam_or_tt_scope = _resolve_scope(request)
     template_config = _get_template_config()
     styles = _styles()
     ref = template_config.get_reference_number(datetime.now().strftime("%d-%b-%Y").upper())
     date_str = datetime.now().strftime("%d-%b-%Y").upper()
 
-    qs = _apply_scope_filters(_get_unscheduled_allocations(), request)
+    qs = _apply_scope_filters(_get_unscheduled_allocations_for_scope(exam_or_tt_scope), request)
     qs = qs.select_related(
         'department', 'department__faculty', 'program', 'lecturer', 'program_course',
     ).order_by('department__name', 'program__name', 'course_code')
@@ -1710,11 +1829,13 @@ def export_scheduled_pdf(request):
     top (each cell showing course code + lecturer), matching the standard
     grid layout used by the official timetable exporter.
     """
+    Model = _scoped_model(_resolve_scope(request))
+
     template_config = _get_template_config()
     styles = _styles()
     ref = template_config.get_reference_number(datetime.now().strftime("%d-%b-%Y").upper())
 
-    qs = Timetable.objects.filter(
+    qs = Model.objects.filter(
         venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
     ).select_related(
         'course_allocation', 'course_allocation__lecturer',
@@ -1727,7 +1848,7 @@ def export_scheduled_pdf(request):
     # can't just reuse `qs` (which is this report's Timetable queryset).
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in Model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -1838,17 +1959,21 @@ def _combined_group_department_map():
     return dept_map
 
 
-def _build_course_lookup_results(codes):
+def _build_course_lookup_results(codes, model=Timetable):
     """
     For each requested search term — a course code OR any free-text term
     (lecturer, program, department, faculty, venue, specialization, student
     group, day) — expand to the full CombinedCourseGroup-aware allocation
     set and resolve each allocation's schedule.
+
+    `model` picks which table ("Timetable" or "ExamTimetable") the schedule
+    is resolved against — pass the scoped model so an exam-scope search
+    reports exam slots instead of regular-timetable ones.
     Returns: {term: {'matches': [...], 'not_found': bool}}
     """
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -1860,7 +1985,10 @@ def _build_course_lookup_results(codes):
         allocs = _expand_term_to_allocations(raw_code)
         matches = []
         for a in allocs:
-            sched = _schedule_info_for_allocation(a, tt_cache)
+            sched = _schedule_info_for_allocation(a, tt_cache, model=model)
+            if model is ExamTimetable:
+                tt_row = tt_cache.get(a.id)
+                sched = {**sched, 'date': tt_row.date.isoformat() if tt_row and tt_row.date else ''}
             meta = combined_meta.get(a.id)
             if meta:
                 meta = {**meta, **dept_map.get(a.id, {})}
@@ -1903,8 +2031,9 @@ def query_course_schedule_api(request):
     if not codes:
         return JsonResponse({'status': 'error', 'message': 'Provide at least one search term via ?code= or ?codes='}, status=400)
 
-    results = _build_course_lookup_results(codes)
-    return JsonResponse({'status': 'success', 'results': results})
+    scope = _resolve_scope(request)
+    results = _build_course_lookup_results(codes, model=_scoped_model(scope))
+    return JsonResponse({'status': 'success', 'exam_or_timetable': scope, 'results': results})
 
 
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
@@ -1938,7 +2067,7 @@ def export_course_schedule_pdf(request):
         date_str=date_str,
     )
 
-    results = _build_course_lookup_results(codes)
+    results = _build_course_lookup_results(codes, model=_scoped_model(_resolve_scope(request)))
 
     for raw_code, data in results.items():
         elements.append(Paragraph(raw_code.upper(), styles['RSection']))
@@ -1981,7 +2110,7 @@ def export_course_schedule_pdf(request):
 #     least one other course code somewhere on the timetable ("shared"),
 #     vs. how many have a venue used by nobody but this course ("standalone")
 
-def _global_course_scheduling_maps():
+def _global_course_scheduling_maps(model=Timetable):
     """
     University-wide (unscoped) lookup maps used to judge venue-sharing
     correctly for the "All Courses" summary. This has to stay unscoped even
@@ -1990,14 +2119,19 @@ def _global_course_scheduling_maps():
     completely different department, and that fact would be invisible if
     we only looked at the scoped queryset.
 
+    `model` is Timetable or ExamTimetable depending on the page's scope —
+    "shared venue" only means something within one table; a lecture room
+    booked for a regular class Monday 9am and an exam Monday 9am aren't
+    the same booking.
+
     Returns:
-      tt_cache: {course_allocation_id (primary or standalone): Timetable row}
+      tt_cache: {course_allocation_id (primary or standalone): row from `model`}
       member_to_primary: {non-primary CombinedCourseGroup member id: primary id}
       venue_to_keys: {venue_id: set of canonical course keys booked there}
     """
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -2031,7 +2165,8 @@ def _build_all_courses_venue_summary(request):
     Group every CourseAllocation in scope by canonical course code and
     return one summary dict per code, sorted alphabetically by code.
     """
-    tt_cache, member_to_primary, venue_to_keys = _global_course_scheduling_maps()
+    Model = _scoped_model(_resolve_scope(request))
+    tt_cache, member_to_primary, venue_to_keys = _global_course_scheduling_maps(model=Model)
 
     qs = _apply_scope_filters(CourseAllocation.objects.all(), request).select_related(
         'department', 'department__faculty', 'program', 'program__department',
@@ -2444,8 +2579,9 @@ def _build_used_rooms_report(request):
     row per venue actually in use, with the distinct course codes and
     section counts booked into it.
     """
+    Model = _scoped_model(_resolve_scope(request))
     qs = _apply_scope_filters(
-        Timetable.objects.filter(
+        Model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ),
         request, alloc_field_prefix='course_allocation__',
@@ -2593,7 +2729,8 @@ def _build_venue_demand_by_slot(request):
            over_capacity (bool)}
       ]}
     """
-    qs = Timetable.objects.select_related(
+    Model = _scoped_model(_resolve_scope(request))
+    qs = Model.objects.select_related(
         'venue', 'course_allocation', 'course_allocation__program',
     ).filter(venue__isnull=False, start_time__isnull=False, end_time__isnull=False)
     qs = _apply_scope_filters(qs, request, alloc_field_prefix='course_allocation__')
@@ -2809,7 +2946,7 @@ def export_venue_capacity_report_pdf(request):
 # SECTION 6b — universal search (lecturer / program / department / course code)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _universal_search_qs(query):
+def _universal_search_qs(query, scope=SCOPE_TIMETABLE):
     """
     One free-text box that matches ANYTHING relevant — course code, course
     name, lecturer name, program name, department name, faculty name,
@@ -2819,10 +2956,17 @@ def _universal_search_qs(query):
     This is the single search definition shared by both search boxes on
     the analysis dashboard (Course Lookup and Universal Search) so that
     "search anything" means the same thing in both places.
+
+    `scope` picks which reverse relation the venue/day terms search
+    through: CourseAllocation.timetable_entries for the regular timetable,
+    CourseAllocation.exam_timetable_entries for exams — searching "LR 4"
+    with scope=exam should only match courses actually sitting an exam in
+    LR 4, not ones merely taught there.
     """
     q = (query or '').strip()
     if not q:
         return CourseAllocation.objects.none()
+    entries_field = 'exam_timetable_entries' if scope == SCOPE_EXAM else 'timetable_entries'
     return (
         CourseAllocation.objects.filter(
             Q(course_code__icontains=q) |
@@ -2835,10 +2979,10 @@ def _universal_search_qs(query):
             Q(specialization_stem__category__name__icontains=q) |
             Q(student_group__name__icontains=q) |
             Q(student_group__letter__icontains=q) |
-            Q(timetable_entries__venue__code__icontains=q) |
-            Q(timetable_entries__venue__building__name__icontains=q) |
-            Q(timetable_entries__venue__building__code__icontains=q) |
-            Q(timetable_entries__day__icontains=q)
+            Q(**{f'{entries_field}__venue__code__icontains': q}) |
+            Q(**{f'{entries_field}__venue__building__name__icontains': q}) |
+            Q(**{f'{entries_field}__venue__building__code__icontains': q}) |
+            Q(**{f'{entries_field}__day__icontains': q})
         )
         .select_related(
             'department', 'department__faculty', 'program', 'lecturer', 'program_course',
@@ -2860,10 +3004,12 @@ def universal_search_api(request):
     if not query:
         return JsonResponse({'status': 'error', 'message': 'Provide a search term via ?q='}, status=400)
 
-    qs = _universal_search_qs(query).order_by('department__name', 'program__name', 'course_code')
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
+    qs = _universal_search_qs(query, scope=scope).order_by('department__name', 'program__name', 'course_code')
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in Model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -2872,7 +3018,7 @@ def universal_search_api(request):
 
     results = []
     for a in qs:
-        sched = _schedule_info_for_allocation(a, tt_cache)
+        sched = _schedule_info_for_allocation(a, tt_cache, model=Model)
         meta = combined_meta.get(a.id)
         if meta:
             meta = {**meta, **dept_map.get(a.id, {})}
@@ -2893,7 +3039,7 @@ def universal_search_api(request):
             **sched,
         })
 
-    return JsonResponse({'status': 'success', 'query': query, 'count': len(results), 'results': results})
+    return JsonResponse({'status': 'success', 'query': query, 'exam_or_timetable': scope, 'count': len(results), 'results': results})
 
 
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
@@ -2915,10 +3061,12 @@ def export_universal_search_pdf(request):
         elements.append(Paragraph("No search term was supplied.", styles['RCell']))
         return _pdf_response(elements, "search_results_report.pdf", template_config, ref, compiled_by=_full_name(request))
 
-    qs = _universal_search_qs(query).order_by('department__name', 'program__name', 'course_code')
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
+    qs = _universal_search_qs(query, scope=scope).order_by('department__name', 'program__name', 'course_code')
     tt_cache = {
         tt.course_allocation_id: tt
-        for tt in Timetable.objects.filter(
+        for tt in Model.objects.filter(
             venue__isnull=False, start_time__isnull=False, end_time__isnull=False,
         ).select_related('venue')
     }
@@ -3679,7 +3827,8 @@ def lecturer_workload_api(request):
         except (ValueError, TypeError):
             return JsonResponse({'status': 'error', 'message': 'Invalid min_consecutive'}, status=400)
 
-        qs = Timetable.objects.select_related(
+        Model = _scoped_model(_resolve_scope(request))
+        qs = Model.objects.select_related(
             'venue', 'course_allocation', 'course_allocation__lecturer',
             'course_allocation__lecturer__department', 'course_allocation__program',
             'course_allocation__program_course',
@@ -3762,7 +3911,8 @@ def lecturer_weekly_schedule_api(request):
         except (Lecturer.DoesNotExist, ValueError, TypeError):
             return JsonResponse({'status': 'error', 'message': 'Lecturer not found'}, status=404)
 
-        qs = Timetable.objects.select_related(
+        Model = _scoped_model(_resolve_scope(request))
+        qs = Model.objects.select_related(
             'venue', 'course_allocation', 'course_allocation__program',
             'course_allocation__program_course', 'course_allocation__student_group',
         ).filter(
@@ -3810,7 +3960,7 @@ def lecturer_weekly_schedule_api(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-def _resolve_schedule_blocks_for_allocations(allocations):
+def _resolve_schedule_blocks_for_allocations(allocations, model=Timetable):
     """
     Build weekly 'blocks' (day/start/end + display fields) for a list of
     CourseAllocation objects, resolving non-primary CombinedCourseGroup
@@ -3818,6 +3968,9 @@ def _resolve_schedule_blocks_for_allocations(allocations):
     section header note above) so combined courses still show up on their
     OWN program/year's weekly view even though they have no Timetable row
     of their own.
+
+    `model` is Timetable or ExamTimetable, matching whichever scope the
+    caller resolved the page/request to.
     """
     alloc_ids = [a.id for a in allocations]
     if not alloc_ids:
@@ -3837,7 +3990,7 @@ def _resolve_schedule_blocks_for_allocations(allocations):
 
     lookup_ids = {lookup_id_for.get(a.id, a.id) for a in allocations}
     tt_by_alloc = defaultdict(list)
-    for tt in Timetable.objects.select_related('venue').filter(
+    for tt in model.objects.select_related('venue').filter(
         course_allocation_id__in=lookup_ids,
         start_time__isnull=False, end_time__isnull=False,
     ):
@@ -3869,6 +4022,8 @@ def program_workload_api(request):
     filters to programs with at least one year at/above that run length.
     """
     try:
+        exam_or_tt_scope = _resolve_scope(request)
+        Model = _scoped_model(exam_or_tt_scope)
         dept_id = request.GET.get('department_id')
         try:
             min_consecutive = max(int(request.GET.get('min_consecutive', 2)), 2)
@@ -3896,7 +4051,7 @@ def program_workload_api(request):
         # of allocations sharing that key.
         result_by_program = defaultdict(list)
         for (prog_id, year), allocations in by_program_year.items():
-            blocks = _resolve_schedule_blocks_for_allocations(allocations)
+            blocks = _resolve_schedule_blocks_for_allocations(allocations, model=Model)
             analysis = _analyze_weekly_blocks(blocks)
             result_by_program[prog_id].append({
                 'year': year,
@@ -3969,7 +4124,7 @@ def program_year_weekly_schedule_api(request):
             if (getattr(a.program_course, 'year', None) or _get_year_value(a) or 0) == year_val
         ]
 
-        blocks = _resolve_schedule_blocks_for_allocations(allocations)
+        blocks = _resolve_schedule_blocks_for_allocations(allocations, model=_scoped_model(_resolve_scope(request)))
         analysis = _analyze_weekly_blocks(blocks)
         days = _serialize_day_blocks(analysis['by_day'], [
             'course_code', 'course_name', 'lecturer', 'student_group', 'venue',
@@ -4079,6 +4234,13 @@ def _pdf_bytes_scoped(view_func, request, department_id):
     original_get = request.GET
     qd = QueryDict(mutable=True)
     qd['department_id'] = str(department_id)
+    # Carry the page's exam/timetable scope through to the re-run view —
+    # _resolve_scope() would otherwise fall back to the session value, which
+    # is usually still correct (set by the original page load) but there's
+    # no reason to rely on that when the current request already has it.
+    incoming_scope = original_get.get('scope') or request.POST.get('scope')
+    if incoming_scope:
+        qd['scope'] = incoming_scope
     request.GET = qd
     try:
         response = view_func(request)
@@ -4281,6 +4443,22 @@ def send_department_timetable_email(request):
 
     if not (include_unscheduled or include_scheduled or include_allocation or include_department_timetable):
         return JsonResponse({'status': 'error', 'message': 'Select at least one attachment to send.'}, status=400)
+
+    # "Latest published timetable" and "Departmental Timetable" attachments
+    # are built from a published-PDF registry and a departmental-timetable
+    # module that only exist for the regular timetable — there's no exam
+    # equivalent of either yet, so refuse rather than silently attaching
+    # the wrong (regular) document to an exam-scope email.
+    exam_or_tt_scope = _resolve_scope(request)
+    if exam_or_tt_scope == SCOPE_EXAM and (include_scheduled or include_department_timetable):
+        return JsonResponse({
+            'status': 'error',
+            'message': (
+                "The published-timetable and Departmental Timetable attachments are only "
+                "available for the regular timetable scope — they have no exam equivalent yet. "
+                "Deselect them, or use the Unscheduled/Course-Allocation attachments for exams."
+            ),
+        }, status=400)
 
     sender_name = _full_name(request)
 

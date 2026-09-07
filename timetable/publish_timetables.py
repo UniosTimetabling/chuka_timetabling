@@ -1,6 +1,7 @@
 from django.shortcuts import redirect
 from django.contrib import messages
 from django.db import transaction
+from collections import defaultdict
 
 from timetable.models import (
     Timetable,
@@ -36,6 +37,52 @@ def exam_publish_to_main(request):
     temp_entries = list(
         ExamTempTimetable.objects.select_related("course_allocation", "venue")
     )
+
+    # ── Safety net: same course scheduled on 2+ different dates/times ────
+    # The auto-scheduler has its own duplicate audit
+    # (_audit_and_fix_duplicate_placements) that is supposed to catch this
+    # before the run finishes — but if that run crashed partway through
+    # (an exception jumps straight past the audit, leaving whatever was
+    # already written in ExamTempTimetable in place) or someone manually
+    # edited entries afterward, this table can still hold a course on two
+    # different dates. Publish is the last checkpoint before this becomes
+    # the OFFICIAL timetable students and lecturers act on, so it must
+    # never trust the temp table blindly — re-check here regardless of
+    # whether the scheduler's own audit ran. Rows for the SAME course at
+    # the SAME (date, start_time) but different venues (a shared/family
+    # course legitimately split across rooms) are left untouched; only
+    # rows spread across DIFFERENT dates/times are a bug.
+    by_course_allocation: dict = defaultdict(list)
+    for entry in temp_entries:
+        by_course_allocation[entry.course_allocation_id].append(entry)
+
+    cross_date_dupes = 0
+    deduped_entries = []
+    for cid, rows in by_course_allocation.items():
+        distinct_slots = {(r.date, r.start_time) for r in rows}
+        if len(distinct_slots) <= 1:
+            deduped_entries.extend(rows)
+            continue
+        keep_slot = min(distinct_slots)
+        dropped = [r for r in rows if (r.date, r.start_time) != keep_slot]
+        code = getattr(rows[0].course_allocation, "course_code", "?")
+        print(
+            f"⚠️  [Publish-DUPLICATE] course_allocation_id={cid} ({code}) is "
+            f"scheduled on {sorted(distinct_slots)} in the temp timetable — "
+            f"publishing only {keep_slot}, dropping {len(dropped)} row(s) "
+            f"instead of publishing the same exam on two dates."
+        )
+        cross_date_dupes += 1
+        deduped_entries.extend(r for r in rows if (r.date, r.start_time) == keep_slot)
+
+    if cross_date_dupes:
+        print(
+            f"⚠️  [Publish-DUPLICATE] {cross_date_dupes} course(s) were scheduled "
+            f"on multiple dates in the temp timetable — trimmed to one date each "
+            f"before publishing. This should not happen if the auto-scheduler run "
+            f"completed cleanly; investigate why its own audit didn't catch these."
+        )
+    temp_entries = deduped_entries
 
     # ── Copy temp → main, build lookup: course_allocation_id → ExamTimetable ──
     # One ExamTimetable row per unique (course_allocation, venue, day, date, start, end).

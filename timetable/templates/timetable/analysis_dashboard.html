@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Timetable Analysis &amp; Reports</title>
+<title>{{ scope_label }} Analysis &amp; Reports</title>
 <style>
   :root{
     --green:#1E7145; --green-dark:#155432; --grid:#D0E1D4;
@@ -142,8 +142,15 @@
 </head>
 <body>
 
-<h1>Timetable Analysis &amp; Reports</h1>
-<p class="sub">Read-only reporting on top of the live timetable — nothing here edits scheduling data.</p>
+<h1>{{ scope_label }} Analysis &amp; Reports</h1>
+<p class="sub">
+  Read-only reporting on top of the live {{ scope_label|lower }} — nothing here edits scheduling data.
+  {% if is_exam_scope %}
+    Looking for the regular timetable instead? <a href="?scope=timetable">Switch to Timetable</a>.
+  {% else %}
+    Looking for exams instead? <a href="?scope=exam">Switch to Exam</a>.
+  {% endif %}
+</p>
 
 <!-- ── Tabs ────────────────────────────────────────────────────── -->
 <div class="tabs">
@@ -201,7 +208,7 @@
 
   <!-- Scoped timetable table -->
   <div class="panel">
-    <h2>Timetable — <span id="scopeTimetableLabel">All Faculties / Departments / Programs</span></h2>
+    <h2>{{ scope_label }} — <span id="scopeTimetableLabel">All Faculties / Departments / Programs</span></h2>
     <p class="hint" style="margin-top:-4px;margin-bottom:8px;">Every scheduled entry inside the scope applied above, laid out day-by-day: timeslots across the top, venues down the left. Click "View Timetable" to load it for the current scope.</p>
     <div class="row">
       <button id="btnViewScopeTimetable">👁 View Timetable</button>
@@ -511,6 +518,13 @@
 // ====================================================================
 // Shared utilities
 // ====================================================================
+// Exam vs regular-timetable scope, resolved server-side (?scope= querystring,
+// pinned in session as a fallback) — analysis_reports.py._resolve_scope().
+// Every fetch() below includes this explicitly rather than relying only on
+// the session, so two dashboard tabs open in one browser (one Timetable,
+// one Exam) can't bleed into each other.
+const ANALYSIS_SCOPE = "{{ scope }}";
+
 const API = {
   summary: "{% url 'timetable_analysis_summary_api' %}",
   exportUnscheduled: "{% url 'export_unscheduled_pdf' %}",
@@ -540,7 +554,7 @@ const API = {
 const CSRF_TOKEN = "{{ csrf_token }}";
 
 function currentScopeParams(){
-  const p = new URLSearchParams();
+  const p = new URLSearchParams({scope: ANALYSIS_SCOPE});
   const f = document.getElementById('fFaculty').value;
   const d = document.getElementById('fDepartment').value;
   const pr = document.getElementById('fProgram').value;
@@ -773,7 +787,7 @@ document.getElementById('btnExportDeptTimetable').addEventListener('click', func
     alert('Pick a Department in the Scope section above first — the Departmental Timetable PDF is generated for one department at a time.');
     return;
   }
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   params.set('department_id', did);
   openReportInNewTab(this, `${API.exportDeptTimetable}?${params.toString()}`);
 });
@@ -907,7 +921,7 @@ async function runLookup(){
 
   box.innerHTML = '<p class="hint">Searching...</p>';
   
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   codes.forEach(c => params.append('code', c));
   try {
     const res = await fetch(`${API.lookup}?${params.toString()}`);
@@ -936,7 +950,7 @@ document.getElementById('btnLookup').addEventListener('click', function(){
 document.getElementById('btnLookupPdf').addEventListener('click', function(){
   const codes = parseCodes();
   if (!codes.length) return;
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   codes.forEach(c => params.append('code', c));
   openReportInNewTab(this, `${API.lookupPdf}?${params.toString()}`);
 });
@@ -952,7 +966,7 @@ async function runUSearch(){
   box.innerHTML = '<p class="hint">Searching...</p>';
 
   try {
-    const res = await fetch(`${API.uSearch}?q=${encodeURIComponent(q)}`);
+    const res = await fetch(`${API.uSearch}?q=${encodeURIComponent(q)}&scope=${ANALYSIS_SCOPE}`);
     const data = await res.json();
     if (data.status !== 'success'){ box.innerHTML = `<p class="hint">${escapeHtml(data.message || 'Error')}</p>`; return; }
 
@@ -1008,7 +1022,7 @@ async function loadProgramAnalysis(){
   const deptId = document.getElementById('paDepartment').value;
   const progId = document.getElementById('paProgram').value;
   
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   if (deptId) params.set('department_id', deptId);
   if (progId) params.set('program_id', progId);
   
@@ -1293,7 +1307,7 @@ async function loadZeroStudent(){
   const deptId = document.getElementById('zsDepartment').value;
   const progId = document.getElementById('zsProgram').value;
   
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   if (deptId) params.set('department_id', deptId);
   if (progId) params.set('program_id', progId);
   
@@ -1379,7 +1393,7 @@ async function loadOverload(){
   const progId = document.getElementById('olProgram').value;
   const threshold = document.getElementById('olThreshold').value;
   
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   if (deptId) params.set('department_id', deptId);
   if (progId) params.set('program_id', progId);
   if (threshold) params.set('threshold', threshold);
@@ -1511,7 +1525,7 @@ async function loadLecturerWorkload(){
   const progId = document.getElementById('wlProgram').value;
   const minConsecutive = document.getElementById('wlMinConsecutive').value;
 
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   if (deptId) params.set('department_id', deptId);
   if (progId) params.set('program_id', progId);
   if (minConsecutive) params.set('min_consecutive', minConsecutive);
@@ -1593,7 +1607,7 @@ async function toggleLecturerSchedule(btn, lecturerId){
 
   panel.innerHTML = `<div style="text-align:center;padding:14px;"><div class="loading-spinner"></div></div>`;
   try {
-    const res = await fetch(`${API.lecturerWeeklySchedule}?lecturer_id=${encodeURIComponent(lecturerId)}`);
+    const res = await fetch(`${API.lecturerWeeklySchedule}?lecturer_id=${encodeURIComponent(lecturerId)}&scope=${ANALYSIS_SCOPE}`);
     const data = await res.json();
     if (data.status !== 'success') {
       panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>`;
@@ -1611,7 +1625,7 @@ async function loadProgramWorkload(){
   const deptId = document.getElementById('wlpDepartment').value;
   const minConsecutive = document.getElementById('wlpMinConsecutive').value;
 
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   if (deptId) params.set('department_id', deptId);
   if (minConsecutive) params.set('min_consecutive', minConsecutive);
 
@@ -1699,7 +1713,7 @@ async function toggleProgramYearSchedule(btn, programId, year){
   panel.classList.remove('hidden');
   panel.innerHTML = `<div style="text-align:center;padding:14px;"><div class="loading-spinner"></div></div>`;
   try {
-    const res = await fetch(`${API.programYearWeeklySchedule}?program_id=${encodeURIComponent(programId)}&year=${encodeURIComponent(year)}`);
+    const res = await fetch(`${API.programYearWeeklySchedule}?program_id=${encodeURIComponent(programId)}&year=${encodeURIComponent(year)}&scope=${ANALYSIS_SCOPE}`);
     const data = await res.json();
     if (data.status !== 'success') {
       panel.innerHTML = `<p style="color:var(--warn);margin:0;">Error: ${escapeHtml(data.message || 'Unknown error')}</p>`;
@@ -1851,7 +1865,7 @@ async function sendDeptEmail(){
     return;
   }
 
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   params.set('department_id', deptId);
   params.set('subject', subject);
   params.set('body', body);

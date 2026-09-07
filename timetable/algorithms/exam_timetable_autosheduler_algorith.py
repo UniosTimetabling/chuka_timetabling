@@ -1097,25 +1097,56 @@ class SchedulerState:
             )
 
         # ── Constraint: Exclusive Venue Restrictions ────────────────────────
-        # NOTE: the exam scheduler has no soft "priority pass" for
-        # VenueSpecialization the way the regular timetable scheduler does
-        # (there is currently no mechanism that gives designated
-        # courses/programs first claim on a room before general placement).
-        # Until that priority pass exists here, an EXCLUSIVE specialization
-        # rule is enforced the only safe way available: the venue is removed
-        # from the exam pool entirely, the same as a full block. Non-exclusive
-        # specialization rules currently have no effect on exam scheduling.
+        # An EXCLUSIVE specialization rule means "no OTHER course may ever
+        # use this venue" — it does NOT mean the room should sit empty. The
+        # room stays OUT of the general candidate pool (self.venues) below,
+        # exactly as before, so ordinary placement never touches it. But its
+        # capacity is still tracked (venue_examcap/venue_by_id, and
+        # _venue_avail seeded further down) so designated_venue_priority_pass
+        # — Phase 0 — can actually put the designated course(s) into it
+        # before any general placement runs. Without that pass these rooms
+        # previously just sat unused all exam period while their designated
+        # courses got scheduled into ordinary venues instead.
         exclusive_venue_ids = constraint_engine.get_exclusive_venue_ids(
             self.disabled_constraints, scheduler_type="exam"
         )
-        if exclusive_venue_ids:
-            before = len(_raw_venues)
-            _raw_venues = [v for v in _raw_venues if v.id not in exclusive_venue_ids]
+        self.exclusive_venue_ids: Set[int] = set(exclusive_venue_ids)
+        _general_pool = [v for v in _raw_venues if v.id not in self.exclusive_venue_ids]
+        if self.exclusive_venue_ids:
             print(
-                f"[Constraints] Exclusive Venue Restrictions: removed "
-                f"{before - len(_raw_venues)} venue(s) from the exam pool "
-                f"({len(_raw_venues)} remain)."
+                f"[Constraints] Exclusive Venue Restrictions: reserved "
+                f"{len(_raw_venues) - len(_general_pool)} venue(s) for their "
+                f"designated course(s) only ({len(_general_pool)} remain in "
+                f"the general pool)."
             )
+
+        # ── Constraint: Venue Specialization (priority pass) ────────────────
+        # Build {normalised_course_code: [venue_id, ...]} from every active
+        # VenueSpecialization rule (exclusive AND non-exclusive/soft ones),
+        # plus the set of codes bound by a STRICT rule. Populated here so
+        # designated_venue_priority_pass (Phase 0) can run before any
+        # general placement and give these courses first claim on their
+        # reserved room(s) — the actual "priority pass" the constraint
+        # registry already advertises but the exam scheduler never ran.
+        self.designated_venues_by_norm_code: Dict[str, List[int]] = defaultdict(list)
+        self.strict_norm_codes: Set[str] = set()
+        self.strict_locked_ids: Set[int] = set()
+        for rule in sorted(
+            constraint_engine.get_designated_venue_rules(
+                self.disabled_constraints, scheduler_type="exam"
+            ),
+            key=lambda r: r["priority"],
+        ):
+            for raw_code in rule["codes"]:
+                nc = normalize_course_code(raw_code)
+                if not nc:
+                    continue
+                bucket = self.designated_venues_by_norm_code[nc]
+                for vid in rule["venue_ids"]:
+                    if vid not in bucket:
+                        bucket.append(vid)
+                if rule["strict"]:
+                    self.strict_norm_codes.add(nc)
 
         self._spacing_ratio: float = float(getattr(config, "spacing_ratio", 1.0))
         self.venue_examcap: Dict[int, int] = {
@@ -1126,12 +1157,14 @@ class SchedulerState:
         }
         # Sort venues DESCENDING by exam capacity
         self.venues: List = sorted(
-            _raw_venues,
+            _general_pool,
             key=lambda v: self.venue_examcap.get(v.id, 0),
             reverse=True,
         )
         self.venues_by_cap_desc: List = self.venues
         self.venues_by_cap_asc: List = list(reversed(self.venues))
+        # venue_by_id covers ALL non-blocked venues, including exclusive
+        # ones, so the priority pass can look designated rooms up by id.
         self.venue_by_id: Dict[int, "Venue"] = {v.id: v for v in _raw_venues}
 
         # ── Soft constraint: CombinedCourseGroup venue co-location ────────
@@ -1143,6 +1176,23 @@ class SchedulerState:
         # preference, never a hard requirement — normal capacity/isolation
         # checks still apply when co-location isn't possible.
         self._combined_group_venue: Dict[Tuple, int] = {}
+
+        # ── Soft constraint: shared/common-course (norm-code family)
+        # building co-location ────────────────────────────────────────
+        # (date, slot_start, norm_code) -> building code already hosting
+        # a variant of that family (e.g. EDFO111 across many programs).
+        # A family's variants can be committed across THREE separate
+        # code paths — Phase 1 (_commit_distributed), Phase 3b (family
+        # split rescue), and the Phase 4 sweep-3 re-merge of leftovers —
+        # each of which used to pick its own "preferred building" from
+        # scratch, blind to where earlier siblings of the SAME family had
+        # already landed. That is how one shared course ended up split
+        # across 2-3 buildings even though each individual pass tried to
+        # keep its own slice together. This registry lets every pass ask
+        # "has this family already committed to a building for this
+        # date+slot?" before choosing rooms, so all three stay consistent.
+        # Soft bookkeeping only — never blocks placement on its own.
+        self._family_building: Dict[Tuple, str] = {}
 
         if self.venues:
             print(
@@ -1207,8 +1257,13 @@ class SchedulerState:
         # weekday matches, using self.date_range (already built above).
         self.lecturer_blocked = self._build_lecturer_blocked_map()
 
-        total_exam = sum(self.venue_examcap.values())
-        total_raw = sum(self.venue_rawcap.values())
+        # Aggregate totals must reflect only the GENERAL pool (self.venues) —
+        # exclusive/reserved venues are tracked separately (see the avail
+        # seeding loop above) and consumed only via the priority pass, never
+        # via consume_venue's aggregate bookkeeping, so they must not be
+        # double-counted into these slot-capacity totals.
+        total_exam = sum(self.venue_examcap.get(v.id, 0) for v in self.venues)
+        total_raw = sum(self.venue_rawcap.get(v.id, 0) for v in self.venues)
         self._cap_cache: Dict[Tuple, int] = {}
         self._raw_cap_cache: Dict[Tuple, int] = {}
         self._venue_avail: Dict[Tuple, int] = {}
@@ -1226,6 +1281,16 @@ class SchedulerState:
                 self._day_slot_total[(date_obj, ss)] = total_exam
                 for v in self.venues:
                     self._venue_avail[(v.id, date_obj, ss)] = self.venue_examcap[v.id]
+                # Exclusive/reserved venues aren't part of the general pool
+                # (self.venues) and don't count toward the aggregate slot
+                # totals above, but still need their own avail tracking so
+                # designated_venue_priority_pass can check/consume them.
+                for v in _raw_venues:
+                    if v.id not in self.venue_by_id:
+                        continue
+                    key = (v.id, date_obj, ss)
+                    if key not in self._venue_avail:
+                        self._venue_avail[key] = self.venue_examcap[v.id]
 
         n_days = len(self.date_range)
         n_day_slots = len(self.daytime_slots_list)
@@ -1457,15 +1522,50 @@ class SchedulerState:
         """
         Return the venue_id already hosting a CombinedCourseGroup group-mate
         of `course` at this exact slot, if any. None means no preference.
+
+        BUGFIX: a designated/exclusive venue is reserved for ITS course(s)
+        only. If a group-mate happened to land there via
+        designated_venue_priority_pass, this must never steer `course` —
+        which is not itself designated to that venue — into that room too.
+        Doing so silently broke venue-exclusivity ("courses not designated
+        for that venue end up placed there"). Skip any exclusive venue
+        that isn't among `course`'s own designated venues and keep looking
+        at the next group-mate's venue instead.
         """
         group_ids = _combined_group_ids_for(course.id)
         if not group_ids:
             return None
+        own_designated = set(
+            self.designated_venues_by_norm_code.get(self._norm_code(course), [])
+        )
         for gid in group_ids:
             vid = self._combined_group_venue.get((date, slot_start, gid))
-            if vid is not None:
-                return vid
+            if vid is None:
+                continue
+            if vid in self.exclusive_venue_ids and vid not in own_designated:
+                continue
+            return vid
         return None
+
+    def record_family_building(self, nc: str, date, slot_start, building: str):
+        """
+        Remember that shared/common-course family `nc` (e.g. 'EDFO111')
+        has a variant sitting in `building` for this date+slot, so any
+        OTHER pass placing more of this same family later — whether
+        later in this phase, or in a completely different phase — steers
+        toward that same building first. First building recorded for a
+        given (date, slot, nc) wins; we never overwrite it, since the
+        goal is one consistent building per family per slot, not
+        whichever pass ran last.
+        """
+        if not nc or not building:
+            return
+        self._family_building.setdefault((date, slot_start, nc), building)
+
+    def preferred_family_building(self, nc: str, date, slot_start) -> Optional[str]:
+        """Building already committed to for family `nc` at this date+slot,
+        if any. None means no other pass has placed a sibling here yet."""
+        return self._family_building.get((date, slot_start, nc))
 
     def consume_venue(self, vid, date, slot_start, students: int):
         cap = self.venue_examcap.get(vid, 0)
@@ -1812,6 +1912,11 @@ def _post_place(course, venue_id: int, students: int,
 
 
 def _check_hard_constraints(course, date, slot_start, state: SchedulerState) -> Optional[str]:
+    if course.id in state.strict_locked_ids:
+        # This course is STRICTLY bound to a designated venue (see
+        # designated_venue_priority_pass) and none was available for it —
+        # never let it fall through into an ordinary venue instead.
+        return "strict-designated-venue-unavailable"
     if not state.students_available(course, date, slot_start):
         return "student-conflict"
     if state.check_family_conflict(course, date, slot_start):
@@ -2043,6 +2148,8 @@ def _family_constraints_ok(group_courses, date, slot_start, state):
         )
     )
     for c in group_courses:
+        if c.id in state.strict_locked_ids:
+            return False
         if not state.students_available(c, date, slot_start):
             return False
         if state.check_norm_code_day_conflict(c, date):
@@ -2078,6 +2185,36 @@ def _build_venue_pool(date, slot_start, state, free_only: bool = True):
         if free_only and remaining != cap:
             continue   # room already has another course — skip
         pool.append([v, remaining, cap])
+    return pool
+
+
+def _build_designated_pool(nc, date, slot_start, state, free_only: bool = True):
+    """
+    Same shape as _build_venue_pool, but restricted to the venue(s) a
+    VenueSpecialization rule has reserved for normalized course code `nc`
+    (whether or not that rule is 'exclusive' — designated is designated).
+
+    Used so a shared/common course (Phase 1 family) gets first claim on
+    its own reserved room(s) for the WHOLE merged group, instead of one
+    program's variant grabbing the room alone (the old Phase-0-first
+    ordering) while its siblings scatter to other days/venues.
+    """
+    venue_ids = state.designated_venues_by_norm_code.get(nc, [])
+    pool = []
+    for vid in venue_ids:
+        v = state.venue_by_id.get(vid)
+        if v is None:
+            continue
+        cap = state.venue_examcap.get(vid, 0)
+        if cap <= 0:
+            continue
+        remaining = min(_reserved_venue_remaining(state, vid, date, slot_start), cap)
+        if remaining <= 0:
+            continue
+        if free_only and remaining != cap:
+            continue
+        pool.append([v, remaining, cap])
+    pool.sort(key=lambda row: row[2], reverse=True)
     return pool
 
 
@@ -2119,8 +2256,93 @@ def place_merged_family(
     if not _family_constraints_ok(group_courses, date, ss, state):
         return False
 
+    # ------------------------------------------------------------------
+    # BUGFIX — designated-venue-aware family placement.
+    #
+    # A shared/common course (e.g. COSC103, done by many programs) that
+    # ALSO has a VenueSpecialization rule used to be split in two: Phase 0
+    # (designated_venue_priority_pass) ran BEFORE this family pass and
+    # picked off ONE program's variant alone, using only that variant's
+    # own student count, and locked the shared day/slot for everyone else.
+    # The rest of the family then had to fight for ordinary rooms at that
+    # exact locked slot — often failing ("unschedulable") because no venue
+    # reservation had been made for the true combined total.
+    #
+    # Now the WHOLE merged group gets first claim on its designated
+    # venue(s) here, in Phase 1, BEFORE any single-course pass runs (see
+    # the reordering in run_exam_autoscheduler). total_needed is the TRUE
+    # sum across every program's variant, so a single designated room (or
+    # an overflow spread across several designated rooms, if more than
+    # one is reserved for this code) is only used when it can actually
+    # hold everyone — never a partial placement that strands the rest.
+    # ------------------------------------------------------------------
+    venue_ids = state.designated_venues_by_norm_code.get(nc, [])
+    if venue_ids:
+        is_strict = nc in state.strict_norm_codes
+        in_cooling = (not state.strategy.relax_consecutive) and any(
+            state.cohort_in_cooling(c, date, ss) for c in group_courses
+        )
+        if not in_cooling:
+            reserved_consume = lambda vid, d, s, n: _consume_reserved_venue(state, vid, d, s, n)
+            d_pool = _build_designated_pool(nc, date, ss, state, free_only=True)
+
+            d_single = None
+            for row in d_pool:
+                v, remaining, cap = row
+                if remaining >= total_needed:
+                    d_single = v
+                    break
+                overflow = total_needed - cap
+                if 0 < overflow <= state.strategy.near_fit_threshold:
+                    d_single = v
+                    break
+            if d_single and _commit_single_venue(
+                group_courses, nc, d_single, total_needed,
+                date, ss, se, state, scheduled_ids, consume_fn=reserved_consume,
+            ):
+                if DEBUG_VERBOSE:
+                    print(f"  [Family-Designated] '{nc}' -> {d_single.code} "
+                          f"(reserved venue) | total_students={total_needed} ✓")
+                return True
+
+            total_free_designated = sum(row[1] for row in d_pool)
+            if d_pool and total_free_designated >= total_needed and _commit_distributed(
+                group_courses, nc, d_pool, total_needed,
+                date, ss, se, state, scheduled_ids, consume_fn=reserved_consume,
+            ):
+                if DEBUG_VERBOSE:
+                    print(f"  [Family-Designated OVERFLOW] '{nc}' spread across "
+                          f"{len(d_pool)} reserved venue(s) | total_students={total_needed} ✓")
+                return True
+
+        if is_strict:
+            # STRICT: this family may ONLY use its designated venue(s).
+            # Never fall back to an ordinary room here — the caller's
+            # date/slot loop will keep trying other slots; if none ever
+            # fit, schedule_families_first marks the whole group
+            # strict_locked instead of splitting it into general venues.
+            return False
+        # Soft rule (or momentarily blocked by the cooling/consecutive
+        # check above): designated venue(s) couldn't take the family this
+        # slot — fall through to the ordinary general-pool strategy below,
+        # same as when a course simply has no designated venue at all.
+
     # Build pool of completely-free rooms only
     pool = _build_venue_pool(date, ss, state, free_only=True)
+
+    # BUGFIX: if another pass (Phase 1 earlier in this run, Phase 3b, or
+    # the Phase 4 sweep-3 re-merge) already committed a sibling of this
+    # SAME family to a building at this exact date+slot, try that
+    # building first — otherwise a family split across multiple passes
+    # can end up in a different building each time (e.g. EDFO111 landing
+    # in 3 separate buildings across the phases that each placed a slice
+    # of it independently).
+    known_building = state.preferred_family_building(nc, date, ss)
+    if known_building:
+        pool = sorted(
+            pool,
+            key=lambda row: 0 if _venue_building(row[0]) == known_building else 1,
+        )
 
     # ----------------------------------------------------------------
     # Strategy A: find ONE free room for the entire merged group
@@ -2164,6 +2386,7 @@ def place_merged_family(
         if _commit_distributed(
             group_courses, nc, pool, total_needed,
             date, ss, se, state, scheduled_ids,
+            preferred_building=known_building,
         ):
             return True
 
@@ -2185,8 +2408,18 @@ def place_merged_family(
 def _commit_single_venue(
     group_courses, nc, venue, total_needed,
     date, ss, se, state, scheduled_ids,
+    consume_fn=None,
 ):
-    """Write all variants to one venue atomically."""
+    """
+    Write all variants to one venue atomically.
+
+    consume_fn(vid, date, slot_start, students): bookkeeping hook, defaults
+    to state.consume_venue (general pool). Callers placing a family into a
+    designated/exclusive venue must pass a reserved-venue-aware consumer
+    (see place_merged_family) so exclusive rooms never get double-tracked
+    through the general pool's aggregates.
+    """
+    consume = consume_fn or state.consume_venue
     cap = state.venue_examcap.get(venue.id, 0)
     remaining = state.venue_remaining(venue.id, date, ss)
 
@@ -2243,7 +2476,7 @@ def _commit_single_venue(
         print(f"  [FAIL] DB commit error: {e}")
         return False
 
-    state.consume_venue(venue.id, date, ss, effective_seats)
+    consume(venue.id, date, ss, effective_seats)
     for c in group_courses:
         state.record_combined_group_venue(c, date, ss, venue.id)
         state.mark_students_busy(c, date, ss)
@@ -2259,6 +2492,7 @@ def _commit_single_venue(
     state.daily_load[date] += 1
     state.shared_unit_lock[nc] = (date, ss)
     state.norm_code_day_lock[nc] = date
+    state.record_family_building(nc, date, ss, _venue_building(venue))
     if DEBUG_VERBOSE:
         print(
             f"  [OK v46] '{nc}' -> {venue.code} | "
@@ -2270,39 +2504,83 @@ def _commit_single_venue(
 def _commit_distributed(
     group_courses, nc, pool, total_needed,
     date, ss, se, state, scheduled_ids,
+    consume_fn=None,
+    preferred_building=None,
 ):
     """
     Assign each variant to venue(s) with enough REMAINING seats.
-    Largest variants first, largest rooms first.
+    Largest variants first, largest rooms first — but SAME BUILDING first.
     Respects per-venue exam_capacity hard cap.
     MergedCourseGroup.total_students = true sum.
+
+    consume_fn: see _commit_single_venue — defaults to state.consume_venue
+    (general pool); pass a reserved-venue-aware consumer when `pool` is
+    made of designated/exclusive venues.
+
+    preferred_building: if a sibling of this family was already placed
+    elsewhere (this phase or an earlier one — see
+    state.preferred_family_building), pass its building here so this
+    call starts from it instead of picking a fresh one.
+
+    BUGFIX — building affinity: this is where a shared/common course
+    (Phase 1 family) that can't fit into one room gets spread across
+    several free rooms in the same slot (Strategy B / designated-overflow).
+    Previously the candidate rooms were only ordered by capacity, so a
+    course could end up split e.g. between building BSL and building FTC —
+    forcing the invigilating lecturer(s) to move between buildings. Worse,
+    each of the THREE code paths that can commit part of a family
+    (Phase 1 here, Phase 3b family_split_rescue_pass, and the Phase 4
+    sweep-3 re-merge of leftovers) used to pick its own building
+    independently, so the same course could end up in a 3rd, 4th
+    building across passes even after this function's own internal
+    ordering was fixed. Now, once the first venue is chosen, every
+    subsequent room needed for this SAME merged group — in this call AND
+    in any later pass that looks up state.preferred_family_building — is
+    preferred from that same building first (falling back to other
+    buildings only if the building runs out of free capacity, so full
+    placement is never sacrificed for this).
     """
+    consume = consume_fn or state.consume_venue
     courses_sorted = sorted(group_courses, key=lambda c: -course_student_count(c))
     assignments = []  # (course, venue, seats)
+    # Seed from a sibling already placed by another pass, if any.
+
+    def building_ordered(rows):
+        """rows re-ordered so same-building candidates come first, keeping
+        each bucket's existing (capacity-desc) relative order intact."""
+        if not preferred_building:
+            return rows
+        same = [r for r in rows if _venue_building(r[0]) == preferred_building]
+        other = [r for r in rows if _venue_building(r[0]) != preferred_building]
+        return same + other
 
     for course in courses_sorted:
         needed = course_student_count(course)
         placed = False
 
-        # Try single venue for this variant
-        for row in pool:
+        # Try single venue for this variant — same building as the rest
+        # of this merged group first, then fall back to any free room.
+        for row in building_ordered(pool):
             v, remaining, cap = row
             # FIX v43: venue cap must hold this variant alone too
             if cap >= needed and remaining >= needed:
                 assignments.append((course, v, needed))
                 row[1] -= needed
                 placed = True
+                if preferred_building is None:
+                    preferred_building = _venue_building(v)
                 if DEBUG_VERBOSE:
                     print(f"    {course.course_code} ({needed} stu) -> {v.code} "
-                          f"[exam_cap={cap}] (rem was {remaining+needed}, now {row[1]})")
+                          f"[exam_cap={cap}, building={_venue_building(v)}] "
+                          f"(rem was {remaining+needed}, now {row[1]})")
                 break
 
         if not placed:
-            # Split variant across multiple venues
+            # Split variant across multiple venues — same building first
             left = needed
             if DEBUG_VERBOSE:
                 print(f"    {course.course_code} ({needed} stu) — splitting across venues:")
-            for row in pool:
+            for row in building_ordered(pool):
                 if left <= 0:
                     break
                 v, remaining, cap = row
@@ -2312,9 +2590,11 @@ def _commit_distributed(
                 assignments.append((course, v, take))
                 row[1] -= take
                 left -= take
+                if preferred_building is None:
+                    preferred_building = _venue_building(v)
                 if DEBUG_VERBOSE:
-                    print(f"      -> {v.code} [exam_cap={cap}] takes {take} "
-                          f"(remaining now {row[1]})")
+                    print(f"      -> {v.code} [exam_cap={cap}, building={_venue_building(v)}] "
+                          f"takes {take} (remaining now {row[1]})")
             if left > 0:
                 if DEBUG_VERBOSE:
                     print(f"  [FAIL] Still short {left} seats for {course.course_code}")
@@ -2358,7 +2638,7 @@ def _commit_distributed(
         return False
 
     for course, venue, seats in assignments:
-        state.consume_venue(venue.id, date, ss, seats)
+        consume(venue.id, date, ss, seats)
         state.record_combined_group_venue(course, date, ss, venue.id)
         state.mark_students_busy(course, date, ss)
         lid = state._cached_lecturer_id(course)
@@ -2373,6 +2653,8 @@ def _commit_distributed(
     state.daily_load[date] += 1
     state.shared_unit_lock[nc] = (date, ss)
     state.norm_code_day_lock[nc] = date
+    for _, venue, _ in assignments:
+        state.record_family_building(nc, date, ss, _venue_building(venue))
 
     if DEBUG_VERBOSE:
         dist = {}
@@ -2433,6 +2715,212 @@ def sync_lecturer_busy_from_db(state, all_courses):
         lid = state._cached_lecturer_id(course)
         if lid:
             state.lecturer_busy[lid].add((e["date"], e["start_time"]))
+
+
+# ======================================================================
+# SECTION 7b – Phase 0: Designated Venue Priority Pass
+# ======================================================================
+#
+# A VenueSpecialization rule reserves one or more venues for a set of
+# courses/programs/departments. Previously the exam scheduler only knew how
+# to enforce the "no one ELSE may use this room" half of an exclusive rule
+# (by stripping the venue from the general pool) — it had no mechanism to
+# actually put the designated course INTO that room. The result: the
+# reserved venue sat empty all exam period while its designated course got
+# scheduled into an ordinary venue like any other course.
+#
+# This pass runs first, before any general placement, and gives every
+# designated course first claim on its own reserved venue(s):
+#   - Candidates are restricted to ONLY that course's designated venue(s)
+#     (never any other room) — best-fit, smallest designated room that
+#     still fits, same as the general best-fit rule elsewhere.
+#   - All the usual hard constraints still apply (lecturer availability,
+#     no student/cohort clash, family/shared-unit/day locks).
+#   - STRICT rules: if no designated venue has a free slot anywhere in the
+#     exam window, the course is left unscheduled (flagged) rather than
+#     falling back to an ordinary venue — state.strict_locked_ids marks it
+#     so every later phase refuses to place it elsewhere.
+#   - Non-strict (soft) rules: if no designated venue is free, the course
+#     simply proceeds to the normal phases and competes for a general room
+#     like everything else.
+# ======================================================================
+
+def _reserved_venue_remaining(state: SchedulerState, vid: int, date, slot_start) -> int:
+    cap = state.venue_examcap.get(vid, 0)
+    return state._venue_avail.get((vid, date, slot_start), cap)
+
+
+def _consume_reserved_venue(state: SchedulerState, vid: int, date, slot_start, students: int):
+    """
+    Bookkeeping for a designated-venue placement (Phase 0).
+
+    Exclusive venues live outside the general pool entirely, so their usage
+    must be tracked here directly (never via consume_venue, which would
+    touch the general pool's _day_slot_total/_cap_cache aggregates that
+    exclusive venues are deliberately excluded from).
+
+    Non-exclusive (soft) designated venues ARE part of the general pool —
+    Phase 0 is just claiming a room in it before Phase 1 runs — so those
+    go through the normal consume_venue() so the general aggregates stay
+    accurate for every later phase.
+    """
+    if students <= 0:
+        return
+    if vid not in state.exclusive_venue_ids:
+        state.consume_venue(vid, date, slot_start, students)
+        return
+    cap = state.venue_examcap.get(vid, 0)
+    key = (vid, date, slot_start)
+    avail = state._venue_avail.get(key, cap)
+    take = min(students, avail)
+    if take <= 0:
+        return
+    state._venue_avail[key] = avail - take
+    state.venue_usage[key] += take
+
+
+def designated_venue_priority_pass(all_courses, state: SchedulerState, scheduled_ids: Set[int]) -> int:
+    if not state.designated_venues_by_norm_code:
+        return 0
+
+    dates = state.dates_in_order()
+    all_slots = state.all_slots_ordered
+    placed = 0
+
+    # BUGFIX: cross-cohort shared/common courses (e.g. COSC103 taken by many
+    # programs) are excluded here — they're handled entirely, as one merged
+    # group, by schedule_families_first (Phase 1), which now runs BEFORE
+    # this pass and is itself designated-venue-aware (see place_merged_family).
+    # Letting this pass grab a single program's variant on its own used to
+    # lock in a day/slot before the true combined total was known, stranding
+    # the rest of the family with no room ("unschedulable"). This pass now
+    # only ever handles single-program courses that are designated but not
+    # shared with any other program/cohort.
+    candidates = [
+        c for c in all_courses
+        if c.id not in scheduled_ids
+        and normalize_course_code(getattr(c, "course_code", "") or "")
+            in state.designated_venues_by_norm_code
+        and normalize_course_code(getattr(c, "course_code", "") or "")
+            not in state._cross_cohort_norm_codes
+    ]
+    candidates.sort(key=lambda c: -state.priority_score(c))
+
+    print(f"\n[Phase0-Designated] {len(candidates)} course(s) have a designated venue "
+          f"(shared/common courses excluded — handled by Phase 1)")
+
+    for course in candidates:
+        if course.id in scheduled_ids:
+            continue
+        if _course_already_in_db(course):
+            scheduled_ids.add(course.id)
+            continue
+
+        nc = normalize_course_code(course.course_code or "")
+        venue_ids = state.designated_venues_by_norm_code.get(nc, [])
+        venues = sorted(
+            (state.venue_by_id[vid] for vid in venue_ids if vid in state.venue_by_id),
+            key=lambda v: state.venue_examcap.get(v.id, 0),
+        )
+        if not venues:
+            continue
+
+        needed = course_student_count(course)
+        lid = state._cached_lecturer_id(course)
+        placed_this = False
+
+        for date_obj, _ in dates:
+            if placed_this:
+                break
+            for ss, se in all_slots:
+                if lid and not state.lecturer_available(lid, date_obj, ss):
+                    continue
+                if not state.students_available(course, date_obj, ss):
+                    continue
+                if state.check_norm_code_day_conflict(course, date_obj):
+                    continue
+                if state.check_shared_unit_conflict(course, date_obj, ss):
+                    continue
+                if state.check_family_conflict(course, date_obj, ss):
+                    continue
+                # BUGFIX: this pass never checked the same-cohort
+                # cooling/consecutive-exam gap that every other placement
+                # function enforces — a designated venue being free doesn't
+                # mean it's OK to sit this student cohort's exam right next
+                # to another one of their exams the same day. Even with
+                # every day/slot/venue reserved for it, the course still
+                # has to respect the cohort's spacing rule like anything
+                # else.
+                if not state.strategy.relax_consecutive and state.cohort_in_cooling(course, date_obj, ss):
+                    continue
+
+                # Best-fit among ONLY this course's designated venue(s):
+                # smallest exclusively-free one that fits, else the largest
+                # exclusively-free one (near-fit/overflow), same tiering as
+                # the general best-fit rule — never a partially-used room.
+                room = None
+                for v in venues:
+                    cap = state.venue_examcap.get(v.id, 0)
+                    rem = _reserved_venue_remaining(state, v.id, date_obj, ss)
+                    if rem == cap and cap >= needed:
+                        room = v
+                        break
+                if room is None:
+                    free_designated = [
+                        v for v in venues
+                        if _reserved_venue_remaining(state, v.id, date_obj, ss)
+                            == state.venue_examcap.get(v.id, 0)
+                    ]
+                    if free_designated:
+                        room = max(free_designated, key=lambda v: state.venue_examcap.get(v.id, 0))
+                if room is None:
+                    continue
+
+                try:
+                    with transaction.atomic():
+                        ExamTempTimetable.objects.create(
+                            course_allocation=course, venue=room,
+                            date=date_obj, day=date_obj.strftime("%A"),
+                            start_time=ss, end_time=se,
+                        )
+                except IntegrityError:
+                    continue
+                except Exception:
+                    continue
+
+                cap = state.venue_examcap.get(room.id, 0)
+                effective = min(needed, cap) if cap else needed
+                _consume_reserved_venue(state, room.id, date_obj, ss, effective)
+                state.record_combined_group_venue(course, date_obj, ss, room.id)
+                state.mark_students_busy(course, date_obj, ss)
+                state.mark_lecturer_busy(lid, date_obj, ss)
+                state.bind_family(state.family_key(course), date_obj, ss)
+                state.bind_shared_unit(course, date_obj, ss)
+                state.bind_norm_code_day(course, date_obj)
+                state.mark_cohort_scheduled(course, date_obj, ss)
+                state.daily_load[date_obj] += 1
+                scheduled_ids.add(course.id)
+                _already_scheduled_cache.add(course.id)
+                placed += 1
+                placed_this = True
+                overcap = needed - cap if cap and needed > cap else 0
+                tag = f" [OVERCAP+{overcap}]" if overcap > 0 else ""
+                print(f"  [Phase0-Designated] {course.course_code} {needed}stu → "
+                      f"{date_obj} {ss} {room.code}(cap={cap}){tag} [designated venue]")
+                break
+
+        if not placed_this and nc in state.strict_norm_codes:
+            state.strict_locked_ids.add(course.id)
+            print(
+                f"  [Phase0-Designated] WARNING: {course.course_code} is STRICTLY "
+                f"designated to {[v.code for v in venues]} but no free slot was "
+                f"found there in the whole exam window — left unscheduled rather "
+                f"than placed in a non-designated venue."
+            )
+
+    print(f"[Phase0-Designated] Placed {placed} course(s) into their designated venue(s). "
+          f"{len(state.strict_locked_ids)} strictly-designated course(s) still unplaced.")
+    return placed
 
 
 # ======================================================================
@@ -2551,7 +3039,21 @@ def schedule_families_first(all_courses, state, scheduled_ids):
                     family_placed = True
 
         if not family_placed:
-            if DEBUG_VERBOSE:
+            if nc in state.strict_norm_codes and nc in state.designated_venues_by_norm_code:
+                # STRICTLY designated shared/common course: every date+slot
+                # in the exam window was tried and its reserved venue(s)
+                # never had room for the combined total. Lock every variant
+                # so no later phase splits the family into ordinary rooms.
+                for c in group:
+                    state.strict_locked_ids.add(c.id)
+                print(
+                    f"  [WARN] '{nc}' is STRICTLY designated but no free slot was "
+                    f"found in its reserved venue(s) for the combined group "
+                    f"(TRUE total={true_total} students) across the whole exam "
+                    f"window — left unscheduled rather than split across "
+                    f"ordinary venues/days."
+                )
+            elif DEBUG_VERBOSE:
                 print(
                     f"  [WARN] Could not place '{nc}' "
                     f"(TRUE total={true_total} students) — will retry later"
@@ -2993,12 +3495,18 @@ def family_split_rescue_pass(all_courses, state, scheduled_ids):
                 if len(free_rooms) < len(variants):
                     continue   # not enough free rooms for all variants
 
-                # 3. Determine preferred building from best room for largest variant
-                largest_variant = max(variants, key=lambda c: course_student_count(c))
-                best_room = _best_fit_free_room(
-                    course_student_count(largest_variant), free_rooms, state, date_obj, ss
-                )
-                preferred_building = _venue_building(best_room) if best_room else ""
+                # 3. Determine preferred building — first check whether
+                # another pass (Phase 1, or an earlier slot attempt in
+                # this very pass) already committed a sibling of this
+                # family to a building at this date+slot; only compute a
+                # fresh guess (best room for the largest variant) if not.
+                preferred_building = state.preferred_family_building(nc, date_obj, ss)
+                if not preferred_building:
+                    largest_variant = max(variants, key=lambda c: course_student_count(c))
+                    best_room = _best_fit_free_room(
+                        course_student_count(largest_variant), free_rooms, state, date_obj, ss
+                    )
+                    preferred_building = _venue_building(best_room) if best_room else ""
 
                 # Sort free rooms: same building first, then best-fit ascending
                 def room_sort_key(vc):
@@ -3066,6 +3574,7 @@ def family_split_rescue_pass(all_courses, state, scheduled_ids):
                     scheduled_ids.add(course.id)
                     _already_scheduled_cache.add(course.id)
                     buildings_used.add(_venue_building(venue))
+                    state.record_family_building(nc, date_obj, ss, _venue_building(venue))
 
                 state.daily_load[date_obj] += 1
                 state.placed_families.add(nc)
@@ -3572,12 +4081,22 @@ def nuclear_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
 def _ultimate_find_room(needed: int, date, slot_start, state: SchedulerState,
                         exclude_ids: Set[int] = None):
     """
-    Find best-fit room for `needed` students, relaxed capacity mode.
-    Preference order:
+    Find best-fit room for `needed` students.
+
+    ROOM ISOLATION IS NEVER RELAXED HERE: a room is only ever considered if
+    it is COMPLETELY FREE for this slot (remaining == cap). Two different
+    courses must never end up sharing a venue+slot, even as a Phase-8
+    "place everything" last resort — a course that cannot get an
+    exclusively-free room is left unscheduled instead, so it can be
+    reported and moved to a different day/slot rather than silently
+    double-booking a venue.
+
+    Preference order (best-fit — never waste a big hall on a small course):
       1. Completely free room, best-fit (smallest cap >= needed).
-      2. Completely free room — largest available (near-fit or overflow).
-      3. Any room with any remaining space, best-fit by remaining.
-    Never returns a room in exclude_ids.
+      2. Completely free room — largest available (near-fit/overflow only;
+         still exclusively free, just physically undersized).
+    Never returns a room in exclude_ids. Returns None if no exclusively
+    free room exists, rather than falling back to a partially-occupied one.
     """
     exclude_ids = exclude_ids or set()
 
@@ -3592,29 +4111,20 @@ def _ultimate_find_room(needed: int, date, slot_start, state: SchedulerState,
         key=lambda x: x[1]
     )
 
-    # Tier 1: smallest free room that fits exactly
+    # Tier 1: smallest free room that fits exactly (best-fit — keeps small
+    # courses out of large halls so those halls stay free for bigger ones)
     for v, cap in free_asc:
         if cap >= needed:
             return v
 
-    # Tier 2: largest free room (accepts overcap)
+    # Tier 2: largest free room (accepts overcap) — still exclusively free,
+    # never a room another course is already sitting in.
     if free_asc:
         return free_asc[-1][0]
 
-    # Tier 3: any room with any remaining space (relaxed room isolation)
-    any_avail = sorted(
-        [(v, state._venue_avail.get((v.id, date, slot_start), 0))
-         for v in state.venues_by_cap_desc
-         if v.id not in exclude_ids
-         and state._venue_avail.get((v.id, date, slot_start), 0) > 0],
-        key=lambda x: x[1]
-    )
-    for v, rem in any_avail:
-        if rem >= needed:
-            return v
-    if any_avail:
-        return any_avail[-1][0]
-
+    # No exclusively-free room exists for this slot — do NOT fall back to
+    # a partially-occupied room. Return None so the caller leaves this
+    # course unscheduled/reported rather than double-booking a venue.
     return None
 
 
@@ -3629,6 +4139,12 @@ def _place_one_course_ultimate(course, dates, all_slots, state, scheduled_ids,
     Capacity: relaxed — accepts any free room, logs overcap.
     Returns True if placed.
     """
+    if course.id in state.strict_locked_ids:
+        # Bound to a designated venue by a STRICT specialization rule that
+        # had no free slot for it in designated_venue_priority_pass — never
+        # let this last-resort pass dump it into an ordinary room instead.
+        return False
+
     # BUGFIX: every other placement function (place_single, place_multi_venue,
     # _commit_single_venue, _commit_distributed) checks _course_already_in_db()
     # before writing a new ExamTempTimetable row, so a course that already has
@@ -3726,11 +4242,15 @@ def ultimate_fallback_pass(all_courses, state, scheduled_ids):
       • Same-cohort student clash — students cannot sit two exams at same time.
 
     CONSTRAINTS RELAXED:
-      • Room capacity — a course may go into a smaller room (logged as OVERCAP).
+      • Room capacity — a course may go into a smaller room (logged as OVERCAP),
+        but only when that room is otherwise completely empty for the slot.
       • Cooling period — ignored.
-      • Room isolation — a free room is used even if it's the only one left.
 
-    NEVER:
+    NEVER RELAXED (even here):
+      • Room isolation — a room already holding a different course is never
+        reused for another course in the same slot. If no exclusively-free
+        room exists anywhere/anytime, the course is left unscheduled and
+        reported rather than double-booked into an occupied venue.
       • Splitting individual courses across multiple rooms.
 
     For shared families: all variants in same slot, each in own room.
@@ -4060,6 +4580,86 @@ def _audit_venue_overcapacity(state: SchedulerState, all_courses: List) -> int:
     if violations == 0:
         print("[Audit-OVERCAP] ✓ Zero over-capacity venue assignments")
     return violations
+
+
+def _audit_and_fix_venue_double_booking(state: SchedulerState, all_courses: List) -> int:
+    """
+    Safety net: detect any venue that ended up hosting two DIFFERENT courses
+    in the same (date, start_time) slot — a genuine double-booking — and
+    repair it by keeping only one entry in that room and deleting the rest,
+    so the exported timetable never shows a venue clash.
+
+    NOT a violation (left alone):
+      • Multiple rows for the SAME normalised course code in the same venue
+        (that's just how a single course's roster is represented).
+      • Rows whose allocations are all paired via a real CombinedCourseGroup
+        (those are intentionally taught/examined together in one room).
+
+    Kept entry: the one with the highest priority_score (i.e. the course
+    that most needed this slot). Everything else removed is left
+    unscheduled so a later run/report can place it in a genuinely free room.
+    """
+    course_by_id = {c.id: c for c in all_courses}
+    entries = list(
+        ExamTempTimetable.objects
+        .values("id", "venue_id", "date", "start_time", "course_allocation_id")
+    )
+    by_slot: Dict[Tuple, list] = defaultdict(list)
+    for e in entries:
+        by_slot[(e["venue_id"], e["date"], e["start_time"])].append(e)
+
+    removed = 0
+    for (vid, date, ss), rows in by_slot.items():
+        if len(rows) < 2:
+            continue
+
+        norm_codes = {
+            normalize_course_code(
+                getattr(course_by_id.get(r["course_allocation_id"]), "course_code", "") or ""
+            )
+            for r in rows
+        }
+        if len(norm_codes) == 1:
+            continue  # same course, multiple rows in this venue — fine
+
+        alloc_ids = [r["course_allocation_id"] for r in rows]
+        all_combined = True
+        for i in range(len(alloc_ids)):
+            for j in range(i + 1, len(alloc_ids)):
+                if not _combined_group_are_paired(alloc_ids[i], alloc_ids[j]):
+                    all_combined = False
+                    break
+            if not all_combined:
+                break
+        if all_combined:
+            continue  # genuinely combined courses sharing the room on purpose
+
+        # Genuine double-booking: keep the highest-priority course, drop the rest.
+        def _score(r):
+            c = course_by_id.get(r["course_allocation_id"])
+            return state.priority_score(c) if c else 0
+
+        rows_sorted = sorted(rows, key=_score, reverse=True)
+        keep = rows_sorted[0]
+        drop = rows_sorted[1:]
+        drop_ids = [r["id"] for r in drop]
+        ExamTempTimetable.objects.filter(id__in=drop_ids).delete()
+        for r in drop:
+            course = course_by_id.get(r["course_allocation_id"])
+            code = getattr(course, "course_code", r["course_allocation_id"])
+            print(
+                f"[Audit-VENUE] REMOVED double-booking: {code} was sharing "
+                f"venue_id={vid} with {getattr(course_by_id.get(keep['course_allocation_id']), 'course_code', '?')} "
+                f"at {date} {ss} — left unscheduled for re-placement."
+            )
+            _already_scheduled_cache.discard(r["course_allocation_id"])
+            removed += 1
+
+    if removed == 0:
+        print("[Audit-VENUE] ✓ Zero venue double-bookings")
+    else:
+        print(f"[Audit-VENUE] Removed {removed} double-booked exam entr(y/ies)")
+    return removed
 
 
 def classify_courses(all_courses) -> Tuple[List, List]:
@@ -4468,8 +5068,25 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
                     f"per-variant={[f'{c.course_code}={course_student_count(c)}' for c in group]}"
                 )
 
-        # Phase 1
-        _progress(8, f"Phase 1: Families first (TRUE student sums for venue selection)...",
+        # ──────────────────────────────────────────────────────────────
+        # BUGFIX — ordering: common/shared courses (Phase 1) now run
+        # BEFORE the single-course designated-venue pass (Phase 0).
+        #
+        # A shared unit like COSC103 (done by many programs) must claim
+        # its day/slot/venue(s) as ONE combined group first — enough
+        # venues reserved for the TRUE total across every program. Only
+        # once every common course has first pick does the leftover,
+        # single-program designated-venue pass run, so it can never grab
+        # a venue/slot out from under a common course and make the rest
+        # of that family unschedulable. schedule_families_first is itself
+        # designated-venue-aware now (see place_merged_family), so a
+        # common course with a VenueSpecialization rule still gets its
+        # reserved room(s) — just as a whole group, not one variant at a
+        # time.
+        # ──────────────────────────────────────────────────────────────
+
+        # Phase 1 — common/shared courses first
+        _progress(5, f"Phase 1: Common/shared courses first (TRUE student sums for venue selection)...",
                   0, total_courses)
         if is_cancelled():
             return {"status": "cancelled", "message": "Cancelled before Phase 1",
@@ -4477,6 +5094,15 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
         p1_placed = schedule_families_first(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
         sync_lecturer_busy_from_db(state, all_courses)
+
+        # Phase 0 — remaining single-program designated venues get next claim
+        _progress(8, f"Phase 0: Designated venue priority pass...",
+                  len(scheduled_ids), total_courses)
+        if is_cancelled():
+            return {"status": "cancelled", "message": "Cancelled before Phase 0",
+                    "scheduled_count": len(scheduled_ids), "remaining_count": total_courses - len(scheduled_ids)}
+        p0_placed = designated_venue_priority_pass(all_courses, state, scheduled_ids)
+        sync_scheduled_ids_from_db(scheduled_ids)
 
         # Phase 2
         _progress(25, f"Phase 2: Saturation ({total_courses - len(scheduled_ids)} remaining)...",
@@ -4560,6 +5186,30 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
         _progress(98, "Audit: checking for duplicate course placements…",
                   len(scheduled_ids), total_courses - len(scheduled_ids))
         duplicate_fixes = _audit_and_fix_duplicate_placements(state, all_courses)
+
+        # Audit + auto-repair: two DIFFERENT courses ended up sharing one
+        # venue in the same slot (genuine double-booking). Anything this
+        # removes is re-synced into scheduled_ids as unscheduled and given
+        # one more chance at an exclusively-free room via nuclear/ultimate
+        # fallback (which — after the fix above — will never re-create the
+        # same double-booking).
+        _progress(98, "Audit: checking venue double-bookings…",
+                  len(scheduled_ids), total_courses - len(scheduled_ids))
+        venue_dbl_removed = _audit_and_fix_venue_double_booking(state, all_courses)
+        if venue_dbl_removed:
+            sync_scheduled_ids_from_db(scheduled_ids, force=True)
+            rebuild_state_from_db(state, all_courses)
+            still_missing = total_courses - len(scheduled_ids)
+            if still_missing > 0:
+                nuclear_fallback_pass(all_courses, state, scheduled_ids)
+                sync_scheduled_ids_from_db(scheduled_ids, force=True)
+            still_missing = total_courses - len(scheduled_ids)
+            if still_missing > 0:
+                ultimate_fallback_pass(all_courses, state, scheduled_ids)
+                sync_scheduled_ids_from_db(scheduled_ids, force=True)
+            # Re-run the audit once more; anything still colliding is left
+            # removed/unscheduled rather than re-double-booked.
+            _audit_and_fix_venue_double_booking(state, all_courses)
 
         actual_scheduled = (
             ExamTempTimetable.objects.values("course_allocation_id").distinct().count()

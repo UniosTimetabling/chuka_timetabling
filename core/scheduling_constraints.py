@@ -199,6 +199,40 @@ def get_exclusive_venue_ids(disabled_for_run: Optional[Set[str]] = None,
     return ids
 
 
+def get_designated_venue_rules(disabled_for_run: Optional[Set[str]] = None,
+                                 scheduler_type: str = "regular") -> List[dict]:
+    """
+    Active VenueSpecialization rules, as plain dicts, so callers (e.g. the
+    exam autoscheduler's priority pass) can steer designated courses into
+    their reserved venue(s) FIRST, before any general placement — without
+    importing the model directly.
+
+    Returns [] entirely if the 'venue_specialization' category is disabled
+    for this run. A rule's 'exclusive' flag is downgraded to False here if
+    the separate 'venue_exclusive' category is disabled for this run, so
+    the two toggles compose the same way they do for get_exclusive_venue_ids().
+
+    Each dict: {"venue_ids": set[int], "codes": set[str] (normalised upper
+    course codes), "exclusive": bool, "strict": bool, "priority": int}
+    """
+    if not is_enabled("venue_specialization", disabled_for_run, scheduler_type):
+        return []
+    from room_management.models import VenueSpecialization
+    exclusive_enabled = is_enabled("venue_exclusive", disabled_for_run, scheduler_type)
+    rules = []
+    for rule in VenueSpecialization.objects.filter(is_active=True).prefetch_related(
+        "venues", "programs__courses", "departments__programs__courses", "courses"
+    ):
+        rules.append({
+            "venue_ids": set(rule.venues.values_list("id", flat=True)),
+            "codes": rule.get_designated_course_codes(),
+            "exclusive": bool(rule.exclusive) and exclusive_enabled,
+            "strict": bool(rule.strict),
+            "priority": rule.priority,
+        })
+    return rules
+
+
 def get_lecturer_blocked_ranges(
     disabled_for_run: Optional[Set[str]] = None,
     scheduler_type: str = "regular",
