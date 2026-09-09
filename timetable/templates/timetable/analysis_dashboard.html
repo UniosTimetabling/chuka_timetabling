@@ -806,6 +806,16 @@ const MATRIX_DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Sa
  * cell. Rows that aren't scheduled yet (no day/time/venue) are listed
  * separately underneath, since they have no cell to sit in.
  */
+function _formatMatrixGroupLabel(day, dateStr){
+  if (!dateStr) return day || 'Unknown';
+  // dateStr is 'YYYY-MM-DD' from the backend (isoformat()) — parse as local,
+  // not UTC, so the displayed date can't drift a day depending on timezone.
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, (m || 1) - 1, d || 1);
+  const niceDate = dt.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+  return day ? `${day} — ${niceDate}` : niceDate;
+}
+
 function buildMatrixTables(matches, opts){
   opts = opts || {};
   matches = matches || [];
@@ -817,11 +827,23 @@ function buildMatrixTables(matches, opts){
     return '<p class="hint">No matching course allocation found.</p>';
   }
 
-  const byDay = {};
+  // Exam-scope rows carry a real calendar `date` (the exam period spans
+  // several weeks, so "Wednesday" alone repeats many times over). When a
+  // date is present, group by the actual date — one table PER DATE — so
+  // two unrelated exams three weeks apart on the same weekday never get
+  // merged into one table and misread as scheduled at the same time.
+  // Regular-timetable rows have no date (it's one recurring weekly grid),
+  // so they keep grouping by weekday as before.
+  const hasDates = scheduled.some(m => m.date);
+  const groupKeyOf = m => hasDates ? (m.date || m.day) : m.day;
+
+  const byGroup = {};
   for (const m of scheduled){
-    (byDay[m.day] = byDay[m.day] || []).push(m);
+    const k = groupKeyOf(m);
+    (byGroup[k] = byGroup[k] || []).push(m);
   }
-  const days = Object.keys(byDay).sort((a, b) => {
+  const groupKeys = Object.keys(byGroup).sort((a, b) => {
+    if (hasDates) return a.localeCompare(b); // ISO dates sort chronologically as strings
     const ia = MATRIX_DAY_ORDER.indexOf(a), ib = MATRIX_DAY_ORDER.indexOf(b);
     if (ia === -1 && ib === -1) return a.localeCompare(b);
     if (ia === -1) return 1;
@@ -840,8 +862,8 @@ function buildMatrixTables(matches, opts){
 
   let html = '';
 
-  for (const day of days){
-    const entries = byDay[day];
+  for (const groupKey of groupKeys){
+    const entries = byGroup[groupKey];
     const venues = [...new Set(entries.map(e => e.venue))].sort();
     const slotKeys = [...new Set(entries.map(e => `${e.start_time}|${e.end_time}`))]
       .sort((a, b) => a.localeCompare(b));
@@ -852,7 +874,8 @@ function buildMatrixTables(matches, opts){
       (cellMap[key] = cellMap[key] || []).push(e);
     }
 
-    html += `<div class="day-heading">📅 ${escapeHtml(day)} <span class="day-count">${entries.length} class(es) · ${venues.length} venue(s)</span></div>`;
+    const label = hasDates ? _formatMatrixGroupLabel(entries[0].day, entries[0].date) : groupKey;
+    html += `<div class="day-heading">📅 ${escapeHtml(label)} <span class="day-count">${entries.length} class(es) · ${venues.length} venue(s)</span></div>`;
     html += `<div class="day-matrix-wrap"><table class="matrix-table"><thead><tr><th>Venue</th>`;
     for (const sk of slotKeys){
       const [st, en] = sk.split('|');

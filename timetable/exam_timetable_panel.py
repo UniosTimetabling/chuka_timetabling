@@ -25,7 +25,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from course_allocation.models import CourseAllocation, CombinedCourseGroup
 from core.group_required import group_required
-from room_management.models import Venue
+from room_management.models import Venue, VenueBlock, VenueSpecialization
 from timetable.models import (
     ExamSchedulerConfig,
     ExamTimetable,
@@ -258,6 +258,17 @@ def get_course_family_code(course_code):
 
 
 def _build_venues(include_from_timetables=True):
+    blocked_codes = set(
+        VenueBlock.objects
+        .filter(is_active=True)
+        .values_list('venue__code', flat=True)
+    )
+    specialized_codes = set(
+        VenueSpecialization.objects
+        .filter(is_active=True)
+        .values_list('venues__code', flat=True)
+    )
+    specialized_codes.discard(None)
     venue_dict = {}
     for v in Venue.objects.all().only('code', 'capacity', 'exam_capacity'):
         exam_cap = v.exam_capacity if v.exam_capacity is not None else v.capacity
@@ -265,6 +276,8 @@ def _build_venues(include_from_timetables=True):
             'code': v.code,
             'capacity': v.capacity or 0,
             'exam_capacity': exam_cap or 0,
+            'is_blocked': v.code in blocked_codes,
+            'is_specialized': v.code in specialized_codes,
         }
     if include_from_timetables:
         for code in (ExamTimetable.objects
@@ -272,7 +285,13 @@ def _build_venues(include_from_timetables=True):
                      .values_list('venue__code', flat=True)
                      .distinct()):
             if code and code not in venue_dict:
-                venue_dict[code] = {'code': code, 'capacity': 0, 'exam_capacity': 0}
+                venue_dict[code] = {
+                    'code': code,
+                    'capacity': 0,
+                    'exam_capacity': 0,
+                    'is_blocked': code in blocked_codes,
+                    'is_specialized': code in specialized_codes,
+                }
     return sorted(venue_dict.values(), key=lambda v: str(v['code']).lower())
 
 
@@ -510,12 +529,42 @@ def load_exam_timetable_data(request):
                 )
                 .order_by('date', 'start_time')
             )
+            # Pre-compute combined-group membership for every allocation appearing
+            # in this timetable, so entries whose course is examined together with
+            # others (as one CombinedCourseGroup) can be labelled "Combined Group"
+            # instead of being mistaken for a capacity-driven venue split, and can
+            # show the group's TOTAL headcount rather than just this row's share.
+            alloc_ids_in_view = list(
+                ExamTimetable.objects.values_list('course_allocation_id', flat=True).distinct()
+            )
+            combined_group_by_alloc = {}
+            for grp in (
+                CombinedCourseGroup.objects
+                .filter(allocations__id__in=alloc_ids_in_view)
+                .prefetch_related('allocations')
+                .distinct()
+            ):
+                grp_alloc_ids = list(grp.allocations.values_list('id', flat=True))
+                grp_total = sum(
+                    (a.number_of_students or 0)
+                    for a in grp.allocations.only('number_of_students')
+                )
+                for aid in grp_alloc_ids:
+                    # An allocation could technically sit in more than one group —
+                    # first match wins, which mirrors _exam_in_same_combined_group.
+                    combined_group_by_alloc.setdefault(aid, {
+                        'id': grp.id,
+                        'code': grp.group_code,
+                        'total_students': grp_total,
+                    })
+
             data = []
             for t in timetables:
                 alloc = t.course_allocation
                 year = None
                 if alloc and hasattr(alloc, 'program_course') and alloc.program_course:
                     year = alloc.program_course.year
+                combined_info = combined_group_by_alloc.get(alloc.id) if alloc else None
 
                 data.append({
                     'id': t.id,
@@ -539,6 +588,9 @@ def load_exam_timetable_data(request):
                     'selection_group_id': alloc.selection_group_id if alloc and alloc.selection_group else None,
                     'students': (alloc.number_of_students or 0) if alloc else 0,
                     'allocation_id': alloc.id if alloc else None,
+                    'combined_group_id': combined_info['id'] if combined_info else None,
+                    'combined_group_code': combined_info['code'] if combined_info else None,
+                    'combined_group_total_students': combined_info['total_students'] if combined_info else None,
                     'type': 'direct',
                 })
             return JsonResponse({
@@ -904,11 +956,38 @@ def exam_conflicts_api(request):
                             'message': f'Program {prog_name} Year {year_part} has conflicting exams at {start_time} on {date_str}',
                         })
 
-                # Venue conflicts
+                # Venue conflicts — sharing a venue across two different courses
+                # is fine as long as the room can physically hold everyone placed
+                # there. Only flag it when the combined (split-aware) headcount
+                # exceeds the venue's capacity.
                 venue_groups = defaultdict(list)
                 for e in entries:
                     if e.venue:
                         venue_groups[e.venue.code].append(e)
+
+                # How many ExamTimetable rows (rooms) does each course_allocation
+                # occupy in THIS exact date+timeslot? A split exam (e.g. one big
+                # course spread across 3 halls) shows up as several rows all
+                # carrying the SAME full course roll — without this we'd count
+                # the whole course three times over instead of estimating each
+                # room's own share.
+                alloc_split_counts = defaultdict(int)
+                for e in entries:
+                    if e.course_allocation_id:
+                        alloc_split_counts[e.course_allocation_id] += 1
+
+                def _estimated_students_for_row(entry):
+                    alloc = entry.course_allocation
+                    if not alloc:
+                        return 0
+                    total = alloc.number_of_students or 0
+                    splits = alloc_split_counts.get(alloc.id, 1) or 1
+                    if splits > 1:
+                        # Estimate this room's share of the split rather than
+                        # re-counting the whole course roll for every room.
+                        return -(-total // splits)  # ceil division
+                    return total
+
                 for vcode, group in venue_groups.items():
                     if len(group) > 1:
                         norm_codes = {
@@ -929,11 +1008,31 @@ def exam_conflicts_api(request):
                                 break
                         if all_combined_v and len(alloc_ids_v) >= 2:
                             continue
+
+                        # Capacity check: two different courses sharing one venue
+                        # is NOT a conflict provided their combined, split-aware
+                        # headcount still fits the room.
+                        venue_obj = group[0].venue
+                        room_capacity = 0
+                        if venue_obj:
+                            room_capacity = (
+                                venue_obj.exam_capacity
+                                if venue_obj.exam_capacity is not None
+                                else venue_obj.capacity
+                            )
+                        room_capacity = room_capacity or 0
+                        combined_students = sum(_estimated_students_for_row(g) for g in group)
+                        if room_capacity and combined_students <= room_capacity:
+                            # Fits comfortably — a shared room, not a real conflict.
+                            continue
+
                         venue_conflicts.append({
                             'type': 'venue_conflict',
                             'date': date_str,
                             'timeslot': start_time,
                             'venue': vcode,
+                            'combined_students': combined_students,
+                            'capacity': room_capacity,
                             'courses': [
                                 {
                                     'course_code': g.course_allocation.course_code,
@@ -941,7 +1040,12 @@ def exam_conflicts_api(request):
                                 }
                                 for g in group
                             ],
-                            'message': f'Venue {vcode} double-booked at {start_time} on {date_str}',
+                            'message': (
+                                f'Venue {vcode} double-booked at {start_time} on {date_str} '
+                                f'({combined_students} students exceeds capacity {room_capacity})'
+                                if room_capacity else
+                                f'Venue {vcode} double-booked at {start_time} on {date_str}'
+                            ),
                         })
 
             for e in entries:
@@ -1193,15 +1297,52 @@ def _handle_ajax_add(request, config):
         if ExamTimetable.objects.filter(venue=venue_obj, date=exam_date_obj, start_time=slot_start).exists():
             # If the existing booking at this venue+slot belongs to the same CombinedCourseGroup,
             # it is intentional — both allocations sit their exam in the same room together.
-            existing_at_slot = ExamTimetable.objects.filter(
+            existing_at_slot = list(ExamTimetable.objects.filter(
                 venue=venue_obj, date=exam_date_obj, start_time=slot_start
-            ).select_related('course_allocation').only('course_allocation__id')
+            ).select_related('course_allocation').only(
+                'course_allocation__id', 'course_allocation__number_of_students',
+                'course_allocation__course_code',
+            ))
             venue_combined_ok = all(
                 _exam_in_same_combined_group(alloc.id, ex.course_allocation.id)
                 for ex in existing_at_slot if ex.course_allocation
             )
             if not venue_combined_ok:
-                collisions.append(f'Room {venue_input} already booked at {slot_start} on {exam_date}.')
+                # Sharing a venue across two different courses is fine as long as
+                # the room can physically hold everyone. Estimate each existing
+                # occupant's share (dividing across their own split rooms, if any,
+                # so a split exam's full roll isn't counted for every room it's in),
+                # then check the combined headcount against the room's capacity.
+                room_capacity = (
+                    venue_obj.exam_capacity
+                    if venue_obj.exam_capacity is not None
+                    else venue_obj.capacity
+                ) or 0
+
+                alloc_split_counts = defaultdict(int)
+                for ex in ExamTimetable.objects.filter(
+                    date=exam_date_obj, start_time=slot_start,
+                    course_allocation_id__in=[ex.course_allocation_id for ex in existing_at_slot if ex.course_allocation_id],
+                ).only('course_allocation_id'):
+                    alloc_split_counts[ex.course_allocation_id] += 1
+
+                existing_students = 0
+                for ex in existing_at_slot:
+                    if not ex.course_allocation:
+                        continue
+                    total = ex.course_allocation.number_of_students or 0
+                    splits = alloc_split_counts.get(ex.course_allocation_id, 1) or 1
+                    existing_students += -(-total // splits) if splits > 1 else total  # ceil division for splits
+
+                combined_students = existing_students + (alloc.number_of_students or 0)
+
+                if room_capacity and combined_students <= room_capacity:
+                    info_messages.append(
+                        f"ℹ️ Sharing room {venue_input} with existing exam(s) — "
+                        f"{combined_students}/{room_capacity} seats used, within capacity."
+                    )
+                else:
+                    collisions.append(f'Room {venue_input} already booked at {slot_start} on {exam_date}.')
 
         if alloc.lecturer_id:
             conflicting_lec_exams = (

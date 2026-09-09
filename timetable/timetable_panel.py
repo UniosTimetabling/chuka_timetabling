@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 from core.group_required import group_required
 from django.db.models import Q, Prefetch
 from django.db import transaction
+from django.db.models.signals import post_save, post_delete, m2m_changed
+from django.dispatch import receiver
 from course_allocation.models import CourseAllocation, CombinedCourseGroup
 from timetable.models import (
     Timetable, TempTimetable, SchedulerConfig, AutoMergedExamGroup,
@@ -432,16 +434,78 @@ def is_scheduling_exempt(alloc_a, alloc_b) -> bool:
 # -----------------------
 # CombinedCourseGroup helpers
 # -----------------------
+#
+# PERFORMANCE FIX: `_get_combined_group_ids_for_alloc()` used to claim (in
+# its docstring) to be "cached per-allocation", but the body ran a fresh DB
+# query on every single call. It's invoked in pairwise (O(k^2)) loops all
+# over Simulate Move, Swap, Combine and the conflicts-api — one click could
+# fire hundreds of extra sequential round-trips to MySQL, which is why the
+# panel felt slow even on a fast machine (it's query COUNT, not CPU, that
+# was the bottleneck).
+#
+# Fix: a real, thread-local, per-request cache. The first lookup in a
+# request/view does ONE query that pulls the entire alloc->group membership
+# map; every other lookup in that same request is then a plain in-memory
+# dict access (zero DB hits). This does NOT change what any collision/move/
+# swap decision returns — `_are_in_same_combined_group` and
+# `_other_belongs_to_a_different_combined_group` below are untouched, they
+# just now read from memory instead of the DB.
+#
+# Staleness safety (so this can never drift, duplicate, or lose data):
+#   1. Every view that reads combined-group membership calls
+#      `_reset_combined_group_cache()` at its very top, so each request
+#      always starts from a clean slate and rebuilds fresh.
+#   2. The Django signal receivers below also clear the cache the instant
+#      a CombinedCourseGroup (or its membership) changes, so even a single
+#      request that both mutates and re-reads combined-group data stays
+#      correct.
+_combined_group_cache = threading.local()
+
+
+def _reset_combined_group_cache():
+    """Force the next `_get_combined_group_ids_for_alloc()` call to rebuild
+    its membership map from the DB. Call this at the top of any view that
+    depends on fresh CombinedCourseGroup data."""
+    _combined_group_cache.map = None
+
+
+def _load_combined_group_membership_map():
+    """One query: build {allocation_id: {group_id, ...}} for every
+    CombinedCourseGroup membership in the system."""
+    mapping = defaultdict(set)
+    pairs = CombinedCourseGroup.objects.values_list('id', 'allocations__id')
+    for group_id, alloc_id in pairs:
+        if alloc_id is not None:
+            mapping[alloc_id].add(group_id)
+    return mapping
+
+
+@receiver(m2m_changed, sender=CombinedCourseGroup.allocations.through)
+def _invalidate_combined_group_cache_on_m2m_change(sender, **kwargs):
+    _reset_combined_group_cache()
+
+
+@receiver(post_save, sender=CombinedCourseGroup)
+def _invalidate_combined_group_cache_on_save(sender, **kwargs):
+    _reset_combined_group_cache()
+
+
+@receiver(post_delete, sender=CombinedCourseGroup)
+def _invalidate_combined_group_cache_on_delete(sender, **kwargs):
+    _reset_combined_group_cache()
+
+
 def _get_combined_group_ids_for_alloc(alloc_id):
     """
     Return the set of CombinedCourseGroup PKs that contain this allocation.
-    Cached per-allocation to avoid repeated DB hits within one request.
+    Backed by the thread-local, per-request cache above — see the block
+    comment for why this is safe from staleness/duplication/loss.
     """
-    return set(
-        CombinedCourseGroup.objects.filter(
-            allocations__id=alloc_id
-        ).values_list('id', flat=True)
-    )
+    cache_map = getattr(_combined_group_cache, 'map', None)
+    if cache_map is None:
+        cache_map = _load_combined_group_membership_map()
+        _combined_group_cache.map = cache_map
+    return set(cache_map.get(alloc_id, ()))
 
 
 def _are_in_same_combined_group(alloc_a_id, alloc_b_id):
@@ -855,21 +919,17 @@ def stream_timetable_progress(request):
 # -----------------------
 # Conflict Detection API
 #
-# AUTO-RESOLUTION FLOW (correct order):
+# READ-ONLY, single-pass: load the schedule ONCE, scan it ONCE, and report
+# whatever collisions are found. No row is ever modified or deleted here.
 #
-#   PASS 1 — scan all entries, find every collision group,
-#             collect ids_to_delete (all but the lowest-id per group).
-#             "Keep 1, delete the rest" means:
-#               sort group by id → kept = group[0], deleted = group[1:]
-#             A row that appears in multiple groups is only deleted once.
-#
-#   DELETE  — bulk-delete all collected ids RIGHT NOW, before anything
-#             is returned. DB is now clean.
-#
-#   PASS 2 — re-query the DB (which now has no collisions) and build
-#             the conflict response from the clean data. Since collisions
-#             were deleted, total_conflicts will be 0 and the frontend
-#             shows a clean timetable immediately.
+# PERFORMANCE FIX: this endpoint used to run the ENTIRE scan twice per
+# call — once to build a now-unused `ids_to_delete` set for an
+# auto-delete step that has been disabled, and again from a second fresh
+# DB query to build the actual response. That meant every Simulate Move /
+# Swap / panel-load background refresh (which all hit this endpoint) paid
+# for two full timetable loads plus two full O(k^2) combined-group scans
+# instead of one. The dead first pass has been removed — combined with the
+# combined-group membership cache above, this is now one query + one scan.
 #
 # Exemptions — never flagged as a collision (kept in sync with
 # is_program_year_collision_exempt in
@@ -893,14 +953,11 @@ def stream_timetable_progress(request):
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def timetable_conflicts_api(request):
     """
-    Detect and auto-resolve timetable conflicts.
-    Deletes the extra colliding rows first, then returns the clean state.
+    Detect timetable conflicts (read-only — no auto-delete).
     """
+    _reset_combined_group_cache()  # fresh, correct data for this request
     try:
 
-        # ════════════════════════════════════════════════════════════
-        # PASS 1 — find every collision group and collect ids to delete
-        # ════════════════════════════════════════════════════════════
         def _load_schedule_map():
             """Load all timetable rows and group by (day, start, end)."""
             timetables = Timetable.objects.select_related(
@@ -931,194 +988,18 @@ def timetable_conflicts_api(request):
                     print(f'DEBUG: skip entry {tt.id}: {ex}')
             return smap
 
-        schedule_map   = _load_schedule_map()
-        ids_to_delete  = set()   # accumulated across all collision groups
+        schedule_map = _load_schedule_map()  # single query — no dead second pass
 
-        def _mark_for_deletion(entries):
-            """
-            Keep the entry with the LOWEST id (earliest created).
-            Mark every other entry (ids [1:]) for deletion.
-            Never marks ALL entries — always leaves exactly one.
-            """
-            if len(entries) < 2:
-                return
-            sorted_by_id = sorted(entries, key=lambda e: e.id)
-            # sorted_by_id[0] is KEPT — skip it
-            for entry in sorted_by_id[1:]:       # delete the rest
-                ids_to_delete.add(entry.id)
-
-        for timeslot_key, entries in schedule_map.items():
-            if len(entries) <= 1:
-                continue
-            try:
-                day, start_time, end_time = timeslot_key.split('_')
-            except ValueError:
-                continue
-
-            # ── venue collisions ──────────────────────────────────────────
-            venue_groups = defaultdict(list)
-            for entry in entries:
-                if entry.venue:
-                    venue_groups[entry.venue.code].append(entry)
-
-            for venue_code, v_entries in venue_groups.items():
-                if len(v_entries) < 2:
-                    continue
-                # Same BASE course_code (any section/stream/group suffix —
-                # "(TAG)", "-A", " GROUP B", " b", etc. — discarded) sharing
-                # a room at the same time is never a room double-booking,
-                # even across different program-years or different
-                # lecturers (e.g. a cross-listed class serving two
-                # program-years).
-                distinct = set()
-                for e in v_entries:
-                    raw_cc = getattr(e.course_allocation, 'course_code', None)
-                    cc  = course_base_key(raw_cc) or raw_cc or f'_id_{e.id}'
-                    distinct.add(cc)
-                if len(distinct) <= 1:
-                    continue  # all same course, not a collision
-                # BUG FIX: a non-destructive CombinedCourseGroup keeps DIFFERENT
-                # course_code values per member (e.g. COSC 101 / COSC 101(App) /
-                # COSC 101(BBIT)) while sharing the same lecturer + venue + slot
-                # on purpose. Without this check the (code, lecturer) distinctness
-                # test above sees >1 distinct pairs and wrongly treats the whole
-                # merged booking as a venue collision, deleting all but one row.
-                # This check already exists in the lecturer-collision block below
-                # and in the read-only Pass 2 report — it was simply missing here,
-                # in the pass that actually performs the deletion.
-                alloc_ids_in_venue = [e.course_allocation.id for e in v_entries if e.course_allocation]
-                if len(alloc_ids_in_venue) >= 2:
-                    all_combined = all(
-                        _are_in_same_combined_group(alloc_ids_in_venue[i], alloc_ids_in_venue[j])
-                        for i in range(len(alloc_ids_in_venue))
-                        for j in range(i + 1, len(alloc_ids_in_venue))
-                    )
-                    if all_combined:
-                        continue  # intentional combined group sharing a venue — not a conflict
-                _mark_for_deletion(v_entries)
-
-            # ── lecturer collisions ───────────────────────────────────────
-            lect_groups = defaultdict(list)
-            for entry in entries:
-                lect = getattr(entry.course_allocation, 'lecturer', None) if entry.course_allocation else None
-                if lect:
-                    lect_groups[lect.id].append(entry)
-
-            for lect_id, l_entries in lect_groups.items():
-                if len(l_entries) < 2:
-                    continue
-                # Pairwise check (not a blanket "any same course code"
-                # shortcut): a lecturer teaching the SAME course in the
-                # SAME venue at the same time is one physical class, not a
-                # double-booking. If the venue differs, it's still a real
-                # conflict — the lecturer can't physically be in two rooms
-                # at once, even for the same course code.
-                real_conflict_entries = []
-                for i, ei in enumerate(l_entries):
-                    for j, ej in enumerate(l_entries):
-                        if j <= i:
-                            continue
-                        if ei.course_allocation and ej.course_allocation:
-                            if _are_in_same_combined_group(
-                                ei.course_allocation.id, ej.course_allocation.id
-                            ):
-                                continue  # combined group — intentional, not a conflict
-                            cc_i = course_base_key(
-                                getattr(ei.course_allocation, 'course_code', None)
-                            )
-                            cc_j = course_base_key(
-                                getattr(ej.course_allocation, 'course_code', None)
-                            )
-                            same_course = cc_i is not None and cc_i == cc_j
-                            venue_i = ei.venue.code if ei.venue else None
-                            venue_j = ej.venue.code if ej.venue else None
-                            same_venue = (
-                                venue_i is not None
-                                and venue_j is not None
-                                and venue_i.strip().lower() == venue_j.strip().lower()
-                            )
-                            if same_course and same_venue:
-                                continue  # same course, same venue — one class, not a conflict
-                        real_conflict_entries.append(ei)
-                        real_conflict_entries.append(ej)
-                seen = set()
-                real_conflict_entries = [
-                    e for e in real_conflict_entries
-                    if e.id not in seen and not seen.add(e.id)
-                ]
-                if len(real_conflict_entries) < 2:
-                    continue
-                _mark_for_deletion(real_conflict_entries)
-
-            # ── program-year collisions ───────────────────────────────────
-            prog_groups = defaultdict(list)
-            for entry in entries:
-                if not entry.course_allocation:
-                    continue
-                prog = getattr(entry.course_allocation, 'program', None)
-                if not prog:
-                    continue
-                year = _get_year_value(entry.course_allocation)
-                if year:
-                    prog_groups[f'{prog.id}_{year}'].append(entry)
-
-            for prog_key, p_entries in prog_groups.items():
-                if len(p_entries) < 2:
-                    continue
-                # Filter to only genuinely conflicting (non-exempt) pairs
-                real_ids = set()
-                for i, ei in enumerate(p_entries):
-                    for j, ej in enumerate(p_entries):
-                        if j <= i:
-                            continue
-                        if not is_scheduling_exempt(ei.course_allocation, ej.course_allocation):
-                            # DEFENSE-IN-DEPTH: same protection as the venue/lecturer
-                            # blocks above — two members of the same CombinedCourseGroup
-                            # can in rare cases share program+year (e.g. two intake
-                            # streams of one degree); they must never be deleted as a
-                            # program-year collision since they're one intentional class.
-                            if ei.course_allocation and ej.course_allocation and _are_in_same_combined_group(
-                                ei.course_allocation.id, ej.course_allocation.id
-                            ):
-                                continue
-                            real_ids.add(ei.id)
-                            real_ids.add(ej.id)
-                real_entries = [e for e in p_entries if e.id in real_ids]
-                if len(real_entries) < 2:
-                    continue
-                _mark_for_deletion(real_entries)
-
-        # ════════════════════════════════════════════════════════════
-        # DELETE — remove colliding extras NOW, before building response
-        # ════════════════════════════════════════════════════════════
-        # DISABLED (commented out for now): auto-deleting colliding rows
-        # before reload. This used to silently remove the "extra" rows in
-        # each collision group (keeping only the lowest-id entry) every
-        # time the conflicts API was hit. Leaving collisions in place now —
-        # only detection/reporting (PASS 2 below) still runs.
-        auto_resolved = 0
-        # if ids_to_delete:
-        #     try:
-        #         deleted, _ = Timetable.objects.filter(id__in=ids_to_delete).delete()
-        #         auto_resolved = deleted
-        #         print(f'DEBUG: auto-resolved {auto_resolved} collision entries (kept 1 per group)')
-        #     except Exception as ex:
-        #         print(f'DEBUG: auto-resolution error (non-fatal): {ex}')
-
-        # ════════════════════════════════════════════════════════════
-        # PASS 2 — re-query the now-clean DB and build the response
-        # ════════════════════════════════════════════════════════════
         conflicts = {
             'program_conflicts':    [],
             'lecturer_conflicts':   [],
             'venue_conflicts':      [],
             'preference_conflicts': [],
             'total_conflicts':      0,
-            'auto_resolved':        auto_resolved,
+            'auto_resolved':        0,
             'error':                None,
         }
 
-        schedule_map = _load_schedule_map()   # fresh query after deletions
 
         for timeslot_key, entries in schedule_map.items():
             if len(entries) <= 1:
@@ -1143,8 +1024,7 @@ def timetable_conflicts_api(request):
                     # same time is never a room double-booking — even across
                     # different program-years or different lecturers (e.g. a
                     # cross-listed class serving two program-years). This
-                    # must compare the base code, not the raw tagged one —
-                    # see PASS 1 above.
+                    # must compare the base code, not the raw tagged one.
                     distinct = set()
                     for e in venue_entries:
                         raw_cc = getattr(e.course_allocation, 'course_code', None)
@@ -1467,7 +1347,7 @@ def timetable_conflicts_api(request):
         # count is still surfaced separately so the panel can show a badge
         # for them without inflating the main "hard conflicts" number.
         conflicts['total_preference_conflicts'] = len(conflicts['preference_conflicts'])
-        print(f"DEBUG: After auto-resolve — {conflicts['total_conflicts']} conflicts remain, {auto_resolved} deleted")
+        print(f"DEBUG: conflicts-api — {conflicts['total_conflicts']} conflicts detected (read-only, no auto-delete)")
         return JsonResponse(conflicts)
 
     except Exception as e:
@@ -3453,6 +3333,7 @@ def _load_full_timetable_data(request):
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def load_timetable_data(request):
     """API endpoint to load full timetable data progressively - RETURNS ALL ENTRIES"""
+    _reset_combined_group_cache()  # fresh, correct data for this request
     try:
         # Get loading stage
         stage = request.GET.get('stage', 'initial')

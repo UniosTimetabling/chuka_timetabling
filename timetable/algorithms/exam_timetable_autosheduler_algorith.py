@@ -1,43 +1,28 @@
 """
-Exam Auto-Scheduler Module (v52 — Smart Split Minimization)
-============================================================
-NEW in v52 — Split Logic Refinements:
-─────────────────────────────────────
-
-  1. SPLIT ONLY AS LAST RESORT
-     ─ A course is ONLY split when NO single venue can accommodate the
-       entire course (even with near-fit tolerance).
-     ─ Once split is necessary, use the FEWEST number of venues possible
-       (largest venues first) to cover the needed seats.
-     ─ Each fragment should be as large as possible (fill venues
-       completely before moving to the next).
-
-  2. NO SPLITTING TO FILL LEFTOVER SPACE
-     ─ Leftover capacity in a venue should ONLY be used by a course that
-       can fit ENTIRELY in that remaining space.
-     ─ Never split a course just to fill a partially-used venue.
-     ─ A course is either placed whole in a venue, or split across the
-       minimum number of venues needed for its total size.
-
-  3. SHARED COURSE SPLIT RULES
-     ─ Only shared courses (same norm_code across multiple programs)
-       are eligible for splitting.
-     ─ Program-specific courses are NEVER split — they must fit in one venue.
-     ─ When a shared course is split, all variants of that course
-       (all program sections) are placed together in the same slots.
-
-  4. FRAGMENT COUNT MINIMIZATION
-     ─ Use the largest available venues first when splitting.
-     ─ Each venue is filled to capacity before using the next.
-     ─ Result: 100 students → 60 in venue A, 40 in venue B (2 fragments)
-       NOT 10 venues with 10 students each.
+Exam Auto-Scheduler Module (v59 — Fixed Init Order + Dynamic Soft/Hard Daily Limits + Strict Capacity)
+CRITICAL FIXES in v59:
+─────────────────────────────────────────────────────────────────
+1. FIXED INIT ORDER: All caches (_lecturer_id_cache, etc.) and slot lists (all_slots_ordered) 
+   are now initialized BEFORE _compute_daily_limits() is called, preventing AttributeError.
+2. DYNAMIC DAILY LIMITS (SOFT & HARD CONSTRAINTS)
+   - Soft Limit (Always 2): The scheduler actively avoids scheduling a 3rd exam on the same day.
+     It uses a penalty-based date sorting system to prefer dates where the student/lecturer has 0 or 1 exams.
+   - Hard Limit (Fallback Max): Capped at 3 exams per day (even if 4 slots exist) to avoid overload.
+     This ensures infeasibility is resolved while maintaining a realistic maximum daily load.
+   - Penalty Sorting: Dates are dynamically sorted by daily penalty during placement loops, 
+     ensuring the "avoid 3" rule is naturally enforced as a soft constraint.
+3. STRICT CAPACITY ENFORCEMENT
+   consume_venue() returns False if capacity would be exceeded.
+   All placement functions check consume_venue() result and rollback if it fails.
+4. CORRECT AUDIT FOR SPLIT COURSES
+   _audit_venue_capacity_with_sharing uses venue_occupants (actual assigned students).
 """
-
 from __future__ import annotations
-
 import datetime
 import re
 import logging
+import threading
+from pathlib import Path
 from collections import defaultdict
 from functools import lru_cache
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple, Any
@@ -46,7 +31,6 @@ scheduler_logger = logging.getLogger("scheduler")
 
 from django.db import IntegrityError, transaction
 from django.db import connection as _db_connection
-
 from timetable.models import (
     ExamSchedulerConfig,
     ExamTempTimetable,
@@ -57,16 +41,63 @@ from course_allocation.models import CourseAllocation, CombinedCourseGroup
 from room_management.models import Venue
 from core import scheduling_constraints as constraint_engine
 
-# ---------------------------------------------------------------------------
-# DEBUG flag
-# ---------------------------------------------------------------------------
 DEBUG_VERBOSE: bool = False
+_log_file_handle = None
+_log_file_path = None
+_log_session_id = None
+_log_lock = threading.Lock()
+_builtin_print = print
 
+def init_logger():
+    global _log_file_handle, _log_file_path, _log_session_id
+    log_dir = Path(__file__).parent / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    _log_session_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    _log_file_path = log_dir / f"exam_scheduler_{_log_session_id}.txt"
+    _log_file_handle = open(_log_file_path, 'w', encoding='utf-8')
+    _write_log("=" * 80)
+    _write_log("EXAM AUTO-SCHEDULER LOG v59")
+    _write_log(f"Session: {_log_session_id}")
+    _write_log(f"Started: {datetime.datetime.now().isoformat()}")
+    _write_log("=" * 80)
+    _write_log("")
+
+def _write_log(message):
+    global _log_file_handle
+    if _log_file_handle:
+        with _log_lock:
+            try:
+                _log_file_handle.write(str(message) + "\n")
+                _log_file_handle.flush()
+            except Exception:
+                pass
+
+def print(*args, **kwargs):
+    sep = kwargs.get('sep', ' ')
+    _write_log(sep.join(str(a) for a in args))
+    _builtin_print(*args, **kwargs)
+
+def close_logger():
+    global _log_file_handle
+    if _log_file_handle:
+        try:
+            _write_log("")
+            _write_log(f"Session ended: {datetime.datetime.now().isoformat()}")
+            _write_log("=" * 80)
+            _log_file_handle.close()
+        except Exception:
+            pass
+        _log_file_handle = None
+
+def get_log_file_path():
+    return str(_log_file_path) if _log_file_path else None
+
+def get_log_session_id():
+    return _log_session_id
 
 # ======================================================================
 # SECTION 1 – Utility helpers
 # ======================================================================
-
 def enable_wal_mode():
     engine = _db_connection.settings_dict.get("ENGINE", "")
     if "sqlite" in engine.lower():
@@ -79,9 +110,7 @@ def enable_wal_mode():
         except Exception as e:
             print(f"WAL mode note: {e}")
 
-
 def generate_slots(start_time, end_time, slot_size_hours):
-    """Generate non-overlapping time slots with 60-minute gaps."""
     slots = []
     today = datetime.date.today()
     current = datetime.datetime.combine(today, start_time)
@@ -94,7 +123,6 @@ def generate_slots(start_time, end_time, slot_size_hours):
         current = slot_end + gap
     return slots
 
-
 @lru_cache(maxsize=4096)
 def is_postgraduate_course(course_code: str) -> bool:
     m = re.search(r"\d{3,4}", str(course_code or ""))
@@ -102,13 +130,10 @@ def is_postgraduate_course(course_code: str) -> bool:
         return int(m.group(0)) >= 700
     return False
 
-
 def is_evening_slot(slot_start: datetime.time) -> bool:
     return slot_start >= datetime.time(17, 0)
 
-
 def venue_exam_capacity(venue, spacing_ratio: float = 1.0) -> int:
-    """Return the effective exam capacity for a venue."""
     ec = getattr(venue, "exam_capacity", None)
     phys = getattr(venue, "capacity", None)
     hard_cap = int(ec) if ec else (int(phys) if phys else 0)
@@ -117,10 +142,8 @@ def venue_exam_capacity(venue, spacing_ratio: float = 1.0) -> int:
     effective_ratio = min(float(spacing_ratio), 1.0)
     return max(1, int(hard_cap * effective_ratio))
 
-
 @lru_cache(maxsize=4096)
 def normalize_course_code(code: str) -> str:
-    """Normalize course codes so ALL variants map to identical key."""
     if not code:
         return ""
     s = str(code).strip().upper()
@@ -129,12 +152,11 @@ def normalize_course_code(code: str) -> str:
     s = re.sub(r"\s+[A-Z]\s*$", "", s)
     s = re.sub(r"-[A-Z]$", "", s)
     s = re.sub(r"_[A-Z]$", "", s)
-    s = re.sub(r"[\-_.]", " ", s)
+    s = re.sub(r"[-_.]", " ", s)
     m = re.search(r"([A-Z]+)\s*(\d+)", s)
     if m:
         return f"{m.group(1)}{m.group(2)}"
-    return re.sub(r"\s+", "", s)
-
+    return re.sub(r"\s+", " ", s)
 
 def get_program_year(course_allocation) -> str:
     pc = getattr(course_allocation, "program_course", None)
@@ -151,27 +173,20 @@ def get_program_year(course_allocation) -> str:
                 return f"year_{first_digit}"
     return "unknown"
 
-
 def course_student_count(course) -> int:
-    """Return number of students for a course allocation."""
     return max(int(getattr(course, "number_of_students", 0) or 0), 1)
 
-
 def family_total_students(group_courses: List) -> int:
-    """Sum number_of_students from EVERY CourseAllocation variant in the group."""
     return sum(course_student_count(c) for c in group_courses)
 
-
-def _prog_year_key(course) -> str:
+def prog_year_key(course) -> str:
     prog = getattr(course, "program", None)
     if not prog:
         return ""
     return f"{prog.id}_{get_program_year(course)}"
 
-
 def _exam_is_elective(alloc) -> bool:
     return bool(getattr(alloc, 'is_elective', False))
-
 
 def _exam_get_selection_group_id(alloc) -> Optional[int]:
     try:
@@ -180,14 +195,12 @@ def _exam_get_selection_group_id(alloc) -> Optional[int]:
     except Exception:
         return None
 
-
 def _exam_get_specialization_stem_id(alloc) -> Optional[int]:
     try:
         st = getattr(alloc, 'specialization_stem', None)
         return st.id if st else None
     except Exception:
         return None
-
 
 def _exam_get_specialization_category_id(alloc) -> Optional[int]:
     try:
@@ -196,10 +209,8 @@ def _exam_get_specialization_category_id(alloc) -> Optional[int]:
     except Exception:
         return None
 
-
 def _exam_get_intake(alloc) -> str:
     return getattr(alloc, 'intake', 'normal') or 'normal'
-
 
 def _combined_group_are_paired(alloc_a_id: int, alloc_b_id: int) -> bool:
     a_groups = _combined_group_ids_for(alloc_a_id)
@@ -208,15 +219,12 @@ def _combined_group_are_paired(alloc_a_id: int, alloc_b_id: int) -> bool:
     b_groups = _combined_group_ids_for(alloc_b_id)
     return bool(a_groups & b_groups)
 
-
 _combined_group_cache: dict[int, frozenset] = {}
-
 
 def _build_combined_group_cache() -> dict[str, list[int]]:
     global _combined_group_cache
     _combined_group_cache = {}
     combined_families: dict[str, list[int]] = {}
-
     try:
         groups = list(
             CombinedCourseGroup.objects
@@ -226,7 +234,6 @@ def _build_combined_group_cache() -> dict[str, list[int]]:
     except Exception as exc:
         print(f"[CombinedGroup] WARNING: could not load CombinedCourseGroup: {exc}")
         return {}
-
     for group in groups:
         alloc_ids = list(group.allocations.values_list('id', flat=True))
         gk = frozenset([group.id])
@@ -235,42 +242,17 @@ def _build_combined_group_cache() -> dict[str, list[int]]:
                 _combined_group_cache[aid] = _combined_group_cache[aid] | gk
             else:
                 _combined_group_cache[aid] = gk
-
-        key = f"__combined__{group.group_code}"
+        key = f"combined{group.group_code}"
         combined_families[key] = alloc_ids
-
     print(f"[CombinedGroup] Loaded {len(groups)} combined groups")
     return combined_families
-
 
 def _combined_group_ids_for(alloc_id: int) -> frozenset:
     return _combined_group_cache.get(alloc_id, frozenset())
 
-
 def exam_is_collision_exempt(c1, c2) -> bool:
-    """
-    True if c1 and c2 are allowed to sit in the same exam slot for the
-    same student cohort — i.e. a student can only ever be sitting ONE of
-    the two, so there's no real clash.
-
-    IMPORTANT: SelectionGroup ("choose exactly one course from this
-    group") and the plain is_elective flag are NOT the same thing. Per
-    CourseAllocation.clean(), selection_group can only be set on an
-    elective allocation, but a course can be is_elective=True and belong
-    to NO group at all (a standalone elective) — that course is not
-    automatically a mutual alternative to every other elective or
-    grouped course in the system. Two allocations are only guaranteed
-    mutually exclusive (a student picks one, so no clash) when they sit
-    in the SAME SelectionGroup. Checking "is either one elective" or "does
-    either one have *some* selection_group" (regardless of which group)
-    wrongly exempts unrelated courses from colliding with each other —
-    e.g. two different electives from two different, unrelated selection
-    groups, or an elective vs. a normal mandatory course the same
-    students are also taking.
-    """
     if _exam_get_intake(c1) != _exam_get_intake(c2):
         return True
-
     st1 = _exam_get_specialization_stem_id(c1)
     st2 = _exam_get_specialization_stem_id(c2)
     if st1 is not None and st2 is not None and st1 == st2:
@@ -280,19 +262,13 @@ def exam_is_collision_exempt(c1, c2) -> bool:
         cat2 = _exam_get_specialization_category_id(c2)
         if cat1 is not None and cat1 == cat2:
             return True
-
     sg1 = _exam_get_selection_group_id(c1)
     sg2 = _exam_get_selection_group_id(c2)
     if sg1 is not None and sg2 is not None and sg1 == sg2:
-        # Same SelectionGroup: a student chooses exactly one course from
-        # this group, so these two allocations can never both be sat by
-        # the same student — safe to schedule together.
         return True
-
     if _combined_group_are_paired(c1.id, c2.id):
         return True
     return False
-
 
 def courses_share_students(c1, c2) -> bool:
     p1 = getattr(c1, "program", None)
@@ -309,9 +285,7 @@ def courses_share_students(c1, c2) -> bool:
         return False
     return True
 
-
 def _same_exam_group(course_a, course_b) -> bool:
-    """Check if two courses belong to the same exam group."""
     if course_a.id == course_b.id:
         return True
     nc_a = normalize_course_code(getattr(course_a, "course_code", "") or "")
@@ -322,8 +296,7 @@ def _same_exam_group(course_a, course_b) -> bool:
         return True
     return False
 
-
-def _get_exam_group_key(course) -> str:
+def get_exam_group_key(course) -> str:
     nc = normalize_course_code(getattr(course, "course_code", "") or "")
     combined_groups = _combined_group_ids_for(course.id)
     if combined_groups:
@@ -332,7 +305,6 @@ def _get_exam_group_key(course) -> str:
         return f"family_{nc}"
     else:
         return f"single_{course.id}"
-
 
 def _min_slots_for_cohort(courses: List) -> int:
     remaining = list(courses)
@@ -349,16 +321,11 @@ def _min_slots_for_cohort(courses: List) -> int:
         remaining = still_remaining
     return slots_needed
 
-
 CONSECUTIVE_GAP_SLOTS = 1
-NEAR_FIT_THRESHOLD: int = 15
-OVERFLOW_NEAR_FIT_THRESHOLD: int = 30
-
 
 # ======================================================================
 # SECTION 2 – Data Analysis
 # ======================================================================
-
 class DataAnalysisReport:
     def __init__(self):
         self.shared_unit_groups: Dict[str, List[int]] = {}
@@ -381,7 +348,6 @@ class DataAnalysisReport:
         self.analysis_log.append(msg)
         print(f"[DataAnalysis] {msg}")
 
-
 def detect_and_deduplicate_courses(all_courses: List, report: DataAnalysisReport) -> List:
     seen_ids: Set[int] = set()
     deduplicated: List = []
@@ -394,22 +360,17 @@ def detect_and_deduplicate_courses(all_courses: List, report: DataAnalysisReport
             deduplicated.append(c)
     return deduplicated
 
-
 def analyze_courses(all_courses: List) -> DataAnalysisReport:
     report = DataAnalysisReport()
     if not all_courses:
         return report
-
     all_courses = detect_and_deduplicate_courses(all_courses, report)
     report.log(f"Analysing {len(all_courses)} courses...")
-
     by_norm: Dict[str, List] = defaultdict(list)
     for c in all_courses:
         raw_code = getattr(c, "course_code", "") or ""
         norm_code = normalize_course_code(raw_code)
         by_norm[norm_code].append(c)
-
-    # Count shared exams
     for norm_code, group in by_norm.items():
         programs = set()
         for c in group:
@@ -419,16 +380,12 @@ def analyze_courses(all_courses: List) -> DataAnalysisReport:
         report.shared_exams[norm_code] = len(programs)
         for c in group:
             report.course_program_count[c.id] = len(programs)
-
-    # Identify course families
     for norm_code, group in by_norm.items():
         if len(group) < 2:
             continue
         true_total_students = family_total_students(group)
         report.family_total_students[norm_code] = true_total_students
         report.shared_unit_groups[norm_code] = [c.id for c in group]
-
-    # CombinedCourseGroup families
     combined_families = _build_combined_group_cache()
     for combined_key, cids in combined_families.items():
         valid_ids = [cid for cid in cids if any(c.id == cid for c in all_courses)]
@@ -440,21 +397,16 @@ def analyze_courses(all_courses: List) -> DataAnalysisReport:
             )
             report.family_total_students[combined_key] = n_combined
             report.shared_exams[combined_key] = len(valid_ids)
-
-    # Identify cohorts
     cohort_counts: Dict[str, int] = defaultdict(int)
     for c in all_courses:
-        pk = _prog_year_key(c)
+        pk = prog_year_key(c)
         if pk:
             cohort_counts[pk] += 1
             report.courses_by_py[pk].append(c)
         prog = getattr(c, "program", None)
         if prog:
             report.courses_by_program[str(prog.id)].append(c)
-
     report.cohort_course_counts = dict(cohort_counts)
-
-    # Build conflict graph
     for pk, members in report.courses_by_py.items():
         n = len(members)
         if n < 2:
@@ -471,49 +423,39 @@ def analyze_courses(all_courses: List) -> DataAnalysisReport:
                     continue
                 report.cohort_conflict_graph[ci.id].add(cj.id)
                 report.cohort_conflict_graph[cj.id].add(ci.id)
-
     for c in all_courses:
         report.conflict_degree[c.id] = len(report.cohort_conflict_graph.get(c.id, set()))
-
     report.total_cohort_slot_demand = max(cohort_counts.values()) if cohort_counts else 0
     report.log(f"Found {len(report.shared_unit_groups)} families, {len(cohort_counts)} cohorts")
     return report
 
-
 # ======================================================================
 # SECTION 3 – SchedulerState
 # ======================================================================
-
 class SchedulerState:
-    def __init__(self, config, analysis: DataAnalysisReport,
-                 strategy=None,
+    def __init__(self, config, analysis: DataAnalysisReport, 
+                 strategy=None, 
                  disabled_constraints: Optional[Set[str]] = None):
         self.config = config
         self.analysis = analysis
         self.strategy = strategy
         self.disabled_constraints: Set[str] = disabled_constraints or set()
-
+        
         _raw_venues: List = list(
             Venue.objects.filter(capacity__isnull=False, capacity__gt=0)
         )
-
         blocked_venue_ids = constraint_engine.get_blocked_venue_ids(
             self.disabled_constraints, scheduler_type="exam"
         )
         if blocked_venue_ids:
             _raw_venues = [v for v in _raw_venues if v.id not in blocked_venue_ids]
-
         exclusive_venue_ids = constraint_engine.get_exclusive_venue_ids(
             self.disabled_constraints, scheduler_type="exam"
         )
         self.exclusive_venue_ids: Set[int] = set(exclusive_venue_ids)
         _general_pool = [v for v in _raw_venues if v.id not in self.exclusive_venue_ids]
-
+        
         self.designated_venues_by_norm_code: Dict[str, List[int]] = defaultdict(list)
-        # norm_code -> list of (venue_ids: set[int], program_ids: set[int], course_ids: set[int])
-        # scopes. A course is only allowed into a rule's venues if its
-        # program_id or program_course_id matches that rule's scope — a
-        # shared course code alone is NOT enough (see get_designated_venue_rules).
         self.designated_scope_by_norm_code: Dict[str, List[Tuple[Set[int], Set[int], Set[int]]]] = defaultdict(list)
         self.strict_norm_codes: Set[str] = set()
         self.strict_locked_ids: Set[int] = set()
@@ -536,7 +478,7 @@ class SchedulerState:
                 )
                 if rule["strict"]:
                     self.strict_norm_codes.add(nc)
-
+                    
         self._spacing_ratio: float = float(getattr(config, "spacing_ratio", 1.0))
         self.venue_examcap: Dict[int, int] = {
             v.id: venue_exam_capacity(v, self._spacing_ratio) for v in _raw_venues
@@ -548,45 +490,46 @@ class SchedulerState:
         )
         self.venues_by_cap_desc: List = self.venues
         self.venue_by_id: Dict[int, Venue] = {v.id: v for v in _raw_venues}
-
-        # Shared exam tracking
+        
         self.highly_shared_exams: Set[str] = set()
         for norm_code, program_count in analysis.shared_exams.items():
             if program_count >= 3:
                 self.highly_shared_exams.add(norm_code)
-
-        # Venue usage with room sharing
+                
         self.venue_usage: Dict[Tuple, int] = defaultdict(int)
         self.venue_occupants: Dict[Tuple, List[Tuple[int, int]]] = defaultdict(list)
-
         self._combined_group_venue: Dict[Tuple, int] = {}
         self._family_building: Dict[Tuple, str] = {}
-
+        
         self.lecturer_busy: Dict[int, Set] = defaultdict(set)
         self.lecturer_exam_group: Dict[Tuple, str] = {}
         self.lecturer_blocked: Dict = {}
-
+        
         self._py_busy: Dict[Tuple, Set[str]] = defaultdict(set)
         self._py_busy_allocs: Dict[Tuple, List] = {}
-
+        
         self.family_slot: Dict[str, Tuple] = {}
         self.family_day: Dict[str, datetime.date] = {}
         self.shared_unit_lock: Dict[str, Tuple] = {}
+        # Norm-codes where every dedicated family-placement phase (PhaseB,
+        # Phase1, Phase3b) already tried and failed to place the whole
+        # group together — populated after Phase3b. Once a code is here,
+        # its remaining members are allowed to be scheduled individually
+        # rather than staying stuck behind the family-only phases forever.
+        self.family_exhausted: Set[str] = set()
         self.norm_code_day_lock: Dict[str, datetime.date] = {}
+        
         self._cross_cohort_norm_codes: Set[str] = set()
-
         self.cohort_last_slot_idx: Dict[Tuple, int] = {}
         self.cohort_daily_count: Dict[Tuple, int] = defaultdict(int)
         self.daily_load: Dict[datetime.date, int] = defaultdict(int)
-
-        self._fk_cache: Dict[int, str] = {}
-        self._py_cache: Dict[int, str] = {}
-        self._norm_code_cache: Dict[int, str] = {}
-        self._lecturer_id_cache: Dict[int, Optional[int]] = {}
-        self._priority_score_cache: Dict[int, float] = {}
-
-        self.placed_families: Set[str] = set()
-
+        
+        # NEW: Daily limit tracking for soft/hard constraints
+        self.lecturer_daily_count: Dict[Tuple, int] = defaultdict(int)
+        self.cohort_daily_limits: Dict[str, Tuple[int, int]] = {}
+        self.lecturer_daily_limits: Dict[int, Tuple[int, int]] = {}
+        
+        # 1. Build dates and slots FIRST
         self.date_range = self._build_date_range()
         self.slots = generate_slots(config.start_time, config.end_time, config.slot_size)
         self.morning_slots = [(s, e) for s, e in self.slots if s < datetime.time(12, 0)]
@@ -597,23 +540,34 @@ class SchedulerState:
         self._slot_start_to_idx: Dict[datetime.time, int] = {
             ss: idx for idx, (ss, _) in enumerate(self.all_slots_ordered)
         }
-
+        
+        # 2. Initialize caches BEFORE calling _compute_daily_limits
+        self._fk_cache: Dict[int, str] = {}
+        self._py_cache: Dict[int, str] = {}
+        self._daily_key_cache: Dict[int, str] = {}
+        self._norm_code_cache: Dict[int, str] = {}
+        self._lecturer_id_cache: Dict[int, Optional[int]] = {}
+        self._priority_score_cache: Dict[int, float] = {}
+        self.placed_families: Set[str] = set()
+        
+        # 3. NOW SAFE TO CALL _compute_daily_limits
+        self._compute_daily_limits(analysis)
+        
+        # 4. Continue with the rest of initialization
         self._sorted_dates = sorted(self.date_range, key=lambda dt: dt[0])
         self.lecturer_blocked = self._build_lecturer_blocked_map()
-
-        # Initialize venue availability
+        
         total_exam = sum(self.venue_examcap.get(v.id, 0) for v in self.venues)
         self._venue_avail: Dict[Tuple, int] = {}
         self._day_slot_total: Dict[Tuple, int] = {}
         self._day_any_cap: Dict[datetime.date, bool] = {}
-
         for date_obj, _ in self.date_range:
             self._day_any_cap[date_obj] = True
             for ss, _ in self.all_slots_ordered:
                 self._day_slot_total[(date_obj, ss)] = total_exam
                 for v in self.venues:
                     self._venue_avail[(v.id, date_obj, ss)] = self.venue_examcap[v.id]
-
+                    
         print(f"[SchedulerState] {len(self.venues)} venues, {len(self.date_range)} days")
 
     def _build_date_range(self):
@@ -643,6 +597,41 @@ class SchedulerState:
                 self._py_cache[cid] = ""
         return self._py_cache[cid]
 
+    def _daily_limit_key(self, course) -> str:
+        """
+        Cohort key used ONLY for daily exam-count limits (soft/hard caps
+        on how many exams a cohort sits in one day) and the consecutive-
+        slot cooling gap.
+
+        `_py_key` (program+year, e.g. "6499_year_4") is correct for the
+        pairwise same-SLOT collision check in `students_available`/
+        `mark_students_busy`, because that check already re-verifies
+        `exam_is_collision_exempt` against each specific course occupying
+        the slot.
+
+        The daily counters, however, were keyed on the same raw `_py_key`
+        and just incremented a single counter per (program+year, date) —
+        with no exemption check at all. For a program/year split across
+        combination stems (e.g. BA Year 4 with 54 courses across several
+        stems, ~10-15 per stem), that blended every stem's exams into one
+        counter and capped the WHOLE program+year to 2-3 exams/day, even
+        though any individual student only ever sits exams from their own
+        stem. Splitting the key by specialization stem here fixes that:
+        each stem gets its own daily quota, matching how students are
+        actually distributed. Courses with no stem (ordinary mandatory
+        courses shared by everyone in the program/year) keep the plain
+        program+year key.
+        """
+        cid = course.id
+        cached = self._daily_key_cache.get(cid)
+        if cached is not None:
+            return cached
+        pk = self._py_key(course)
+        stem_id = _exam_get_specialization_stem_id(course)
+        key = f"{pk}_stem{stem_id}" if (pk and stem_id is not None) else pk
+        self._daily_key_cache[cid] = key
+        return key
+
     def students_available(self, course, date, slot_start) -> bool:
         pk = self._py_key(course)
         if not pk:
@@ -668,11 +657,9 @@ class SchedulerState:
         )
         if not raw:
             return {}
-
         dates_by_weekday: Dict[str, List[datetime.date]] = defaultdict(list)
         for date_obj, weekday_name in self.date_range:
             dates_by_weekday[weekday_name].append(date_obj)
-
         blocked_map: Dict[int, Dict] = {}
         for lecturer_id, ranges in raw.items():
             date_map = blocked_map.setdefault(lecturer_id, {})
@@ -702,7 +689,7 @@ class SchedulerState:
         current_exam_group = self.lecturer_exam_group.get((lid, date, slot_start))
         if current_exam_group is None:
             return False
-        course_exam_group = _get_exam_group_key(course)
+        course_exam_group = get_exam_group_key(course)
         return course_exam_group == current_exam_group
 
     def mark_lecturer_busy(self, lid, date, slot_start, course=None):
@@ -710,7 +697,7 @@ class SchedulerState:
             return
         self.lecturer_busy[lid].add((date, slot_start))
         if course:
-            self.lecturer_exam_group[(lid, date, slot_start)] = _get_exam_group_key(course)
+            self.lecturer_exam_group[(lid, date, slot_start)] = get_exam_group_key(course)
 
     def family_key(self, course) -> str:
         cid = course.id
@@ -726,6 +713,9 @@ class SchedulerState:
             self.family_day[fk] = date
 
     def check_family_conflict(self, course, date, slot_start) -> bool:
+        nc = self._norm_code(course)
+        if nc in self.family_exhausted:
+            return False
         fk = self.family_key(course)
         locked = self.family_slot.get(fk)
         if locked is None:
@@ -760,10 +750,25 @@ class SchedulerState:
 
     def bind_shared_unit(self, course, date, slot_start):
         nc = self._norm_code(course)
+        if nc in self.family_exhausted:
+            # Family already gave up on syncing its members to one slot —
+            # don't re-lock the norm_code to whatever slot this leftover
+            # member lands on, or it would freeze any other still-unplaced
+            # sibling onto that same slot for no reason.
+            return
         if nc and nc in self._cross_cohort_norm_codes and nc not in self.shared_unit_lock:
             self.shared_unit_lock[nc] = (date, slot_start)
 
     def check_shared_unit_conflict(self, course, date, slot_start) -> bool:
+        nc = self._norm_code(course)
+        if nc in self.family_exhausted:
+            # Once a family's dedicated placement phases have failed to
+            # sync all its members to one shared slot (see family_exhausted,
+            # set after Phase3b), its leftover members fall through to
+            # individual scheduling — this lock's only job is to keep a
+            # family's members aligned, so it must not go on blocking a
+            # member the family itself has already given up on syncing.
+            return False
         locked = self.get_shared_unit_lock(course)
         if locked is None:
             return False
@@ -785,14 +790,6 @@ class SchedulerState:
         return self._lecturer_id_cache[cid]
 
     def designated_venues_for_course(self, course) -> List[int]:
-        """
-        Venue ids reserved for THIS specific allocation (by its program or
-        program_course), not just any allocation sharing its course code.
-        A common/shared course code that also belongs to other programs
-        will correctly get [] here for those other programs' sections,
-        so they fall through to the general venue pool instead of a venue
-        reserved for a different program.
-        """
         nc = self._norm_code(course)
         scopes = self.designated_scope_by_norm_code.get(nc)
         if not scopes:
@@ -813,12 +810,6 @@ class SchedulerState:
         return result
 
     def designated_venues_for_family(self, group_courses: List) -> List[int]:
-        """
-        Venue ids reserved for EVERY member of a merged/common-course
-        family. If even one program's section in the group is not covered
-        by the rule, the shared batch as a whole must not use that venue —
-        only that program's own allocation would be eligible individually.
-        """
         if not group_courses:
             return []
         common: Optional[Set[int]] = None
@@ -831,6 +822,10 @@ class SchedulerState:
 
     def bind_norm_code_day(self, course, date: datetime.date):
         nc = self._norm_code(course)
+        if nc in self.family_exhausted:
+            # Same reasoning as bind_shared_unit: don't re-pin the day once
+            # the family has already been released to individual scheduling.
+            return
         if nc and nc in self._cross_cohort_norm_codes:
             if nc not in self.norm_code_day_lock:
                 self.norm_code_day_lock[nc] = date
@@ -839,14 +834,15 @@ class SchedulerState:
         nc = self._norm_code(course)
         if not nc or nc not in self._cross_cohort_norm_codes:
             return False
+        if nc in self.family_exhausted:
+            # See check_shared_unit_conflict — an exhausted family's
+            # leftover members must be free to land on any day, not just
+            # whichever day a sibling already scheduled itself on.
+            return False
         locked_day = self.norm_code_day_lock.get(nc)
         if locked_day is None:
             return False
         return locked_day != date
-
-    # ==================================================================
-    # VENUE AVAILABILITY METHODS
-    # ==================================================================
 
     def venue_remaining(self, vid, date, slot_start) -> int:
         cap = self.venue_examcap.get(vid, 0)
@@ -862,25 +858,20 @@ class SchedulerState:
     def get_venue_occupants(self, vid, date, slot_start) -> List[int]:
         return [cid for cid, _ in self.venue_occupants.get((vid, date, slot_start), [])]
 
-    def consume_venue(self, vid, date, slot_start, students: int, course=None):
+    def consume_venue(self, vid, date, slot_start, students: int, course=None) -> bool:
         if students <= 0:
-            return
+            return True
         cap = self.venue_examcap.get(vid, 0)
         already_used = self.venue_usage.get((vid, date, slot_start), 0)
-        
         if already_used + students > cap:
-            students = max(0, cap - already_used)
-            if students <= 0:
-                return
-        
+            return False
         self.venue_usage[(vid, date, slot_start)] = already_used + students
         self._venue_avail[(vid, date, slot_start)] = max(0, cap - already_used - students)
-        
         if course:
             self.venue_occupants[(vid, date, slot_start)].append((course.id, students))
-        
         slot_key = (date, slot_start)
         self._day_slot_total[slot_key] = max(0, self._day_slot_total.get(slot_key, 0) - students)
+        return True
 
     def slot_total_remaining(self, date, slot_start) -> int:
         return self._day_slot_total.get((date, slot_start), 0)
@@ -888,6 +879,30 @@ class SchedulerState:
     def slot_has_any_venue_space(self, date, slot_start, needed: int = 1) -> bool:
         for v in self.venues:
             if self.venue_remaining(v.id, date, slot_start) >= needed:
+                return True
+        return False
+
+    def slot_has_combined_venue_space(self, date, slot_start, needed: int, course=None) -> bool:
+        """
+        Like slot_has_any_venue_space, but sums remaining capacity across
+        every free/compatible venue instead of demanding one room fit the
+        whole course alone. Now that oversized courses can split across
+        multiple rooms (find_minimal_split_venues), a pre-filter that only
+        checked a single venue's capacity was rejecting slots before
+        try_place_course ever got a chance to attempt a split placement —
+        this brings the pre-filter in line with what placement can
+        actually do.
+        """
+        total = 0
+        for v in self.venues:
+            rem = self.venue_remaining(v.id, date, slot_start)
+            if rem <= 0:
+                continue
+            if course is not None and self.venue_has_occupants(v.id, date, slot_start):
+                if not _can_share_venue(course, v.id, date, slot_start, self):
+                    continue
+            total += rem
+            if total >= needed:
                 return True
         return False
 
@@ -912,7 +927,7 @@ class SchedulerState:
         return self._day_any_cap.get(date, True)
 
     def cohort_in_cooling(self, course, date, slot_start, gap: int = CONSECUTIVE_GAP_SLOTS) -> bool:
-        pk = self._py_key(course)
+        pk = self._daily_limit_key(course)
         if not pk:
             return False
         last_idx = self.cohort_last_slot_idx.get((pk, date))
@@ -921,23 +936,21 @@ class SchedulerState:
         current_idx = self._slot_start_to_idx.get(slot_start)
         if current_idx is None:
             return False
-        # Must be an ABSOLUTE gap: a cohort's exams on the same day can now be
-        # seeded out of time order (Phase -1 fills each day's LAST slot
-        # first), so "current - last" alone can go negative. A signed
-        # comparison against a negative number is always <= gap, which was
-        # locking every earlier slot on the day out for any cohort that got
-        # a Phase -1 placement — exactly the "whole day empty except the
-        # last slot" symptom. Comparing distance, not direction, fixes it.
         return abs(current_idx - last_idx) <= gap
 
     def mark_cohort_scheduled(self, course, date, slot_start):
-        pk = self._py_key(course)
+        pk = self._daily_limit_key(course)
         if not pk:
             return
         idx = self._slot_start_to_idx.get(slot_start)
         if idx is not None:
             self.cohort_last_slot_idx[(pk, date)] = idx
         self.cohort_daily_count[(pk, date)] += 1
+        
+        # Track lecturer daily count
+        lid = self._cached_lecturer_id(course)
+        if lid:
+            self.lecturer_daily_count[(lid, date)] += 1
 
     def record_combined_group_venue(self, course, date, slot_start, venue_id):
         for gid in _combined_group_ids_for(course.id):
@@ -961,22 +974,18 @@ class SchedulerState:
         cid = course.id
         if cid in self._priority_score_cache:
             return self._priority_score_cache[cid]
-        
         n_students = course_student_count(course)
         conflict_deg = self.analysis.conflict_degree.get(cid, 0)
         nc = self._norm_code(course)
         is_shared = nc in self.analysis.shared_unit_groups
         cohort_load = self.analysis.cohort_course_counts.get(self._py_key(course), 0)
         cohort_pressure = getattr(self.strategy, 'cohort_pressure', {}).get(self._py_key(course), 0.0)
-        
         if is_shared:
             family_total = self.analysis.family_total_students.get(nc, n_students)
         else:
             family_total = n_students
-        
         program_count = self.analysis.course_program_count.get(cid, 1)
         shared_boost = 200.0 if program_count >= 3 else (100.0 if program_count >= 2 else 0.0)
-        
         score = (
             family_total * 1.0
             + conflict_deg * 50.0
@@ -988,11 +997,97 @@ class SchedulerState:
         self._priority_score_cache[cid] = score
         return score
 
+    # --- NEW DAILY LIMIT METHODS ---
+    def _compute_daily_limits(self, analysis):
+        """Calculates dynamic soft/hard daily limits based on course load and available slots."""
+        slots_per_day = len(self.all_slots_ordered)
+        total_days = max(1, len(self.date_range))
+        
+        # 1. Cohort (Student) Limits
+        # Grouped by the stem-aware daily key rather than raw program+year:
+        # `analysis.courses_by_py[pk]` lumps together every course any
+        # student in that program/year could take, across ALL combination
+        # stems (e.g. 54 courses for BA Year 4 spanning several stems).
+        # Sizing the daily cap off that raw total tightens it for every
+        # stem as if a single student sat all 54 — when in reality each
+        # student only ever sits the ~10-15 courses of their own stem.
+        daily_key_totals: Dict[str, int] = defaultdict(int)
+        for pk, courses in analysis.courses_by_py.items():
+            for course in courses:
+                daily_key_totals[self._daily_limit_key(course)] += 1
+
+        for key, total_courses in daily_key_totals.items():
+            soft_limit = 2  # Always try to avoid 3
+
+            # Hard limit: Allow 3 if necessary, but avoid 4 (even if 4 slots exist)
+            hard_limit = min(3, slots_per_day)
+
+            # If the (stem-)cohort is small, tighten the hard limit to 2
+            if total_courses <= 2 * total_days:
+                hard_limit = min(2, slots_per_day)
+
+            self.cohort_daily_limits[key] = (soft_limit, hard_limit)
+            
+        # 2. Lecturer Limits
+        lecturer_course_counts = defaultdict(int)
+        for c_list in analysis.courses_by_py.values():
+            for course in c_list:
+                lid = self._cached_lecturer_id(course)
+                if lid:
+                    lecturer_course_counts[lid] += 1
+                    
+        for lid, count in lecturer_course_counts.items():
+            soft_limit = 2
+            hard_limit = min(3, slots_per_day)
+            if count <= 2 * total_days:
+                hard_limit = min(2, slots_per_day)
+            self.lecturer_daily_limits[lid] = (soft_limit, hard_limit)
+
+    def is_daily_limit_hard_exceeded(self, course, date) -> bool:
+        """Returns True if adding an exam would exceed the absolute maximum (hard limit)."""
+        pk = self._daily_limit_key(course)
+        if pk:
+            _, hard_limit = self.cohort_daily_limits.get(pk, (2, 3))
+            if self.cohort_daily_count.get((pk, date), 0) >= hard_limit:
+                return True
+        lid = self._cached_lecturer_id(course)
+        if lid:
+            _, hard_limit = self.lecturer_daily_limits.get(lid, (2, 3))
+            if self.lecturer_daily_count.get((lid, date), 0) >= hard_limit:
+                return True
+        return False
+
+    def get_daily_penalty(self, course, date) -> int:
+        """Returns a penalty score for scheduling on a specific date. 
+        Used to sort dates and enforce the 'soft constraint' (avoiding 3 exams)."""
+        penalty = 0
+        pk = self._daily_limit_key(course)
+        if pk:
+            soft_limit, _ = self.cohort_daily_limits.get(pk, (2, 3))
+            count = self.cohort_daily_count.get((pk, date), 0)
+            if count >= soft_limit:
+                penalty += 1000 * (count - soft_limit + 1)
+        lid = self._cached_lecturer_id(course)
+        if lid:
+            soft_limit, _ = self.lecturer_daily_limits.get(lid, (2, 3))
+            count = self.lecturer_daily_count.get((lid, date), 0)
+            if count >= soft_limit:
+                penalty += 1000 * (count - soft_limit + 1)
+        return penalty
+
+    def get_sorted_dates(self, course=None) -> List[Tuple[datetime.date, str]]:
+        if course is None:
+            return self._sorted_dates
+        return sorted(self._sorted_dates, key=lambda d: self.get_daily_penalty(course, d[0]))
+
+    def get_sorted_dates_for_pool(self, dates, pool_courses) -> List[Tuple[datetime.date, str]]:
+        if not pool_courses:
+            return dates
+        return sorted(dates, key=lambda d: sum(self.get_daily_penalty(c, d[0]) for c in pool_courses[:5]))
 
 # ======================================================================
-# SECTION 4 – Pre-Scheduling Intelligence (v50 - unchanged)
+# SECTION 4 – Pre-Scheduling Intelligence
 # ======================================================================
-
 class SchedulingStrategy:
     NORMAL = "NORMAL"
     COMPACT = "COMPACT"
@@ -1009,7 +1104,6 @@ class SchedulingStrategy:
         self.overloaded_lecturers = []
         self.multi_cohort_lecturers = []
         self.bottleneck_days = []
-        self.near_fit_threshold = NEAR_FIT_THRESHOLD
         self.use_evening_slots = False
         self.relax_consecutive = False
         self.warnings = []
@@ -1027,11 +1121,10 @@ class SchedulingStrategy:
     def summary(self) -> str:
         lines = [
             f"══════════════════════════════════════════",
-            f"  PRE-SCHEDULING INTELLIGENCE — v52",
+            f"  PRE-SCHEDULING INTELLIGENCE — v59",
             f"══════════════════════════════════════════",
             f"  Strategy Mode  : {self.mode}",
             f"  Seat Pressure  : {self.seat_pressure:.1%}",
-            f"  Near-Fit Thresh: {self.near_fit_threshold}",
             f"  Use Evenings   : {self.use_evening_slots}",
         ]
         if self.high_pressure_cohorts:
@@ -1039,7 +1132,6 @@ class SchedulingStrategy:
         if self.infeasible_cohorts:
             lines.append(f"  ⛔ INFEASIBLE Cohorts: {len(self.infeasible_cohorts)}")
         return "\n".join(lines)
-
 
 class PreSchedulingIntelligence:
     def __init__(self, all_courses: List, analysis: DataAnalysisReport, config, venues: List):
@@ -1059,23 +1151,18 @@ class PreSchedulingIntelligence:
         evening = [(ss, se) for ss, se in slots if ss >= datetime.time(17, 0)]
         n_day_slots = len(daytime)
         slot_budget = n_days * n_day_slots
-
         total_seat_supply = sum(venue_exam_capacity(v, spacing) for v in self.venues)
         total_slot_supply = total_seat_supply * slot_budget
         s.total_seat_supply = total_seat_supply
-
         cohort_demand = self._compute_cohort_demand()
         total_students = sum(cohort_demand.values())
         s.total_student_demand = total_students
-
         n_courses = len(self.courses)
         pressure = total_students / max(total_slot_supply, 1)
         s.seat_pressure = pressure
-
         self._analyze_cohorts(cohort_demand, n_days, n_day_slots, slot_budget, len(evening))
         self._analyze_lecturers(slot_budget)
         self._select_strategy(pressure, n_days, n_day_slots, len(evening))
-
         print(s.summary())
         return s
 
@@ -1094,7 +1181,7 @@ class PreSchedulingIntelligence:
     def _compute_cohort_demand(self) -> Dict[str, int]:
         by_cohort: Dict[str, List] = defaultdict(list)
         for c in self.courses:
-            pk = _prog_year_key(c)
+            pk = prog_year_key(c)
             if pk:
                 by_cohort[pk].append(c)
         return {pk: _min_slots_for_cohort(courses) for pk, courses in by_cohort.items()}
@@ -1140,149 +1227,74 @@ class PreSchedulingIntelligence:
             s.mode = SchedulingStrategy.OVERFLOW
             s.use_evening_slots = True
             s.relax_consecutive = True
-            s.near_fit_threshold = OVERFLOW_NEAR_FIT_THRESHOLD
         if s.infeasible_cohorts and s.mode != SchedulingStrategy.OVERFLOW:
             s.mode = SchedulingStrategy.DENSE
             s.use_evening_slots = True
             s.relax_consecutive = True
 
-
 # ======================================================================
-# SECTION 5 – VENUE SELECTION - SMART SPLIT MINIMIZATION
+# SECTION 5 – VENUE SELECTION - STRICT CAPACITY (NO OVERFLOW)
 # ======================================================================
-
 def _venue_building(venue) -> str:
     code = (getattr(venue, "code", None) or "").strip()
     return re.sub(r'[\d\s]+$', '', code).upper()
 
+def _can_share_venue(course, venue_id, date, slot_start, state) -> bool:
+    if not state.venue_has_occupants(venue_id, date, slot_start):
+        return True
+    occupants = state.get_venue_occupants(venue_id, date, slot_start)
+    for occ_course_id in occupants:
+        occ_course = None
+        for c_list in state.analysis.courses_by_py.values():
+            for occ in c_list:
+                if occ.id == occ_course_id:
+                    occ_course = occ
+                    break
+            if occ_course:
+                break
+        if occ_course:
+            if normalize_course_code(getattr(course, "course_code", "") or "") == \
+               normalize_course_code(getattr(occ_course, "course_code", "") or ""):
+                continue
+            if _combined_group_are_paired(course.id, occ_course.id):
+                continue
+            if courses_share_students(course, occ_course):
+                return False
+    return True
 
-def find_best_venue_no_split(needed: int, date, slot_start, state: SchedulerState, 
-                              course=None, near_fit_override: int = 0) -> Optional[Venue]:
-    """
-    Find the best venue for a course WITHOUT splitting.
-    
-    KEY RULES:
-    1. Course must fit ENTIRELY in one venue
-    2. Use the SMALLEST venue that fits (best-fit matching)
-    3. Near-fit tolerance allows slight overflow (within threshold)
-    4. Completely free venues are preferred, but partially used venues
-       can be used if the course fits in the remaining space AND
-       doesn't cause student conflicts
-    5. NEVER split a course just to fill leftover space
-    """
-    threshold = near_fit_override or getattr(state.strategy, 'near_fit_threshold', NEAR_FIT_THRESHOLD)
-    
-    # TIER 1: Completely free venues - best fit (smallest that fits)
+def find_best_venue_no_split(needed: int, date, slot_start, state: SchedulerState,
+                             course=None) -> Optional[Venue]:
     free_venues = state.get_completely_free_venues(date, slot_start)
     free_venues_asc = sorted(free_venues, key=lambda x: x[1])
-    
     for v, cap in free_venues_asc:
         if cap >= needed:
             return v
-    
-    # TIER 2: Near-fit - largest venue where overflow <= threshold
-    for v, cap in reversed(free_venues_asc):
-        overflow = needed - cap
-        if 0 < overflow <= threshold:
-            return v
-    
-    # TIER 3: Partially used venues (room sharing) - only if course fits entirely
-    # in the remaining space AND no student conflict
     if course:
         free_with_occupants = []
         for v in state.venues_by_cap_desc:
             rem = state.venue_remaining(v.id, date, slot_start)
             if rem > 0 and state.venue_has_occupants(v.id, date, slot_start):
-                # Check if this course can share with existing occupants
-                occupants = state.get_venue_occupants(v.id, date, slot_start)
-                can_share = True
-                for occ_course_id in occupants:
-                    occ_course = None
-                    for c_list in state.analysis.courses_by_py.values():
-                        for occ in c_list:
-                            if occ.id == occ_course_id:
-                                occ_course = occ
-                                break
-                        if occ_course:
-                            break
-                    if occ_course:
-                        if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                           normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                            continue
-                        if _combined_group_are_paired(course.id, occ_course.id):
-                            continue
-                        if courses_share_students(course, occ_course):
-                            can_share = False
-                            break
-                if can_share and rem >= needed:
-                    free_with_occupants.append((v, rem))
-        
-        # Sort by remaining capacity (smallest that fits)
+                if _can_share_venue(course, v.id, date, slot_start, state):
+                    if rem >= needed:
+                        free_with_occupants.append((v, rem))
         free_with_occupants_asc = sorted(free_with_occupants, key=lambda x: x[1])
         for v, rem in free_with_occupants_asc:
             if rem >= needed:
                 return v
-    
-    # TIER 4: Near-fit with partially used venues
-    if course:
-        for v, rem in sorted([(v, state.venue_remaining(v.id, date, slot_start)) 
-                              for v in state.venues_by_cap_desc 
-                              if state.venue_remaining(v.id, date, slot_start) > 0],
-                             key=lambda x: -x[1]):
-            overflow = needed - rem
-            if 0 < overflow <= threshold:
-                occupants = state.get_venue_occupants(v.id, date, slot_start)
-                can_share = True
-                for occ_course_id in occupants:
-                    occ_course = None
-                    for c_list in state.analysis.courses_by_py.values():
-                        for occ in c_list:
-                            if occ.id == occ_course_id:
-                                occ_course = occ
-                                break
-                        if occ_course:
-                            break
-                    if occ_course:
-                        if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                           normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                            continue
-                        if _combined_group_are_paired(course.id, occ_course.id):
-                            continue
-                        if courses_share_students(course, occ_course):
-                            can_share = False
-                            break
-                if can_share:
-                    return v
-    
     return None
 
-
 def find_minimal_split_venues(needed: int, date, slot_start, state: SchedulerState,
-                               course=None) -> List[Venue]:
+                              course=None) -> List[Venue]:
     """
-    Find the MINIMUM number of venues needed to accommodate a course.
-    
-    KEY RULES:
-    1. Use the FEWEST venues possible (largest venues first)
-    2. Fill each venue to capacity before using the next
-    3. Result: 100 students → [60-cap venue, 40-cap venue] (2 venues)
-       NOT [10, 10, 10, ...] (10 venues)
-    4. Only shared courses (same norm_code across programs) can be split
-    5. Program-specific courses are NEVER split
+    Best-fit multi-room split when no single free/compatible venue is big
+    enough for `needed` students. Previously restricted to courses shared
+    across 2+ programs; now available to any course, since the capacity
+    checks below (and in `place_multi_venue`) are already strict — this
+    only ever assigns students up to each room's real remaining capacity,
+    never invents seats and never adds a room or a slot that doesn't exist.
     """
     if not course:
         return []
-    
-    # NEW v52: Check if this course is eligible for splitting
-    nc = normalize_course_code(getattr(course, "course_code", "") or "")
-    is_shared = nc in state.analysis.shared_unit_groups
-    program_count = state.analysis.course_program_count.get(course.id, 1)
-    
-    # Only shared courses (>= 2 programs) can be split
-    if not is_shared or program_count < 2:
-        return []
-    
-    # Get all venues with available capacity, sorted by capacity descending
     available = []
     for v in state.venues_by_cap_desc:
         cap = state.venue_examcap.get(v.id, 0)
@@ -1291,40 +1303,16 @@ def find_minimal_split_venues(needed: int, date, slot_start, state: SchedulerSta
         rem = state.venue_remaining(v.id, date, slot_start)
         if rem <= 0:
             continue
-        
-        # Check if this course can share with existing occupants
         if state.venue_has_occupants(v.id, date, slot_start):
-            occupants = state.get_venue_occupants(v.id, date, slot_start)
-            can_share = True
-            for occ_course_id in occupants:
-                occ_course = None
-                for c_list in state.analysis.courses_by_py.values():
-                    for occ in c_list:
-                        if occ.id == occ_course_id:
-                            occ_course = occ
-                            break
-                    if occ_course:
-                        break
-                if occ_course:
-                    if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                       normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                        continue
-                    if _combined_group_are_paired(course.id, occ_course.id):
-                        continue
-                    if courses_share_students(course, occ_course):
-                        can_share = False
-                        break
-            if not can_share:
+            if not _can_share_venue(course, v.id, date, slot_start, state):
                 continue
-        
         available.append((v, rem))
-    
     if not available:
         return []
-    
-    # Sort by capacity descending (largest first) to minimize fragment count
     available.sort(key=lambda x: -x[1])
-    
+    for v, rem in available:
+        if rem >= needed:
+            return []
     chosen, remaining_needed = [], needed
     for v, rem in available:
         if remaining_needed <= 0:
@@ -1332,25 +1320,16 @@ def find_minimal_split_venues(needed: int, date, slot_start, state: SchedulerSta
         take = min(rem, remaining_needed)
         chosen.append(v)
         remaining_needed -= take
-    
     if remaining_needed > 0:
-        return []  # Not enough capacity even with splitting
-    
+        return []
     return chosen
-
 
 def place_course_no_split(course, date, slot_start, slot_end,
                           state: SchedulerState, scheduled_ids: Set[int],
                           relax_consecutive=False) -> bool:
-    """
-    Place a course WITHOUT splitting - must fit entirely in one venue.
-    """
     if course.id in scheduled_ids:
         return True
-    
     needed = course_student_count(course)
-    
-    # Check hard constraints
     reason = _check_hard_constraints(course, date, slot_start, state)
     if reason:
         return False
@@ -1359,8 +1338,6 @@ def place_course_no_split(course, date, slot_start, slot_end,
     if _course_already_in_db(course):
         scheduled_ids.add(course.id)
         return True
-    
-    # Try preferred venue from combined group
     preferred_vid = state.preferred_combined_venue_id(course, date, slot_start)
     if preferred_vid is not None:
         preferred_venue = state.venue_by_id.get(preferred_vid)
@@ -1369,84 +1346,47 @@ def place_course_no_split(course, date, slot_start, slot_end,
                             state, scheduled_ids, relax_consecutive=relax_consecutive,
                             allow_room_sharing=True, allow_split=False):
                 return True
-    
-    # Find best venue without splitting
     venue = find_best_venue_no_split(needed, date, slot_start, state, course)
     if venue and place_single(course, venue, date, slot_start, slot_end,
                               state, scheduled_ids, relax_consecutive=relax_consecutive,
                               allow_room_sharing=True, allow_split=False):
         return True
-    
     return False
 
-
 def place_course_with_minimal_split(course, date, slot_start, slot_end,
-                                     state: SchedulerState, scheduled_ids: Set[int],
-                                     relax_consecutive=False) -> bool:
-    """
-    Place a course with MINIMAL splitting (only if absolutely necessary).
-    
-    KEY RULES:
-    1. First try to place without splitting (find_best_venue_no_split)
-    2. Only split if NO single venue can fit the course
-    3. When splitting, use the MINIMUM number of venues (largest first)
-    4. Fill each venue to capacity before using the next
-    5. Only shared courses are eligible for splitting
-    """
+                                    state: SchedulerState, scheduled_ids: Set[int],
+                                    relax_consecutive=False) -> bool:
     if course.id in scheduled_ids:
         return True
-    
-    # First try: no split
     if place_course_no_split(course, date, slot_start, slot_end, state, scheduled_ids, relax_consecutive):
         return True
-    
-    # Second try: minimal split (only for shared courses)
     needed = course_student_count(course)
-    nc = normalize_course_code(getattr(course, "course_code", "") or "")
-    is_shared = nc in state.analysis.shared_unit_groups
-    program_count = state.analysis.course_program_count.get(course.id, 1)
-    
-    # Only shared courses can be split
-    if not is_shared or program_count < 2:
-        return False
-    
-    # Check hard constraints again (they may have changed)
     if _check_hard_constraints(course, date, slot_start, state):
         return False
     if not relax_consecutive and state.cohort_in_cooling(course, date, slot_start):
         return False
-    
-    # Find minimal venues for split
     venues = find_minimal_split_venues(needed, date, slot_start, state, course)
     if not venues:
         return False
-    
-    # Place using the minimal venues
     if place_multi_venue(course, venues, date, slot_start, slot_end, state, scheduled_ids,
                          relax_consecutive=relax_consecutive, allow_room_sharing=True):
         if DEBUG_VERBOSE:
             print(f"  [Split] {course.course_code} ({needed} students) split across {len(venues)} venues")
         return True
-    
     return False
-
 
 # ======================================================================
 # SECTION 6 – Core Placement Primitives
 # ======================================================================
-
 _already_scheduled_cache: Set[int] = set()
 _bulk_buffer: List[Tuple] = []
-
 
 def _flush_bulk_buffer(state: SchedulerState, scheduled_ids: Set[int]) -> int:
     global _bulk_buffer
     if not _bulk_buffer:
         return 0
-
     entries = []
     post_place_items = []
-
     for course, venue, date, ss, se in _bulk_buffer:
         if course.id in scheduled_ids:
             continue
@@ -1461,11 +1401,9 @@ def _flush_bulk_buffer(state: SchedulerState, scheduled_ids: Set[int]) -> int:
             )
         )
         post_place_items.append((course, venue.id, course_student_count(course), date, ss, se))
-
     if not entries:
         _bulk_buffer = []
         return 0
-
     try:
         with transaction.atomic():
             ExamTempTimetable.objects.bulk_create(entries, ignore_conflicts=True)
@@ -1473,14 +1411,11 @@ def _flush_bulk_buffer(state: SchedulerState, scheduled_ids: Set[int]) -> int:
         print(f"[BulkFlush] Error: {exc}")
         _bulk_buffer = []
         return 0
-
     for course, venue_id, students, date, ss, se in post_place_items:
         _post_place(course, venue_id, students, date, ss, se, state, scheduled_ids)
-
     n = len(post_place_items)
     _bulk_buffer = []
     return n
-
 
 def _course_already_in_db(course) -> bool:
     if course.id in _already_scheduled_cache:
@@ -1488,14 +1423,16 @@ def _course_already_in_db(course) -> bool:
     exists = ExamTempTimetable.objects.filter(course_allocation=course).exists()
     if exists:
         _already_scheduled_cache.add(course.id)
-    return exists
-
+        return exists
+    return False
 
 def _post_place(course, venue_id: int, students: int,
                 date, slot_start, slot_end,
-                state: SchedulerState, scheduled_ids: Set[int]):
-    if students > 0:
-        state.consume_venue(venue_id, date, slot_start, students, course)
+                state: SchedulerState, scheduled_ids: Set[int]) -> bool:
+    if students <= 0:
+        return False
+    if not state.consume_venue(venue_id, date, slot_start, students, course):
+        return False
     state.record_combined_group_venue(course, date, slot_start, venue_id)
     state.mark_students_busy(course, date, slot_start)
     lid = state._cached_lecturer_id(course)
@@ -1507,7 +1444,7 @@ def _post_place(course, venue_id: int, students: int,
     state.daily_load[date] += 1
     scheduled_ids.add(course.id)
     _already_scheduled_cache.add(course.id)
-
+    return True
 
 def _check_hard_constraints(course, date, slot_start, state: SchedulerState) -> Optional[str]:
     if course.id in state.strict_locked_ids:
@@ -1523,68 +1460,35 @@ def _check_hard_constraints(course, date, slot_start, state: SchedulerState) -> 
     lid = state._cached_lecturer_id(course)
     if lid and not state.lecturer_available(lid, date, slot_start, course):
         return "lecturer-conflict"
+    # NEW: Block placement if it exceeds the absolute daily maximum (e.g., > 3)
+    if state.is_daily_limit_hard_exceeded(course, date):
+        return "daily-limit-hard-exceeded"
     return None
 
-
 def place_single(course, venue, date, slot_start, slot_end,
-                  state: SchedulerState, scheduled_ids: Set[int],
-                  relax_consecutive=False, ignore_capacity=False,
-                  allow_room_sharing=True, allow_split=False) -> bool:
-    """
-    Place a single course in one venue.
-    
-    allow_split=False: Will NOT split this course (used for program-specific courses)
-    allow_split=True: May split if absolutely necessary (used for shared courses)
-    """
+                 state: SchedulerState, scheduled_ids: Set[int],
+                 relax_consecutive=False, ignore_capacity=False,
+                 allow_room_sharing=True, allow_split=False) -> bool:
     if course.id in scheduled_ids:
         return True
-    
     needed = course_student_count(course)
     cap = state.venue_examcap.get(venue.id, 0)
     rem = state.venue_remaining(venue.id, date, slot_start)
-    
-    # Check if venue has occupants
     has_occupants = state.venue_has_occupants(venue.id, date, slot_start)
-    
-    # Capacity check
     if not ignore_capacity:
         if rem < needed:
             return False
-        
-        # If room has occupants, check sharing constraints
         if has_occupants and allow_room_sharing:
-            occupants = state.get_venue_occupants(venue.id, date, slot_start)
-            for occ_course_id in occupants:
-                occ_course = None
-                for c_list in state.analysis.courses_by_py.values():
-                    for occ in c_list:
-                        if occ.id == occ_course_id:
-                            occ_course = occ
-                            break
-                    if occ_course:
-                        break
-                if occ_course:
-                    if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                       normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                        continue
-                    if _combined_group_are_paired(course.id, occ_course.id):
-                        continue
-                    if courses_share_students(course, occ_course):
-                        return False
-    
-    # Hard constraints
+            if not _can_share_venue(course, venue.id, date, slot_start, state):
+                return False
     reason = _check_hard_constraints(course, date, slot_start, state)
     if reason:
         return False
     if not relax_consecutive and state.cohort_in_cooling(course, date, slot_start):
         return False
-    
     if _course_already_in_db(course):
         scheduled_ids.add(course.id)
         return True
-    
-    effective_seats = min(needed, cap) if cap > 0 else needed
-    
     try:
         with transaction.atomic():
             ExamTempTimetable.objects.create(
@@ -1599,75 +1503,42 @@ def place_single(course, venue, date, slot_start, slot_end,
             scheduled_ids.add(course.id)
             return True
         return False
-    
-    _post_place(course, venue.id, effective_seats, date, slot_start, slot_end, state, scheduled_ids)
+    if not _post_place(course, venue.id, needed, date, slot_start, slot_end, state, scheduled_ids):
+        ExamTempTimetable.objects.filter(
+            course_allocation=course, date=date, start_time=slot_start
+        ).delete()
+        return False
     return True
 
-
 def place_multi_venue(course, venues, date, slot_start, slot_end,
-                       state: SchedulerState, scheduled_ids: Set[int],
-                       relax_consecutive=False, allow_room_sharing=True) -> bool:
-    """
-    Place a course across MULTIPLE venues (MINIMAL splitting).
-    
-    KEY: Use the fewest venues possible (venues are already sorted largest first).
-    """
+                      state: SchedulerState, scheduled_ids: Set[int],
+                      relax_consecutive=False, allow_room_sharing=True) -> bool:
     if course.id in scheduled_ids:
         return True
-    
     needed = course_student_count(course)
-    
     reason = _check_hard_constraints(course, date, slot_start, state)
     if reason:
         return False
     if not relax_consecutive and state.cohort_in_cooling(course, date, slot_start):
         return False
-    
     if _course_already_in_db(course):
         scheduled_ids.add(course.id)
         return True
-    
-    # Assign students to venues, filling each to capacity
     assignments, remaining = [], needed
     for v in venues:
         if remaining <= 0:
             break
         cap = state.venue_examcap.get(v.id, 0)
         rem = state.venue_remaining(v.id, date, slot_start)
-        
-        # Check sharing constraints if venue has occupants
         if allow_room_sharing and state.venue_has_occupants(v.id, date, slot_start):
-            occupants = state.get_venue_occupants(v.id, date, slot_start)
-            can_share = True
-            for occ_course_id in occupants:
-                occ_course = None
-                for c_list in state.analysis.courses_by_py.values():
-                    for occ in c_list:
-                        if occ.id == occ_course_id:
-                            occ_course = occ
-                            break
-                    if occ_course:
-                        break
-                if occ_course:
-                    if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                       normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                        continue
-                    if _combined_group_are_paired(course.id, occ_course.id):
-                        continue
-                    if courses_share_students(course, occ_course):
-                        can_share = False
-                        break
-            if not can_share:
+            if not _can_share_venue(course, v.id, date, slot_start, state):
                 continue
-        
         take = min(rem, remaining)
         if take > 0:
             assignments.append((v, take))
             remaining -= take
-    
     if remaining > 0:
         return False
-    
     try:
         with transaction.atomic():
             for v, _ in assignments:
@@ -1683,44 +1554,45 @@ def place_multi_venue(course, venues, date, slot_start, slot_end,
             scheduled_ids.add(course.id)
             return True
         return False
-    
     for v, students in assignments:
-        state.consume_venue(v.id, date, slot_start, students, course)
-    
+        if not state.consume_venue(v.id, date, slot_start, students, course):
+            ExamTempTimetable.objects.filter(
+                course_allocation=course, date=date, start_time=slot_start
+            ).delete()
+            return False
+        state.record_combined_group_venue(course, date, slot_start, v.id)
+    state.mark_students_busy(course, date, slot_start)
+    lid = state._cached_lecturer_id(course)
+    state.mark_lecturer_busy(lid, date, slot_start, course)
+    state.bind_family(state.family_key(course), date, slot_start)
+    state.bind_shared_unit(course, date, slot_start)
+    state.bind_norm_code_day(course, date)
+    state.mark_cohort_scheduled(course, date, slot_start)
+    state.daily_load[date] += 1
     scheduled_ids.add(course.id)
     _already_scheduled_cache.add(course.id)
     return True
 
-
 def try_place_course(course, date, slot_start, slot_end,
-                      state: SchedulerState, scheduled_ids: Set[int],
-                      relax_consecutive=False, allow_split=False,
-                      allow_room_sharing=True) -> bool:
-    """
-    Try to place a course with minimal splitting.
-    
-    allow_split=False: Never split (for program-specific courses)
-    allow_split=True: Only split if absolutely necessary (for shared courses)
-    """
+                     state: SchedulerState, scheduled_ids: Set[int],
+                     relax_consecutive=False, allow_split=False,
+                     allow_room_sharing=True) -> bool:
     nc = normalize_course_code(course.course_code or "")
-    if nc in state.analysis.shared_unit_groups:
+    if nc in state.analysis.shared_unit_groups and nc not in state.family_exhausted:
         family_member_ids = state.analysis.shared_unit_groups.get(nc, [])
         placed_family_members = [cid for cid in family_member_ids if cid in scheduled_ids]
         if placed_family_members and len(placed_family_members) < len(family_member_ids):
             return False
-    
     if allow_split:
-        return place_course_with_minimal_split(course, date, slot_start, slot_end, 
-                                                state, scheduled_ids, relax_consecutive)
+        return place_course_with_minimal_split(course, date, slot_start, slot_end,
+                                               state, scheduled_ids, relax_consecutive)
     else:
         return place_course_no_split(course, date, slot_start, slot_end,
-                                      state, scheduled_ids, relax_consecutive)
-
+                                     state, scheduled_ids, relax_consecutive)
 
 # ======================================================================
-# SECTION 7 – Family Placement (Shared Course Splitting)
+# SECTION 7 – Family Placement
 # ======================================================================
-
 def _family_constraints_ok(group_courses, date, slot_start, state):
     for c in group_courses:
         if c.id in state.strict_locked_ids:
@@ -1738,122 +1610,81 @@ def _family_constraints_ok(group_courses, date, slot_start, state):
             return False
     return True
 
-
 def place_merged_family(group_courses, nc, date, ss, se, state, scheduled_ids) -> bool:
-    """
-    Place a merged family (shared course across programs).
-    
-    KEY RULES for shared course splitting:
-    1. Try to fit the ENTIRE family in one venue (no split)
-    2. If no single venue fits, split across the MINIMUM number of venues
-    3. Use largest venues first, fill each to capacity
-    4. All variants of the course are placed together in the same slots
-    """
     group_courses = [c for c in group_courses if c.id not in scheduled_ids]
     if not group_courses:
         state.placed_families.add(nc)
         return True
-    
     total_needed = family_total_students(group_courses)
-    
     if DEBUG_VERBOSE:
         print(f"\n[Family] '{nc}' | {len(group_courses)} variants | total={total_needed}")
-    
     if not _family_constraints_ok(group_courses, date, ss, state):
         return False
-    
-    # Check designated venues first — but ONLY venues every member of this
-    # merged family is actually scoped to (see designated_venues_for_family).
-    # A venue reserved for one program (e.g. S3 reserved for Law) must never
-    # absorb a shared course's OTHER program sections just because the
-    # course code matches; those sections are not eligible here and this
-    # block is skipped for them, falling through to the general pool below.
     venue_ids = state.designated_venues_for_family(group_courses)
     if venue_ids:
         is_strict = nc in state.strict_norm_codes
-        if not is_strict or not state.venue_has_occupants(venue_ids[0], date, ss):
-            for vid in venue_ids:
-                v = state.venue_by_id.get(vid)
-                if v and state.venue_remaining(vid, date, ss) >= total_needed:
-                    return _commit_single_venue(group_courses, nc, v, total_needed,
-                                                date, ss, se, state, scheduled_ids)
+        for vid in venue_ids:
+            v = state.venue_by_id.get(vid)
+            if not v:
+                continue
+            if is_strict and state.venue_has_occupants(vid, date, ss):
+                continue
+            if state.venue_remaining(vid, date, ss) >= total_needed:
+                if _commit_single_venue(group_courses, nc, v, total_needed,
+                                        date, ss, se, state, scheduled_ids):
+                    return True
+        designated_pool = []
+        for vid in venue_ids:
+            v = state.venue_by_id.get(vid)
+            if not v:
+                continue
+            if is_strict and state.venue_has_occupants(vid, date, ss):
+                continue
+            rem = state.venue_remaining(vid, date, ss)
+            if rem > 0:
+                designated_pool.append([v, rem, state.venue_examcap.get(vid, 0)])
+        if designated_pool and sum(row[1] for row in designated_pool) >= total_needed:
+            if _commit_distributed_minimal(group_courses, nc, designated_pool, total_needed,
+                                           date, ss, se, state, scheduled_ids):
+                return True
         if is_strict:
             return False
-    
-    # Strategy A: Find ONE venue that can fit the entire family
     free_venues = state.get_free_venues(date, ss)
     free_with_caps = []
     for v, rem in free_venues:
         cap = state.venue_examcap.get(v.id, 0)
         free_with_caps.append([v, rem, cap])
-    
-    # Check building preference
     known_building = state.preferred_family_building(nc, date, ss)
     if known_building:
         free_with_caps = sorted(
             free_with_caps,
             key=lambda row: 0 if _venue_building(row[0]) == known_building else 1,
         )
-    
-    # Try to find a single venue for the whole family
     for row in free_with_caps:
         v, remaining, cap = row
         if remaining >= total_needed:
             return _commit_single_venue(group_courses, nc, v, total_needed,
                                         date, ss, se, state, scheduled_ids)
-        overflow = total_needed - cap
-        if 0 < overflow <= getattr(state.strategy, 'near_fit_threshold', NEAR_FIT_THRESHOLD):
-            return _commit_single_venue(group_courses, nc, v, total_needed,
-                                        date, ss, se, state, scheduled_ids)
-    
-    # Strategy B: Split the family across venues (MINIMAL split)
-    # Only if the family is shared across programs
     program_count = state.analysis.shared_exams.get(nc, 1)
     if program_count < 2:
         return False
-    
     total_free = sum(row[1] for row in free_with_caps)
     if total_free >= total_needed:
         return _commit_distributed_minimal(group_courses, nc, free_with_caps, total_needed,
                                            date, ss, se, state, scheduled_ids,
                                            preferred_building=known_building)
-    
     return False
 
-
 def _commit_single_venue(group_courses, nc, venue, total_needed,
-                          date, ss, se, state, scheduled_ids):
-    """Commit all variants to a single venue."""
+                         date, ss, se, state, scheduled_ids):
     cap = state.venue_examcap.get(venue.id, 0)
     remaining = state.venue_remaining(venue.id, date, ss)
-    
     if remaining < total_needed:
         return False
-    
-    effective_seats = min(total_needed, cap) if cap > 0 else total_needed
-    
-    # Check sharing constraints if venue already has occupants
     if state.venue_has_occupants(venue.id, date, ss):
-        occupants = state.get_venue_occupants(venue.id, date, ss)
         for course in group_courses:
-            for occ_course_id in occupants:
-                occ_course = None
-                for c_list in state.analysis.courses_by_py.values():
-                    for occ in c_list:
-                        if occ.id == occ_course_id:
-                            occ_course = occ
-                            break
-                    if occ_course:
-                        break
-                if occ_course:
-                    if normalize_course_code(getattr(course, "course_code", "") or "") == \
-                       normalize_course_code(getattr(occ_course, "course_code", "") or ""):
-                        continue
-                    if _combined_group_are_paired(course.id, occ_course.id):
-                        continue
-                    if courses_share_students(course, occ_course):
-                        return False
-    
+            if not _can_share_venue(course, venue.id, date, ss, state):
+                return False
     entries = [
         ExamTempTimetable(
             course_allocation=c, venue=venue,
@@ -1862,7 +1693,6 @@ def _commit_single_venue(group_courses, nc, venue, total_needed,
         )
         for c in group_courses
     ]
-    
     try:
         with transaction.atomic():
             ExamTempTimetable.objects.bulk_create(entries, ignore_conflicts=True)
@@ -1878,8 +1708,14 @@ def _commit_single_venue(group_courses, nc, venue, total_needed,
     except Exception as e:
         print(f"  [FAIL] DB commit error: {e}")
         return False
-    
-    state.consume_venue(venue.id, date, ss, effective_seats, group_courses[0])
+    if not state.consume_venue(venue.id, date, ss, total_needed, group_courses[0]):
+        ExamTempTimetable.objects.filter(
+            course_allocation__in=group_courses, date=date, start_time=ss
+        ).delete()
+        MergedCourseGroup.objects.filter(
+            base_course=group_courses[0], date=date, start_time=ss
+        ).delete()
+        return False
     for c in group_courses:
         state.record_combined_group_venue(c, date, ss, venue.id)
         state.mark_students_busy(c, date, ss)
@@ -1891,85 +1727,61 @@ def _commit_single_venue(group_courses, nc, venue, total_needed,
         state.mark_cohort_scheduled(c, date, ss)
         scheduled_ids.add(c.id)
         _already_scheduled_cache.add(c.id)
-    
     state.daily_load[date] += 1
     state.shared_unit_lock[nc] = (date, ss)
     state.norm_code_day_lock[nc] = date
     state.record_family_building(nc, date, ss, _venue_building(venue))
-    
     if DEBUG_VERBOSE:
         print(f"  [Family] '{nc}' → {venue.code} (cap={cap}, total={total_needed})")
     return True
 
-
 def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
-                                 date, ss, se, state, scheduled_ids,
-                                 consume_fn=None, preferred_building=None):
+                                date, ss, se, state, scheduled_ids,
+                                consume_fn=None, preferred_building=None):
     """
-    Distribute a family across venues with MINIMAL splitting.
-    
-    KEY: Use the fewest venues possible. Fill each venue to capacity
-    before using the next. All variants are placed together.
+    Distributes a merged family's total student count across the venue
+    pool, packing the LARGEST-remaining-capacity room first and filling it
+    as full as possible (with pieces of whichever course variants still
+    need seats) before moving to the next room.
+
+    The previous approach matched each course variant to its own
+    individually best-fit (tightest-sufficient) room, one variant per
+    room. That's fine when the family's variants are all similar in size,
+    but for a family with several small variants and one that dwarfs a
+    single room, it meant a big compatible room could sit mostly empty
+    (never chosen because it wasn't the "tightest fit" for any one
+    variant) while every variant got scattered into its own separate
+    small room — e.g. a 380-student family split across 7 rooms when a
+    single 240-capacity room could have absorbed most of it, leaving only
+    the remainder for one more room.
     """
     consume = consume_fn or state.consume_venue
-    
-    # Sort venues by capacity descending (largest first)
-    pool_sorted = sorted(pool, key=lambda row: -row[2])  # row = [v, rem, cap]
-    
-    # Organize by building preference
+    pool_sorted = sorted(pool, key=lambda row: -row[1])  # most remaining capacity first
     if preferred_building:
         same = [r for r in pool_sorted if _venue_building(r[0]) == preferred_building]
         other = [r for r in pool_sorted if _venue_building(r[0]) != preferred_building]
         pool_sorted = same + other
-    
-    # Assign variants to venues using BEST-FIT: each course goes whole into the
-    # smallest venue that can still hold it. A course is only split across
-    # multiple venues when NO single venue in the pool has enough remaining
-    # capacity to take it whole. This is what the old streaming/pool_idx
-    # approach got wrong: it filled whatever venue happened to be "current"
-    # and only ever moved forward, so a small course landing on a
-    # partially-filled venue got sliced up even when an untouched, big-enough
-    # room was sitting later in the pool.
-    assignments = []  # (course, venue, seats)
+
     remaining_courses = sorted(group_courses, key=lambda c: -course_student_count(c))
-    
-    for course in remaining_courses:
-        needed = course_student_count(course)
-        
-        # --- Try to fit this course WHOLE into a single venue first ---
-        # Pick the smallest venue that still has enough remaining space, so
-        # large venues are conserved for courses/variants that actually need them.
-        best_idx = None
-        for idx, row in enumerate(pool_sorted):
-            rem = row[1]
-            if rem >= needed:
-                if best_idx is None or rem < pool_sorted[best_idx][1]:
-                    best_idx = idx
-        
-        if best_idx is not None:
-            pool_sorted[best_idx][1] -= needed
-            assignments.append((course, pool_sorted[best_idx][0], needed))
+    course_left = {c.id: course_student_count(c) for c in remaining_courses}
+    assignments = []
+    for row in pool_sorted:
+        venue, rem, cap = row
+        if rem <= 0:
             continue
-        
-        # --- Genuinely doesn't fit anywhere whole: split as a last resort ---
-        # Drain the venues with the MOST remaining space first, so we use the
-        # fewest possible venues for the split (minimal fragmentation).
-        needed_left = needed
-        for row in sorted(pool_sorted, key=lambda r: -r[1]):
-            if needed_left <= 0:
-                break
-            rem = row[1]
-            if rem <= 0:
+        for course in remaining_courses:
+            left = course_left[course.id]
+            if left <= 0:
                 continue
-            take = min(rem, needed_left)
-            assignments.append((course, row[0], take))
-            row[1] -= take
-            needed_left -= take
-        
-        if needed_left > 0:
-            return False  # Not enough capacity anywhere in the pool
-    
-    # Commit all assignments
+            if rem <= 0:
+                break
+            take = min(rem, left)
+            assignments.append((course, venue, take))
+            course_left[course.id] -= take
+            rem -= take
+        row[1] = rem
+    if any(v > 0 for v in course_left.values()):
+        return False
     entries = []
     for course, venue, seats in assignments:
         entries.append(ExamTempTimetable(
@@ -1980,9 +1792,7 @@ def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
             start_time=ss,
             end_time=se,
         ))
-    
     primary_venue = max(assignments, key=lambda a: state.venue_examcap.get(a[1].id, 0))[1]
-    
     try:
         with transaction.atomic():
             ExamTempTimetable.objects.bulk_create(entries, ignore_conflicts=True)
@@ -1998,11 +1808,21 @@ def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
     except Exception as e:
         print(f"  [FAIL] DB commit error: {e}")
         return False
-    
-    # Update state
     for course, venue, seats in assignments:
-        consume(venue.id, date, ss, seats, course)
+        if not consume(venue.id, date, ss, seats, course):
+            ExamTempTimetable.objects.filter(
+                course_allocation__in=group_courses, date=date, start_time=ss
+            ).delete()
+            MergedCourseGroup.objects.filter(
+                base_course=group_courses[0], date=date, start_time=ss
+            ).delete()
+            return False
         state.record_combined_group_venue(course, date, ss, venue.id)
+        state.record_family_building(nc, date, ss, _venue_building(venue))
+    # Per-course bookkeeping (busy flags, lecturer, family/shared-unit
+    # binds) runs once per course even if that course's seats were split
+    # across more than one venue fragment above.
+    for course in group_courses:
         state.mark_students_busy(course, date, ss)
         lid = state._cached_lecturer_id(course)
         state.mark_lecturer_busy(lid, date, ss, course)
@@ -2012,107 +1832,139 @@ def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
         state.mark_cohort_scheduled(course, date, ss)
         scheduled_ids.add(course.id)
         _already_scheduled_cache.add(course.id)
-        state.record_family_building(nc, date, ss, _venue_building(venue))
-    
     state.daily_load[date] += 1
     state.shared_unit_lock[nc] = (date, ss)
     state.norm_code_day_lock[nc] = date
-    
     if DEBUG_VERBOSE:
         venues_used = {a[1].code: a[2] for a in assignments}
         print(f"  [Family-Split] '{nc}' → {len(set(a[1].id for a in assignments))} venues: {venues_used}")
     return True
 
-
 # ======================================================================
 # SECTION 8 – Scheduling Phases
 # ======================================================================
+def schedule_small_courses_in_small_venues(all_courses, state, scheduled_ids):
+    SMALL_STUDENT_THRESHOLD = 100
+    SMALL_VENUE_THRESHOLD = 100
+    py_total_counts = defaultdict(int)
+    for c in all_courses:
+        pk = state._py_key(c)
+        if pk:
+            py_total_counts[pk] += 1
+    small_courses = [
+        c for c in all_courses 
+        if c.id not in scheduled_ids 
+        and course_student_count(c) < SMALL_STUDENT_THRESHOLD
+        and normalize_course_code(getattr(c, "course_code", "") or "") not in state.analysis.shared_unit_groups
+    ]
+    small_courses.sort(key=lambda c: course_student_count(c))
+    small_venues = [
+        v for v in state.venues 
+        if state.venue_examcap.get(v.id, 0) < SMALL_VENUE_THRESHOLD and state.venue_examcap.get(v.id, 0) > 0
+    ]
+    small_venues.sort(key=lambda v: state.venue_examcap.get(v.id, 0))
+    if not small_courses or not small_venues:
+        return 0
+    dates = state.dates_in_order()
+    sorted_dates = state.get_sorted_dates_for_pool(dates, small_courses)
+    target_slots = state.all_slots_ordered[:2] if len(state.all_slots_ordered) >= 2 else state.all_slots_ordered
+    placed_total = 0
+    print(f"\n[PhaseA-SmallFirst] {len(small_courses)} small courses, {len(small_venues)} small venues")
+    for date_obj, _ in sorted_dates:
+        small_courses = [c for c in small_courses if c.id not in scheduled_ids]
+        if not small_courses:
+            break
+        py_day_count = defaultdict(int)
+        for ss, se in target_slots:
+            small_courses = [c for c in small_courses if c.id not in scheduled_ids]
+            if not small_courses:
+                break
+            for venue in small_venues:
+                small_courses = [c for c in small_courses if c.id not in scheduled_ids]
+                if not small_courses:
+                    break
+                rem_cap = state.venue_remaining(venue.id, date_obj, ss)
+                if rem_cap <= 0:
+                    continue
+                for i, course in enumerate(small_courses):
+                    if course.id in scheduled_ids:
+                        continue
+                    needed = course_student_count(course)
+                    if needed > rem_cap:
+                        continue
+                    py_key = state._py_key(course)
+                    if py_day_count[(date_obj, py_key)] >= 1 and py_total_counts.get(py_key, 0) <= 2:
+                        continue 
+                    if _check_hard_constraints(course, date_obj, ss, state):
+                        continue
+                    if state.cohort_in_cooling(course, date_obj, ss):
+                        continue
+                    if place_single(course, venue, date_obj, ss, se, state, scheduled_ids, 
+                                    allow_room_sharing=True, allow_split=False):
+                        placed_total += 1
+                        scheduled_ids.add(course.id)
+                        rem_cap -= needed
+                        py_day_count[(date_obj, py_key)] += 1
+                        for j in range(len(small_courses) - 1, -1, -1):
+                            if rem_cap <= 0:
+                                break
+                            other_course = small_courses[j]
+                            if other_course.id in scheduled_ids:
+                                continue
+                            other_needed = course_student_count(other_course)
+                            if other_needed > rem_cap:
+                                continue
+                            other_py = state._py_key(other_course)
+                            if py_day_count[(date_obj, other_py)] >= 1 and py_total_counts.get(other_py, 0) <= 2:
+                                continue
+                            if _check_hard_constraints(other_course, date_obj, ss, state):
+                                continue
+                            if place_single(other_course, venue, date_obj, ss, se, state, scheduled_ids,
+                                            allow_room_sharing=True, allow_split=False):
+                                placed_total += 1
+                                scheduled_ids.add(other_course.id)
+                                rem_cap -= other_needed
+                                py_day_count[(date_obj, other_py)] += 1
+                        break
+    print(f"[PhaseA-SmallFirst] Placed {placed_total} small courses")
+    return placed_total
 
 def schedule_common_courses_priority_pass(all_courses, state, scheduled_ids):
-    """
-    Phase 0 (NEW) — Common-course-first, last-slot-inward placement.
-
-    "Common" courses are course-code families with 2+ members in
-    state.analysis.shared_unit_groups — i.e. the same course code repeated
-    either across different programs OR repeated within the same program.
-    Families are ranked by how many times they repeat (most-repeated
-    first); ties broken by total enrolled students.
-
-    Slot order: start at the LAST slot of the timetable day (which, by
-    construction, is always the last evening slot — see
-    SchedulerState.all_slots_ordered) and work inward one slot at a time
-    towards the first morning slot. Only ONE slot "column" is worked at a
-    time; every other slot is left untouched until this one is exhausted.
-
-    Within a slot column:
-      - Walk the days first → last, packing as many common-course families
-        as will fit into that (day, slot) — several families can share a
-        single slot across different venues as long as none of them
-        collide (see _family_constraints_ok: no lecturer double-booked on
-        two DIFFERENT courses at once, same-family/same-course repeats are
-        fine, no student-cohort collision).
-      - After a full day-by-day sweep, if anything got placed, sweep the
-        days again from the top — a family that didn't fit earlier in the
-        column may fit now that other families vacated space or once the
-        list has shrunk. Keep re-sweeping until one full pass places
-        nothing more.
-      - When a family at the front of the priority list can't fit in a
-        given (day, slot), it is skipped (not removed) so lower-priority
-        families behind it still get a chance to fill that same slot.
-    Only once a slot column is fully exhausted (no family fits anywhere in
-    it, on any day) does the pass move one slot inward (day-time slots are
-    reached only after every evening slot has been tried this way).
-
-    Venue placement (via place_merged_family) never lands a family in a
-    blocked/exclusive venue unless every member of that family is
-    individually scoped to it (see designated_venues_for_family) — so a
-    room reserved for one program's course never absorbs another
-    program's section of a same-named shared course, even if the room
-    would otherwise be big enough.
-    """
     if not state.analysis.shared_unit_groups:
         return 0
-
     course_by_id = {c.id: c for c in all_courses}
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
     if not dates or not all_slots:
         return 0
-
     def _live_group(cids):
         return [course_by_id[cid] for cid in cids
                 if cid in course_by_id and cid not in scheduled_ids]
-
-    pending: List[Tuple[str, List]] = []
+    pending: List[Tuple[str, List]] = [] 
     for nc, cids in state.analysis.shared_unit_groups.items():
         if nc in state.placed_families:
             continue
         group = _live_group(cids)
         if group:
             pending.append((nc, group))
-
-    # Most-repeated family first (across programs OR within one program);
-    # ties broken by total enrolled students.
     pending.sort(key=lambda kv: (-len(kv[1]), -family_total_students(kv[1])))
-
-    print(f"\n[Phase0-CommonFirst] {len(pending)} common-course families, "
+    print(f"\n[PhaseB-CommonLast] {len(pending)} common-course families, "
           f"working {len(all_slots)} slots from last to first")
     placed_total = 0
-
+    pool_courses = [group[0] for _, group in pending if group]
+    sorted_dates = state.get_sorted_dates_for_pool(dates, pool_courses)
     for round_idx in range(len(all_slots) - 1, -1, -1):
         if not pending:
             break
         ss, se = all_slots[round_idx]
-
         made_progress_this_round = True
         while pending and made_progress_this_round:
             made_progress_this_round = False
-            for date_obj, _ in dates:
+            for date_obj, _ in sorted_dates:
                 if not pending:
                     break
                 if not state.day_has_any_capacity(date_obj):
                     continue
-
                 packed_this_slot = True
                 while pending and packed_this_slot:
                     packed_this_slot = False
@@ -2125,7 +1977,6 @@ def schedule_common_courses_priority_pass(all_courses, state, scheduled_ids):
                             packed_this_slot = True
                             made_progress_this_round = True
                             break
-
                         true_total = family_total_students(group)
                         if not _family_constraints_ok(group, date_obj, ss, state):
                             continue
@@ -2137,30 +1988,21 @@ def schedule_common_courses_priority_pass(all_courses, state, scheduled_ids):
                             pending.pop(idx)
                             packed_this_slot = True
                             made_progress_this_round = True
-                            print(f"  [Phase0-CommonFirst] '{nc}' (x{len(group)}) -> "
+                            print(f"  [PhaseB-CommonLast] '{nc}' (x{len(group)}) -> "
                                   f"{date_obj} {ss}")
                             break
-                        # else: this family refuses this slot — leave it in
-                        # place and let the next (lower-priority) family in
-                        # the list get a chance to fit here instead.
-
-    remaining = len(pending)
-    if remaining:
-        print(f"[Phase0-CommonFirst] {remaining} common families still pending "
-              f"after all slots — later phases will retry them")
-    print(f"[Phase0-CommonFirst] Placed {placed_total} variants")
+            remaining = len(pending)
+            if remaining:
+                print(f"[PhaseB-CommonLast] {remaining} common families still pending "
+                      f"after all slots — later phases will retry them")
+    print(f"[PhaseB-CommonLast] Placed {placed_total} variants")
     return placed_total
 
-
 def schedule_families_first(all_courses, state, scheduled_ids):
-    """Phase 1: Schedule all families first."""
     if not state.analysis.shared_unit_groups:
         return 0
-    
     course_by_id = {c.id: c for c in all_courses}
     dates = state.dates_in_order()
-    total_days = len(dates)
-    
     sorted_families = sorted(
         state.analysis.shared_unit_groups.items(),
         key=lambda kv: (
@@ -2168,25 +2010,23 @@ def schedule_families_first(all_courses, state, scheduled_ids):
             -family_total_students([course_by_id[cid] for cid in kv[1] if cid in course_by_id]),
         ),
     )
-    
     print(f"\n[Phase1] Scheduling {len(sorted_families)} families")
     placed_total = 0
-    
     for nc, cids in sorted_families:
         if nc in state.placed_families:
             continue
-        
         group = [course_by_id[cid] for cid in cids if cid in course_by_id and cid not in scheduled_ids]
         if not group:
             state.placed_families.add(nc)
             continue
-        
         true_total = family_total_students(group)
         family_placed = False
         
-        # Try evening slots for highly shared exams
+        # NEW: Sort dates dynamically by daily penalty for this specific family
+        sorted_dates = state.get_sorted_dates(group[0])
+        
         if state.analysis.shared_exams.get(nc, 0) >= 3 and state.evening_slots:
-            for date_obj, _ in dates:
+            for date_obj, _ in sorted_dates:
                 if family_placed:
                     break
                 for ss, se in state.evening_slots:
@@ -2201,10 +2041,8 @@ def schedule_families_first(all_courses, state, scheduled_ids):
                     if place_merged_family(group, nc, date_obj, ss, se, state, scheduled_ids):
                         placed_total += len(group)
                         family_placed = True
-        
-        # Try all slots
         if not family_placed:
-            for date_obj, _ in dates:
+            for date_obj, _ in sorted_dates:
                 if family_placed:
                     break
                 for ss, se in state.daytime_slots_list + state.evening_slots:
@@ -2219,15 +2057,12 @@ def schedule_families_first(all_courses, state, scheduled_ids):
                     if place_merged_family(group, nc, date_obj, ss, se, state, scheduled_ids):
                         placed_total += len(group)
                         family_placed = True
-        
         if not family_placed and nc in state.strict_norm_codes:
             for c in group:
                 state.strict_locked_ids.add(c.id)
             print(f"  [WARN] '{nc}' STRICTLY designated — left unscheduled")
-    
     print(f"[Phase1] Placed {placed_total} variants")
     return placed_total
-
 
 def _fill_slot_with_program(date, slot_start, slot_end, program_courses,
                             state, scheduled_ids, relax_consecutive=False,
@@ -2235,13 +2070,11 @@ def _fill_slot_with_program(date, slot_start, slot_end, program_courses,
                             allow_room_sharing=True):
     if placed_in_slot is None:
         placed_in_slot = defaultdict(list)
-    
     placed = 0
     sorted_courses = sorted(
         [c for c in program_courses if c.id not in scheduled_ids],
         key=lambda c: course_student_count(c), reverse=True
     )
-    
     for course in sorted_courses:
         if course.id in scheduled_ids:
             continue
@@ -2264,9 +2097,7 @@ def _fill_slot_with_program(date, slot_start, slot_end, program_courses,
             continue
         if not relax_consecutive and state.cohort_in_cooling(course, date, slot_start):
             continue
-        
-        # Try to place with minimal splitting (only if shared)
-        should_allow_split = allow_split and nc in state.analysis.shared_unit_groups
+        should_allow_split = allow_split  # any oversized course may now split, not just shared ones
         if try_place_course(course, date, slot_start, slot_end, state, scheduled_ids,
                             relax_consecutive=relax_consecutive,
                             allow_split=should_allow_split,
@@ -2274,25 +2105,20 @@ def _fill_slot_with_program(date, slot_start, slot_end, program_courses,
             placed += 1
             if py_key:
                 placed_in_slot[py_key].append(course)
-    
     return placed
 
-
 def run_saturation_day(date, pending_by_program, state, scheduled_ids,
-                        all_courses, force_evenings=False,
-                        allow_room_sharing=True, allow_split=False):
+                       all_courses, force_evenings=False,
+                       allow_room_sharing=True, allow_split=False):
     placed_today = 0
     day_slots = state.daytime_slots_list
     eve_slots = state.evening_slots
-    
     program_order = sorted(
         pending_by_program.items(),
         key=lambda kv: -len([c for c in kv[1] if c.id not in scheduled_ids]),
-    )
-    
+    ) 
     for round_idx in range(3):
         progress_this_round = 0
-        
         for prog_id, prog_courses in program_order:
             active = [c for c in prog_courses if c.id not in scheduled_ids]
             if not active:
@@ -2314,7 +2140,6 @@ def run_saturation_day(date, pending_by_program, state, scheduled_ids,
                 if n > 0:
                     placed_today += n
                     progress_this_round += n
-            
             is_pg_prog = all(
                 is_postgraduate_course(getattr(c, "course_code", "") or "")
                 for c in prog_courses[:3]
@@ -2334,20 +2159,17 @@ def run_saturation_day(date, pending_by_program, state, scheduled_ids,
                         placed_in_slot=placed_in_slot,
                         allow_split=allow_split,
                         allow_room_sharing=allow_room_sharing,
-                    )
+                    ) 
                     if n > 0:
                         placed_today += n
                         progress_this_round += n
-        
         all_pending = [c for c in all_courses if c.id not in scheduled_ids]
         if not all_pending:
             break
-        
         all_pending_sorted = sorted(
             all_pending,
             key=lambda c: (-course_student_count(c), -state.priority_score(c))
         )
-        
         use_eve = eve_slots if force_evenings else []
         for ss, se in day_slots + use_eve:
             if not state.slot_has_any_venue_space(date, ss, 1):
@@ -2373,7 +2195,7 @@ def run_saturation_day(date, pending_by_program, state, scheduled_ids,
                 reason = _check_hard_constraints(course, date, ss, state)
                 if reason:
                     continue
-                should_allow_split = allow_split and nc in state.analysis.shared_unit_groups
+                should_allow_split = allow_split  # any oversized course may now split, not just shared ones
                 if try_place_course(course, date, ss, se, state, scheduled_ids,
                                     relax_consecutive=(round_idx > 0),
                                     allow_split=should_allow_split,
@@ -2382,30 +2204,27 @@ def run_saturation_day(date, pending_by_program, state, scheduled_ids,
                     progress_this_round += 1
                     if py_key:
                         placed_in_slot[py_key].append(course)
-        
         if progress_this_round == 0:
             break
-    
     return placed_today
-
 
 def schedule_saturation_loop(all_courses, state, scheduled_ids):
     stats = {"placed": 0}
     dates = state.dates_in_order()
     strategy = state.strategy
-    
     pending_by_program: Dict[str, List] = defaultdict(list)
     for c in all_courses:
         prog = getattr(c, "program", None)
         prog_id = str(prog.id) if prog else "no_program"
         pending_by_program[prog_id].append(c)
-    
-    print(f"\n[Phase2] Saturation loop")
+    print(f"\n[PhaseC-Saturation] Remaining courses saturation loop")
     max_passes = 6 if getattr(strategy, 'mode', 'NORMAL') in ('DENSE', 'OVERFLOW') else 4
-    
     for pass_idx in range(max_passes):
         placed_this_pass = 0
-        for day_idx, (date_obj, _) in enumerate(dates):
+        all_pending = [c for c in all_courses if c.id not in scheduled_ids]
+        # NEW: Sort dates by the average penalty of pending courses to fill lighter days first
+        sorted_dates = state.get_sorted_dates_for_pool(dates, all_pending)
+        for day_idx, (date_obj, _) in enumerate(sorted_dates):
             if not state.day_has_any_capacity(date_obj):
                 continue
             if len(scheduled_ids) == len(all_courses):
@@ -2418,28 +2237,23 @@ def schedule_saturation_loop(all_courses, state, scheduled_ids):
                                    scheduled_ids, all_courses,
                                    force_evenings=getattr(strategy, 'use_evening_slots', False),
                                    allow_room_sharing=True,
-                                   allow_split=(pass_idx >= 2))  # Only allow split after 2 passes
+                                   allow_split=(pass_idx >= 2))
             placed_this_pass += n
             if n > 0:
                 print(f"  Pass {pass_idx+1} Day {day_idx+1}: +{n}")
-        print(f"[Phase2] Pass {pass_idx+1}: +{placed_this_pass}")
+        print(f"[PhaseC-Saturation] Pass {pass_idx+1}: +{placed_this_pass}")
         if placed_this_pass == 0:
             break
-    
     return stats
-
 
 def cross_day_fill_pass(all_courses, state, scheduled_ids):
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
     if not unscheduled:
         return 0
-    
     print(f"\n[Phase3] Cross-day fill: {len(unscheduled)} unscheduled")
     placed = 0
     dates = state.dates_in_order()
     course_by_id = {c.id: c for c in all_courses}
-    
-    # Try family rescue
     for nc, cids in state.analysis.shared_unit_groups.items():
         if nc in state.placed_families:
             continue
@@ -2448,7 +2262,8 @@ def cross_day_fill_pass(all_courses, state, scheduled_ids):
             state.placed_families.add(nc)
             continue
         family_placed = False
-        for d, _ in dates:
+        sorted_dates = state.get_sorted_dates(stuck[0])
+        for d, _ in sorted_dates:
             if family_placed:
                 break
             for ss, se in state.daytime_slots_list + state.evening_slots:
@@ -2457,15 +2272,13 @@ def cross_day_fill_pass(all_courses, state, scheduled_ids):
                 if place_merged_family(stuck, nc, d, ss, se, state, scheduled_ids):
                     placed += len(stuck)
                     family_placed = True
-    
-    # Individual courses
     unscheduled_individual = sorted(
         [c for c in all_courses if c.id not in scheduled_ids and
          normalize_course_code(c.course_code or "") not in state.analysis.shared_unit_groups],
         key=lambda c: -state.priority_score(c)
     )
-    
-    for date_obj, _ in dates:
+    sorted_dates = state.get_sorted_dates_for_pool(dates, unscheduled_individual)
+    for date_obj, _ in sorted_dates:
         for ss, se in state.daytime_slots_list + state.evening_slots:
             if not state.slot_has_any_venue_space(date_obj, ss, 1):
                 continue
@@ -2483,95 +2296,84 @@ def cross_day_fill_pass(all_courses, state, scheduled_ids):
                     if conflict:
                         continue
                 needed = course_student_count(course)
-                if not state.slot_has_any_venue_space(date_obj, ss, needed):
+                if not state.slot_has_combined_venue_space(date_obj, ss, needed, course):
                     continue
                 if _check_hard_constraints(course, date_obj, ss, state):
                     continue
                 if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
-                                    relax_consecutive=True, allow_split=False,
+                                    relax_consecutive=True, allow_split=True,
                                     allow_room_sharing=True):
                     placed += 1
                     if pk:
                         placed_in_slot[pk].append(course)
-    
     print(f"[Phase3] Placed {placed}")
     return placed
 
-
 def family_split_rescue_pass(all_courses, state, scheduled_ids):
-    """Phase 3b: Rescue family variants with minimal splitting."""
     course_by_id = {c.id: c for c in all_courses}
     unplaced_families = {}
     for nc, cids in state.analysis.shared_unit_groups.items():
         stuck = [course_by_id[cid] for cid in cids if cid in course_by_id and cid not in scheduled_ids]
         if stuck:
             unplaced_families[nc] = stuck
-    
     if not unplaced_families:
         return 0
-    
     print(f"\n[Phase3b] Family rescue: {len(unplaced_families)} families")
     placed_total = 0
     dates = state.dates_in_order()
-    
     for nc, variants in unplaced_families.items():
         variants = [c for c in variants if c.id not in scheduled_ids]
         if not variants:
             continue
-        
         rescued = False
-        for date_obj, _ in dates:
+        sorted_dates = state.get_sorted_dates(variants[0])
+        for date_obj, _ in sorted_dates:
             if rescued:
                 break
             for ss, se in state.daytime_slots_list + state.evening_slots:
                 if rescued:
                     break
-                
                 if not _family_constraints_ok(variants, date_obj, ss, state):
                     continue
-                
-                # Try to place as a merged family first
                 if place_merged_family(variants, nc, date_obj, ss, se, state, scheduled_ids):
                     placed_total += len(variants)
                     rescued = True
                     print(f"  [Phase3b] '{nc}' → {date_obj} {ss}")
                     break
-                
-                # If merged family didn't work, try individual placement with split
-                for course in variants:
-                    if course.id in scheduled_ids:
-                        continue
-                    if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
+        for course in variants:
+            if course.id in scheduled_ids:
+                continue
+            course_sorted_dates = state.get_sorted_dates(course)
+            placed_solo = False
+            for d_obj, _ in course_sorted_dates:
+                if placed_solo:
+                    break
+                for c_ss, c_se in state.daytime_slots_list + state.evening_slots:
+                    if try_place_course(course, d_obj, c_ss, c_se, state, scheduled_ids,
                                         relax_consecutive=True, allow_split=True,
                                         allow_room_sharing=True):
                         placed_total += 1
-        
+                        placed_solo = True
+                        break
         if not rescued:
             print(f"  [WARN] '{nc}' STILL unplaced")
-    
     print(f"[Phase3b] Rescued {placed_total} variants")
     return placed_total
-
 
 def forced_fallback_pass(all_courses, state, scheduled_ids):
     total_placed = 0
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
-    
     for sweep in range(1, 5):
         unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
         if not unscheduled:
             break
-        
         print(f"\n[Phase4] Sweep {sweep}: {len(unscheduled)} unscheduled")
         before_sweep = len(scheduled_ids)
         unscheduled = sorted(unscheduled, key=lambda c: -state.priority_score(c))
-        
         if sweep == 2:
             for c in unscheduled:
                 state.release_family_binding(c)
-        
-        # Try family re-merge on sweep 3
         if sweep == 3:
             for nc, cids in state.analysis.shared_unit_groups.items():
                 if nc in state.placed_families:
@@ -2580,7 +2382,8 @@ def forced_fallback_pass(all_courses, state, scheduled_ids):
                 if not group_unsched:
                     state.placed_families.add(nc)
                     continue
-                for date_obj, _ in dates:
+                sorted_dates = state.get_sorted_dates(group_unsched[0])
+                for date_obj, _ in sorted_dates:
                     if nc in state.placed_families:
                         break
                     for ss, se in all_slots:
@@ -2588,17 +2391,17 @@ def forced_fallback_pass(all_courses, state, scheduled_ids):
                             break
                         if place_merged_family(group_unsched, nc, date_obj, ss, se, state, scheduled_ids):
                             state.placed_families.add(nc)
-        
-        for date_obj, _ in dates:
+        sorted_dates = state.get_sorted_dates_for_pool(dates, unscheduled)
+        for date_obj, _ in sorted_dates:
             for ss, se in all_slots:
                 if not state.slot_has_any_venue_space(date_obj, ss, 1):
                     continue
                 placed_in_slot = defaultdict(list)
                 for course in unscheduled:
                     if course.id in scheduled_ids:
-                        continue
+                        continue 
                     nc = normalize_course_code(course.course_code or "")
-                    if nc in state.analysis.shared_unit_groups:
+                    if nc in state.analysis.shared_unit_groups and nc not in state.family_exhausted:
                         continue
                     pk = state._py_key(course)
                     if pk and pk in placed_in_slot:
@@ -2610,7 +2413,7 @@ def forced_fallback_pass(all_courses, state, scheduled_ids):
                         if conflict:
                             continue
                     needed = course_student_count(course)
-                    if not state.slot_has_any_venue_space(date_obj, ss, needed):
+                    if not state.slot_has_combined_venue_space(date_obj, ss, needed, course):
                         continue
                     if sweep >= 2 and state.check_family_conflict(course, date_obj, ss):
                         state.release_family_binding(course)
@@ -2622,43 +2425,36 @@ def forced_fallback_pass(all_courses, state, scheduled_ids):
                             continue
                     if _check_hard_constraints(course, date_obj, ss, state):
                         continue
-                    
-                    should_allow_split = (sweep >= 4) and nc in state.analysis.shared_unit_groups
+                    should_allow_split = (sweep >= 4)  # allow split for any oversized course from sweep 4
                     if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
                                         relax_consecutive=True,
                                         allow_split=should_allow_split,
                                         allow_room_sharing=True):
                         if pk:
                             placed_in_slot[pk].append(course)
-        
         newly_placed = len(scheduled_ids) - before_sweep
         total_placed += newly_placed
         print(f"[Phase4] Sweep {sweep}: +{newly_placed}")
         if newly_placed == 0 and sweep < 4:
             print(f"[Phase4] No progress — escalating")
-    
     return total_placed
-
 
 def db_driven_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
     if not unscheduled:
         return 0
-    
     print(f"\n[Phase5-DB] {len(unscheduled)} unscheduled")
     free_slots = rebuild_state_from_db(state, all_courses)
     sync_scheduled_ids_from_db(scheduled_ids)
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
-    
     if not unscheduled or not free_slots:
         return 0
-    
     placed = 0
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
     unscheduled = sorted(unscheduled, key=lambda c: -state.priority_score(c))
-    
-    for date_idx, (date_obj, _) in enumerate(dates):
+    sorted_dates = state.get_sorted_dates_for_pool(dates, unscheduled)
+    for date_idx, (date_obj, _) in enumerate(sorted_dates):
         for ss, se in all_slots:
             if not state.slot_has_any_venue_space(date_obj, ss, 1):
                 continue
@@ -2667,7 +2463,7 @@ def db_driven_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None
                 if course.id in scheduled_ids:
                     continue
                 nc = normalize_course_code(course.course_code or "")
-                if nc in state.analysis.shared_unit_groups:
+                if nc in state.analysis.shared_unit_groups and nc not in state.family_exhausted:
                     continue
                 pk = state._py_key(course)
                 if pk and pk in placed_in_slot:
@@ -2679,12 +2475,11 @@ def db_driven_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None
                     if conflict:
                         continue
                 needed = course_student_count(course)
-                if not state.slot_has_any_venue_space(date_obj, ss, needed):
+                if not state.slot_has_combined_venue_space(date_obj, ss, needed, course):
                     continue
                 if _check_hard_constraints(course, date_obj, ss, state):
                     continue
-                
-                should_allow_split = nc in state.analysis.shared_unit_groups
+                should_allow_split = True  # any oversized course may split, not just shared ones
                 if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
                                     relax_consecutive=True,
                                     allow_split=should_allow_split,
@@ -2692,24 +2487,20 @@ def db_driven_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None
                     placed += 1
                     if pk:
                         placed_in_slot[pk].append(course)
-    
     print(f"[Phase5-DB] Placed {placed}")
     return placed
-
 
 def nuclear_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
     if not unscheduled:
         return 0
-    
     print(f"\n[Phase7-Nuclear] {len(unscheduled)} unscheduled")
     placed = 0
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
-    
     unscheduled_sorted = sorted(unscheduled, key=lambda c: -state.priority_score(c))
-    
-    for date_obj, _ in dates:
+    sorted_dates = state.get_sorted_dates_for_pool(dates, unscheduled_sorted)
+    for date_obj, _ in sorted_dates:
         for ss, se in all_slots:
             if not state.slot_has_any_venue_space(date_obj, ss, 1):
                 continue
@@ -2718,7 +2509,7 @@ def nuclear_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
                 if course.id in scheduled_ids:
                     continue
                 nc = normalize_course_code(course.course_code or "")
-                if nc in state.analysis.shared_unit_groups:
+                if nc in state.analysis.shared_unit_groups and nc not in state.family_exhausted:
                     continue
                 pk = state._py_key(course)
                 if pk and pk in placed_in_slot:
@@ -2741,12 +2532,11 @@ def nuclear_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
                             state.norm_code_day_lock.pop(nc_check, None)
                             state.shared_unit_lock.pop(nc_check, None)
                 needed = course_student_count(course)
-                if not state.slot_has_any_venue_space(date_obj, ss, needed):
+                if not state.slot_has_combined_venue_space(date_obj, ss, needed, course):
                     continue
                 if _check_hard_constraints(course, date_obj, ss, state):
                     continue
-                
-                should_allow_split = nc in state.analysis.shared_unit_groups
+                should_allow_split = True  # any oversized course may split, not just shared ones
                 if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
                                     relax_consecutive=True,
                                     allow_split=should_allow_split,
@@ -2755,61 +2545,71 @@ def nuclear_fallback_pass(all_courses, state, scheduled_ids, _progress_fn=None):
                     if pk:
                         placed_in_slot[pk].append(course)
                     break
-    
     print(f"[Phase7-Nuclear] Placed {placed}")
     return placed
 
-
 def diagnose_unscheduled_courses(all_courses, state, scheduled_ids, sample_size: int = 25) -> None:
-    """
-    Explains WHY specific unscheduled courses can't be placed, by walking every
-    (date, slot) combination and reporting exactly which check rejected it.
-
-    This is read-only — it does not place anything or mutate state. It exists
-    to answer "there's free venues/slots, why is this course still stuck?"
-    without guessing.
-    """
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
     if not unscheduled:
         return
-
-    unscheduled = sorted(unscheduled, key=lambda c: -state.priority_score(c))[:sample_size]
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
-
+    by_prog_year: Dict[str, List] = defaultdict(list)
+    for c in unscheduled:
+        prog = getattr(c, "program", None)
+        prog_name = getattr(prog, "name", None) or "Unknown program"
+        by_prog_year[f"{prog_name} — {get_program_year(c)}"].append(c)
+    print(f"\n══════════════════════════════════════════")
+    print(f"  UNSCHEDULED BY PROGRAM+YEAR ({len(unscheduled)} total)")
+    print(f"══════════════════════════════════════════")
+    for key, courses in sorted(by_prog_year.items(), key=lambda kv: -len(kv[1])):
+        print(f"  {key}: {len(courses)} unscheduled")
+    per_group_cap = max(1, sample_size // max(1, len(by_prog_year)))
+    sample: List = []
+    seen_ids: Set[int] = set()
+    for _, courses in sorted(by_prog_year.items(), key=lambda kv: -len(kv[1])):
+        group_sorted = sorted(courses, key=lambda c: -state.priority_score(c))
+        for c in group_sorted[:per_group_cap]:
+            if c.id not in seen_ids:
+                sample.append(c)
+                seen_ids.add(c.id)
+    if len(sample) < sample_size:
+        remainder = sorted(
+            [c for c in unscheduled if c.id not in seen_ids],
+            key=lambda c: -state.priority_score(c),
+        )
+        for c in remainder:
+            if len(sample) >= sample_size:
+                break
+            sample.append(c)
+            seen_ids.add(c.id)
+    unscheduled = sample[:sample_size]
     print(f"\n══════════════════════════════════════════")
     print(f"  DIAGNOSTIC — why are courses still stuck?")
-    print(f"  (sampling {len(unscheduled)} of {len(unscheduled)} unscheduled)")
+    print(f"  (sampling {len(unscheduled)} of {len(by_prog_year)} program+year groups)")
     print(f"══════════════════════════════════════════")
-
     for course in unscheduled:
         needed = course_student_count(course)
         lid = state._cached_lecturer_id(course)
         nc = normalize_course_code(getattr(course, "course_code", "") or "")
-
         reason_counts: Dict[str, int] = defaultdict(int)
         slots_with_space = 0
         first_space_no_block = None
-
         for date_obj, _ in dates:
             for ss, se in all_slots:
-                if not state.slot_has_any_venue_space(date_obj, ss, needed):
+                if not state.slot_has_combined_venue_space(date_obj, ss, needed, course):
                     reason_counts["no-venue-space-for-full-count"] += 1
                     continue
-
                 slots_with_space += 1
                 reason = _check_hard_constraints(course, date_obj, ss, state)
                 if reason:
                     reason_counts[reason] += 1
                     continue
-
                 if lid and not state.lecturer_available(lid, date_obj, ss, course):
                     reason_counts["lecturer-conflict"] += 1
                     continue
-
                 if first_space_no_block is None:
                     first_space_no_block = (date_obj, ss)
-
         print(f"\n[{course.course_code}] id={course.id} needed={needed} "
               f"lecturer_id={lid} shared={nc in state.analysis.shared_unit_groups}")
         print(f"  Slots with enough venue space at all: {slots_with_space}")
@@ -2818,81 +2618,62 @@ def diagnose_unscheduled_courses(all_courses, state, scheduled_ids, sample_size:
             print(f"  Rejection reasons (count): {top}")
         if first_space_no_block:
             print(f"  ⚠ FREE & UNBLOCKED slot exists at {first_space_no_block} but course "
-                  f"is still unscheduled — this is a placement-logic bug (e.g. venue "
-                  f"selection/split-eligibility failing in try_place_course), not a "
-                  f"constraint. Investigate place_course_no_split / "
-                  f"place_course_with_minimal_split for this course.")
+                  f"is still unscheduled — this is a placement-logic bug.")
         elif slots_with_space == 0:
-            print(f"  → Genuinely no venue anywhere has {needed} free seats in any slot. "
-                  f"Not a bug — venue capacity is the real bottleneck for this course.")
+            print(f"  → Genuinely no venue anywhere has {needed} free seats in any slot.")
         else:
-            print(f"  → Every slot with enough space is blocked by the reasons above "
-                  f"(family/shared-unit/norm-code locks, student or lecturer clashes).")
-
+            print(f"  → Every slot with enough space is blocked by the reasons above.")
     print(f"══════════════════════════════════════════\n")
-
 
 def ultimate_fallback_pass(all_courses, state, scheduled_ids):
     unscheduled = [c for c in all_courses if c.id not in scheduled_ids]
     if not unscheduled:
         return 0
-    
     print(f"\n[Phase8-Ultimate] {len(unscheduled)} unscheduled")
     placed_before = len(scheduled_ids)
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
     course_by_id = {c.id: c for c in all_courses}
-    
-    # Family rescue with minimal splitting
     for nc, cids in state.analysis.shared_unit_groups.items():
         variants = [course_by_id[cid] for cid in cids if cid in course_by_id and cid not in scheduled_ids]
         if not variants:
             continue
-        
         rescued = False
-        for date_obj, _ in dates:
+        sorted_dates = state.get_sorted_dates(variants[0])
+        for date_obj, _ in sorted_dates:
             if rescued:
                 break
             for ss, se in all_slots:
                 if rescued:
                     break
-                
                 if not _family_constraints_ok(variants, date_obj, ss, state):
                     continue
-                
-                # Try merged family
                 if place_merged_family(variants, nc, date_obj, ss, se, state, scheduled_ids):
                     rescued = True
                     break
-    
-    # Individual courses with minimal splitting
     individual_remaining = sorted(
         [c for c in all_courses if c.id not in scheduled_ids],
         key=lambda c: -course_student_count(c)
     )
-    
+    sorted_dates = state.get_sorted_dates_for_pool(dates, individual_remaining)
     for course in individual_remaining:
         if course.id in scheduled_ids:
             continue
         if course.id in state.strict_locked_ids:
             continue
-        
         if _course_already_in_db(course):
             scheduled_ids.add(course.id)
             continue
-        
         needed = course_student_count(course)
         lid = state._cached_lecturer_id(course)
         nc = normalize_course_code(course.course_code or "")
-        should_allow_split = nc in state.analysis.shared_unit_groups
-        
-        for date_obj, _ in dates:
+        should_allow_split = True  # any oversized course may split, not just shared ones
+        for date_obj, _ in sorted_dates:
             if course.id in scheduled_ids:
                 break
             for ss, se in all_slots:
                 if course.id in scheduled_ids:
                     break
-                
                 if lid and not state.lecturer_available(lid, date_obj, ss, course):
                     continue
                 if not state.students_available(course, date_obj, ss):
@@ -2903,25 +2684,83 @@ def ultimate_fallback_pass(all_courses, state, scheduled_ids):
                     continue
                 if state.check_family_conflict(course, date_obj, ss):
                     continue
-                
                 if not state.slot_has_any_venue_space(date_obj, ss, 1):
                     continue
-                
                 if try_place_course(course, date_obj, ss, se, state, scheduled_ids,
                                     relax_consecutive=True,
                                     allow_split=should_allow_split,
                                     allow_room_sharing=True):
                     break
-    
     placed = len(scheduled_ids) - placed_before
     print(f"[Phase8-Ultimate] Placed {placed}")
     return placed
 
+# ======================================================================
+# SECTION 9 – Post-Placement Swap Optimization
+# ======================================================================
+def post_placement_swap_optimization(all_courses, state, scheduled_ids):
+    print(f"\n[Phase9-SwapOptimization] Starting post-placement swap optimization")
+    entries = list(ExamTempTimetable.objects.values(
+        "id", "course_allocation_id", "venue_id", "date", "start_time", "end_time"
+    ))
+    if not entries:
+        print(f"[Phase9-SwapOptimization] No placements to optimize")
+        return 0
+    course_by_id = {c.id: c for c in all_courses}
+    slot_groups = defaultdict(list)
+    for e in entries:
+        slot_groups[(e["date"], e["start_time"])].append(e)
+    swaps_performed = 0
+    for (date_obj, ss), slot_entries in slot_groups.items():
+        if len(slot_entries) < 2:
+            continue
+        for i in range(len(slot_entries)):
+            for j in range(i + 1, len(slot_entries)):
+                entry_a = slot_entries[i]
+                entry_b = slot_entries[j]
+                course_a = course_by_id.get(entry_a["course_allocation_id"])
+                course_b = course_by_id.get(entry_b["course_allocation_id"])
+                if not course_a or not course_b:
+                    continue
+                if course_a.id == course_b.id:
+                    continue
+                venue_a = state.venue_by_id.get(entry_a["venue_id"])
+                venue_b = state.venue_by_id.get(entry_b["venue_id"])
+                if not venue_a or not venue_b:
+                    continue
+                if venue_a.id == venue_b.id:
+                    continue
+                students_a = course_student_count(course_a)
+                students_b = course_student_count(course_b)
+                cap_a = state.venue_examcap.get(venue_a.id, 0)
+                cap_b = state.venue_examcap.get(venue_b.id, 0)
+                current_waste_a = cap_a - students_a
+                current_waste_b = cap_b - students_b
+                current_total_waste = current_waste_a + current_waste_b
+                if students_a > cap_b or students_b > cap_a:
+                    continue
+                new_waste_a = cap_b - students_a
+                new_waste_b = cap_a - students_b
+                new_total_waste = new_waste_a + new_waste_b
+                if new_total_waste < current_total_waste:
+                    try:
+                        with transaction.atomic():
+                            ExamTempTimetable.objects.filter(id=entry_a["id"]).update(venue=venue_b)
+                            ExamTempTimetable.objects.filter(id=entry_b["id"]).update(venue=venue_a)
+                        swaps_performed += 1
+                        if DEBUG_VERBOSE:
+                            print(f"  [Swap] {course_a.course_code} ({students_a} students): "
+                                  f"{venue_a.code} (cap={cap_a}) → {venue_b.code} (cap={cap_b})")
+                            print(f"  [Swap] {course_b.course_code} ({students_b} students): "
+                                  f"{venue_b.code} (cap={cap_b}) → {venue_a.code} (cap={cap_a})")
+                    except Exception as e:
+                        print(f"  [Swap] Error: {e}")
+    print(f"[Phase9-SwapOptimization] Performed {swaps_performed} beneficial swaps")
+    return swaps_performed
 
 # ======================================================================
-# SECTION 9 – DB Helpers
+# SECTION 10 – DB Helpers
 # ======================================================================
-
 def sync_scheduled_ids_from_db(scheduled_ids: Set[int], force: bool = False):
     if not force:
         cached_count = len(_already_scheduled_cache)
@@ -2929,12 +2768,10 @@ def sync_scheduled_ids_from_db(scheduled_ids: Set[int], force: bool = False):
         if db_count == cached_count:
             scheduled_ids.update(_already_scheduled_cache)
             return 0
-    
     db_ids = set(ExamTempTimetable.objects.values_list("course_allocation_id", flat=True).distinct())
     scheduled_ids.update(db_ids)
     _already_scheduled_cache.update(db_ids)
     return len(db_ids)
-
 
 def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
     state.venue_usage.clear()
@@ -2944,15 +2781,14 @@ def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
     state.lecturer_exam_group.clear()
     state.cohort_last_slot_idx.clear()
     state.cohort_daily_count.clear()
+    state.lecturer_daily_count.clear()  # NEW
     state.family_slot.clear()
     state.family_day.clear()
     state.shared_unit_lock.clear()
     state.norm_code_day_lock.clear()
     state.venue_occupants.clear()
-    
     course_by_id = {c.id: c for c in all_courses}
     entries = list(ExamTempTimetable.objects.values("course_allocation_id", "venue_id", "date", "start_time"))
-    
     for e in entries:
         vid = e["venue_id"]
         cid = e["course_allocation_id"]
@@ -2960,7 +2796,6 @@ def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
         ss = e["start_time"]
         course = course_by_id.get(cid)
         n = course_student_count(course) if course else 1
-        
         cap = state.venue_examcap.get(vid, 0)
         current_usage = state.venue_usage[(vid, date_obj, ss)]
         if current_usage < cap:
@@ -2968,7 +2803,6 @@ def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
             state.venue_usage[(vid, date_obj, ss)] += take
             if course:
                 state.venue_occupants[(vid, date_obj, ss)].append((cid, take))
-        
         if course:
             pk = state._py_key(course)
             if pk:
@@ -2977,12 +2811,13 @@ def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
             lid = state._cached_lecturer_id(course)
             if lid:
                 state.lecturer_busy[lid].add((date_obj, ss))
-                state.lecturer_exam_group[(lid, date_obj, ss)] = _get_exam_group_key(course)
+                state.lecturer_exam_group[(lid, date_obj, ss)] = get_exam_group_key(course)
+                state.lecturer_daily_count[(lid, date_obj)] += 1  # NEW
             idx = state._slot_start_to_idx.get(ss)
             if idx is not None and pk:
-                state.cohort_last_slot_idx[(pk, date_obj)] = idx
-                state.cohort_daily_count[(pk, date_obj)] += 1
-            
+                daily_key = state._daily_limit_key(course)
+                state.cohort_last_slot_idx[(daily_key, date_obj)] = idx
+                state.cohort_daily_count[(daily_key, date_obj)] += 1
             fk = state.family_key(course)
             if fk and fk not in state.family_slot:
                 state.family_slot[fk] = (date_obj, ss)
@@ -2993,22 +2828,17 @@ def rebuild_state_from_db(state: SchedulerState, all_courses: List) -> List:
                     state.shared_unit_lock[nc] = (date_obj, ss)
                 if nc not in state.norm_code_day_lock:
                     state.norm_code_day_lock[nc] = date_obj
-    
-    # Recompute venue availability
     for date_obj, _ in state.date_range:
         for ss, _ in state.all_slots_ordered:
             for v in state.venues:
                 used = state.venue_usage[(v.id, date_obj, ss)]
                 state._venue_avail[(v.id, date_obj, ss)] = max(0, state.venue_examcap.get(v.id, 0) - used)
-    
     free_slots = []
     for date_obj, _ in state.dates_in_order():
         for ss, se in state.all_slots_ordered:
             if state.slot_has_any_venue_space(date_obj, ss):
                 free_slots.append((date_obj, ss, se))
-    
     return free_slots
-
 
 def sync_lecturer_busy_from_db(state, all_courses):
     course_by_id = {c.id: c for c in all_courses}
@@ -3019,20 +2849,17 @@ def sync_lecturer_busy_from_db(state, all_courses):
             lid = state._cached_lecturer_id(course)
             if lid:
                 state.lecturer_busy[lid].add((e["date"], e["start_time"]))
-                state.lecturer_exam_group[(lid, e["date"], e["start_time"])] = _get_exam_group_key(course)
-
+                state.lecturer_exam_group[(lid, e["date"], e["start_time"])] = get_exam_group_key(course)
 
 # ======================================================================
-# SECTION 10 – Auditing
+# SECTION 11 – Auditing
 # ======================================================================
-
 def _audit_lecturer_conflicts(state, all_courses):
     from collections import Counter
     entries = list(ExamTempTimetable.objects.values("course_allocation_id", "date", "start_time"))
     course_by_id = {c.id: c for c in all_courses}
     slot_lecturers = defaultdict(list)
     slot_alloc_ids = defaultdict(list)
-    
     for e in entries:
         course = course_by_id.get(e["course_allocation_id"])
         if course:
@@ -3041,23 +2868,19 @@ def _audit_lecturer_conflicts(state, all_courses):
             if lid:
                 slot_lecturers[key].append(lid)
                 slot_alloc_ids[key].append(e["course_allocation_id"])
-    
     violations = 0
     for (date, ss), lids in slot_lecturers.items():
         for lid, count in Counter(lids).items():
             if count > 1:
-                # Check if all are the same exam group
                 exam_groups = set()
                 for aid in slot_alloc_ids[(date, ss)]:
                     course = course_by_id.get(aid)
                     if course and getattr(course.lecturer, "id", None) == lid:
-                        exam_groups.add(_get_exam_group_key(course))
+                        exam_groups.add(get_exam_group_key(course))
                 if len(exam_groups) > 1:
                     violations += 1
                     print(f"[Audit-LECTURER] VIOLATION: lecturer={lid} at {date} {ss}")
-    
     return violations
-
 
 def _audit_student_conflicts(state, all_courses):
     entries = list(ExamTempTimetable.objects.values("course_allocation_id", "date", "start_time"))
@@ -3066,10 +2889,9 @@ def _audit_student_conflicts(state, all_courses):
     for e in entries:
         course = course_by_id.get(e["course_allocation_id"])
         if course:
-            pk = _prog_year_key(course)
+            pk = prog_year_key(course)
             if pk:
                 slot_cohorts[(e["date"], e["start_time"])].append((pk, course))
-    
     violations = 0
     for (date, ss), cohort_courses in slot_cohorts.items():
         by_pk = defaultdict(list)
@@ -3087,50 +2909,33 @@ def _audit_student_conflicts(state, all_courses):
                     if not exam_is_collision_exempt(courses[i], courses[j]):
                         violations += 1
                         print(f"[Audit-STUDENT] VIOLATION: {pk}")
-    
     return violations
 
-
 def _audit_venue_capacity_with_sharing(state, all_courses):
-    entries = list(ExamTempTimetable.objects.values("venue_id", "date", "start_time", "course_allocation_id"))
-    course_by_id = {c.id: c for c in all_courses}
-    
-    slot_venue_students = defaultdict(int)
-    for e in entries:
-        key = (e["venue_id"], e["date"], e["start_time"])
-        course = course_by_id.get(e["course_allocation_id"])
-        n = course_student_count(course) if course else 1
-        slot_venue_students[key] += n
-    
     violations = 0
-    for (vid, date, ss), total_assigned in slot_venue_students.items():
+    for (vid, date, ss), occupants in state.venue_occupants.items():
+        total_assigned = sum(students for _, students in occupants)
         cap = state.venue_examcap.get(vid, 0)
         if total_assigned > cap:
             violations += 1
             print(f"[Audit-OVERCAP] VIOLATION: venue_id={vid} date={date} slot={ss} | assigned={total_assigned} > cap={cap}")
-    
     return violations
-
 
 def _audit_and_fix_duplicate_placements(state, all_courses):
     course_by_id = {c.id: c for c in all_courses}
-    entries = list(ExamTempTimetable.objects.values("id", "course_allocation_id", "date", "start_time"))
+    entries = list(ExamTempTimetable.objects.values("id", "course_allocation_id", "date", "start_time", "venue_id"))
     by_course = defaultdict(list)
     for e in entries:
         by_course[e["course_allocation_id"]].append(e)
-    
     fixed = 0
     for cid, rows in by_course.items():
-        distinct_slots = {(r["date"], r["start_time"]) for r in rows}
-        if len(distinct_slots) <= 1:
+        if len(rows) <= 1:
             continue
-        keep_slot = min(distinct_slots)
-        drop_ids = [r["id"] for r in rows if (r["date"], r["start_time"]) != keep_slot]
+        rows_sorted = sorted(rows, key=lambda r: (r["date"], r["start_time"], r["id"]))
+        drop_ids = [r["id"] for r in rows_sorted[1:]]
         ExamTempTimetable.objects.filter(id__in=drop_ids).delete()
         fixed += 1
-    
     return fixed
-
 
 def classify_courses(all_courses) -> Tuple[List, List]:
     ug, pg = [], []
@@ -3139,13 +2944,11 @@ def classify_courses(all_courses) -> Tuple[List, List]:
         (pg if is_postgraduate_course(code) else ug).append(c)
     return ug, pg
 
-
 def _build_shared_venue_exam_groups() -> int:
     slot_map = defaultdict(list)
     entries = list(ExamTempTimetable.objects.values("id", "venue_id", "date", "start_time", "end_time", "course_allocation_id", "day"))
     for e in entries:
         slot_map[(e["venue_id"], e["date"], e["start_time"])].append(e)
-    
     created = 0
     for (vid, date_val, start_val), group_entries in slot_map.items():
         if len(group_entries) < 2:
@@ -3166,86 +2969,67 @@ def _build_shared_venue_exam_groups() -> int:
                 created += 1
         except Exception as exc:
             print(f"[SharedVenueGroup] Error: {exc}")
-    
     return created
 
-
 # ======================================================================
-# SECTION 11 – Main Entry Point
+# SECTION 12 – Main Entry Point
 # ======================================================================
-
 def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] = None):
-    """
-    Exam Auto-Scheduler v52 — Smart Split Minimization.
-    
-    KEY IMPROVEMENTS:
-    1. Courses are ONLY split when NO single venue can fit them
-    2. Splits use the MINIMUM number of venues (largest first)
-    3. Program-specific courses are NEVER split
-    4. Only shared courses (≥2 programs) can be split
-    5. Leftover space is NOT used to split courses — only for courses that fit entirely
-    """
     disabled_constraints = disabled_constraints or set()
     total_courses = 0
-    
+    init_logger()
+    print(f"[AutoScheduler v59] Log file: {get_log_file_path()}")
     try:
         enable_wal_mode()
-        
         with transaction.atomic():
             ExamTempTimetable.objects.all().delete()
             MergedCourseGroup.objects.all().delete()
             SharedVenueExamGroup.objects.all().delete()
-        
-        _already_scheduled_cache.clear()
-        _bulk_buffer.clear()
-        
+            _already_scheduled_cache.clear()
+            _bulk_buffer.clear()
         config = ExamSchedulerConfig.objects.first()
         if not config:
+            close_logger()
             return {"status": "error", "message": "No ExamSchedulerConfig found."}
-        
         raw_courses = list(CourseAllocation.objects.all().select_related("lecturer", "program"))
         total_raw = len(raw_courses)
-        
         _build_combined_group_cache()
         analysis = analyze_courses(raw_courses)
-        
         seen = set()
         all_courses = []
         for c in raw_courses:
             if c.id not in seen:
                 seen.add(c.id)
                 all_courses.append(c)
-        
         total_courses = len(all_courses)
         if total_courses == 0:
+            close_logger()
             return {"status": "completed", "message": "No courses to schedule."}
-        
-        # Pre-scheduling intelligence
         _raw_venues = list(Venue.objects.filter(capacity__isnull=False, capacity__gt=0))
         psi = PreSchedulingIntelligence(all_courses, analysis, config, _raw_venues)
-        strategy = psi.run()
-        
+        strategy = psi.run() 
         state = SchedulerState(config, analysis, strategy, disabled_constraints)
         state._cross_cohort_norm_codes = set(analysis.shared_unit_groups.keys())
-        
         if not state.date_range or not state.venues or not state.slots:
+            close_logger()
             return {"status": "error", "message": "Invalid config."}
-        
         scheduled_ids: Set[int] = set()
+        print(f"\n[AutoScheduler v59] {total_courses} courses, {len(state.venues)} venues")
+        print(f"[AutoScheduler v59] DYNAMIC DAILY LIMITS: Soft=2, Hard=3 (avoids 4)")
+        print(f"[AutoScheduler v59] STRICT CAPACITY: No overflow allowed")
+        print(f"[AutoScheduler v59] BEST-FIT: Smallest venue that fits")
         
-        print(f"\n[AutoScheduler v52] {total_courses} courses, {len(state.venues)} venues")
-        print(f"[AutoScheduler v52] Shared families: {len(state.analysis.shared_unit_groups)}")
-        print(f"[AutoScheduler v52] Split eligible: only shared courses (≥2 programs)")
-        print(f"[AutoScheduler v52] Split rule: NO split if a single venue fits")
-        print(f"[AutoScheduler v52] Split rule: MINIMUM venues when split is necessary")
+        # Phase A: Small courses in small venues
+        p_small_placed = schedule_small_courses_in_small_venues(all_courses, state, scheduled_ids)
+        sync_scheduled_ids_from_db(scheduled_ids)
+        sync_lecturer_busy_from_db(state, all_courses)
         
-        # Phase -1: Common courses first — last slot inward, most-repeated first
+        # Phase B: Common courses (last slots inward)
         p_common_placed = schedule_common_courses_priority_pass(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
         sync_lecturer_busy_from_db(state, all_courses)
         
-        # Phase 1: Families first (mops up any common families the priority
-        # pass above couldn't fit into a last-inward slot)
+        # Phase 1: Families first
         p1_placed = schedule_families_first(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
         sync_lecturer_busy_from_db(state, all_courses)
@@ -3254,7 +3038,7 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
         p0_placed = designated_venue_priority_pass(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
         
-        # Phase 2: Saturation
+        # Phase C: Saturation
         schedule_saturation_loop(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
         sync_lecturer_busy_from_db(state, all_courses)
@@ -3266,6 +3050,15 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
         # Phase 3b: Family split rescue
         p3b_placed = family_split_rescue_pass(all_courses, state, scheduled_ids)
         sync_scheduled_ids_from_db(scheduled_ids)
+
+        # After every dedicated family-placement phase has had its shot,
+        # mark any family that still has unplaced members as "exhausted" —
+        # this lets the individual-oriented fallback phases below pick up
+        # its remaining members on their own, instead of skipping them
+        # forever because they're nominally part of a family.
+        for _nc, _cids in state.analysis.shared_unit_groups.items():
+            if any(_cid not in scheduled_ids for _cid in _cids):
+                state.family_exhausted.add(_nc)
         
         # Phase 4: Forced fallback
         p4_placed = forced_fallback_pass(all_courses, state, scheduled_ids)
@@ -3287,46 +3080,50 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
             p8_placed = ultimate_fallback_pass(all_courses, state, scheduled_ids)
             sync_scheduled_ids_from_db(scheduled_ids)
         
-        # Build shared venue groups
+        # Phase 9: Post-placement swap optimization
+        p9_swaps = post_placement_swap_optimization(all_courses, state, scheduled_ids)
+        duplicate_fixes = _audit_and_fix_duplicate_placements(state, all_courses)
         _build_shared_venue_exam_groups()
         
-        # Audits
         actual_scheduled = ExamTempTimetable.objects.values("course_allocation_id").distinct().count()
         remaining_count = total_courses - actual_scheduled
-
         if remaining_count > 0:
-            diagnose_unscheduled_courses(all_courses, state, scheduled_ids)
+            diagnose_unscheduled_courses(all_courses, state, scheduled_ids, sample_size=60)
         
         lecturer_violations = _audit_lecturer_conflicts(state, all_courses)
         student_violations = _audit_student_conflicts(state, all_courses)
         venue_violations = _audit_venue_capacity_with_sharing(state, all_courses)
-        duplicate_fixes = _audit_and_fix_duplicate_placements(state, all_courses)
         
         if remaining_count == 0:
             message = f"SUCCESS! All {actual_scheduled} courses scheduled. Strategy={getattr(strategy, 'mode', 'NORMAL')}"
         else:
             message = f"Scheduled {actual_scheduled}/{total_courses}. {remaining_count} unscheduled."
         
-        print(f"\n[AutoScheduler v52] {message}")
-        print(f"[AutoScheduler v52] Lecturer violations: {lecturer_violations}")
-        print(f"[AutoScheduler v52] Student violations: {student_violations}")
-        print(f"[AutoScheduler v52] Venue capacity violations: {venue_violations}")
+        print(f"\n[AutoScheduler v59] {message}")
+        print(f"[AutoScheduler v59] Lecturer violations: {lecturer_violations}")
+        print(f"[AutoScheduler v59] Student violations: {student_violations}")
+        print(f"[AutoScheduler v59] Venue capacity violations: {venue_violations}")
+        print(f"[AutoScheduler v59] Post-placement swaps: {p9_swaps}")
         
-        return {
+        result = {
             "status": "completed" if remaining_count == 0 else "partial",
             "message": message,
             "scheduled_count": actual_scheduled,
             "remaining_count": remaining_count,
+            "log_file": get_log_file_path(),
             "phase_stats": {
-                "common_courses_priority": p_common_placed,
+                "small_courses_first": p_small_placed,
+                "common_courses_last": p_common_placed,
                 "families_first": p1_placed,
                 "designated_venue": p0_placed,
+                "saturation": schedule_saturation_loop.__name__,
                 "fill": p3_placed,
                 "family_rescue": p3b_placed,
                 "forced": p4_placed,
                 "db_fallback": p5_placed,
                 "nuclear": p7_placed,
                 "ultimate": p8_placed,
+                "swap_optimization": p9_swaps,
             },
             "audit": {
                 "lecturer_violations": lecturer_violations,
@@ -3335,64 +3132,73 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
                 "duplicate_placements_fixed": duplicate_fixes,
             },
         }
-    
+        close_logger()
+        return result
     except Exception as exc:
         import traceback
-        print(f"[AutoScheduler v52] Fatal: {exc}\n{traceback.format_exc()}")
-        return {
+        print(f"[AutoScheduler v59] Fatal: {exc}\n{traceback.format_exc()}")
+        result = {
             "status": "error",
             "message": f"Scheduling failed: {exc}",
             "scheduled_count": 0,
             "remaining_count": total_courses,
+            "log_file": get_log_file_path(),
         }
-
+        close_logger()
+        return result
 
 # ======================================================================
 # Aliases for compatibility
 # ======================================================================
-
 def designated_venue_priority_pass(all_courses, state, scheduled_ids):
-    """Phase 0: Designated venue priority pass."""
     if not state.designated_venues_by_norm_code:
         return 0
-    
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
     placed = 0
-    
     candidates = [
         c for c in all_courses
         if c.id not in scheduled_ids
         and normalize_course_code(getattr(c, "course_code", "") or "")
-            in state.designated_venues_by_norm_code
+        in state.designated_venues_by_norm_code
         and normalize_course_code(getattr(c, "course_code", "") or "")
-            not in state._cross_cohort_norm_codes
+        not in state._cross_cohort_norm_codes
+        # Also skip any course that's part of a same-program family
+        # (2+ CourseAllocation rows sharing a course code — e.g. Group A
+        # and Group B of the same course) UNLESS the family has already
+        # been given a genuine chance to place jointly and failed
+        # (state.family_exhausted, set after Phase3b). Without this, this
+        # phase could grab just one section by its designated venue and
+        # commit it alone, before PhaseB/Phase1 ever get to try placing
+        # the whole family together — orphaning the other section, which
+        # then can't be scheduled at all (try_place_course refuses to
+        # place a lone family member once a sibling is already placed
+        # elsewhere, to avoid fragmenting families further).
+        and (
+            normalize_course_code(getattr(c, "course_code", "") or "")
+            not in state.analysis.shared_unit_groups
+            or normalize_course_code(getattr(c, "course_code", "") or "")
+            in state.family_exhausted
+        )
     ]
     candidates.sort(key=lambda c: -state.priority_score(c))
-    
     print(f"\n[Phase0-Designated] {len(candidates)} designated courses")
-    
     for course in candidates:
         if course.id in scheduled_ids:
             continue
         if _course_already_in_db(course):
             scheduled_ids.add(course.id)
             continue
-        
         nc = normalize_course_code(course.course_code or "")
-        # Scoped to THIS allocation's program/program_course — not just any
-        # allocation sharing the course code — so a venue reserved for one
-        # program is never handed to a different program's section.
         venue_ids = state.designated_venues_for_course(course)
         venues = [state.venue_by_id[vid] for vid in venue_ids if vid in state.venue_by_id]
         if not venues:
             continue
-        
         needed = course_student_count(course)
         lid = state._cached_lecturer_id(course)
         placed_this = False
-        
-        for date_obj, _ in dates:
+        sorted_dates = state.get_sorted_dates(course)
+        for date_obj, _ in sorted_dates:
             if placed_this:
                 break
             for ss, se in all_slots:
@@ -3406,24 +3212,25 @@ def designated_venue_priority_pass(all_courses, state, scheduled_ids):
                     continue
                 if state.check_family_conflict(course, date_obj, ss):
                     continue
-                
-                # Hard capacity gate — mirrors place_single()'s `if rem < needed:
-                # return False`. A designated course is only placed when a
-                # designated venue can seat it IN FULL at this slot. We never
-                # fall back to a venue with leftover-but-insufficient space:
-                # doing so still writes the whole course into that venue/slot
-                # in the DB, even though consume_venue() would silently clamp
-                # its own internal usage counter — producing exactly the
-                # combined-over-capacity rooms (e.g. 80 + 126 into a 150-cap
-                # room) this pass was previously causing.
                 room = None
                 for v in venues:
                     if state.venue_remaining(v.id, date_obj, ss) >= needed:
                         room = v
                         break
                 if room is None:
+                    venues_desc = sorted(
+                        venues, key=lambda v: -state.venue_remaining(v.id, date_obj, ss)
+                    )
+                    total_rem = sum(state.venue_remaining(v.id, date_obj, ss) for v in venues_desc)
+                    if total_rem >= needed and place_multi_venue(
+                        course, venues_desc, date_obj, ss, se, state, scheduled_ids
+                    ):
+                        placed += 1
+                        placed_this = True
+                        print(f"  [Phase0-Split] {course.course_code} → {date_obj} {ss} "
+                              f"across {[v.code for v in venues_desc]}")
+                        break
                     continue
-                
                 try:
                     with transaction.atomic():
                         ExamTempTimetable.objects.create(
@@ -3433,10 +3240,13 @@ def designated_venue_priority_pass(all_courses, state, scheduled_ids):
                         )
                 except Exception:
                     continue
-                
                 cap = state.venue_examcap.get(room.id, 0)
                 effective = min(needed, cap) if cap else needed
-                state.consume_venue(room.id, date_obj, ss, effective, course)
+                if not state.consume_venue(room.id, date_obj, ss, effective, course):
+                    ExamTempTimetable.objects.filter(
+                        course_allocation=course, date=date_obj, start_time=ss
+                    ).delete()
+                    continue
                 state.record_combined_group_venue(course, date_obj, ss, room.id)
                 state.mark_students_busy(course, date_obj, ss)
                 state.mark_lecturer_busy(lid, date_obj, ss, course)
@@ -3450,9 +3260,8 @@ def designated_venue_priority_pass(all_courses, state, scheduled_ids):
                 placed_this = True
                 print(f"  [Phase0] {course.course_code} → {date_obj} {ss} {room.code}")
                 break
-        
         if not placed_this and nc in state.strict_norm_codes:
             state.strict_locked_ids.add(course.id)
-    
+            print(f"  [WARN] '{nc}' STRICTLY designated — left unscheduled")
     print(f"[Phase0-Designated] Placed {placed}")
     return placed

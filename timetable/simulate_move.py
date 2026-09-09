@@ -57,6 +57,7 @@ from timetable.timetable_panel import (
     _are_in_same_combined_group,
     _other_belongs_to_a_different_combined_group,
     _get_combined_group_ids_for_alloc,
+    _reset_combined_group_cache,
     time_overlaps,
     course_base_key,
     lecturer_blocked_slot_hit,
@@ -602,6 +603,7 @@ def _detach_allocation_from_combined_groups(allocation):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def simulate_move_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -675,6 +677,7 @@ def simulate_move_api(request):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def execute_move_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -773,6 +776,7 @@ def execute_move_api(request):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def simulate_swap_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -859,6 +863,7 @@ def simulate_swap_api(request):
 
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def execute_swap_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -969,6 +974,7 @@ def _make_combined_group_code(code_a, code_b):
 def simulate_combine_api(request):
     """Check-before-you-combine: resolve whatever sits at the picked
     day/timeslot/venue and report whether combining A with it is safe."""
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -1069,6 +1075,7 @@ def simulate_combine_api(request):
 def execute_combine_api(request):
     """Commit the combine: move A's bundle onto B's exact slot and link
     both (plus any pre-existing group members) as one CombinedCourseGroup."""
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -1209,6 +1216,7 @@ def bulk_move_scope_options_api(request):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def bulk_move_candidates_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     scope_type = request.GET.get('scope_type')
     prefer_day = request.GET.get('prefer_day') or None
     prefer_venue = (request.GET.get('prefer_venue') or '').strip() or None
@@ -1285,6 +1293,7 @@ def bulk_move_candidates_api(request):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def bulk_move_execute_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -1375,6 +1384,7 @@ def bulk_move_execute_api(request):
 # ═══════════════════════════════════════════════════════════════════
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def simulate_copy_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 
@@ -1435,6 +1445,7 @@ def simulate_copy_api(request):
 
 @allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
 def execute_copy_api(request):
+    _reset_combined_group_cache()  # fresh, correct data for this request
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
 

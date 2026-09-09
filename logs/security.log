@@ -16,3 +16,15 @@ WARNING 2026-09-07 11:27:59,799 security views:129 Login failure | attempted_use
 INFO 2026-09-07 11:28:21,585 security views:84 Login success | user=managementscience | ip=127.0.0.1
 INFO 2026-09-07 20:10:06,256 security views:139 Logout | user=dravis | ip=127.0.0.1
 INFO 2026-09-07 20:10:18,265 security views:84 Login success | user=computer_science | ip=127.0.0.1
+INFO 2026-09-08 08:48:12,897 security views:139 Logout | user=social_sciences | ip=127.0.0.1
+INFO 2026-09-08 08:48:29,851 security views:84 Login success | user=computer_science | ip=127.0.0.1
+WARNING 2026-09-08 10:23:38,926 security rbac:249 Permission denied | user=physical_sciences | view=analysis_dashboard | required_roles=sudo, director_timetable, timetable_admins | held_roles=cod
+INFO 2026-09-08 10:23:52,551 security views:84 Login success | user=dravis | ip=127.0.0.1
+INFO 2026-09-09 07:25:49,492 security views:139 Logout | user=environmentalscience | ip=127.0.0.1
+INFO 2026-09-09 07:26:01,401 security views:84 Login success | user=food_technology | ip=127.0.0.1
+INFO 2026-09-09 08:58:57,096 security views:139 Logout | user=education | ip=127.0.0.1
+INFO 2026-09-09 08:59:12,088 security views:84 Login success | user=computer_science | ip=127.0.0.1
+INFO 2026-09-09 09:02:42,825 security views:139 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-09 09:02:48,389 security views:84 Login success | user=social_sciences | ip=127.0.0.1
+INFO 2026-09-09 10:11:19,734 security views:139 Logout | user=social_sciences | ip=127.0.0.1
+INFO 2026-09-09 10:11:23,948 security views:84 Login success | user=education | ip=127.0.0.1

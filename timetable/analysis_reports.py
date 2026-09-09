@@ -78,7 +78,7 @@ from reportlab.lib.units import inch
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable,
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, HRFlowable, KeepInFrame,
 )
 
 from core.rbac import allowed_roles, Role
@@ -807,8 +807,22 @@ def _student_group_label(alloc):
     return grp.name or grp.letter or None
 
 
+def _venue_capacity_for_scope(venue, model):
+    """
+    Pick the right capacity figure for a venue given which table ('model')
+    the schedule was resolved against: exam slots use exam_capacity (falling
+    back to the regular capacity if that isn't set), everything else uses
+    the regular capacity. Returns None if nothing is recorded.
+    """
+    if venue is None:
+        return None
+    if model is ExamTimetable:
+        return venue.exam_capacity if venue.exam_capacity is not None else venue.capacity
+    return venue.capacity
+
+
 def _schedule_info_for_allocation(alloc, tt_cache=None, lookup_id=None, model=Timetable):
-    """Return {'scheduled': bool, 'day', 'start_time', 'end_time', 'venue'} for one allocation.
+    """Return {'scheduled': bool, 'day', 'start_time', 'end_time', 'venue', 'venue_capacity'} for one allocation.
 
     lookup_id lets a non-primary CombinedCourseGroup member resolve its
     schedule via the group's primary_allocation id instead of its own —
@@ -838,8 +852,9 @@ def _schedule_info_for_allocation(alloc, tt_cache=None, lookup_id=None, model=Ti
             'start_time': tt.start_time.strftime('%H:%M') if tt.start_time else '',
             'end_time': tt.end_time.strftime('%H:%M') if tt.end_time else '',
             'venue': tt.venue.code if tt.venue else '',
+            'venue_capacity': _venue_capacity_for_scope(tt.venue, model),
         }
-    return {'scheduled': False, 'day': '', 'start_time': '', 'end_time': '', 'venue': ''}
+    return {'scheduled': False, 'day': '', 'start_time': '', 'end_time': '', 'venue': '', 'venue_capacity': None}
 
 
 def _parse_codes_param(request):
@@ -991,6 +1006,7 @@ def scheduled_timetable_api(request):
             'course_code': alloc.course_code,
             'course_name': alloc.course_name,
             'venue': tt.venue.code if tt.venue else '',
+            'venue_capacity': _venue_capacity_for_scope(tt.venue, Model),
             'lecturer': getattr(alloc.lecturer, 'name', 'Unassigned'),
             'department': getattr(alloc.department, 'name', 'N/A'),
             'program': getattr(alloc.program, 'name', 'N/A'),
@@ -1075,32 +1091,14 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
     (appended, sorted by start time) — so nothing is silently dropped just
     because it doesn't align with the standard slot size.
 
-    Exam entries (ExamTimetable) carry a real calendar `date` field, unlike
-    regular Timetable entries which only have a recurring weekday name —
-    an exam period spans multiple weeks, so the same weekday (e.g. every
-    "Monday") recurs on several different dates. Grouping by weekday name
-    alone would silently merge all of those different dates' exams into
-    one table (and even into the same grid cell, if they share a venue +
-    timeslot). So: if the entries carry a `date` attribute, group by
-    (date, day) — one table per actual date — instead of by day alone.
-    Regular Timetable entries have no `date` field and keep the original
-    day-only grouping.
-
-    Returns: list of (label, Table) — label is the day name for regular
-    entries, or "<Day> — <dd Mon yyyy>" per date for exam entries.
+    Returns: list of (day_label, Table).
     """
     table_style_fn = table_style_fn or _standard_table_style
     base_slots = _build_time_slots()
 
-    entries_all = list(tt_iterable)
-    has_date = bool(entries_all) and hasattr(entries_all[0], 'date')
-
-    by_group = defaultdict(list)
-    for tt in entries_all:
-        if has_date:
-            by_group[(tt.date, tt.day or 'Unspecified')].append(tt)
-        else:
-            by_group[tt.day or 'Unspecified'].append(tt)
+    by_day = defaultdict(list)
+    for tt in tt_iterable:
+        by_day[tt.day or 'Unspecified'].append(tt)
 
     # Combined-group awareness: several member allocations of the same
     # CombinedCourseGroup are taught together (same venue/day/time), so they
@@ -1111,42 +1109,40 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
     combined_group_of_alloc = {}
     all_alloc_ids = {
         tt.course_allocation_id
-        for entries in by_group.values()
+        for entries in by_day.values()
         for tt in entries
         if tt.course_allocation_id
     }
     if all_alloc_ids:
-        for group in CombinedCourseGroup.objects.filter(
+        # PERFORMANCE FIX: was one query per matching group
+        # (`group.allocations.values_list()` inside the loop bypasses the
+        # `prefetch_related` cache and re-queries every time). Rewritten as
+        # exactly one query total, via the M2M relation directly — the
+        # `allocations__id__in` filter and the `allocations__id` value
+        # share the same join, so this returns exactly the (member_id,
+        # base_course_code) pairs we need, for members within
+        # `all_alloc_ids` only (the only ones ever looked up below).
+        for alloc_id, base_code in CombinedCourseGroup.objects.filter(
             allocations__id__in=all_alloc_ids
-        ).prefetch_related('allocations').only('id', 'base_course_code'):
-            for member_id in group.allocations.values_list('id', flat=True):
-                combined_group_of_alloc[member_id] = group.base_course_code
+        ).values_list('allocations__id', 'base_course_code'):
+            if alloc_id in all_alloc_ids:
+                combined_group_of_alloc[alloc_id] = base_code
 
     tables = []
-    if has_date:
-        # One table per actual calendar date, earliest first.
-        ordered_keys = sorted(by_group.keys(), key=lambda k: k[0])
-    else:
-        ordered_keys = [d for d in DAY_ORDER if d in by_group] + [d for d in by_group if d not in DAY_ORDER]
+    ordered_days = [d for d in DAY_ORDER if d in by_day] + [d for d in by_day if d not in DAY_ORDER]
 
-    for group_key in ordered_keys:
-        entries = [e for e in by_group[group_key] if e.venue and e.start_time and e.end_time]
+    for day in ordered_days:
+        entries = [e for e in by_day[day] if e.venue and e.start_time and e.end_time]
         if not entries:
             continue
-
-        if has_date:
-            date_val, day_name = group_key
-            label = f"{day_name} — {date_val.strftime('%d %b %Y')}"
-        else:
-            label = group_key
 
         slot_set = list(base_slots)
         known = set(slot_set)
         for tt in entries:
-            slot_key = (tt.start_time, tt.end_time)
-            if slot_key not in known:
-                slot_set.append(slot_key)
-                known.add(slot_key)
+            key = (tt.start_time, tt.end_time)
+            if key not in known:
+                slot_set.append(key)
+                known.add(key)
         slot_set.sort(key=lambda s: s[0])
 
         venues_sorted = sorted({tt.venue.code for tt in entries})
@@ -1209,7 +1205,7 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
 
         table = Table(rows, colWidths=col_widths, repeatRows=1)
         table.setStyle(table_style_fn())
-        tables.append((label, table))
+        tables.append((day, table))
 
     return tables
 
@@ -1281,6 +1277,19 @@ def _build_match_matrix_elements(matches, styles, opts=None):
         header = ['Venue'] + [f"{s}\u2013{e}" for s, e in slot_keys]
         rows = [[Paragraph(h, styles['RHead']) for h in header]]
 
+        n_cols = len(slot_keys)
+        venue_col_width = 1.1 * inch
+        col_total_width = 9.6 * inch
+        slot_col_width = max((col_total_width - venue_col_width) / max(n_cols, 1), 1.1 * inch)
+        col_widths = [venue_col_width] + [slot_col_width] * n_cols
+        # Hard ceiling on any single cell's rendered height. A row can never
+        # be split across pages in a Table, so if a cell's content (e.g. many
+        # overlapping bookings stacked in one venue/slot) would render taller
+        # than a page, ReportLab raises LayoutError instead of paginating.
+        # KeepInFrame with mode='shrink' auto-shrinks oversized content to
+        # fit instead of crashing.
+        max_cell_height = 260
+
         for v in venues:
             row = [Paragraph(v, styles['RCellBold'])]
             for s, e in slot_keys:
@@ -1321,14 +1330,12 @@ def _build_match_matrix_elements(matches, styles, opts=None):
                                 combined_line += f" (by {dept})"
                             lines.append(combined_line)
                         parts.append('<br/>'.join(lines))
-                    row.append(Paragraph('<br/><br/>'.join(parts), cell_style))
+                    cell_para = Paragraph('<br/><br/>'.join(parts), cell_style)
+                    row.append(KeepInFrame(
+                        slot_col_width - 10, max_cell_height, [cell_para],
+                        mode='shrink', hAlign='LEFT', vAlign='TOP',
+                    ))
             rows.append(row)
-
-        n_cols = len(slot_keys)
-        venue_col_width = 1.1 * inch
-        col_total_width = 9.6 * inch
-        slot_col_width = max((col_total_width - venue_col_width) / max(n_cols, 1), 1.1 * inch)
-        col_widths = [venue_col_width] + [slot_col_width] * n_cols
 
         table = Table(rows, colWidths=col_widths, repeatRows=1)
         table.setStyle(_standard_table_style())
@@ -1504,15 +1511,25 @@ def export_unscheduled_pdf(request):
     # departments, not booked individually.
     member_to_primary = {}
     member_group_code = {}
-    for group in CombinedCourseGroup.objects.prefetch_related('allocations').only(
-        'id', 'primary_allocation_id', 'group_code'
-    ):
-        member_ids = set(group.allocations.values_list('id', flat=True))
-        primary_id = group.primary_allocation_id
-        if primary_id:
-            for mid in member_ids - {primary_id}:
-                member_to_primary[mid] = primary_id
-                member_group_code[mid] = group.group_code
+    # PERFORMANCE FIX: was one query per CombinedCourseGroup
+    # (`group.allocations.values_list()` inside the loop re-queries even
+    # though `prefetch_related` was used). Rewritten as exactly two
+    # queries total: one for (id, primary_id, group_code), one for every
+    # (group_id, member_id) pair via the M2M relation directly.
+    group_meta_by_id = {
+        g.id: (g.primary_allocation_id, g.group_code)
+        for g in CombinedCourseGroup.objects.exclude(primary_allocation_id__isnull=True)
+    }
+    if group_meta_by_id:
+        for group_id, member_id in CombinedCourseGroup.objects.filter(
+            id__in=group_meta_by_id.keys()
+        ).values_list('id', 'allocations__id'):
+            if member_id is None:
+                continue
+            primary_id, group_code = group_meta_by_id[group_id]
+            if member_id != primary_id:
+                member_to_primary[member_id] = primary_id
+                member_group_code[member_id] = group_code
 
     tt_cache = {
         tt.course_allocation_id: tt
@@ -3047,6 +3064,9 @@ def universal_search_api(request):
     results = []
     for a in qs:
         sched = _schedule_info_for_allocation(a, tt_cache, model=Model)
+        if Model is ExamTimetable:
+            tt_row = tt_cache.get(a.id)
+            sched = {**sched, 'date': tt_row.date.isoformat() if tt_row and tt_row.date else ''}
         meta = combined_meta.get(a.id)
         if meta:
             meta = {**meta, **dept_map.get(a.id, {})}
@@ -3195,7 +3215,8 @@ def program_analysis_api(request):
         group_members = defaultdict(list)
         group_meta = {}
         for g in combined_groups:
-            for a in g.allocations.all():
+            members = g.allocations.all()  # reads the prefetch_related cache
+            for a in members:
                 group_members[a.id].append(g)
             group_meta[g.id] = {
                 'id': g.id,
@@ -3203,7 +3224,12 @@ def program_analysis_api(request):
                 'base_course_code': g.base_course_code,
                 'lecturer': g.lecturer.display_name if g.lecturer else 'Unassigned',
                 'total_students': g.total_students(),
-                'member_count': g.allocations.count(),
+                # PERFORMANCE FIX: `g.allocations.count()` issues its own
+                # fresh SQL COUNT per group even though `allocations` was
+                # prefetch_related'd above — .count() never reads the
+                # prefetch cache, only .all()/iteration does. len(members)
+                # gives the identical number for zero extra queries.
+                'member_count': len(members),
             }
         
         # Get student groups
@@ -3574,18 +3600,33 @@ def lecturer_overload_api(request):
         group_primary_map = {}
         group_code_map = {}
         group_members_map = defaultdict(list)
-        
-        for cg in CombinedCourseGroup.objects.prefetch_related('allocations'):
-            alloc_ids = list(cg.allocations.values_list('id', flat=True))
-            primary_id = cg.primary_allocation_id
-            if primary_id:
-                group_primary_map[primary_id] = cg.id
-                group_code_map[cg.id] = cg.group_code
-                for aid in alloc_ids:
+
+        # PERFORMANCE FIX: was one query per CombinedCourseGroup
+        # (`cg.allocations.values_list()` inside the loop re-queries even
+        # though `prefetch_related` was used). Rewritten as exactly two
+        # queries total regardless of how many groups exist: one for each
+        # group's (id, primary_id, group_code), one for every
+        # (group_id, member_id) pair via the M2M relation directly.
+        group_info = {
+            cg.id: (cg.primary_allocation_id, cg.group_code)
+            for cg in CombinedCourseGroup.objects.exclude(primary_allocation_id__isnull=True)
+        }
+        if group_info:
+            members_by_group = defaultdict(list)
+            for group_id, member_id in CombinedCourseGroup.objects.filter(
+                id__in=group_info.keys()
+            ).values_list('id', 'allocations__id'):
+                if member_id is not None:
+                    members_by_group[group_id].append(member_id)
+
+            for group_id, (primary_id, group_code) in group_info.items():
+                group_primary_map[primary_id] = group_id
+                group_code_map[group_id] = group_code
+                for aid in members_by_group.get(group_id, []):
                     combined_group_map[aid] = {
-                        'group_id': cg.id,
+                        'group_id': group_id,
                         'primary_id': primary_id,
-                        'group_code': cg.group_code,
+                        'group_code': group_code,
                         'is_primary': aid == primary_id,
                     }
                     group_members_map[primary_id].append(aid)
@@ -4006,15 +4047,28 @@ def _resolve_schedule_blocks_for_allocations(allocations, model=Timetable):
 
     # Map: non-primary allocation id -> primary allocation id, for any
     # CombinedCourseGroup touching these allocations.
+    #
+    # PERFORMANCE FIX: was one query per matching group
+    # (`cg.allocations.values_list()` inside the loop re-queries even
+    # though `prefetch_related` was used). Rewritten as exactly two
+    # queries total: one to find which groups touch these allocations and
+    # their primary, one for every (group_id, member_id) pair.
     lookup_id_for = {}
-    for cg in CombinedCourseGroup.objects.filter(
-        allocations__id__in=alloc_ids
-    ).prefetch_related('allocations').select_related('primary_allocation').distinct():
-        if not cg.primary_allocation_id:
-            continue
-        for member_id in cg.allocations.values_list('id', flat=True):
-            if member_id != cg.primary_allocation_id:
-                lookup_id_for[member_id] = cg.primary_allocation_id
+    touching_groups = dict(
+        CombinedCourseGroup.objects.filter(allocations__id__in=alloc_ids)
+        .exclude(primary_allocation_id__isnull=True)
+        .distinct()
+        .values_list('id', 'primary_allocation_id')
+    )
+    if touching_groups:
+        for group_id, member_id in CombinedCourseGroup.objects.filter(
+            id__in=touching_groups.keys()
+        ).values_list('id', 'allocations__id'):
+            if member_id is None:
+                continue
+            primary_id = touching_groups[group_id]
+            if member_id != primary_id:
+                lookup_id_for[member_id] = primary_id
 
     lookup_ids = {lookup_id_for.get(a.id, a.id) for a in allocations}
     tt_by_alloc = defaultdict(list)

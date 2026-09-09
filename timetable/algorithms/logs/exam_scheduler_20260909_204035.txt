@@ -1,0 +1,1064 @@
+================================================================================
+EXAM AUTO-SCHEDULER LOG v59
+Session: 20260909_204035
+Started: 2026-09-09T20:40:35.437503
+================================================================================
+
+[AutoScheduler v59] Log file: /home/dravis/Downloads/chuka_timetabling/timetable/algorithms/logs/exam_scheduler_20260909_204035.txt
+[CombinedGroup] Loaded 371 combined groups
+[DataAnalysis] Analysing 2975 courses...
+[CombinedGroup] Loaded 371 combined groups
+[DataAnalysis] Found 800 families, 256 cohorts
+[PSI ⚠] Cohort '6499_year_4' needs 54 slots but only 30 available
+[PSI ⚠] Cohort '6403_year_1' needs 53 slots but only 30 available
+[PSI ⚠] Cohort '6499_year_3' needs 51 slots but only 30 available
+[PSI ⚠] Cohort '6403_year_2' needs 47 slots but only 30 available
+[PSI ⚠] Cohort '6403_year_3' needs 42 slots but only 30 available
+[PSI ⚠] Cohort '6407_year_2' needs 41 slots but only 30 available
+[PSI ⚠] Cohort '6673_year_4' needs 38 slots but only 30 available
+[PSI ⚠] Cohort '6403_year_4' needs 37 slots but only 30 available
+[PSI ⚠] Cohort '6407_year_1' needs 36 slots but only 30 available
+[PSI ⚠] Cohort '6673_year_3' needs 34 slots but only 30 available
+══════════════════════════════════════════
+  PRE-SCHEDULING INTELLIGENCE — v59
+══════════════════════════════════════════
+  Strategy Mode  : DENSE
+  Seat Pressure  : 1.1%
+  Use Evenings   : True
+  High-Pressure Cohorts: 4
+  ⛔ INFEASIBLE Cohorts: 10
+[SchedulerState] 112 venues, 10 days
+
+[AutoScheduler v59] 2975 courses, 112 venues
+[AutoScheduler v59] DYNAMIC DAILY LIMITS: Soft=2, Hard=3 (avoids 4)
+[AutoScheduler v59] STRICT CAPACITY: No overflow allowed
+[AutoScheduler v59] BEST-FIT: Smallest venue that fits
+
+[PhaseA-SmallFirst] 755 small courses, 92 small venues
+[PhaseA-SmallFirst] Placed 706 small courses
+
+[PhaseB-CommonLast] 799 common-course families, working 3 slots from last to first
+  [PhaseB-CommonLast] 'COSC103' (x66) -> 2026-12-03 14:30:00
+  [PhaseB-CommonLast] 'CHEM231' (x16) -> 2026-12-03 14:30:00
+  [PhaseB-CommonLast] 'ZOOL0143' (x5) -> 2026-12-03 14:30:00
+  [PhaseB-CommonLast] 'BOTA473' (x4) -> 2026-12-03 14:30:00
+  [PhaseB-CommonLast] 'COMS00101' (x2) -> 2026-12-03 14:30:00
+  [PhaseB-CommonLast] 'COMS101' (x49) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'MATH241' (x20) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'MATH322' (x18) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'GEOG426' (x11) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'BCOM262' (x8) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'PHYS484' (x4) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'COSC0102' (x4) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'combinedCOSC 00102' (x2) -> 2026-12-04 14:30:00
+  [PhaseB-CommonLast] 'ZOOL143' (x24) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'EDFO111' (x17) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'MATH221' (x17) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'GEOG300' (x12) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'GEOG433' (x11) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'combinedZOOL 330' (x4) -> 2026-12-07 14:30:00
+  [PhaseB-CommonLast] 'MATH122' (x24) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'MATH100' (x18) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'EDFO211' (x15) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'ECON212' (x13) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'MATH302' (x10) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'MATH421' (x8) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'AGED314' (x7) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'BOTA232' (x6) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'BCOM331' (x4) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'DIAC0111' (x4) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'ZOOL00143' (x3) -> 2026-12-08 14:30:00
+  [PhaseB-CommonLast] 'PHIL100' (x19) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'EPSC111' (x17) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'MATH222' (x15) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'BCOM351' (x10) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'MATH452' (x8) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'ECON313' (x7) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'CHEM323' (x7) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'DIBM0121' (x4) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'CIBM00101' (x2) -> 2026-12-09 14:30:00
+  [PhaseB-CommonLast] 'BOTA101' (x19) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'GEOG100' (x14) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'EDCI211' (x12) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'MATH344' (x10) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'ECON232' (x8) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'BCOM212' (x7) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'BOTA453' (x7) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'SOCI475' (x6) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'BCOM161' (x6) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'DIBM0101' (x4) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'ENSC471' (x3) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'CHAL202' (x3) -> 2026-12-10 14:30:00
+  [PhaseB-CommonLast] 'ENSC100' (x17) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'EDCI111' (x15) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'EPSC222' (x12) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'KISW302' (x9) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'MATH443' (x8) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'DIBM0111' (x3) -> 2026-12-11 14:30:00
+  [PhaseB-CommonLast] 'MATH124' (x17) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'PHIL104' (x15) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'GEOG200' (x13) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'ZOOL232' (x11) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'KISW303' (x9) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'combinedCHEM 102-A' (x8) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'BOTA302' (x7) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'EAPE411' (x6) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'ECON441' (x6) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'SOCI111' (x5) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'COSC104' (x5) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'DIBM0112' (x3) -> 2026-12-14 14:30:00
+  [PhaseB-CommonLast] 'ECON111' (x16) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'BOTA111' (x14) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'EDCI203' (x12) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'MATH342' (x9) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'SOCI212' (x7) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'SOCI372' (x6) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'SOCI422' (x6) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'BCOM251' (x5) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'AGBM430' (x5) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'AGED331' (x5) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'ZOOL104' (x5) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'SOIL0100' (x2) -> 2026-12-15 14:30:00
+  [PhaseB-CommonLast] 'CHEM110' (x14) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'GEOG110' (x13) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'KISW201' (x12) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'PHYS241' (x10) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'MATH343' (x7) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'ECON443' (x6) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'BCOM111' (x5) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'BOTA271' (x5) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'AGEN331' (x5) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'EAPE412' (x4) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'ZOOL100' (x4) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'BCOM341' (x4) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'NARE324' (x4) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'MATH227' (x3) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'COMM470' (x3) -> 2026-12-16 14:30:00
+  [PhaseB-CommonLast] 'MATH0121' (x3) -> 2026-12-16 14:30:00
+[PhaseB-CommonLast] 522 common families still pending after all slots — later phases will retry them
+[PhaseB-CommonLast] 522 common families still pending after all slots — later phases will retry them
+  [PhaseB-CommonLast] 'PHYS131' (x13) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'KISW202' (x10) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'PHYS232' (x10) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'ECON131' (x6) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'ECON445' (x6) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'AGRI351' (x6) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'EPSC431' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'BEEM111' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'AGRI102' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'combinedBCOM 101-A' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'combinedZOOL 101-B' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'AGRI291' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'CHEM446' (x4) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'COSC340' (x3) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'WIEM101' (x3) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'DIBM0102' (x3) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'CPLM00131' (x2) -> 2026-12-03 11:30:00
+  [PhaseB-CommonLast] 'SOCI101' (x12) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'CHEM101' (x11) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'ZOOL210' (x9) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'ENGL313' (x6) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'ECON233' (x6) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'MATH401' (x6) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'CHEM332' (x5) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'combinedGEOG 221-a' (x4) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'ENSC253' (x4) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'BPLM102' (x3) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'COSC120' (x3) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'AFRE121' (x3) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'GEOG313' (x3) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'BPLM302' (x3) -> 2026-12-04 11:30:00
+  [PhaseB-CommonLast] 'PHYS161' (x11) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'KISW101' (x9) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'CHEM211' (x8) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'SOCI251' (x6) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'ECON303' (x6) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'ANSC333' (x6) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'MATH451' (x6) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'EDFO422' (x4) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'ANHE111' (x4) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'BTOM111' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'PHYS244' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'GEOG346' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'ECON100' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'ACSC101' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'COMM480' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'BTOM254' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'combinedCHEM 322-A' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'PHIL109' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'MATH101' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'DIAC0225' (x3) -> 2026-12-07 11:30:00
+  [PhaseB-CommonLast] 'KISW102' (x9) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'BOTA241' (x8) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'CHEM120' (x7) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'MATH324' (x6) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'SOCI445' (x6) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'GEOG225' (x5) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'BCOM403' (x4) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'PHYS483' (x4) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'AGBM121' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'BPLM321' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'combinedBCOM 301-A' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'NARE101' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'BECO231' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'combinedANSC 359' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'CHEM304' (x3) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'combinedBPLM 101' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'AFRE233' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'ECON341' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'combinedPHIL 101-B' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'ECON444' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'ECON438' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'BCHM111' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'COMM100' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'combinedSOIL 100-A' (x2) -> 2026-12-08 11:30:00
+  [PhaseB-CommonLast] 'SOCI102' (x7) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'AGRI271' (x7) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'ECON345' (x6) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'MATH428' (x6) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'EDCI322' (x5) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'GEOG233' (x5) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'ZOOL321' (x4) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'MATH125' (x3) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'AGEN341' (x3) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'ECON304' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'ECON342' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'BECO251' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'COMM102' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'PHIL220' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'BTOM372' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'AGBM111' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'combinedLITT 315-A' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'combinedHIST 121_A' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'BECO372' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'BIOC310' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'COSC260' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'combinedENGL 414' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'COMM240' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'BCOM401' (x2) -> 2026-12-09 11:30:00
+  [PhaseB-CommonLast] 'MATH411' (x6) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'EDCI311' (x5) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'ENGL211' (x5) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'GEOG144' (x5) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'SOCI321' (x5) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'combinedBHRM 113' (x3) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'ANHE426' (x3) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'PHYS392' (x3) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BTOM251' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BTOM381' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BCHM421' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'MATH142' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'COMM330' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'combinedAGRI 322-A' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'combinedENGL 415-A' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BCOM411' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BPLM324' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'combinedLITT 102 -C' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'ANSC111' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'MATH204' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'AGEN111' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BMET214' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BCOM353' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'EPHY212' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'MATH243' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'AGRI211' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BCOM103' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'AGBM312' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BPLM401' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'SOCI241' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'PHIL106' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'WIEM211' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BOTA102' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'AGEN352' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'BIOC0113' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'ENSC0100' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'CIBM00111' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'NARE351' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'DIBM0242' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'DIBM0131' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'DPLM0141' (x2) -> 2026-12-10 11:30:00
+  [PhaseB-CommonLast] 'EPSC311' (x5) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ENGL231' (x5) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ENGL102' (x5) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'LITT424' (x5) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'SOCI313' (x5) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'MATH407' (x3) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'BOTA352' (x3) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ECON451' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'BIOC313' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'COMM371' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ZOOL221' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'AGEC451' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'BEEM332' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'AGBM343' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'AGRI233' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'NARE452' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'EPHY316' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'PHYS233' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ANHE0360' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'ENSC00100' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'DIAC0227' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'DPLM0222' (x2) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'combinedMATH 351 + MATH 346' (x1) -> 2026-12-11 11:30:00
+  [PhaseB-CommonLast] 'EDFO321' (x5) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'GEOG226' (x5) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'ENGL101' (x5) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'LITT431' (x5) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'ECON302' (x5) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'PHYS223' (x4) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'CHEM417' (x3) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'MATH321' (x3) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'COMM380' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'COMM262' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'BCOM432' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'AGEC231' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'AGEC312' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'AGEC422' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'BOTA220' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'ANHE0272' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'DIBM0214' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'DPLM0223' (x2) -> 2026-12-14 11:30:00
+  [PhaseB-CommonLast] 'LITT101' (x5) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'LITT212' (x5) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'LITT323' (x5) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'KISW404' (x5) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'BOTA322' (x4) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'PHYS474' (x3) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'COMM431' (x2) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'AGEC343' (x2) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'AGEC423' (x2) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'DIBM0223' (x2) -> 2026-12-15 11:30:00
+  [PhaseB-CommonLast] 'ENGL351' (x5) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'LITT211' (x5) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'ENGL482' (x5) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'ANSC460' (x4) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'PHYS342' (x4) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'HIST111' (x3) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'MATH441' (x3) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'combinedRELI 100-A' (x2) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'ECON415' (x2) -> 2026-12-16 11:30:00
+  [PhaseB-CommonLast] 'DIBM0113' (x2) -> 2026-12-16 11:30:00
+[PhaseB-CommonLast] 223 common families still pending after all slots — later phases will retry them
+[PhaseB-CommonLast] 223 common families still pending after all slots — later phases will retry them
+  [PhaseB-CommonLast] 'ECON442' (x5) -> 2026-12-03 08:30:00
+  [PhaseB-CommonLast] 'CHEM351' (x3) -> 2026-12-03 08:30:00
+  [PhaseB-CommonLast] 'HIST101' (x2) -> 2026-12-03 08:30:00
+  [PhaseB-CommonLast] 'HIST202' (x2) -> 2026-12-03 08:30:00
+  [PhaseB-CommonLast] 'COMM360' (x2) -> 2026-12-03 08:30:00
+  [PhaseB-CommonLast] 'SOCI418' (x5) -> 2026-12-04 08:30:00
+  [PhaseB-CommonLast] 'ECON336' (x5) -> 2026-12-04 08:30:00
+  [PhaseB-CommonLast] 'HIST203' (x2) -> 2026-12-04 08:30:00
+  [PhaseB-CommonLast] 'COMM260' (x2) -> 2026-12-04 08:30:00
+  [PhaseB-CommonLast] 'combinedZOOL 301' (x2) -> 2026-12-04 08:30:00
+  [PhaseB-CommonLast] 'MATH423' (x5) -> 2026-12-07 08:30:00
+  [PhaseB-CommonLast] 'ENGL381' (x4) -> 2026-12-07 08:30:00
+  [PhaseB-CommonLast] 'RELI211' (x2) -> 2026-12-07 08:30:00
+  [PhaseB-CommonLast] 'ENGL352' (x4) -> 2026-12-08 08:30:00
+  [PhaseB-CommonLast] 'LITT414' (x4) -> 2026-12-08 08:30:00
+  [PhaseB-CommonLast] 'MATH449' (x3) -> 2026-12-08 08:30:00
+  [PhaseB-CommonLast] 'SOCI446' (x5) -> 2026-12-09 08:30:00
+  [PhaseB-CommonLast] 'LITT341' (x4) -> 2026-12-09 08:30:00
+  [PhaseB-CommonLast] 'PHYS475' (x3) -> 2026-12-09 08:30:00
+  [PhaseB-CommonLast] 'PHYS317' (x3) -> 2026-12-09 08:30:00
+  [PhaseB-CommonLast] 'LITT357' (x4) -> 2026-12-10 08:30:00
+  [PhaseB-CommonLast] 'ECON452' (x4) -> 2026-12-10 08:30:00
+  [PhaseB-CommonLast] 'CHEM343' (x3) -> 2026-12-10 08:30:00
+  [PhaseB-CommonLast] 'CHEM436' (x3) -> 2026-12-10 08:30:00
+  [PhaseB-CommonLast] 'GEOG333' (x4) -> 2026-12-11 08:30:00
+  [PhaseB-CommonLast] 'HIST454' (x4) -> 2026-12-11 08:30:00
+  [PhaseB-CommonLast] 'CHEM342' (x3) -> 2026-12-11 08:30:00
+  [PhaseB-CommonLast] 'ZOOL430' (x3) -> 2026-12-11 08:30:00
+  [PhaseB-CommonLast] 'SOCI314' (x4) -> 2026-12-14 08:30:00
+  [PhaseB-CommonLast] 'LITT443' (x3) -> 2026-12-14 08:30:00
+  [PhaseB-CommonLast] 'PHYS336' (x3) -> 2026-12-14 08:30:00
+  [PhaseB-CommonLast] 'CHEM419' (x3) -> 2026-12-14 08:30:00
+  [PhaseB-CommonLast] 'RELI120' (x2) -> 2026-12-14 08:30:00
+  [PhaseB-CommonLast] 'SOCI342' (x4) -> 2026-12-15 08:30:00
+  [PhaseB-CommonLast] 'KISW402' (x4) -> 2026-12-15 08:30:00
+  [PhaseB-CommonLast] 'CHEM344' (x3) -> 2026-12-15 08:30:00
+  [PhaseB-CommonLast] 'ZOOL440' (x3) -> 2026-12-15 08:30:00
+  [PhaseB-CommonLast] 'COSC106' (x2) -> 2026-12-15 08:30:00
+  [PhaseB-CommonLast] 'MATH301' (x5) -> 2026-12-16 08:30:00
+  [PhaseB-CommonLast] 'ECON446' (x3) -> 2026-12-16 08:30:00
+  [PhaseB-CommonLast] 'MATH405' (x2) -> 2026-12-16 08:30:00
+  [PhaseB-CommonLast] 'HIST447' (x2) -> 2026-12-16 08:30:00
+  [PhaseB-CommonLast] 'COSC111' (x2) -> 2026-12-16 08:30:00
+[PhaseB-CommonLast] 156 common families still pending after all slots — later phases will retry them
+[PhaseB-CommonLast] 156 common families still pending after all slots — later phases will retry them
+[PhaseB-CommonLast] Placed 1810 variants
+
+[Phase1] Scheduling 800 families
+  [WARN] 'CHEM102' STRICTLY designated — left unscheduled
+  [WARN] 'COSC221' STRICTLY designated — left unscheduled
+  [WARN] 'COSC332' STRICTLY designated — left unscheduled
+[Phase1] Placed 0 variants
+
+[Phase0-Designated] 26 designated courses
+  [Phase0-Split] EENG 234 → 2026-12-03 14:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] EENG 236 → 2026-12-04 08:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] EENG 243 → 2026-12-04 14:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] EENG 251 → 2026-12-07 08:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] EENG 271 → 2026-12-07 14:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] ACSC 211 → 2026-12-04 08:30:00 across ['SRP L105', 'SRP L102', 'SRP L302', 'SRP L104']
+  [Phase0-Split] EENG 342 → 2026-12-03 08:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] EENG 352 → 2026-12-03 14:30:00 across ['SRP L105', 'SRP L102', 'SRP L302', 'SRP L104']
+  [Phase0-Split] EENG 361 → 2026-12-07 08:30:00 across ['SRP L105', 'SRP L102', 'SRP L302', 'SRP L104']
+  [Phase0-Split] EENG 393 → 2026-12-07 14:30:00 across ['SRP L105', 'SRP L102', 'SRP L302', 'SRP L104']
+  [Phase0-Split] EENG 394 → 2026-12-08 08:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] MATH 304 → 2026-12-14 08:30:00 across ['SRP L104', 'SRP L302', 'SRP L105', 'SRP L102']
+  [Phase0-Split] BLAW 412 → 2026-12-03 14:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 413 → 2026-12-04 14:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 414 → 2026-12-07 14:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 211 → 2026-12-03 08:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 212 → 2026-12-04 08:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 213 → 2026-12-07 08:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 214 → 2026-12-08 08:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 215 → 2026-12-08 14:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 216 → 2026-12-09 08:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 111 → 2026-12-04 11:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 112 → 2026-12-08 11:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 114 → 2026-12-09 11:30:00 across ['ART 202', 'ART 201']
+  [Phase0-Split] BLAW 115 → 2026-12-10 08:30:00 across ['ART 202', 'ART 201']
+[Phase0-Designated] Placed 25
+
+[PhaseC-Saturation] Remaining courses saturation loop
+  Pass 1 Day 1: +18
+  Pass 1 Day 2: +18
+  Pass 1 Day 3: +17
+  Pass 1 Day 4: +11
+  Pass 1 Day 5: +7
+  Pass 1 Day 6: +4
+  Pass 1 Day 7: +2
+  Pass 1 Day 8: +1
+  Pass 1 Day 9: +3
+[PhaseC-Saturation] Pass 1: +81
+[PhaseC-Saturation] Pass 2: +0
+
+[Phase3] Cross-day fill: 353 unscheduled
+[Phase3] Placed 99
+
+[Phase3b] Family rescue: 156 families
+  [WARN] 'ZOOL101' STILL unplaced
+  [WARN] 'BOTA342' STILL unplaced
+  [WARN] 'ZOOL301' STILL unplaced
+  [WARN] 'ZOOL311' STILL unplaced
+  [WARN] 'ZOOL330' STILL unplaced
+  [WARN] 'BOTA412' STILL unplaced
+  [WARN] 'BOTA474' STILL unplaced
+  [WARN] 'ZOOL410' STILL unplaced
+  [WARN] 'SOIL100' STILL unplaced
+  [WARN] 'CHEM102' STILL unplaced
+  [WARN] 'ANSC359' STILL unplaced
+  [WARN] 'COSC00102' STILL unplaced
+  [WARN] 'SOIL320' STILL unplaced
+  [WARN] 'BCOM332' STILL unplaced
+  [WARN] 'BPLM111' STILL unplaced
+  [WARN] 'BPLM112' STILL unplaced
+  [WARN] 'PHIL101' STILL unplaced
+  [WARN] 'ECON306' STILL unplaced
+  [WARN] 'ECON424' STILL unplaced
+  [WARN] 'ZOOL443' STILL unplaced
+  [WARN] 'GEOG436' STILL unplaced
+  [WARN] 'GEOG441' STILL unplaced
+  [WARN] 'GEOG314' STILL unplaced
+  [WARN] 'GEOG323' STILL unplaced
+  [WARN] 'GEOG325' STILL unplaced
+  [WARN] 'BCOM101' STILL unplaced
+  [WARN] 'BCOM214' STILL unplaced
+  [WARN] 'COSC325' STILL unplaced
+  [WARN] 'COSC312' STILL unplaced
+  [WARN] 'COSC332' STILL unplaced
+  [WARN] 'COSC361' STILL unplaced
+  [WARN] 'COSC380' STILL unplaced
+  [WARN] 'COSC326' STILL unplaced
+  [WARN] 'ACSC110' STILL unplaced
+  [WARN] 'ACSC111' STILL unplaced
+  [WARN] 'COSC221' STILL unplaced
+  [WARN] 'AGED111' STILL unplaced
+  [WARN] 'AGEC241' STILL unplaced
+  [WARN] 'AGED221' STILL unplaced
+  [WARN] 'EAPE211' STILL unplaced
+  [WARN] 'AGED323' STILL unplaced
+  [WARN] 'AGRI322' STILL unplaced
+  [WARN] 'AGED415' STILL unplaced
+  [WARN] 'AGED424' STILL unplaced
+  [WARN] 'AGED434' STILL unplaced
+  [WARN] 'EPSC331' STILL unplaced
+  [WARN] 'BCOM211' STILL unplaced
+  [WARN] 'CHEM314' STILL unplaced
+  [WARN] 'CHEM322' STILL unplaced
+  [WARN] 'CHEM447' STILL unplaced
+  [WARN] 'CHEM448' STILL unplaced
+  [WARN] 'PHYS362' STILL unplaced
+  [WARN] 'PHYS391' STILL unplaced
+  [WARN] 'PHYS437' STILL unplaced
+  [WARN] 'PHYS485' STILL unplaced
+  [WARN] 'PHYS494' STILL unplaced
+  [WARN] 'HIST151' STILL unplaced
+  [WARN] 'PESP111' STILL unplaced
+  [WARN] 'HOSC111' STILL unplaced
+  [WARN] 'HOSC131' STILL unplaced
+  [WARN] 'PESP211' STILL unplaced
+  [WARN] 'RELI230' STILL unplaced
+  [WARN] 'HOSC251' STILL unplaced
+  [WARN] 'HOSC211' STILL unplaced
+  [WARN] 'HOSC221' STILL unplaced
+  [WARN] 'COSC371' STILL unplaced
+  [WARN] 'COSC331' STILL unplaced
+  [WARN] 'PESP311' STILL unplaced
+  [WARN] 'RELI340' STILL unplaced
+  [WARN] 'RELI362' STILL unplaced
+  [WARN] 'HIST412' STILL unplaced
+  [WARN] 'COSC432' STILL unplaced
+  [WARN] 'COSC461' STILL unplaced
+  [WARN] 'COSC440' STILL unplaced
+  [WARN] 'COSC225' STILL unplaced
+  [WARN] 'LITT102' STILL unplaced
+  [WARN] 'RELI100' STILL unplaced
+  [WARN] 'BHRM113' STILL unplaced
+  [WARN] 'RELI450' STILL unplaced
+  [WARN] 'RELI475' STILL unplaced
+  [WARN] 'CHEM426' STILL unplaced
+  [WARN] 'MICB131' STILL unplaced
+  [WARN] 'MATH458' STILL unplaced
+  [WARN] 'MATH456' STILL unplaced
+  [WARN] 'MATH325' STILL unplaced
+  [WARN] 'HIST371' STILL unplaced
+  [WARN] 'HIST312' STILL unplaced
+  [WARN] 'HIST331' STILL unplaced
+  [WARN] 'HIST332' STILL unplaced
+  [WARN] 'HIST313' STILL unplaced
+  [WARN] 'HIST343' STILL unplaced
+  [WARN] 'RELI365' STILL unplaced
+  [WARN] 'RELI381' STILL unplaced
+  [WARN] 'HIST452' STILL unplaced
+  [WARN] 'HIST461' STILL unplaced
+  [WARN] 'HIST434' STILL unplaced
+  [WARN] 'HIST453' STILL unplaced
+  [WARN] 'HIST435' STILL unplaced
+  [WARN] 'GEOG446' STILL unplaced
+  [WARN] 'GEOG440' STILL unplaced
+  [WARN] 'GEOG434' STILL unplaced
+  [WARN] 'KISW401' STILL unplaced
+  [WARN] 'KISW406' STILL unplaced
+  [WARN] 'KISW410' STILL unplaced
+  [WARN] 'ENGL414' STILL unplaced
+  [WARN] 'ENGL415' STILL unplaced
+  [WARN] 'ENGL416' STILL unplaced
+  [WARN] 'RELI442' STILL unplaced
+  [WARN] 'RELI470' STILL unplaced
+  [WARN] 'LITT315' STILL unplaced
+  [WARN] 'KISW301' STILL unplaced
+  [WARN] 'KISW304' STILL unplaced
+  [WARN] 'GEOG221' STILL unplaced
+  [WARN] 'combinedAGRI 322-B' STILL unplaced
+  [WARN] 'combinedBOTA 342' STILL unplaced
+  [WARN] 'combinedCHEM 102-C' STILL unplaced
+  [WARN] 'combinedCHEM 102-B' STILL unplaced
+  [WARN] 'combinedCHEM 314' STILL unplaced
+  [WARN] 'combinedCHEM 447' STILL unplaced
+  [WARN] 'combinedCHEM 448' STILL unplaced
+  [WARN] 'combinedCOSC  225' STILL unplaced
+  [WARN] 'combinedCOSC 331-A' STILL unplaced
+  [WARN] 'combinedCOSC 371-A' STILL unplaced
+  [WARN] 'combinedCOSC 432-A' STILL unplaced
+  [WARN] 'combinedCOSC 440' STILL unplaced
+  [WARN] 'combinedCOSC 461-A' STILL unplaced
+  [WARN] 'combinedECON 306' STILL unplaced
+  [WARN] 'combinedENGL 414-B' STILL unplaced
+  [WARN] 'combinedENGL 415-B' STILL unplaced
+  [WARN] 'combinedENGL 416' STILL unplaced
+  [WARN] 'combinedGEOG 221-B' STILL unplaced
+  [WARN] 'combinedGEOG 323' STILL unplaced
+  [WARN] 'combinedGEOG 325' STILL unplaced
+  [WARN] 'combinedGEOG 434' STILL unplaced
+  [WARN] 'combinedGEOG 436 -A' STILL unplaced
+  [WARN] 'combinedGEOG 440' STILL unplaced
+  [WARN] 'combinedGEOG 441' STILL unplaced
+  [WARN] 'combinedHIST 331' STILL unplaced
+  [WARN] 'combinedHIST 434' STILL unplaced
+  [WARN] 'combinedHIST 453' STILL unplaced
+  [WARN] 'combinedLITT 315-B' STILL unplaced
+  [WARN] 'combinedMATH 325' STILL unplaced
+  [WARN] 'combinedMATH 456' STILL unplaced
+  [WARN] 'combinedMATH 458' STILL unplaced
+  [WARN] 'combinedPHIL 101-A' STILL unplaced
+  [WARN] 'combinedPHYS 362' STILL unplaced
+  [WARN] 'combinedPHYS 391' STILL unplaced
+  [WARN] 'combinedPHYS 437' STILL unplaced
+  [WARN] 'combinedPHYS 485' STILL unplaced
+  [WARN] 'combinedPHYS 494' STILL unplaced
+  [WARN] 'combinedRELI 362' STILL unplaced
+  [WARN] 'combinedRELI 442' STILL unplaced
+  [WARN] 'combinedRELI 450' STILL unplaced
+  [WARN] 'combinedSOIL 100-C' STILL unplaced
+  [WARN] 'combinedSOIL 100-B' STILL unplaced
+  [WARN] 'combinedSOIL 320' STILL unplaced
+[Phase3b] Rescued 81 variants
+
+[Phase4] Sweep 1: 173 unscheduled
+[Phase4] Sweep 1: +21
+
+[Phase4] Sweep 2: 152 unscheduled
+[Phase4] Sweep 2: +0
+[Phase4] No progress — escalating
+
+[Phase4] Sweep 3: 152 unscheduled
+[Phase4] Sweep 3: +7
+
+[Phase4] Sweep 4: 145 unscheduled
+[Phase4] Sweep 4: +19
+
+[Phase5-DB] 126 unscheduled
+[Phase5-DB] Placed 0
+
+[Phase7-Nuclear] 126 unscheduled
+[Phase7-Nuclear] Placed 0
+
+[Phase8-Ultimate] 126 unscheduled
+[Phase8-Ultimate] Placed 0
+
+[Phase9-SwapOptimization] Starting post-placement swap optimization
+[Phase9-SwapOptimization] Performed 0 beneficial swaps
+
+══════════════════════════════════════════
+  UNSCHEDULED BY PROGRAM+YEAR (126 total)
+══════════════════════════════════════════
+  Bachelor of Arts — year_4: 22 unscheduled
+  Bachelor of Arts — year_3: 19 unscheduled
+  Bachelor of Education (Arts) — year_2: 16 unscheduled
+  Bachelor of Education (Arts) — year_3: 12 unscheduled
+  Bachelor of Education (Arts) — year_1: 11 unscheduled
+  Bachelor of Science(eb2) — year_4: 11 unscheduled
+  Bachelor of Science(eb2) — year_3: 8 unscheduled
+  Bachelor of Education (Arts) — year_4: 7 unscheduled
+  Bachelor of Science In Agricultural Education and Extension — year_4: 5 unscheduled
+  Bachelor of Science in Computer Science — year_3: 2 unscheduled
+  Bachelor of Science In Agricultural Education and Extension — year_1: 2 unscheduled
+  Bachelor of Education (Science) — year_1: 2 unscheduled
+  Bachelor of Education (Science) — year_2: 2 unscheduled
+  Bachelor of Arts in History and Economics — year_3: 2 unscheduled
+  Bachelor of Science in Animal Health and Production — year_1: 1 unscheduled
+  Bachelor of Science in Business Information Technology — year_2: 1 unscheduled
+  Bachelor of Science in Geophysics — year_1: 1 unscheduled
+  BSc. Agriculture (Plant Science) — year_1: 1 unscheduled
+  Bachelor of Science in Renewable Energy Management — year_1: 1 unscheduled
+
+══════════════════════════════════════════
+  DIAGNOSTIC — why are courses still stuck?
+  (sampling 60 of 19 program+year groups)
+══════════════════════════════════════════
+
+[ENGL 414] id=78222 needed=56 lecturer_id=11764 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[ENGL 415] id=78223 needed=56 lecturer_id=11764 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[GEOG 436-A] id=78214 needed=80 lecturer_id=11371 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[LITT 315-B] id=78658 needed=150 lecturer_id=11216 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[ECON 306] id=78148 needed=35 lecturer_id=11483 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[GEOG 314] id=78171 needed=59 lecturer_id=11576 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 211-A] id=74628 needed=150 lecturer_id=11495 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 211-B] id=79229 needed=150 lecturer_id=11495 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 211-C] id=79230 needed=150 lecturer_id=11435 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[GEOG 314] id=77107 needed=78 lecturer_id=None shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[RELI 340] id=75059 needed=40 lecturer_id=11348 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[AGRI 322-B] id=75289 needed=15 lecturer_id=11208 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[BCOM 101(E)] id=71472 needed=87 lecturer_id=11265 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[LITT 102-D] id=76831 needed=150 lecturer_id=11883 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[SOIL 100-B] id=74514 needed=25 lecturer_id=11626 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PHYS 437] id=78894 needed=70 lecturer_id=11292 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PHYS 494] id=78899 needed=70 lecturer_id=11680 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PHYS 485] id=78908 needed=65 lecturer_id=11197 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[ZOOL 330] id=78860 needed=30 lecturer_id=None shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[ZOOL 301] id=78856 needed=30 lecturer_id=None shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 314] id=78822 needed=80 lecturer_id=11167 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[RELI 450] id=77232 needed=25 lecturer_id=11395 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[RELI 475] id=77233 needed=25 lecturer_id=None shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 432-A] id=75392 needed=15 lecturer_id=11178 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[AGED 415] id=77390 needed=180 lecturer_id=11351 shared=True
+  Slots with enough venue space at all: 9
+  Rejection reasons (count): [('no-venue-space-for-full-count', 21), ('daily-limit-hard-exceeded', 5), ('student-conflict', 4)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[AGED 424] id=77391 needed=180 lecturer_id=11250 shared=True
+  Slots with enough venue space at all: 9
+  Rejection reasons (count): [('no-venue-space-for-full-count', 21), ('daily-limit-hard-exceeded', 5), ('student-conflict', 4)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[AGED 434] id=77392 needed=180 lecturer_id=11250 shared=True
+  Slots with enough venue space at all: 9
+  Rejection reasons (count): [('no-venue-space-for-full-count', 21), ('daily-limit-hard-exceeded', 5), ('student-conflict', 4)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 332A] id=71856 needed=131 lecturer_id=11217 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('strict-designated-venue-unavailable', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 332B] id=71857 needed=131 lecturer_id=11445 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('strict-designated-venue-unavailable', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102-B] id=73291 needed=123 lecturer_id=11186 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('strict-designated-venue-unavailable', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102-C] id=77345 needed=109 lecturer_id=11186 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('strict-designated-venue-unavailable', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[SOIL 100] id=75910 needed=55 lecturer_id=11784 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('daily-limit-hard-exceeded', 7), ('student-conflict', 4)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 131] id=75805 needed=25 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 4), ('daily-limit-hard-exceeded', 4), ('lecturer-conflict', 3)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 225] id=76112 needed=32 lecturer_id=11255 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('daily-limit-hard-exceeded', 7), ('student-conflict', 3), ('lecturer-conflict', 1)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 221] id=76101 needed=20 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('daily-limit-hard-exceeded', 7), ('student-conflict', 3), ('lecturer-conflict', 1)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[ECON 306] id=78414 needed=100 lecturer_id=11483 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 6), ('daily-limit-hard-exceeded', 4)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HIST 332] id=78410 needed=100 lecturer_id=11289 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 6), ('daily-limit-hard-exceeded', 2), ('lecturer-conflict', 2)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102] id=66592 needed=40 lecturer_id=None shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('strict-designated-venue-unavailable', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 221] id=71892 needed=77 lecturer_id=11417 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('strict-designated-venue-unavailable', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102(GEO)-B-B-B-B-B-B] id=73708 needed=3 lecturer_id=11186 shared=True
+  Slots with enough venue space at all: 13
+  Rejection reasons (count): [('no-venue-space-for-full-count', 17), ('strict-designated-venue-unavailable', 13)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102-C] id=77548 needed=51 lecturer_id=11186 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('strict-designated-venue-unavailable', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[CHEM 102-D] id=78568 needed=3 lecturer_id=None shared=True
+  Slots with enough venue space at all: 13
+  Rejection reasons (count): [('no-venue-space-for-full-count', 17), ('strict-designated-venue-unavailable', 13)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[BHRM 113-J] id=79221 needed=87 lecturer_id=None shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 111] id=74383 needed=15 lecturer_id=11202 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 131] id=74384 needed=15 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HIST 151] id=74139 needed=66 lecturer_id=11416 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HIST 151] id=74327 needed=100 lecturer_id=11416 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 111-A] id=74220 needed=30 lecturer_id=11495 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 111-C] id=76877 needed=15 lecturer_id=11747 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[PESP 111-B] id=79228 needed=150 lecturer_id=11435 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[RELI 230] id=74676 needed=50 lecturer_id=11374 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 221] id=74579 needed=35 lecturer_id=11417 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('strict-designated-venue-unavailable', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[COSC 225] id=76984 needed=35 lecturer_id=11255 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 251] id=74803 needed=12 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 211] id=74804 needed=12 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[HOSC 221] id=74805 needed=12 lecturer_id=11448 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[BCOM 214] id=71505 needed=70 lecturer_id=11901 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[BCOM 214] id=74640 needed=95 lecturer_id=11901 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[GEOG 221-B] id=79104 needed=95 lecturer_id=11177 shared=True
+  Slots with enough venue space at all: 10
+  Rejection reasons (count): [('no-venue-space-for-full-count', 20), ('student-conflict', 10)]
+  → Every slot with enough space is blocked by the reasons above.
+
+[GEOG 221-B] id=79106 needed=70 lecturer_id=11177 shared=True
+  Slots with enough venue space at all: 11
+  Rejection reasons (count): [('no-venue-space-for-full-count', 19), ('student-conflict', 11)]
+  → Every slot with enough space is blocked by the reasons above.
+══════════════════════════════════════════
+
+[Audit-LECTURER] VIOLATION: lecturer=11394 at 2026-12-03 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11605 at 2026-12-03 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11329 at 2026-12-03 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11763 at 2026-12-03 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11367 at 2026-12-03 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11592 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11193 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11593 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11255 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11180 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11399 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11591 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11595 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11380 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11673 at 2026-12-03 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11203 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11236 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11287 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11663 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11672 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11486 at 2026-12-04 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11758 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11743 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11888 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11792 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11752 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11511 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11244 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11534 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11572 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11254 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11237 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11192 at 2026-12-04 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11306 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11243 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11211 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11185 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11298 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11351 at 2026-12-07 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11244 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11669 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11254 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11646 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11371 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11575 at 2026-12-07 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11285 at 2026-12-08 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11188 at 2026-12-08 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11783 at 2026-12-08 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=12053 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11215 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11484 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11242 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11664 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11203 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11662 at 2026-12-08 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=12053 at 2026-12-09 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11486 at 2026-12-09 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11756 at 2026-12-09 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11370 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11276 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11188 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11873 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11290 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11334 at 2026-12-09 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11329 at 2026-12-10 08:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11575 at 2026-12-10 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11306 at 2026-12-10 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11293 at 2026-12-10 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11247 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11708 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11363 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11581 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11192 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11329 at 2026-12-10 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11225 at 2026-12-11 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11752 at 2026-12-11 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11359 at 2026-12-11 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11581 at 2026-12-14 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11253 at 2026-12-14 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11258 at 2026-12-14 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11247 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11174 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11301 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11667 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11244 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11579 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11375 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11398 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11577 at 2026-12-14 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11366 at 2026-12-15 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11862 at 2026-12-15 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11264 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11351 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11873 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11273 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11258 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11237 at 2026-12-15 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11758 at 2026-12-16 11:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11614 at 2026-12-16 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11873 at 2026-12-16 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11236 at 2026-12-16 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11673 at 2026-12-16 14:30:00
+[Audit-LECTURER] VIOLATION: lecturer=11398 at 2026-12-16 14:30:00
+
+[AutoScheduler v59] Scheduled 2849/2975. 126 unscheduled.
+[AutoScheduler v59] Lecturer violations: 103
+[AutoScheduler v59] Student violations: 0
+[AutoScheduler v59] Venue capacity violations: 0
+[AutoScheduler v59] Post-placement swaps: 0
+
+Session ended: 2026-09-09T20:43:09.103143
+================================================================================

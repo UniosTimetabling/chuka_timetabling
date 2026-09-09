@@ -199,3 +199,110 @@ NameError: name 'PreSchedulingIntelligence' is not defined
 
 ERROR 2026-09-07 17:11:38,848 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: name 'PreSchedulingIntelligence' is not defined | scheduled=0 remaining=2975
 ERROR 2026-09-07 17:31:04,313 scheduler progress_tracking_autosheduler:239 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute 'slot_total_remaining' | scheduled=0 remaining=2975
+ERROR 2026-09-08 12:48:11,526 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-08 12:48:11,540 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-08 12:50:51,057 django.request middleware:45 Unhandled exception on GET /timetable/analysis/export-course-schedule/?scope=timetable&code=Dennis+Kariuki+Muriithi | user=dravis | ip=127.0.0.1 | LayoutError: Flowable <Table@0x7FCF9CD4CE10 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8bcdfad0>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 248, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 2112, in export_course_schedule_pdf
+    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 488, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 962, in handle_flowable
+    raise LayoutError(ident)
+reportlab.platypus.doctemplate.LayoutError: Flowable <Table@0x7FCF9CD4CE10 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8bcdfad0>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+ERROR 2026-09-08 12:50:51,281 django.request log:246 Internal Server Error: /timetable/analysis/export-course-schedule/
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 248, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 2112, in export_course_schedule_pdf
+    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 488, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 962, in handle_flowable
+    raise LayoutError(ident)
+reportlab.platypus.doctemplate.LayoutError: Flowable <Table@0x7FCF9CD4CE10 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8bcdfad0>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+ERROR 2026-09-08 12:50:51,284 django.server basehttp:212 "GET /timetable/analysis/export-course-schedule/?scope=timetable&code=Dennis+Kariuki+Muriithi HTTP/1.1" 500 172017
+ERROR 2026-09-08 12:51:09,674 django.request middleware:45 Unhandled exception on GET /timetable/analysis/export-course-schedule/?scope=timetable&code=Dennis+Kariuki+Muriithi | user=dravis | ip=127.0.0.1 | LayoutError: Flowable <Table@0x7FCF9DF66210 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8b56fb50>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 248, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 2112, in export_course_schedule_pdf
+    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 488, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 962, in handle_flowable
+    raise LayoutError(ident)
+reportlab.platypus.doctemplate.LayoutError: Flowable <Table@0x7FCF9DF66210 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8b56fb50>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+ERROR 2026-09-08 12:51:09,861 django.request log:246 Internal Server Error: /timetable/analysis/export-course-schedule/
+Traceback (most recent call last):
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 248, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 2112, in export_course_schedule_pdf
+    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 488, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/Downloads/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 962, in handle_flowable
+    raise LayoutError(ident)
+reportlab.platypus.doctemplate.LayoutError: Flowable <Table@0x7FCF9DF66210 3 rows x 3 cols(tallest row 502)> with cell(0,0) containing
+'<Paragraph at 0x7fcf8b56fb50>Venue'(691.1999999999998 x 587.0), tallest cell 502.0 points,  too large on page 2 in frame 'normal'(750.6897637795277 x 496.8755905511811*) of template 'Later'
+ERROR 2026-09-08 12:51:09,864 django.server basehttp:212 "GET /timetable/analysis/export-course-schedule/?scope=timetable&code=Dennis+Kariuki+Muriithi HTTP/1.1" 500 172017
+ERROR 2026-09-08 19:51:52,553 scheduler progress_tracking_autosheduler:253 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute 'all_slots_ordered' | scheduled=0 remaining=2975
+ERROR 2026-09-08 19:52:06,013 scheduler progress_tracking_autosheduler:253 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute 'all_slots_ordered' | scheduled=0 remaining=2975
+ERROR 2026-09-08 20:06:49,576 scheduler progress_tracking_autosheduler:253 Regular/Exam scheduler completed with error status: Scheduling failed: 'SchedulerState' object has no attribute '_lecturer_id_cache' | scheduled=0 remaining=2975
+ERROR 2026-09-09 08:27:51,011 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-09 08:27:51,017 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.

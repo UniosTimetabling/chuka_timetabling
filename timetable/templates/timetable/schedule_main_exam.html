@@ -22,19 +22,19 @@
     body{font-family:'Segoe UI','Helvetica Neue',Arial,system-ui,sans-serif;font-size:15px;background:#f5f5f5;color:#1a1a1a;line-height:1.6;overflow-x:hidden;}
 
     /* ── LOADING OVERLAY ── */
-    #loadingOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#0a2e1d,#1a5c3a);z-index:9999;display:flex;justify-content:center;align-items:center;transition:opacity .4s ease,visibility .4s ease;}
+    #loadingOverlay{position:fixed;inset:0;background:#1a2e1d;z-index:9999;display:flex;justify-content:center;align-items:center;transition:opacity .4s ease,visibility .4s ease;}
     #loadingOverlay.hidden{opacity:0;visibility:hidden;pointer-events:none;}
-    .loading-card{background:rgba(255,255,255,.1);backdrop-filter:blur(20px);border-radius:4px;padding:36px 44px;text-align:center;color:#fff;width:92%;max-width:460px;border:1px solid rgba(255,255,255,.12);}
-    .loading-title{font-size:1.8rem;font-weight:700;color:#81c784;margin-bottom:6px;}
-    .loading-subtitle{font-size:1rem;color:#c8e6c9;margin-bottom:24px;}
-    .progress-track{background:rgba(0,0,0,.3);border-radius:10px;height:12px;overflow:hidden;margin:16px 0 8px;}
-    .progress-fill{height:100%;background:linear-gradient(90deg,#2e7d32,#4caf50,#81c784);width:0%;transition:width .35s ease;border-radius:10px;}
-    .progress-label{color:#a5d6a7;font-size:.9rem;margin-bottom:12px;}
-    #loadingMsg{color:#e8f5e9;font-size:1rem;min-height:22px;}
+    .loading-card{background:rgba(255,255,255,.08);backdrop-filter:blur(20px);border-radius:4px;padding:36px 44px;text-align:center;color:#fff;width:92%;max-width:460px;border:1px solid rgba(255,255,255,.12);}
+    .loading-title{font-size:1.6rem;font-weight:700;color:#a5d6a7;margin-bottom:6px;}
+    .loading-subtitle{font-size:.92rem;color:#aaa;margin-bottom:24px;}
+    .progress-track{background:rgba(0,0,0,.3);border-radius:10px;height:10px;overflow:hidden;margin:16px 0 8px;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#2e7d32,#66bb6a);width:0%;transition:width .35s ease;border-radius:10px;}
+    .progress-label{color:#90a090;font-size:.85rem;margin-bottom:12px;}
+    #loadingMsg{color:#ccc;font-size:.95rem;min-height:22px;}
     .load-steps{margin-top:18px;text-align:left;}
-    .load-step{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.88rem;color:rgba(255,255,255,.55);}
-    .load-step.done{color:#81c784;}
-    .load-step.active{color:#fff;font-weight:600;}
+    .load-step{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.88rem;color:rgba(255,255,255,.45);}
+    .load-step.done{color:#a5d6a7;}
+    .load-step.active{color:#ddd;font-weight:600;}
     .load-step .si{width:18px;text-align:center;}
 
     /* ── HEADER ── */
@@ -90,7 +90,8 @@
     .day-nav-btn{width:62px;min-height:52px;border-radius:3px;background:rgba(255,255,255,.12);color:#ffffff;border:1px solid rgba(255,255,255,.18);font-size:.72rem;font-weight:700;cursor:pointer;transition:background .15s,transform .1s;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.3;padding:5px 3px;word-break:break-word;flex-direction:column;}
     .day-nav-btn small{font-size:.68rem;color:#c8e6c9;font-weight:600;display:block;margin-top:2px;}
     .day-nav-btn:hover{background:rgba(255,255,255,.25);color:#fff;transform:scale(1.04);}
-    .day-nav-btn.active{background:rgba(255,255,255,.32);color:#fff;outline:2px solid rgba(255,255,255,.7);}
+    .day-nav-btn.active{background:#ffd600!important;color:#1a4a1e!important;outline:none;box-shadow:0 0 0 2px rgba(255,214,0,.35);}
+    .day-nav-btn.active:hover{background:#ffe043!important;color:#1a4a1e!important;}
     .day-nav-sep{width:36px;height:1px;background:rgba(255,255,255,.2);}
     .day-nav-btn .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff9800;margin-left:2px;vertical-align:middle;}
     /* Nav shortcuts at bottom of day nav */
@@ -199,7 +200,7 @@
     table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:600px;}
     th{background:#1b5e20;color:#fff;padding:8px 10px;text-align:center;font-size:.8rem;font-weight:700;white-space:nowrap;position:sticky;top:0;z-index:5;letter-spacing:.2px;border-right:1px solid rgba(255,255,255,.2);}
     th:last-child{border-right:none;}
-    td{border:1px solid #d8d8d8;padding:4px 6px;vertical-align:top;min-width:110px;font-size:.82rem;background:#fff;}
+    td{border:1px solid #d8d8d8;border-bottom:2px solid #000;padding:6px 6px;vertical-align:top;min-width:110px;font-size:.82rem;background:#fff;}
     .venue-header{background:#f0f0f0;font-weight:700;font-size:.82rem;white-space:nowrap;min-width:80px!important;max-width:100px;word-break:break-word;color:#1b5e20;border-right:2px solid #bbb!important;}
     tr:nth-child(even) td{background:#fafafa;}
     tr:hover td:not(.venue-header){background:#f0f7f0;}
@@ -218,34 +219,48 @@
     }
     .timetable-entry+.timetable-entry{border-top:1px dashed #d0d0d0!important;padding-top:3px;margin-top:3px;}
     .timetable-entry.conflict-entry{background:transparent!important;border:none!important;}
-    .timetable-entry.conflict-entry .course-code{color:var(--red)!important;}
-    .timetable-entry.merged-entry{background:transparent!important;border:none!important;}
-    .timetable-entry.merged-entry .course-code{color:var(--indigo)!important;}
-    .timetable-entry.shared-entry{background:transparent!important;border:none!important;}
-    .timetable-entry.shared-entry .course-code{color:var(--teal)!important;}
+    .timetable-entry.conflict-entry .course-code{color:#7f0000!important;}
 
     /* Cell background accent for type — only on the TD, not the entry div */
     .timetable-cell.filled{background:#fff!important;}
     .timetable-cell.has-conflict{background:#fff9f9!important;}
     .timetable-cell.has-conflict td{background:#fff9f9;}
+    /* Venue/slot cells with no course allocated — shaded solid yellow so gaps are obvious */
+    .timetable-cell.empty{background:#ffeb3b!important;}
+    tr:nth-child(even) td.timetable-cell.empty{background:#ffeb3b!important;}
+    tr:hover td.timetable-cell.empty{background:#fdd835!important;}
 
-    .course-code{font-weight:700;color:#1b5e20;font-size:.85rem;line-height:1.3;}
+    /* Whole rows for venues that are hard-blocked OR specialization-reserved — shaded a soft water-blue, wins over the empty-cell yellow; text stays dark for readability */
+    tr.blocked-venue-row td,
+    tr.blocked-venue-row td.timetable-cell,
+    tr.blocked-venue-row td.timetable-cell.empty,
+    tr.blocked-venue-row td.timetable-cell.filled,
+    tr.blocked-venue-row td.timetable-cell.has-conflict{background:#cfe8f3!important;color:#0d2b36!important;}
+    tr.blocked-venue-row td.venue-header{color:#0d2b36!important;}
+    tr.blocked-venue-row td.venue-header small{color:#3b6270!important;}
+    tr.blocked-venue-row:hover td,
+    tr.blocked-venue-row:hover td.timetable-cell.empty{background:#bfe0ee!important;}
+
+    .course-code{font-weight:700;color:#1a4a1e;font-size:.85rem;line-height:1.3;}
     .lecturer-name{color:#555;font-size:.76rem;line-height:1.3;}
-    .student-count{color:#777;font-size:.72rem;}
+    .student-count{color:#bf360c;font-weight:600;font-size:.72rem;}
     .conflict-badge{display:inline-flex;align-items:center;gap:3px;background:var(--redl);color:var(--red);border:1px solid var(--redb);border-radius:2px;padding:1px 4px;font-size:.66rem;margin-top:2px;}
     .delete-entry{position:absolute;top:1px;right:1px;background:rgba(198,40,40,.07);border:none;color:var(--red);width:16px;height:16px;border-radius:2px;cursor:pointer;font-size:.75rem;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
     .timetable-entry:hover .delete-entry{opacity:1;}
 
-    /* ── MERGED / SHARED GRID ENTRIES ── */
-    .timetable-entry.merged-entry{background:transparent!important;border-left:2px solid var(--indigo)!important;padding-left:4px!important;}
+    /* ── MERGED / SHARED GRID ENTRIES — single source of truth, one colored accent bar each ── */
+    .timetable-entry.merged-entry{background:transparent!important;border:none!important;border-left:2px solid var(--indigo)!important;padding-left:4px!important;}
     .timetable-entry.merged-entry .course-code{color:var(--indigo)!important;}
-    .timetable-entry.shared-entry{background:transparent!important;border-left:2px solid var(--teal)!important;padding-left:4px!important;}
+    .timetable-entry.shared-entry{background:transparent!important;border:none!important;border-left:2px solid var(--teal)!important;padding-left:4px!important;}
     .timetable-entry.shared-entry .course-code{color:var(--teal)!important;}
     .group-type-badge{display:inline-flex;align-items:center;gap:2px;border-radius:2px;padding:1px 4px;font-size:.64rem;font-weight:700;margin-bottom:2px;}
     .group-type-badge.merged{background:var(--indigol);color:var(--indigo);border:1px solid var(--indigob);}
     .group-type-badge.shared{background:var(--teall);color:var(--teal);border:1px solid var(--tealb);}
     .group-courses-list{font-size:.71rem;color:#555;margin-top:1px;line-height:1.4;}
     .group-courses-list span{display:inline-block;margin-right:3px;}
+    /* Shared-venue marker — plain text only, no card/box, since each course's
+       own student count already shows on its own direct entry in the cell */
+    .shared-venue-note{font-size:.68rem;color:var(--teal);margin-top:2px;}
 
     /* ── CONFLICT PANEL ── */
     #conflictPanel{background:#fff;border-radius:var(--radius);border:1px solid var(--redb);box-shadow:var(--shadow);margin-top:14px;overflow:hidden;}
@@ -338,9 +353,10 @@
       cursor:pointer;
     }
     .repeat-indicator i{font-size:.68rem;}
+    .repeat-indicator.combined-group-indicator{color:var(--purple);}
 
     /* Entries that are repeats */
-    .timetable-entry.is-repeated .course-code{color:#1b5e20!important;}
+    .timetable-entry.is-repeated .course-code{color:#1a4a1e!important;}
     .timetable-entry.merged-entry.is-repeated .course-code{color:var(--indigo)!important;}
     .timetable-entry.shared-entry.is-repeated .course-code{color:var(--teal)!important;}
 
@@ -428,17 +444,17 @@
 <!-- ══════════════ LOADING OVERLAY ══════════════ -->
 <div id="loadingOverlay">
   <div class="loading-card">
-    <div class="loading-title">📡 Exam Workspace</div>
+    <div class="loading-title">Exam Workspace</div>
     <div class="loading-subtitle">Loading all data — this takes only a moment</div>
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <div class="progress-label"><span id="progressPct">0%</span></div>
     <div id="loadingMsg">Initialising…</div>
     <div class="load-steps" id="loadSteps">
-      <div class="load-step active" id="lstep1"><span class="si">⏳</span> Loading venues &amp; counts</div>
-      <div class="load-step"        id="lstep2"><span class="si">⬜</span> Fetching timetable entries</div>
-      <div class="load-step"        id="lstep3"><span class="si">⬜</span> Loading unscheduled courses</div>
-      <div class="load-step"        id="lstep4"><span class="si">⬜</span> Loading merged &amp; shared groups</div>
-      <div class="load-step"        id="lstep5"><span class="si">⬜</span> Running collision scan</div>
+      <div class="load-step active" id="lstep1"><span class="si"><i class="bi bi-hourglass-split"></i></span> Loading venues &amp; counts</div>
+      <div class="load-step"        id="lstep2"><span class="si"><i class="bi bi-circle"></i></span> Fetching timetable entries</div>
+      <div class="load-step"        id="lstep3"><span class="si"><i class="bi bi-circle"></i></span> Loading unscheduled courses</div>
+      <div class="load-step"        id="lstep4"><span class="si"><i class="bi bi-circle"></i></span> Loading merged &amp; shared groups</div>
+      <div class="load-step"        id="lstep5"><span class="si"><i class="bi bi-circle"></i></span> Running collision scan</div>
     </div>
   </div>
 </div>
@@ -823,8 +839,8 @@
       <!-- Split-venue course legend -->
       <div id="repeatLegendRow" style="display:none;margin-bottom:10px;">
         <span class="repeat-legend">
-          <span class="repeat-indicator"><i class="bi bi-columns-gap"></i> Split 1/3</span>
-          Course didn't fit in one room, so it's split across several — the number shows which room this is and how many, hover for the full list with student counts per room
+          <span class="repeat-indicator"><i class="bi bi-columns-gap"></i> Split 1/3(45)</span>
+          Course didn't fit in one room, so it's split across several — the number shows which room this is and how many, the bracketed figure is that room's student count, hover for the full list with student counts per room
         </span>
       </div>
 
@@ -866,8 +882,8 @@
             </thead>
             <tbody id="tbody-{{ date }}">
               {% for venue in existing_venues %}
-                <tr>
-                  <td class="venue-header"><strong>{{ venue.code }}</strong>{% if venue.exam_capacity %}<br><small style="color:#999;font-size:.65rem;">Exam Cap:{{ venue.exam_capacity }}</small>{% elif venue.capacity %}<br><small style="color:#999;font-size:.65rem;">Cap:{{ venue.capacity }}</small>{% endif %}</td>
+                <tr class="{% if venue.is_blocked or venue.is_specialized %}blocked-venue-row{% endif %}"{% if venue.is_blocked %} title="Venue blocked"{% elif venue.is_specialized %} title="Venue specialization — reserved/preferred venue"{% endif %}>
+                  <td class="venue-header">{% if venue.is_blocked %}<i class="bi bi-slash-circle" title="Venue blocked"></i> {% endif %}<strong>{{ venue.code }}</strong>{% if venue.exam_capacity %}<br><small style="color:#999;font-size:.65rem;">Exam Cap:{{ venue.exam_capacity }}</small>{% elif venue.capacity %}<br><small style="color:#999;font-size:.65rem;">Cap:{{ venue.capacity }}</small>{% endif %}</td>
                   {% for slot in time_slots %}
                     <td id="slot-{{ date }}-{{ venue.code }}-{{ slot.0 }}"
                         class="timetable-cell empty"
@@ -998,7 +1014,7 @@ function stepDone(n) {
     if (e) {
         e.classList.remove('active');
         e.classList.add('done');
-        e.querySelector('.si').textContent = '✅';
+        e.querySelector('.si').innerHTML = '<i class="bi bi-check-circle-fill"></i>';
     }
 }
 
@@ -1006,7 +1022,7 @@ function stepActive(n) {
     const e = document.getElementById('lstep' + n);
     if (e) {
         e.classList.add('active');
-        e.querySelector('.si').textContent = '⏳';
+        e.querySelector('.si').innerHTML = '<i class="bi bi-hourglass-split"></i>';
     }
 }
 
@@ -1109,7 +1125,14 @@ function ensureOverflowDayDOM(effectiveDateRange, venuesData) {
         const rows = venues.map(v => {
             const cells = (timeSlots || []).map(s => `<td id="slot-${date}-${v.code}-${s[0]}" class="timetable-cell empty" data-date="${date}" data-venue="${v.code}" data-time="${s[0]}"><div class="timetable-entries"></div></td>`).join('');
             const capLabel = v.exam_capacity ? `<br><small style="color:#999;font-size:.65rem;">Exam Cap:${v.exam_capacity}</small>` : v.capacity ? `<br><small style="color:#999;font-size:.65rem;">Cap:${v.capacity}</small>` : '';
-            return `<tr><td class="venue-header"><strong>${v.code}</strong>${capLabel}</td>${cells}</tr>`;
+            const rowCls = (v.is_blocked || v.is_specialized) ? ' class="blocked-venue-row"' : '';
+            const rowTitle = v.is_blocked
+                ? ' title="Venue blocked"'
+                : (v.is_specialized ? ' title="Venue specialization — reserved/preferred venue"' : '');
+            const blockIcon = v.is_blocked
+                ? '<i class="bi bi-slash-circle" title="Venue blocked"></i> '
+                : '';
+            return `<tr${rowCls}${rowTitle}><td class="venue-header">${blockIcon}<strong>${v.code}</strong>${capLabel}</td>${cells}</tr>`;
         }).join('');
 
         tblWrapper.innerHTML = `<table><thead><tr><th style="min-width:72px;">Venue</th>${slotHeaders}</tr></thead><tbody id="tbody-${date}">${rows}</tbody></table>`;
@@ -1496,6 +1519,15 @@ function populateTimetable(data, conflicts) {
                 div.dataset.end = entry.end_time || '';
             }
 
+            // ── Combined-group badge takes priority over Split ──
+            // If this course is examined together with others as one
+            // CombinedCourseGroup, label it as that (with the group's TOTAL
+            // headcount) instead of "Split N/Total" — a combined exam sharing
+            // a room with its partner courses isn't a capacity-driven split,
+            // and showing just this row's own count would understate the
+            // real number of students sitting that exam together.
+            const isCombinedGroup = entry.type === 'direct' && !!entry.combined_group_id;
+
             // ── Repeat badge (Split N/Total) — rich popover via data attributes ──
             // A "repeated" course is really a course SPLIT across several rooms because
             // it didn't fit in one venue. Every occurrence (this one + its siblings) is
@@ -1514,7 +1546,7 @@ function populateTimetable(data, conflicts) {
 
             // Build the full occurrence list — this room PLUS every sibling room —
             // then sort deterministically (date, time, venue) so numbering is stable.
-            const allSplitOccurrences = isRepeat
+            const allSplitOccurrences = (isRepeat && !isCombinedGroup)
                 ? [
                     { venue, date, time, students: selfStudentsForSplit, isSelf: true },
                     ...[...siblingKeys].map(sk => {
@@ -1545,17 +1577,21 @@ function populateTimetable(data, conflicts) {
                 isSelf: o.isSelf
             }));
 
-            const repeatDataAttr = isRepeat
+            const repeatDataAttr = (isRepeat && !isCombinedGroup)
                 ? `data-repeat="1"
                    data-repeat-code="${(entry.course_code || entry.base_code || '').replace(/"/g,'&quot;')}"
                    data-repeat-siblings='${JSON.stringify(splitDetails).replace(/'/g,"&#39;")}'`
                 : '';
 
-            const repeatBadgeHTML = isRepeat
-                ? `<span class="repeat-indicator" ${repeatDataAttr} title="Split ${selfSplitNumber} of ${totalSplits} rooms — click to jump to the next room">
-                      <i class="bi bi-columns-gap"></i> Split ${selfSplitNumber}/${totalSplits}
+            const repeatBadgeHTML = isCombinedGroup
+                ? `<span class="repeat-indicator combined-group-indicator" title="Examined together with ${(entry.combined_group_code||'other courses')} as one Combined Group — ${entry.combined_group_total_students||0} students in total across the whole group">
+                      <i class="bi bi-diagram-3-fill"></i> Combined Group(${entry.combined_group_total_students||0})
                    </span><br>`
-                : '';
+                : (isRepeat
+                    ? `<span class="repeat-indicator" ${repeatDataAttr} title="Split ${selfSplitNumber} of ${totalSplits} rooms — click to jump to the next room">
+                          <i class="bi bi-columns-gap"></i> Split ${selfSplitNumber}/${totalSplits}(${selfStudentsForSplit})
+                       </span><br>`
+                    : '');
 
             // IMPORTANT: Always set data-id attribute for delete button
             const deleteBtn = document.createElement('button');
@@ -1585,19 +1621,13 @@ function populateTimetable(data, conflicts) {
                 `;
                 div.appendChild(deleteBtn);
             } else if (entry.type === 'shared') {
-                const courseList = (entry.courses || []).map(c =>
-                    `<span class="course-tag teal" style="display:inline-block;margin:0 2px 2px 0;padding:1px 4px;background:var(--teall);border:1px solid var(--tealb);border-radius:3px;">${c.code}</span>`
-                ).join('');
+                // Each course in this shared group already renders as its own
+                // direct entry (with its own student count) elsewhere in this
+                // same cell — so this summary card would just repeat that info
+                // and double the "total students" figure. Keep it to one small
+                // plain-text line marking the venue as shared; no card, no totals.
                 const isDraft = !entry.published;
-                div.innerHTML = `
-                    ${repeatBadgeHTML}
-                    <span class="group-type-badge shared" style="display:inline-block;padding:1px 5px;background:var(--teall);color:var(--teal);border:1px solid var(--tealb);border-radius:4px;margin-bottom:3px;">
-                        <i class="bi bi-share-fill"></i> Shared${isDraft ? ' (Draft)' : ''}
-                    </span>
-                    <div class="course-code">Shared @ ${entry.venue}</div>
-                    <div class="group-courses-list" style="display:flex;flex-wrap:wrap;gap:2px;margin:3px 0;">${courseList}</div>
-                    ${entry.total_students ? `<div class="student-count">${entry.total_students} students</div>` : ''}
-                `;
+                div.innerHTML = `<div class="shared-venue-note"><i class="bi bi-share-fill"></i> Shared venue${isDraft ? ' (draft)' : ''}</div>`;
                 div.appendChild(deleteBtn);
             } else {
                 // Direct entry — show course code, lecturer, student count only
@@ -1612,7 +1642,7 @@ function populateTimetable(data, conflicts) {
                     <!-- <div style="font-size:.76rem;color:#1b5e20;font-weight:600;margin-top:1px;line-height:1.3;">${entry.course_name || ''}</div> -->
                     <div class="lecturer-name">${entry.lecturer || '–'}</div>
                     <!-- progYearLabel commented out -->
-                    ${entry.students ? `<div class="student-count"><i class="bi bi-people" style="font-size:.7rem;"></i> ${entry.students} stu.</div>` : ''}
+                    ${entry.students ? `<div class="student-count">${entry.students} stu.</div>` : ''}
                     ${isC ? `<span class="conflict-badge"><i class="bi bi-exclamation-triangle-fill"></i>${lbl}</span>` : ''}
                 `;
                 div.appendChild(deleteBtn);
@@ -1671,7 +1701,7 @@ function addEntryToDOM(e) {
         <!-- <div style="font-size:.76rem;color:#1b5e20;font-weight:600;margin-top:1px;line-height:1.3;">${e.course_name || ''}</div> -->
         <div class="lecturer-name">${e.lecturer || '–'}</div>
         <!-- program/year commented out: ${e.program && e.program !== 'N/A' ? e.program + (e.year ? ' · Y' + e.year : '') : ''} -->
-        ${e.students ? `<div class="student-count"><i class="bi bi-people" style="font-size:.7rem;"></i> ${e.students} stu.</div>` : ''}
+        ${e.students ? `<div class="student-count">${e.students} stu.</div>` : ''}
     `;
     div.appendChild(deleteBtn);
     cont.appendChild(div);

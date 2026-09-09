@@ -1,10 +1,25 @@
 from django.urls import path
-from . import cod_panel, get_course_name, safe_undo
+from . import cod_panel, get_course_name, safe_undo, course_allocation_excel
 from course_allocation import base_selection_views
 from course_allocation import specialization_stem_views
 
 urlpatterns = [
     path("cod/", cod_panel.cod_panel, name="cod_panel"),
+    path(
+        "cod/course-allocation-template/",
+        course_allocation_excel.course_allocation_template_page,
+        name="course_allocation_template_page",
+    ),
+    path(
+        "cod/course-allocation-template/export/",
+        course_allocation_excel.export_course_allocation_template,
+        name="export_course_allocation_template",
+    ),
+    path(
+        "cod/course-allocation-template/import/",
+        course_allocation_excel.import_course_allocation_template,
+        name="import_course_allocation_template",
+    ),
     path("cod/base-selections/", base_selection_views.base_selections_page, name="base_selections"),
     path("cod/base-selections/add/", base_selection_views.add_selection_group, name="add_selection_group"),
     path("cod/safe-undo/", safe_undo.safe_undo_page, name="safe_undo_page"),

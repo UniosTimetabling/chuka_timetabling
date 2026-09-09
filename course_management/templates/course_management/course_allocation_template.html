@@ -1,0 +1,96 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Course Allocation Template{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+  {% if department %}<span class="dept-badge">{{ department.name }}</span>{% endif %}
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .cat-container { padding: 1rem; width: 100%; max-width: 900px; margin: 0 auto; }
+    .cat-card { background: white; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #e5e9e0; overflow: hidden; }
+    .cat-card-header { padding: 1rem 1.5rem; background: #fafbf8; border-bottom: 1px solid #e5e9e0; }
+    .cat-card-header h2 { font-size: 1.15rem; font-weight: 600; color: #1e4620; margin: 0; }
+    .cat-card-body { padding: 1.25rem 1.5rem; }
+    .cat-note { font-size: 0.85rem; color: #5b6e53; margin-bottom: 1rem; }
+    .cat-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; max-width: 320px; }
+    .cat-field label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #5b6e53; }
+    .cat-field select, .cat-field input[type="file"] { padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cfdec5; background: white; font-size: 0.9rem; }
+    .cat-check { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.88rem; }
+    .cat-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; border: none; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+    .cat-btn-export { background: #1e4620; color: white; }
+    .cat-btn-export:hover { background: #16340f; }
+    .cat-btn-import { background: #1a4d8f; color: white; }
+    .cat-btn-import:hover { background: #123a6b; }
+    .cat-warning { background: #fff8e1; border: 1px solid #f0dca0; color: #7a5c00; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.85rem; margin-bottom: 1rem; }
+</style>
+
+<div class="cat-container">
+
+  {% if request.GET.error == "semester" %}
+  <div class="cat-warning">Please choose a semester before exporting.</div>
+  {% endif %}
+
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>📤 Export Course Allocation Template</h2></div>
+    <div class="cat-card-body">
+      <p class="cat-note">
+        Downloads an Excel workbook listing this department's course
+        allocations for the chosen semester, grouped by Programme and Year.
+        Edit lecturer emails, student numbers, elective groups or
+        combination stems in the file, then re-upload it below — the
+        system will understand exactly which row is which.
+      </p>
+      <form method="get" action="{% url 'export_course_allocation_template' %}">
+        <div class="cat-field">
+          <label for="catSemester">Semester</label>
+          <select name="semester" id="catSemester" required>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+          </select>
+        </div>
+        {% if departments %}
+        <div class="cat-field">
+          <label for="catDept">Department</label>
+          <select name="department_id" id="catDept" required>
+            {% for d in departments %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="cat-check">
+          <input type="checkbox" name="include_missing" value="1" id="catInclMissing" checked>
+          <label for="catInclMissing">Also include curriculum courses not yet allocated for that semester</label>
+        </div>
+        <button type="submit" class="cat-btn cat-btn-export">Export to Excel</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>📥 Re-import an Edited Template</h2></div>
+    <div class="cat-card-body">
+      <p class="cat-note">
+        Upload the same file back after editing it. Rows for courses with
+        no allocation yet will be created; rows for existing allocations
+        will be updated. Lecturers are matched by <strong>email</strong>,
+        never by name.
+      </p>
+      <form method="post" action="{% url 'import_course_allocation_template' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="cat-field">
+          <label for="catFile">Excel file (.xlsx)</label>
+          <input type="file" name="file" id="catFile" accept=".xlsx" required>
+        </div>
+        <button type="submit" class="cat-btn cat-btn-import">Import</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
