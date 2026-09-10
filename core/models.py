@@ -56,6 +56,21 @@ class SiteSettings(models.Model):
     linkedin_url = models.URLField(blank=True)
     youtube_url = models.URLField(blank=True)
 
+    mobile_apk = models.FileField(
+        upload_to="site/app/",
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(["apk"])],
+        help_text="The Android app (.apk) students download. Can be a large file (tens of MB) — "
+                   "make sure the web server's upload size limit allows it (see docker/nginx/default.conf's "
+                   "client_max_body_size).",
+    )
+    mobile_apk_version = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text="Optional version label shown next to the download link, e.g. '1.4.2'.",
+    )
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

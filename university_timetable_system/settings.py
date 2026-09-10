@@ -201,6 +201,19 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Django's defaults (2.5MB) are sized for ordinary form posts, not for an
+# admin uploading the mobile app's .apk (core.models.SiteSettings.mobile_apk),
+# which can easily be tens of MB. DATA_UPLOAD_MAX_MEMORY_SIZE gates the
+# request outright with a 400 if exceeded; FILE_UPLOAD_MAX_MEMORY_SIZE just
+# controls when Django spools a file to a temp file on disk instead of
+# holding it in memory, so it's kept much lower to avoid ballooning worker
+# memory on a big upload.
+# NOTE: nginx's client_max_body_size (docker/nginx/default.conf, currently
+# 64M) is a separate limit in front of this one — raise both together, or
+# nginx will reject the request with a 413 before Django ever sees it.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024    # 10MB
+
 # --------------------------------------------------
 # AUTHENTICATION
 # --------------------------------------------------

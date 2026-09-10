@@ -395,6 +395,7 @@ body.page-student{ background:var(--hy-paper); }
  <div class="sidebar-sticky-inner">
  <nav class="sidebar-links">
   <span class="sidebar-links-title">Quick Downloads</span>
+  <a href="{% url 'my_timetable' %}" class="sidebar-link--cta"><i class="fas fa-search" aria-hidden="true"></i> Find My Timetable</a>
   <a href="{% url 'latest_download_redirect' 'regular' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Regular Timetable</a>
   <a href="{% url 'latest_download_redirect' 'exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Exam Timetable</a>
   <a href="{% url 'latest_download_redirect' 'campus_class' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Campus Regular</a>
@@ -403,6 +404,9 @@ body.page-student{ background:var(--hy-paper); }
   <a href="{% url 'latest_download_redirect' 'odel_exam' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> ODEL Exam</a>
   <a href="{% url 'latest_download_redirect' 'resit' %}"><i class="fas fa-file-pdf sidebar-link-pdf" aria-hidden="true"></i> Resit Timetable</a>
   <a href="/classrep/login/" class="sidebar-link--cta"><i class="fas fa-id-badge" aria-hidden="true"></i> Class Rep Login</a>
+  {% if site_settings.mobile_apk %}
+  <a href="{{ site_settings.mobile_apk.url }}" download class="sidebar-link--cta"><i class="fab fa-android" aria-hidden="true"></i> Download the App{% if site_settings.mobile_apk_version %} (v{{ site_settings.mobile_apk_version }}){% endif %}</a>
+  {% endif %}
  </nav>
  </div>
 </aside>

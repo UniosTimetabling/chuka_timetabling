@@ -86,7 +86,7 @@ from course_allocation.models import (
     CourseAllocation, CombinedCourseGroup, StudentGroup, SpecializationStem,
     SelectionGroup,
 )
-from timetable.models import Timetable, ExamTimetable, SchedulerConfig
+from timetable.models import Timetable, ExamTimetable, SchedulerConfig, ExamSchedulerConfig
 from room_management.models import Venue, VenueBlock, VenueSpecialization
 from program_management.models import Program, ProgramCourse
 from department_management.models import Department
@@ -152,6 +152,36 @@ def _scoped_model(scope):
 
 def _scope_title(scope):
     return "Exam Timetable" if scope == SCOPE_EXAM else "Timetable"
+
+
+def _scope_report_title(request, base_title):
+    """Prefix a PDF report's on-page title with 'EXAM' when the request
+    resolves to exam scope.
+
+    Every export in this module already queries the correct table
+    (Timetable vs ExamTimetable) via `_scoped_model(_resolve_scope(...))`
+    — but until this helper existed, the PDF's own title/header never
+    said so: exporting with ?scope=exam produced a PDF titled e.g.
+    "SCHEDULED TIMETABLE REPORT", visually indistinguishable from the
+    regular-timetable version even though the rows inside it were exam
+    rows. That made a correct exam export look, to anyone opening the
+    PDF, like it had exported the wrong thing. Every scope-aware export
+    should run its title through this before calling `_letterhead`.
+    """
+    if _resolve_scope(request) == SCOPE_EXAM:
+        return f"EXAM {base_title}"
+    return base_title
+
+
+def _scope_filename(request, base_filename):
+    """Suffix a PDF's download filename with '_exam' when the request
+    resolves to exam scope — same rationale as `_scope_report_title`
+    above, so an exam export doesn't download under the exact same
+    filename as its regular-timetable counterpart."""
+    if _resolve_scope(request) == SCOPE_EXAM:
+        name, dot, ext = base_filename.rpartition('.')
+        return f"{name}_exam.{ext}" if dot else f"{base_filename}_exam"
+    return base_filename
 
 
 def _get_unscheduled_allocations_for_scope(scope):
@@ -1039,30 +1069,57 @@ def scheduled_timetable_api(request):
 DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 
-def _build_time_slots():
+def _build_time_slots(scope=SCOPE_TIMETABLE):
     """
-    Column axis for the day grids: derived from SchedulerConfig
-    (start_time/end_time/slot_size), same source the autoscheduler itself
-    uses — so the grid's columns line up with the slots the algorithm
-    actually schedules into.
+    Column axis for the day grids.
+
+    Regular scope: derived from SchedulerConfig (start_time/end_time/
+    slot_size), same source the regular autoscheduler itself uses, with
+    slots packed back-to-back (no gap) — matching
+    algorithms/regular_timetable_autosheduler_algorithm.py's own
+    generate_slots().
+
+    Exam scope: derived from ExamSchedulerConfig instead, WITH a 60-minute
+    gap between sessions — matching
+    algorithms/exam_timetable_autosheduler_algorith.py's own
+    generate_slots() (`gap = timedelta(minutes=60)`), which is why real
+    exam sessions look like 08:30-10:30, 11:30-13:30, 14:30-16:30 rather
+    than back-to-back. Before this fix, this function always read the
+    regular SchedulerConfig and packed slots back-to-back regardless of
+    scope, so an exam-scope PDF's base column grid never matched any real
+    ExamTimetable row — every actual exam slot then had to be appended as
+    an "extra" column (see the loop in `_day_grid_tables` below), on top
+    of a full row of empty, irrelevant regular-timetable-shaped columns.
+    Reading the right config with the right gap means the grid's columns
+    line up with the actual exam slots from the start.
     """
-    try:
-        config = SchedulerConfig.objects.first()
-    except Exception:
-        config = None
-    start_time = config.start_time if config else dt_time(7, 0)
-    end_time = config.end_time if config else dt_time(19, 0)
-    slot_size = config.slot_size if config else 3
+    if scope == SCOPE_EXAM:
+        try:
+            config = ExamSchedulerConfig.objects.first()
+        except Exception:
+            config = None
+        start_time = config.start_time if config else dt_time(8, 0)
+        end_time = config.end_time if config else dt_time(17, 0)
+        slot_size = config.slot_size if config else 2
+        gap = timedelta(minutes=60)
+    else:
+        try:
+            config = SchedulerConfig.objects.first()
+        except Exception:
+            config = None
+        start_time = config.start_time if config else dt_time(7, 0)
+        end_time = config.end_time if config else dt_time(19, 0)
+        slot_size = config.slot_size if config else 3
+        gap = timedelta(0)
 
     slots = []
     current = datetime.combine(datetime.today(), start_time)
     end_dt = datetime.combine(datetime.today(), end_time)
-    while current < end_dt:
-        nxt = current + timedelta(hours=slot_size)
-        if nxt > end_dt:
-            nxt = end_dt
-        slots.append((current.time(), nxt.time()))
-        current = nxt
+    delta = timedelta(hours=slot_size)
+    while current + delta <= end_dt:
+        slot_end = current + delta
+        slots.append((current.time(), slot_end.time()))
+        current = slot_end + gap
     return slots
 
 
@@ -1070,7 +1127,7 @@ def _slot_label(st, en):
     return f"{st.strftime('%H:%M')}-{en.strftime('%H:%M')}"
 
 
-def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_program=False, col_total_width=9.6 * inch):
+def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_program=False, col_total_width=9.6 * inch, scope=SCOPE_TIMETABLE):
     """
     Build one Table PER DAY: venues down the left column, timeslots across
     the top — the standard timetable-grid layout used elsewhere in this app
@@ -1094,7 +1151,7 @@ def _day_grid_tables(tt_iterable, styles, table_style_fn=None, rich=False, show_
     Returns: list of (day_label, Table).
     """
     table_style_fn = table_style_fn or _standard_table_style
-    base_slots = _build_time_slots()
+    base_slots = _build_time_slots(scope)
 
     by_day = defaultdict(list)
     for tt in tt_iterable:
@@ -1551,7 +1608,7 @@ def export_unscheduled_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "PROGRAM SCHEDULING STATUS REPORT",
+        _scope_report_title(request, "PROGRAM SCHEDULING STATUS REPORT"),
         _scope_label(request),
         ref=ref,
         date_str=datetime.now().strftime("%d-%b-%Y").upper(),
@@ -1790,7 +1847,7 @@ def export_unscheduled_pdf(request):
 
     _serviced_courses_section(elements, styles, request, tt_cache, only_scheduled=False)
 
-    return _pdf_response(elements, "program_scheduling_status_report.pdf", template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+    return _pdf_response(elements, _scope_filename(request, "program_scheduling_status_report.pdf"), template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1825,14 +1882,14 @@ def export_unscheduled_only_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "UNSCHEDULED COURSES REPORT",
+        _scope_report_title(request, "UNSCHEDULED COURSES REPORT"),
         f"{_scope_label(request)} — {len(allocations)} unscheduled course(s)",
         ref=ref, date_str=date_str,
     )
 
     if not allocations:
         elements.append(Paragraph("No unscheduled courses in this scope.", styles['RCell']))
-        return _pdf_response(elements, "unscheduled_only_report.pdf", template_config, ref, compiled_by=_full_name(request))
+        return _pdf_response(elements, _scope_filename(request, "unscheduled_only_report.pdf"), template_config, ref, compiled_by=_full_name(request))
 
     grouped = defaultdict(list)
     for a in allocations:
@@ -1857,7 +1914,7 @@ def export_unscheduled_only_pdf(request):
         elements.append(table)
         elements.append(Spacer(1, 10))
 
-    return _pdf_response(elements, "unscheduled_only_report.pdf", template_config, ref, compiled_by=_full_name(request))
+    return _pdf_response(elements, _scope_filename(request, "unscheduled_only_report.pdf"), template_config, ref, compiled_by=_full_name(request))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1874,7 +1931,8 @@ def export_scheduled_pdf(request):
     top (each cell showing course code + lecturer), matching the standard
     grid layout used by the official timetable exporter.
     """
-    Model = _scoped_model(_resolve_scope(request))
+    scope = _resolve_scope(request)
+    Model = _scoped_model(scope)
 
     template_config = _get_template_config()
     styles = _styles()
@@ -1901,7 +1959,7 @@ def export_scheduled_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "SCHEDULED TIMETABLE REPORT",
+        _scope_report_title(request, "SCHEDULED TIMETABLE REPORT"),
         _scope_label(request),
         ref=ref,
         date_str=datetime.now().strftime("%d-%b-%Y").upper(),
@@ -1910,7 +1968,11 @@ def export_scheduled_pdf(request):
     elements.append(_dashboard_summary_table(dashboard_counts, styles))
     elements.append(Spacer(1, 10))
 
-    day_tables = _day_grid_tables(qs, styles, table_style_fn=_standard_table_style, rich=True)
+    # BUG FIX: pass `scope` through so the grid's column headers are built
+    # from ExamSchedulerConfig (with the real 60-minute inter-session gap)
+    # when scope is exam, instead of always reading the regular
+    # SchedulerConfig back-to-back — see _build_time_slots() for detail.
+    day_tables = _day_grid_tables(qs, styles, table_style_fn=_standard_table_style, rich=True, scope=scope)
     total_rows = qs.count()
 
     if not day_tables:
@@ -1965,7 +2027,7 @@ def export_scheduled_pdf(request):
 
     _serviced_courses_section(elements, styles, request, tt_cache, only_scheduled=True)
 
-    return _pdf_response(elements, "scheduled_timetable_report.pdf", template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+    return _pdf_response(elements, _scope_filename(request, "scheduled_timetable_report.pdf"), template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2099,14 +2161,14 @@ def export_course_schedule_pdf(request):
 
     elements = []
     if not codes:
-        _letterhead(elements, styles, template_config, "COURSE SCHEDULE REPORT",
+        _letterhead(elements, styles, template_config, _scope_report_title(request, "COURSE SCHEDULE REPORT"),
                      ref=ref, date_str=date_str)
         elements.append(Paragraph("No search terms were supplied.", styles['RCell']))
-        return _pdf_response(elements, "course_schedule_report.pdf", template_config, ref, compiled_by=_full_name(request))
+        return _pdf_response(elements, _scope_filename(request, "course_schedule_report.pdf"), template_config, ref, compiled_by=_full_name(request))
 
     _letterhead(
         elements, styles, template_config,
-        "COURSE SCHEDULE REPORT",
+        _scope_report_title(request, "COURSE SCHEDULE REPORT"),
         f"Searched: {', '.join(codes)}",
         ref=ref,
         date_str=date_str,
@@ -2138,7 +2200,7 @@ def export_course_schedule_pdf(request):
         elements.append(Spacer(1, 10))
 
     filename = "course_schedule_report.pdf" if len(codes) > 1 else f"{canonical_course_key(codes[0])}_schedule.pdf"
-    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+    return _pdf_response(elements, _scope_filename(request, filename), template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2288,7 +2350,7 @@ def export_all_courses_venue_summary_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "ALL COURSES — VENUE ALLOCATION SUMMARY",
+        _scope_report_title(request, "ALL COURSES — VENUE ALLOCATION SUMMARY"),
         f"{_scope_label(request)} — {len(rows)} course code(s)",
         ref=ref, date_str=date_str,
     )
@@ -2302,7 +2364,7 @@ def export_all_courses_venue_summary_pdf(request):
 
     if not rows:
         elements.append(Paragraph("No courses found in this scope.", styles['RCell']))
-        return _pdf_response(elements, "all_courses_venue_summary.pdf", template_config, ref,
+        return _pdf_response(elements, _scope_filename(request, "all_courses_venue_summary.pdf"), template_config, ref,
                               compiled_by=_full_name(request))
 
     header = ['Course Code', 'Sections (Total)', 'Scheduled', 'Unscheduled', 'Shared Venue', 'Standalone Venue']
@@ -2339,7 +2401,7 @@ def export_all_courses_venue_summary_pdf(request):
             ))
         elements.append(Spacer(1, 8))
 
-    return _pdf_response(elements, "all_courses_venue_summary.pdf", template_config, ref,
+    return _pdf_response(elements, _scope_filename(request, "all_courses_venue_summary.pdf"), template_config, ref,
                           compiled_by=_full_name(request))
 
 
@@ -2684,7 +2746,7 @@ def export_used_rooms_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "USED ROOMS REPORT",
+        _scope_report_title(request, "USED ROOMS REPORT"),
         f"{_scope_label(request)} — {len(rows)} venue(s) in use",
         ref=ref, date_str=date_str,
     )
@@ -2697,7 +2759,7 @@ def export_used_rooms_pdf(request):
 
     if not rows:
         elements.append(Paragraph("No venues are in use for this scope.", styles['RCell']))
-        return _pdf_response(elements, "used_rooms_report.pdf", template_config, ref,
+        return _pdf_response(elements, _scope_filename(request, "used_rooms_report.pdf"), template_config, ref,
                               compiled_by=_full_name(request))
 
     header = ['Venue', 'Building', 'Capacity', 'Sections Booked', 'Course Codes']
@@ -2718,7 +2780,7 @@ def export_used_rooms_pdf(request):
     table.setStyle(_standard_table_style())
     elements.append(table)
 
-    return _pdf_response(elements, "used_rooms_report.pdf", template_config, ref,
+    return _pdf_response(elements, _scope_filename(request, "used_rooms_report.pdf"), template_config, ref,
                           compiled_by=_full_name(request))
 
 
@@ -2844,7 +2906,7 @@ def export_venue_capacity_report_pdf(request):
     elements = []
     _letterhead(
         elements, styles, template_config,
-        "VENUE CAPACITY & AVAILABILITY REPORT",
+        _scope_report_title(request, "VENUE CAPACITY & AVAILABILITY REPORT"),
         _scope_label(request),
         ref=ref, date_str=date_str,
     )
@@ -2983,7 +3045,7 @@ def export_venue_capacity_report_pdf(request):
             elements.append(table)
             elements.append(Spacer(1, 10))
 
-    return _pdf_response(elements, "venue_capacity_availability_report.pdf", template_config, ref,
+    return _pdf_response(elements, _scope_filename(request, "venue_capacity_availability_report.pdf"), template_config, ref,
                           compiled_by=_full_name(request))
 
 
@@ -3105,9 +3167,9 @@ def export_universal_search_pdf(request):
 
     elements = []
     if not query:
-        _letterhead(elements, styles, template_config, "SEARCH RESULTS REPORT", ref=ref, date_str=date_str)
+        _letterhead(elements, styles, template_config, _scope_report_title(request, "SEARCH RESULTS REPORT"), ref=ref, date_str=date_str)
         elements.append(Paragraph("No search term was supplied.", styles['RCell']))
-        return _pdf_response(elements, "search_results_report.pdf", template_config, ref, compiled_by=_full_name(request))
+        return _pdf_response(elements, _scope_filename(request, "search_results_report.pdf"), template_config, ref, compiled_by=_full_name(request))
 
     scope = _resolve_scope(request)
     Model = _scoped_model(scope)
@@ -3124,18 +3186,28 @@ def export_universal_search_pdf(request):
 
     _letterhead(
         elements, styles, template_config,
-        "SEARCH RESULTS REPORT",
+        _scope_report_title(request, "SEARCH RESULTS REPORT"),
         f'Search: "{query}" — {len(allocations)} match(es)',
         ref=ref, date_str=date_str,
     )
 
     if not allocations:
         elements.append(Paragraph("No matches found.", styles['RCell']))
-        return _pdf_response(elements, "search_results_report.pdf", template_config, ref, compiled_by=_full_name(request))
+        return _pdf_response(elements, _scope_filename(request, "search_results_report.pdf"), template_config, ref, compiled_by=_full_name(request))
 
     matches = []
     for a in allocations:
-        sched = _schedule_info_for_allocation(a, tt_cache)
+        # BUG FIX: this was calling _schedule_info_for_allocation() without
+        # `model=Model`, so it silently fell back to the Timetable-scoped
+        # default even when this request was exam-scoped — unlike
+        # universal_search_api() above, which passes `model=Model`
+        # correctly. That mismatch meant the on-screen search results and
+        # this PDF export could show different schedule info for the same
+        # exam-scope search.
+        sched = _schedule_info_for_allocation(a, tt_cache, model=Model)
+        if Model is ExamTimetable:
+            tt_row = tt_cache.get(a.id)
+            sched = {**sched, 'date': tt_row.date.isoformat() if tt_row and tt_row.date else ''}
         meta = combined_meta.get(a.id)
         if meta:
             meta = {**meta, **dept_map.get(a.id, {})}
@@ -3158,7 +3230,7 @@ def export_universal_search_pdf(request):
     elements.extend(_build_match_matrix_elements(matches, styles, {'show_program': True, 'show_dept': True}))
 
     filename = f"search_{re.sub(r'[^A-Za-z0-9]+', '_', query)[:40].strip('_') or 'results'}.pdf"
-    return _pdf_response(elements, filename, template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
+    return _pdf_response(elements, _scope_filename(request, filename), template_config, ref, landscape_mode=True, compiled_by=_full_name(request))
 
 
 # ═══════════════════════════════════════════════════════════════════════════

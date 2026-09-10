@@ -493,6 +493,9 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         ("University Identity", {
             "fields": ("university_name", "tagline", "logo", "logo_preview"),
         }),
+        ("Mobile App", {
+            "fields": ("mobile_apk", "mobile_apk_version", "mobile_apk_preview"),
+        }),
         ("Contact Details", {
             "fields": (
                 "contact_email",
@@ -516,9 +519,33 @@ class SiteSettingsAdmin(admin.ModelAdmin):
         }),
     )
 
-    readonly_fields = ("updated_at", "logo_preview")
+    readonly_fields = ("updated_at", "logo_preview", "mobile_apk_preview")
 
     # ── helpers ──────────────────────────────────────────────────────────
+
+    def mobile_apk_preview(self, obj):
+        """
+        Show the currently-uploaded APK's size and a direct link, or a note
+        that none is uploaded yet. Uses _field_url() for the same reason
+        logo_preview does — an empty FileField raises on direct access.
+        """
+        url = _field_url(obj.mobile_apk)
+        if url:
+            try:
+                size_mb = obj.mobile_apk.size / (1024 * 1024)
+                size_label = f"{size_mb:.1f} MB"
+            except (OSError, ValueError):
+                size_label = "size unknown"
+            return format_html(
+                '<a href="{}" target="_blank" rel="noopener">{}</a> &nbsp; '
+                '<span style="color:#888;font-size:12px">({})</span>',
+                url, url.rsplit("/", 1)[-1], size_label,
+            )
+        return format_html(
+            '<p style="color:#888;font-size:12px;margin:0">No APK uploaded yet — '
+            'the "Download the App" link on the timetable page stays hidden until one is.</p>'
+        )
+    mobile_apk_preview.short_description = "Current APK"
 
     def logo_preview(self, obj):
         """

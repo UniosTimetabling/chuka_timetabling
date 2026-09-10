@@ -124,4 +124,14 @@ urlpatterns += [
         program_year_pdf_views.student_timetable_by_registration,
         name='timetable_by_registration',
     ),
+    path(
+        'timetable/program-id/<int:department_id>/<int:program_id>/<int:year>/<str:timetable_type>/',
+        program_year_pdf_views.program_timetable_by_ids,
+        name='timetable_by_program_id',
+    ),
+    path(
+        'timetable/resolve/',
+        program_year_pdf_views.resolve_student_scope,
+        name='timetable_resolve_student_scope',
+    ),
 ]

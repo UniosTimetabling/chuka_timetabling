@@ -6,13 +6,14 @@ from . import (
     unios_page, mainportal, cot_exam_timetable, autoscheduler_home, views,
     user_dashboard, admin_homepage, timetable_dashboard_view,
     exam_autoscheduler_home, lab_timetable_panel, venues_panel,
-    lab_exam_timetable_panel, published_timetables, utility_dashboard,
+    lab_exam_timetable_panel, published_timetables, utility_dashboard, mytimetable
 )
 
 urlpatterns = [
     path("published/timetables/",  published_timetables.published_timetables_view, name="published_timetables"),
     path("analysis/",              analysis_dashboard.analysis_dashboard,           name="analysis_dashboard"),
     path("portal/",                studentportal.studentportal,                     name="student_portal"),
+    path("my-timetable/",          mytimetable.mytimetable,                         name="my_timetable"),
     path("student/portal/",        timetable_view.timetable_view,                  name="view_timetable"),
     path("timetable/<int:program_id>/<str:timetable_type>/", timetable_view.timetable_view, name="timetable_data"),
     path("staff/portal/",          staffportal.staffportal,                         name="staff_portal"),

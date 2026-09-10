@@ -1665,9 +1665,17 @@ def place_merged_family(group_courses, nc, date, ss, se, state, scheduled_ids) -
         if remaining >= total_needed:
             return _commit_single_venue(group_courses, nc, v, total_needed,
                                         date, ss, se, state, scheduled_ids)
-    program_count = state.analysis.shared_exams.get(nc, 1)
-    if program_count < 2:
-        return False
+    # NOTE: this used to also require shared_exams.get(nc, 1) >= 2 — i.e. the
+    # course code appears in 2+ *programs* — before trying a general-venue
+    # split. That wrongly excluded the far more common case: one program's
+    # course split into Group A/B/... (like AGED 415) with a combined total
+    # too big for any single room, but still only 1 program. Every caller of
+    # place_merged_family already only passes real families (2+ allocation
+    # rows for the same code, whether same-program groups or cross-program
+    # shared units) — group_courses is never a lone course here — so the
+    # program-count gate was blocking legitimate same-program splits for no
+    # reason, forcing them into individual per-group placement instead
+    # (which is what stranded AGED 415 Group B / COSC 103-L's siblings).
     total_free = sum(row[1] for row in free_with_caps)
     if total_free >= total_needed:
         return _commit_distributed_minimal(group_courses, nc, free_with_caps, total_needed,

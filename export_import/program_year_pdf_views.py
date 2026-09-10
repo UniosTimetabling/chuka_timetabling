@@ -32,12 +32,34 @@ Endpoints:
      box on a student-facing page, so it's kept unauthenticated and
      rate-limited more tightly than the others.
 
+  5. GET /timetable/program-id/<department_id>/<program_id>/<year>/<type>/
+     Public, unauthenticated — same trust model as #2/#3 (a department +
+     program + year is not sensitive on its own). This exists for the
+     "My Timetable" self-service page (see resolve_student_scope below):
+     when a registration number's embedded program code doesn't resolve
+     (typo, renamed program, code the registrar never entered) and the
+     student instead picks their department/program from a dropdown, the
+     page ends up with ids rather than a program code/name it can trust
+     for a clean URL — so it downloads by id instead.
+
+  6. GET /timetable/resolve/?reg=<registration_number>[&department_id=&program_id=]
+     Public, self-service JSON. Thin wrapper around
+     mobile_api.scope.resolve_student_scope — the same identity
+     resolution the mobile app's login uses — reused here so the web
+     "My Timetable" page and the mobile app always agree on what a given
+     registration number resolves to, including the two-step
+     department-then-program fallback when the code doesn't resolve.
+     Returns department/program ids and a stable userId so the page can
+     build PDF links (#5) and drive the "add a course" endpoints in
+     mobile_api.views_courses (search/add/remove/mine), which already
+     accept userId/role/regNo with no session required.
+
 `type` defaults to "class" wherever it's optional; "exam" gets the exam
 timetable instead.
 """
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.http import HttpResponse, Http404
+from django.http import HttpResponse, JsonResponse, Http404
 from django.views.decorators.http import require_GET
 
 from export_import import program_year_pdf_cache
@@ -221,3 +243,63 @@ def student_timetable_by_registration(request):
     filename = f"{program_code}_Year{year}_{timetable_type}_timetable.pdf"
     return _serve(program.department_id, program.id, year, timetable_type,
                   download=True, filename_hint=filename)
+
+
+# ─────────────────────────────────────────────────────────────
+#  5. Public, by department id + program id (fallback path)
+# ─────────────────────────────────────────────────────────────
+
+@require_GET
+def program_timetable_by_ids(request, department_id, program_id, year, timetable_type):
+    if _rate_limited(request, "by_ids", limit=30, window=60):
+        return _too_many_requests()
+    if timetable_type not in VALID_TYPES:
+        raise Http404("Unknown timetable type.")
+
+    from program_management.models import Program
+
+    program = Program.objects.filter(id=program_id, department_id=department_id).first()
+    if not program:
+        raise Http404("Unknown program for that department.")
+
+    safe_name = program.name.replace(" ", "_").replace("/", "-")
+    filename = f"{safe_name}_Year{year}_{timetable_type}_timetable.pdf"
+    return _serve(department_id, program_id, year, timetable_type,
+                  download=True, filename_hint=filename)
+
+
+# ─────────────────────────────────────────────────────────────
+#  6. Public, self-service JSON: resolve a reg number to a scope
+# ─────────────────────────────────────────────────────────────
+
+@require_GET
+def resolve_student_scope(request):
+    """Wraps mobile_api.scope.resolve_student_scope for the web "My
+    Timetable" page. Deliberately imported lazily (function-local) so
+    this module doesn't take on mobile_api's import cost for every other
+    endpoint above, which don't need it."""
+    if _rate_limited(request, "resolve", limit=20, window=60):
+        return _too_many_requests()
+
+    from mobile_api.scope import ScopeError, resolve_student_scope as _resolve, user_id_for_student
+
+    reg = (request.GET.get("reg") or "").strip()
+    if not reg:
+        return JsonResponse({"error": "Please provide your registration number."}, status=400)
+
+    program_id = request.GET.get("program_id") or None
+    department_id = request.GET.get("department_id") or None
+
+    try:
+        scope = _resolve(reg, program_id=program_id, department_id=department_id)
+    except ScopeError as e:
+        return JsonResponse({"error": e.message, **e.extra}, status=e.status)
+
+    return JsonResponse({
+        "regNo": scope["reg_no"],
+        "programName": scope["program_name"],
+        "departmentId": scope["department_id"],
+        "programId": scope["program_id"],
+        "year": scope["year"],
+        "userId": user_id_for_student(scope),
+    })

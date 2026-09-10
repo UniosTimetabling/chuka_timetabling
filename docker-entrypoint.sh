@@ -89,7 +89,52 @@ if [ -d /app/media_defaults ]; then
 fi
 
 echo "==> Running migrations..."
-python manage.py migrate --noinput
+# Auto-heal a specific, well-understood failure: MySQL error 1061
+# "Duplicate key name '<x>'", which happens when a migration partially
+# applied on an EARLIER failed/interrupted deploy already created an
+# index, and this run's retry then tries to create the same index again
+# from scratch as part of the same migration step. Dropping the stray
+# leftover and retrying is always safe here — the migration recreates
+# it correctly. Any OTHER kind of migration error is NOT auto-fixed:
+# it's surfaced immediately, exactly as before, so real problems are
+# never silently papered over.
+MIGRATE_MAX_ATTEMPTS=5
+migrate_attempt=1
+migrate_log="$(mktemp)"
+migrate_ok=0
+
+while [ "$migrate_attempt" -le "$MIGRATE_MAX_ATTEMPTS" ]; do
+  if python manage.py migrate --noinput > "$migrate_log" 2>&1; then
+    migrate_ok=1
+    break
+  fi
+
+  dup_index=$(grep -oP "Duplicate key name '\K[^']+" "$migrate_log" | head -1)
+
+  if [ -z "$dup_index" ]; then
+    echo "!!! Migration failed with an error that cannot be auto-healed: !!!"
+    cat "$migrate_log"
+    rm -f "$migrate_log"
+    exit 1
+  fi
+
+  echo "    ! Detected a stray index left over from an earlier failed deploy: $dup_index"
+  echo "    ! Dropping it and retrying migrations (attempt $migrate_attempt/$MIGRATE_MAX_ATTEMPTS)..."
+  python manage.py drop_mysql_index "$dup_index"
+
+  migrate_attempt=$((migrate_attempt + 1))
+done
+
+if [ "$migrate_ok" -ne 1 ]; then
+  echo "!!! Migrations still failing after $MIGRATE_MAX_ATTEMPTS auto-heal attempts: !!!"
+  cat "$migrate_log"
+  rm -f "$migrate_log"
+  exit 1
+fi
+
+cat "$migrate_log"
+rm -f "$migrate_log"
+echo "    + migrations applied"
 
 echo "==> Ensuring admin superuser exists..."
 python -c "

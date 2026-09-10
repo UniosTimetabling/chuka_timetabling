@@ -28,3 +28,13 @@ INFO 2026-09-09 09:02:42,825 security views:139 Logout | user=dravis | ip=127.0.
 INFO 2026-09-09 09:02:48,389 security views:84 Login success | user=social_sciences | ip=127.0.0.1
 INFO 2026-09-09 10:11:19,734 security views:139 Logout | user=social_sciences | ip=127.0.0.1
 INFO 2026-09-09 10:11:23,948 security views:84 Login success | user=education | ip=127.0.0.1
+INFO 2026-09-09 21:53:42,208 security views:139 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-09 21:53:46,975 security views:84 Login success | user=agriculture | ip=127.0.0.1
+WARNING 2026-09-10 06:26:55,750 security rbac:249 Permission denied | user=education | view=timetable_panel | required_roles=sudo, director_timetable, timetable_admins | held_roles=cod
+INFO 2026-09-10 06:26:59,032 security views:84 Login success | user=education | ip=127.0.0.1
+INFO 2026-09-10 06:27:14,178 security views:139 Logout | user=education | ip=127.0.0.1
+INFO 2026-09-10 06:27:23,899 security views:84 Login success | user=dravis | ip=127.0.0.1
+INFO 2026-09-10 06:41:22,187 security views:139 Logout | user=managementscience | ip=127.0.0.1
+INFO 2026-09-10 06:41:33,803 security views:84 Login success | user=physical_sciences | ip=127.0.0.1
+INFO 2026-09-10 12:58:36,837 security views:139 Logout | user=food_technology | ip=127.0.0.1
+WARNING 2026-09-10 12:59:16,962 security views:129 Login failure | attempted_user=biological_science | ip=127.0.0.1

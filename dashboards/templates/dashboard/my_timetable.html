@@ -1,0 +1,405 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}My Timetable · {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}
+
+{% block body_class %}page-public page-mytimetable{% endblock %}
+
+{% block nav_links %}
+ <a href="{% url 'view_timetable' %}">Timetables</a>
+ <a href="{% url 'student_portal' %}">Student Portal</a>
+ <a href="/feedback/" class="nav-badge">Feedback</a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-mytimetable{
+  --mt-yellow:#f4e04d; --mt-yellow-deep:#e6cf2e; --mt-ink:#15130f;
+  --mt-paper:#f3f2ec; --mt-line:#e6e3d8; --mt-muted:#6f6a5e;
+}
+body.page-mytimetable{ background:var(--mt-paper); }
+.mt-shell{ max-width:760px; margin:0 auto; padding:3rem 1.2rem 4rem; }
+.mt-title{ font-family:var(--font-display); font-weight:800; font-size:clamp(1.9rem,4vw,2.6rem); color:var(--mt-ink); margin-bottom:.5rem; }
+.mt-sub{ color:var(--mt-muted); margin-bottom:2rem; line-height:1.55; }
+.mt-card{ background:#fff; border:1px solid var(--mt-line); border-radius:14px; padding:1.8rem; margin-bottom:1.5rem; }
+.mt-field-row{ display:flex; gap:.75rem; flex-wrap:wrap; }
+.mt-field-row input[type=text], .mt-field-row select{
+  flex:1; min-width:220px; padding:.8rem 1rem; border:1px solid var(--mt-line);
+  border-radius:8px; font-size:1rem; background:var(--mt-paper); color:var(--mt-ink);
+}
+.mt-btn{
+  background:var(--mt-ink); color:#fff; border:none; padding:.8rem 1.6rem;
+  border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap;
+}
+.mt-btn:hover{ background:var(--mt-yellow-deep); color:var(--mt-ink); }
+.mt-btn:disabled{ opacity:.6; cursor:default; }
+.mt-btn-secondary{ background:var(--mt-paper); color:var(--mt-ink); border:1px solid var(--mt-line); }
+.mt-btn-secondary:hover{ background:#fff; border-color:var(--mt-yellow); }
+.mt-hint{ font-size:.85rem; color:var(--mt-muted); margin-top:.6rem; }
+.mt-error{ color:#b3261e; font-weight:600; margin-top:.8rem; }
+.mt-hidden{ display:none !important; }
+.mt-result-head{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
+.mt-result-head h3{ margin:0; color:var(--mt-ink); }
+.mt-badge{ background:var(--mt-yellow); color:var(--mt-ink); font-weight:700; padding:.3rem .8rem; border-radius:999px; font-size:.85rem; }
+.mt-download-row{ display:flex; gap:.75rem; flex-wrap:wrap; margin-top:1rem; }
+.mt-download-row a{
+  display:inline-flex; align-items:center; gap:8px; background:var(--mt-ink); color:#fff;
+  padding:.75rem 1.4rem; border-radius:8px; font-weight:700; text-decoration:none;
+}
+.mt-download-row a:hover{ background:var(--mt-yellow-deep); color:var(--mt-ink); }
+.mt-section-title{ font-weight:800; color:var(--mt-ink); margin:0 0 .8rem; }
+.mt-course-list{ list-style:none; padding:0; margin:1rem 0 0; }
+.mt-course-list li{
+  display:flex; align-items:center; justify-content:space-between; gap:1rem;
+  padding:.7rem 0; border-bottom:1px solid var(--mt-line);
+}
+.mt-course-list li:last-child{ border-bottom:none; }
+.mt-course-name{ font-weight:600; color:var(--mt-ink); }
+.mt-course-meta{ font-size:.85rem; color:var(--mt-muted); }
+.mt-added-tag{ font-size:.8rem; color:var(--mt-muted); font-weight:600; }
+.mt-spinner{ font-size:.9rem; color:var(--mt-muted); }
+.mt-apk-banner{
+  display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+  background:var(--mt-ink); color:#fff; border-radius:12px; padding:1rem 1.4rem; margin-bottom:1.6rem;
+}
+.mt-apk-banner p{ margin:0; font-size:.95rem; }
+.mt-apk-banner a{
+  background:var(--mt-yellow); color:var(--mt-ink); font-weight:700; padding:.6rem 1.2rem;
+  border-radius:8px; text-decoration:none; white-space:nowrap;
+}
+.mt-apk-banner a:hover{ background:var(--mt-yellow-deep); }
+.mt-picker-btn{ display:inline-flex; align-items:center; gap:.5rem; }
+.mt-picker-btn::after{ content:"▾"; font-size:.75em; }
+.mt-picker-btn.is-open::after{ content:"▴"; }
+.mt-picker-list{
+  list-style:none; margin:.8rem 0 0; padding:.4rem; border:1px solid var(--mt-line);
+  border-radius:10px; background:var(--mt-paper); max-height:280px; overflow-y:auto;
+}
+.mt-picker-list li{
+  padding:.7rem .9rem; border-radius:7px; cursor:pointer; color:var(--mt-ink); font-weight:600;
+}
+.mt-picker-list li:hover, .mt-picker-list li:focus{ background:var(--mt-yellow); }
+.mt-picker-list li + li{ margin-top:2px; }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<div class="mt-shell">
+  <span class="hy-hero-label" style="color:var(--mt-yellow-deep);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.75rem;">Self-service</span>
+  <h1 class="mt-title">My Timetable</h1>
+  <p class="mt-sub">Enter your registration number to find your class and exam timetable, and add any extra units to your personal timetable.</p>
+
+  {% if site_settings.mobile_apk %}
+  <div class="mt-apk-banner">
+    <p><i class="fab fa-android" aria-hidden="true"></i> Prefer your phone? Get the app{% if site_settings.mobile_apk_version %} (v{{ site_settings.mobile_apk_version }}){% endif %} to check your timetable and add courses on the go.</p>
+    <a href="{{ site_settings.mobile_apk.url }}" download>Download APK</a>
+  </div>
+  {% endif %}
+
+  <!-- Step 1: registration number -->
+  <div class="mt-card" id="mt-lookup-card">
+    <div class="mt-field-row">
+      <input type="text" id="mt-reg-input" placeholder="e.g. EB1/66791/23" autocomplete="off">
+      <button class="mt-btn" id="mt-lookup-btn" type="button">Find My Timetable</button>
+    </div>
+    <p class="mt-hint">Format: PROGRAMCODE/ADMISSIONNO/INTAKEYEAR — the same number on your admission letter.</p>
+    <p class="mt-error mt-hidden" id="mt-lookup-error"></p>
+  </div>
+
+  <!-- Step 1b: department fallback -->
+  <div class="mt-card mt-hidden" id="mt-department-card">
+    <p class="mt-section-title" id="mt-department-msg">We couldn't match your program code — please pick your department.</p>
+    <button class="mt-btn mt-picker-btn" id="mt-department-btn" type="button">Select department</button>
+    <ul class="mt-picker-list mt-hidden" id="mt-department-list"></ul>
+  </div>
+
+  <!-- Step 1c: program fallback -->
+  <div class="mt-card mt-hidden" id="mt-program-card">
+    <p class="mt-section-title" id="mt-program-msg">Now pick your program.</p>
+    <button class="mt-btn mt-picker-btn" id="mt-program-btn" type="button">Select program</button>
+    <ul class="mt-picker-list mt-hidden" id="mt-program-list"></ul>
+  </div>
+
+  <!-- Step 2: result -->
+  <div class="mt-card mt-hidden" id="mt-result-card">
+    <div class="mt-result-head">
+      <h3 id="mt-result-program"></h3>
+      <span class="mt-badge" id="mt-result-year"></span>
+    </div>
+    <div class="mt-download-row">
+      <a id="mt-download-class" href="#"><i class="fas fa-file-pdf" aria-hidden="true"></i> Class Timetable (PDF)</a>
+      <a id="mt-download-exam" href="#"><i class="fas fa-file-pdf" aria-hidden="true"></i> Exam Timetable (PDF)</a>
+    </div>
+    <button class="mt-btn-secondary mt-btn" id="mt-start-over" style="margin-top:1.2rem;">Not you? Search again</button>
+  </div>
+
+  <!-- Step 3: add a course -->
+  <div class="mt-card mt-hidden" id="mt-add-course-card">
+    <p class="mt-section-title">Add an extra course to my timetable</p>
+    <p class="mt-hint" style="margin-top:0;margin-bottom:.8rem;">For units outside your program/year — e.g. an elective or a retake. Comma-separate several codes.</p>
+    <div class="mt-field-row">
+      <input type="text" id="mt-course-input" placeholder="e.g. COMS 101, PHYS 342" autocomplete="off">
+      <button class="mt-btn" id="mt-course-search-btn" type="button">Search</button>
+    </div>
+    <p class="mt-error mt-hidden" id="mt-course-error"></p>
+    <ul class="mt-course-list" id="mt-course-results"></ul>
+
+    <p class="mt-section-title" style="margin-top:1.6rem;">My added courses</p>
+    <ul class="mt-course-list" id="mt-course-mine"></ul>
+    <p class="mt-hint mt-hidden" id="mt-course-mine-empty">You haven't added any extra courses yet.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function(){
+  var state = { regNo: null, departmentId: null, programId: null, year: null, userId: null };
+
+  var lookupCard = document.getElementById('mt-lookup-card');
+  var deptCard = document.getElementById('mt-department-card');
+  var programCard = document.getElementById('mt-program-card');
+  var resultCard = document.getElementById('mt-result-card');
+  var addCourseCard = document.getElementById('mt-add-course-card');
+  var lookupError = document.getElementById('mt-lookup-error');
+  var lookupBtn = document.getElementById('mt-lookup-btn');
+  var regInput = document.getElementById('mt-reg-input');
+
+  function show(el){ el.classList.remove('mt-hidden'); }
+  function hide(el){ el.classList.add('mt-hidden'); }
+  function resetErrors(){ hide(lookupError); lookupError.textContent = ''; }
+
+  function resolveScope(reg, departmentId, programId){
+    var url = '/timetable/resolve/?reg=' + encodeURIComponent(reg);
+    if (departmentId) url += '&department_id=' + encodeURIComponent(departmentId);
+    if (programId) url += '&program_id=' + encodeURIComponent(programId);
+    return fetch(url).then(function(resp){
+      return resp.json().then(function(data){ return { status: resp.status, data: data }; });
+    });
+  }
+
+  function showDepartmentPicker(data){
+    hide(lookupCard); hide(programCard); hide(resultCard); hide(addCourseCard);
+    document.getElementById('mt-department-msg').textContent = data.error;
+    var btn = document.getElementById('mt-department-btn');
+    var list = document.getElementById('mt-department-list');
+    btn.textContent = 'Select department';
+    btn.classList.remove('is-open');
+    hide(list);
+    list.innerHTML = '';
+    (data.departments || []).forEach(function(d){
+      var li = document.createElement('li');
+      li.textContent = d.name;
+      li.tabIndex = 0;
+      li.addEventListener('click', function(){
+        btn.textContent = d.name;
+        hide(list);
+        btn.classList.remove('is-open');
+        doLookup(regInput.value.trim(), d.id, null);
+      });
+      list.appendChild(li);
+    });
+    btn.onclick = function(){
+      var willOpen = list.classList.contains('mt-hidden');
+      if (willOpen) show(list); else hide(list);
+      btn.classList.toggle('is-open', willOpen);
+    };
+    show(deptCard);
+  }
+
+  function showProgramPicker(data){
+    hide(lookupCard); hide(deptCard); hide(resultCard); hide(addCourseCard);
+    document.getElementById('mt-program-msg').textContent = data.error;
+    var btn = document.getElementById('mt-program-btn');
+    var list = document.getElementById('mt-program-list');
+    btn.textContent = 'Select program';
+    btn.classList.remove('is-open');
+    hide(list);
+    list.innerHTML = '';
+    (data.programs || []).forEach(function(p){
+      var li = document.createElement('li');
+      li.textContent = p.name;
+      li.tabIndex = 0;
+      li.addEventListener('click', function(){
+        btn.textContent = p.name;
+        hide(list);
+        btn.classList.remove('is-open');
+        doLookup(regInput.value.trim(), null, p.id);
+      });
+      list.appendChild(li);
+    });
+    btn.onclick = function(){
+      var willOpen = list.classList.contains('mt-hidden');
+      if (willOpen) show(list); else hide(list);
+      btn.classList.toggle('is-open', willOpen);
+    };
+    show(programCard);
+  }
+
+  function showResult(data){
+    hide(lookupCard); hide(deptCard); hide(programCard);
+    state.regNo = data.regNo;
+    state.departmentId = data.departmentId;
+    state.programId = data.programId;
+    state.year = data.year;
+    state.userId = data.userId;
+
+    document.getElementById('mt-result-program').textContent = data.programName;
+    document.getElementById('mt-result-year').textContent = 'Year ' + data.year;
+    document.getElementById('mt-download-class').href =
+      '/timetable/program-id/' + data.departmentId + '/' + data.programId + '/' + data.year + '/class/';
+    document.getElementById('mt-download-exam').href =
+      '/timetable/program-id/' + data.departmentId + '/' + data.programId + '/' + data.year + '/exam/';
+    show(resultCard);
+    show(addCourseCard);
+    refreshMyCourses();
+  }
+
+  function doLookup(reg, departmentId, programId){
+    resetErrors();
+    lookupBtn.disabled = true;
+    resolveScope(reg, departmentId, programId).then(function(r){
+      lookupBtn.disabled = false;
+      var data = r.data;
+      if (r.status === 200){
+        showResult(data);
+      } else if (r.status === 300 && data.needsDepartmentSelection){
+        showDepartmentPicker(data);
+      } else if (r.status === 300 && data.needsProgramSelection){
+        showProgramPicker(data);
+      } else {
+        lookupError.textContent = data.error || 'Something went wrong — please try again.';
+        show(lookupError);
+      }
+    }).catch(function(){
+      lookupBtn.disabled = false;
+      lookupError.textContent = 'Could not reach the server — please check your connection and try again.';
+      show(lookupError);
+    });
+  }
+
+  lookupBtn.addEventListener('click', function(){
+    var reg = regInput.value.trim();
+    if (!reg){
+      lookupError.textContent = 'Please enter your registration number.';
+      show(lookupError);
+      return;
+    }
+    doLookup(reg, null, null);
+  });
+  regInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') lookupBtn.click(); });
+
+  document.getElementById('mt-start-over').addEventListener('click', function(){
+    hide(resultCard); hide(addCourseCard); hide(deptCard); hide(programCard);
+    regInput.value = '';
+    show(lookupCard);
+  });
+
+  // ── Add a course ──────────────────────────────────────────
+  var courseInput = document.getElementById('mt-course-input');
+  var courseSearchBtn = document.getElementById('mt-course-search-btn');
+  var courseError = document.getElementById('mt-course-error');
+  var courseResults = document.getElementById('mt-course-results');
+  var courseMine = document.getElementById('mt-course-mine');
+  var courseMineEmpty = document.getElementById('mt-course-mine-empty');
+
+  function identityParams(){
+    return 'userId=' + encodeURIComponent(state.userId) + '&role=student&regNo=' + encodeURIComponent(state.regNo);
+  }
+
+  function refreshMyCourses(){
+    fetch('/api/mobile/courses/mine/?' + identityParams())
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        courseMine.innerHTML = '';
+        var entries = data.courses || [];
+        if (!entries.length){
+          show(courseMineEmpty);
+          return;
+        }
+        hide(courseMineEmpty);
+        entries.forEach(function(entry){
+          var li = document.createElement('li');
+          var scheduledNote = entry.scheduled ? '' : ' (not yet scheduled)';
+          li.innerHTML = '<div><div class="mt-course-name">' + entry.courseCode + ' — ' + entry.courseName +
+            '</div><div class="mt-course-meta">' + entry.lecturer + scheduledNote + '</div></div>';
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'mt-btn-secondary mt-btn';
+          removeBtn.textContent = 'Remove';
+          removeBtn.addEventListener('click', function(){
+            fetch('/api/mobile/courses/remove/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: state.userId, role: 'student', regNo: state.regNo,
+                allocationId: entry.allocationId,
+              }),
+            }).then(function(){ refreshMyCourses(); });
+          });
+          li.appendChild(removeBtn);
+          courseMine.appendChild(li);
+        });
+      })
+      .catch(function(){ /* best-effort — leave list as-is */ });
+  }
+
+  courseSearchBtn.addEventListener('click', function(){
+    hide(courseError);
+    var q = courseInput.value.trim();
+    if (!q){
+      courseError.textContent = 'Type at least one course code.';
+      show(courseError);
+      return;
+    }
+    var url = '/api/mobile/courses/search/?q=' + encodeURIComponent(q) + '&' + identityParams();
+    fetch(url).then(function(r){ return r.json(); }).then(function(data){
+      courseResults.innerHTML = '';
+      if (data.error){
+        courseError.textContent = data.error;
+        show(courseError);
+        return;
+      }
+      if (data.notFound && data.notFound.length){
+        courseError.textContent = "Couldn't find: " + data.notFound.join(', ');
+        show(courseError);
+      }
+      (data.results || []).forEach(function(result){
+        var li = document.createElement('li');
+        var meta = [result.department, result.program, result.lecturer].filter(Boolean).join(' · ');
+        li.innerHTML = '<div><div class="mt-course-name">' + result.courseCode + ' — ' + (result.courseName || '') +
+          '</div><div class="mt-course-meta">' + meta + '</div></div>';
+        if (result.isAdded){
+          var tag = document.createElement('span');
+          tag.className = 'mt-added-tag';
+          tag.textContent = 'Added';
+          li.appendChild(tag);
+        } else {
+          var addBtn = document.createElement('button');
+          addBtn.className = 'mt-btn';
+          addBtn.textContent = 'Add';
+          addBtn.addEventListener('click', function(){
+            addBtn.disabled = true;
+            fetch('/api/mobile/courses/add/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: state.userId, role: 'student', regNo: state.regNo,
+                allocationIds: [result.id],
+              }),
+            }).then(function(r){ return r.json(); }).then(function(){
+              addBtn.textContent = 'Added';
+              refreshMyCourses();
+            }).catch(function(){ addBtn.disabled = false; });
+          });
+          li.appendChild(addBtn);
+        }
+        courseResults.appendChild(li);
+      });
+    }).catch(function(){
+      courseError.textContent = 'Could not reach the server — please try again.';
+      show(courseError);
+    });
+  });
+})();
+</script>
+{% endblock extra_js %}
