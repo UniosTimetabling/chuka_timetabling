@@ -212,6 +212,9 @@ def _exam_get_specialization_category_id(alloc) -> Optional[int]:
 def _exam_get_intake(alloc) -> str:
     return getattr(alloc, 'intake', 'normal') or 'normal'
 
+def _exam_get_student_group_id(alloc) -> Optional[int]:
+    return getattr(alloc, 'student_group_id', None)
+
 def _combined_group_are_paired(alloc_a_id: int, alloc_b_id: int) -> bool:
     a_groups = _combined_group_ids_for(alloc_a_id)
     if not a_groups:
@@ -262,6 +265,20 @@ def exam_is_collision_exempt(c1, c2) -> bool:
         cat2 = _exam_get_specialization_category_id(c2)
         if cat1 is not None and cat1 == cat2:
             return True
+    # StudentGroup: different explicit groups within the same program/year
+    # (e.g. a BEd "geo/agric" combination vs a "chem/agric" combination) are
+    # different cohorts of students and never sit the same exam, so they are
+    # collision-exempt. A shared/common course (student_group=None on either
+    # side) is taken by everyone and must keep clashing normally, so it
+    # deliberately falls through untouched. Mirrors the same rule already
+    # used by the regular-timetable schedulers (see stable_sheduling_algorithm
+    # and regular_timetable_autosheduler_algorithm) — the exam scheduler was
+    # missing it, which is why courses in genuinely disjoint student groups
+    # were being blocked from sharing a slot as spurious "student-conflict"s.
+    stg1 = _exam_get_student_group_id(c1)
+    stg2 = _exam_get_student_group_id(c2)
+    if stg1 is not None and stg2 is not None and stg1 != stg2:
+        return True
     sg1 = _exam_get_selection_group_id(c1)
     sg2 = _exam_get_selection_group_id(c2)
     if sg1 is not None and sg2 is not None and sg1 == sg2:
@@ -459,6 +476,14 @@ class SchedulerState:
         self.designated_scope_by_norm_code: Dict[str, List[Tuple[Set[int], Set[int], Set[int]]]] = defaultdict(list)
         self.strict_norm_codes: Set[str] = set()
         self.strict_locked_ids: Set[int] = set()
+        # When True, courses/families that were permanently locked out after
+        # their designated-venue rule failed (strict_locked_ids) are allowed
+        # to fall back to the general venue pool. Off by default so Phases
+        # 0-7 give the designated-venue rule every legitimate chance first;
+        # flipped on only for the final (Phase 8 "Ultimate") rescue pass, so
+        # a venue-rule mismatch never leaves an exam unscheduled while free,
+        # unblocked venues are sitting empty.
+        self.allow_strict_rescue: bool = False
         for rule in constraint_engine.get_designated_venue_rules(
             self.disabled_constraints, scheduler_type="exam"
         ):
@@ -1447,7 +1472,7 @@ def _post_place(course, venue_id: int, students: int,
     return True
 
 def _check_hard_constraints(course, date, slot_start, state: SchedulerState) -> Optional[str]:
-    if course.id in state.strict_locked_ids:
+    if course.id in state.strict_locked_ids and not state.allow_strict_rescue:
         return "strict-designated-venue-unavailable"
     if not state.students_available(course, date, slot_start):
         return "student-conflict"
@@ -1595,7 +1620,7 @@ def try_place_course(course, date, slot_start, slot_end,
 # ======================================================================
 def _family_constraints_ok(group_courses, date, slot_start, state):
     for c in group_courses:
-        if c.id in state.strict_locked_ids:
+        if c.id in state.strict_locked_ids and not state.allow_strict_rescue:
             return False
         if not state.students_available(c, date, slot_start):
             return False
@@ -1647,7 +1672,7 @@ def place_merged_family(group_courses, nc, date, ss, se, state, scheduled_ids) -
             if _commit_distributed_minimal(group_courses, nc, designated_pool, total_needed,
                                            date, ss, se, state, scheduled_ids):
                 return True
-        if is_strict:
+        if is_strict and not state.allow_strict_rescue:
             return False
     free_venues = state.get_free_venues(date, ss)
     free_with_caps = []
@@ -2638,6 +2663,11 @@ def ultimate_fallback_pass(all_courses, state, scheduled_ids):
     if not unscheduled:
         return 0
     print(f"\n[Phase8-Ultimate] {len(unscheduled)} unscheduled")
+    # Last resort: courses/families that got permanently locked out earlier
+    # because their designated ("strict") venue rule couldn't fit them are
+    # now allowed to use any free, unblocked venue rather than being left
+    # unscheduled forever. See allow_strict_rescue.
+    state.allow_strict_rescue = True
     placed_before = len(scheduled_ids)
     dates = state.dates_in_order()
     all_slots = state.all_slots_ordered
@@ -2666,8 +2696,6 @@ def ultimate_fallback_pass(all_courses, state, scheduled_ids):
     sorted_dates = state.get_sorted_dates_for_pool(dates, individual_remaining)
     for course in individual_remaining:
         if course.id in scheduled_ids:
-            continue
-        if course.id in state.strict_locked_ids:
             continue
         if _course_already_in_db(course):
             scheduled_ids.add(course.id)
@@ -2701,6 +2729,7 @@ def ultimate_fallback_pass(all_courses, state, scheduled_ids):
                     break
     placed = len(scheduled_ids) - placed_before
     print(f"[Phase8-Ultimate] Placed {placed}")
+    state.allow_strict_rescue = False
     return placed
 
 # ======================================================================

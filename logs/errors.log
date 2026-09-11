@@ -583,3 +583,5 @@ Traceback (most recent call last):
         "No %s matches the given query." % queryset.model._meta.object_name
     )
 django.http.response.Http404: No CombinedCourseGroup matches the given query.
+ERROR 2026-09-11 06:50:34,789 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-11 06:50:34,803 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
