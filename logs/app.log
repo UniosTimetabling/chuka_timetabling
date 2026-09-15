@@ -6586,3 +6586,7 @@ INFO 2026-09-15 18:32:32,083 django.server basehttp:212 "GET /api/notifications/
 INFO 2026-09-15 18:33:19,044 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
 INFO 2026-09-15 18:33:51,090 django.utils.autoreload autoreload:265 /home/dravis/Downloads/chuka_timetabling/export_import/sync_engine.py changed, reloading.
 INFO 2026-09-15 18:33:55,952 django.utils.autoreload autoreload:667 Watching for file changes with StatReloader
+INFO 2026-09-15 18:35:16,796 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-15 18:35:52,403 django.server basehttp:212 "GET /timetable/analysis/summary-api/?scope=exam&department_id=62&program_id=6390&year=4 HTTP/1.1" 200 301
+INFO 2026-09-15 18:36:10,302 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-15 18:37:10,495 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
