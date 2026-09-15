@@ -45,7 +45,21 @@ from export_import import sync_tls
 SYNC_RECEIVE_PATH = "/sync/receive/"
 SYNC_PING_PATH = "/sync/ping/"
 SYNC_VERIFY_PKS_PATH = "/sync/verify-pks/"
-REQUEST_TIMEOUT_SECONDS = 30
+# 2025-XX migration incident: 500-row chunks routinely took longer than
+# 30s for the REMOTE to decrypt + deserialize + individually commit
+# (ingest_model_payload does one transaction.atomic() PER ROW, not one
+# for the whole chunk), which is longer than Gunicorn's own default
+# --timeout (also 30s) — so the REMOTE's worker got SIGKILLed mid-request
+# on the big models. The HOST just sees that as "Read timed out
+# (read timeout=30)", but the real damage is on the remote: a killed
+# worker can take the whole app down for a few seconds, which is why
+# later chunks in the same run started coming back as 500s and then 405s
+# from whatever was left answering that port (see SYNC_MAX_ROWS_PER_REQUEST
+# below for the chunk-size half of the fix). Raising this alone does NOT
+# fix it if Gunicorn's --timeout / Nginx's proxy_read_timeout on the
+# REMOTE are still 30s — those must be raised to match (see deployment
+# notes), this is just the HOST side of the same budget.
+REQUEST_TIMEOUT_SECONDS = 120
 PING_TIMEOUT_SECONDS = 8
 VERIFY_TIMEOUT_SECONDS = 20
 
@@ -61,7 +75,17 @@ VERIFY_TIMEOUT_SECONDS = 20
 # Capping how many rows go in a single request keeps every request small
 # and fast regardless of how big any one model's table gets, and a
 # failed chunk only has to resend that chunk, not the whole model.
-SYNC_MAX_ROWS_PER_REQUEST = 500
+#
+# 500 was still too large in practice — the remote's per-row commit
+# overhead meant even 500-row chunks blew past the request timeout and
+# got the worker killed mid-request (see REQUEST_TIMEOUT_SECONDS above).
+# 100 keeps each request's ingest time comfortably inside a 30-60s
+# worker timeout even on a modest remote box, at the cost of more
+# requests per model (e.g. ProgramCourse's ~13.7k rows becomes ~138
+# requests instead of ~28) — throughput takes a hit, but a request that
+# actually completes and gets acknowledged beats one that silently kills
+# the remote worker.
+SYNC_MAX_ROWS_PER_REQUEST = 100
 
 # A run genuinely stuck in "running" (dev server auto-reloaded mid-sync,
 # the daemon thread died some other way, the process was killed) would
@@ -294,6 +318,22 @@ def _reconcile_stale_hashes(model, remote_url, token, verify_ssl=True):
     return len(stale_ids), True
 
 
+class _SyncHTTPError(Exception):
+    """Raised in place of requests' own HTTPError so the SyncModelLog
+    message actually says something useful. resp.raise_for_status()
+    alone only gives you '500 Server Error: Internal Server Error for
+    url: ...' — the status line, with the response BODY (which is where
+    Django/Gunicorn/Nginx actually put the useful detail: a traceback
+    snippet, an nginx error page, 'Invalid or missing sync token', etc.)
+    silently discarded. That's why the 2025-XX incident's logs showed
+    '500 Server Error' and '405 Method Not Allowed' with no way to tell,
+    from the HOST side alone, whether Django, Gunicorn, or Nginx was the
+    one actually answering. This keeps the body (truncated so one huge
+    HTML error page can't blow out the log field) so the next time this
+    happens the answer is in the sync log, not a multi-message
+    back-and-forth reconstructing it from status codes alone."""
+
+
 def _post_model_batch(remote_url, token, label, app_label, model_name, fixture_json, order, total_models, verify_ssl=True):
     fixture_encrypted = sync_crypto.encrypt_payload(fixture_json, token)
     resp = requests.post(
@@ -309,7 +349,24 @@ def _post_model_batch(remote_url, token, label, app_label, model_name, fixture_j
         timeout=REQUEST_TIMEOUT_SECONDS,
         verify=verify_ssl,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Grab whatever body came back before raising. A JSON error body
+        # from our own receive_sync view (e.g. {"success": false,
+        # "error": "..."}) gets its "error" field pulled out directly;
+        # anything else (an nginx/Gunicorn HTML error page, a plain-text
+        # 502, an empty body because the connection was cut) is included
+        # verbatim, truncated, so at least the shape of it is visible.
+        detail = None
+        try:
+            body = resp.json()
+            detail = body.get("error") if isinstance(body, dict) else None
+        except ValueError:
+            pass
+        if detail is None:
+            detail = (resp.text or "").strip().replace("\n", " ")[:500] or "(empty response body)"
+        raise _SyncHTTPError(
+            f"{resp.status_code} {resp.reason} for url: {resp.url} — response body: {detail}"
+        )
     return resp.json()
 
 

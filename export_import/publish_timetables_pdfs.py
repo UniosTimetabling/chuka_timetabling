@@ -220,7 +220,7 @@ def _build_day_table(elements, styles, date_label, time_slots, venues,
                      matrix_data, pagesize, left_margin, right_margin):
     """
     matrix_data: list of rows  →  [venue_name, cell_text, cell_text …]
-    cell_text is '\n'-joined codes; rendered as CODE1 / CODE2 in the cell.
+    cell_text is '\n'-joined codes; rendered as CODE1, CODE2 in the cell.
     """
     page_width = pagesize[0] - left_margin - right_margin
 
@@ -250,7 +250,7 @@ def _build_day_table(elements, styles, date_label, time_slots, venues,
     for row_data in matrix_data:
         row = [Paragraph(row_data[0], room_sty)]
         for cell in row_data[1:]:
-            row.append(Paragraph(cell.replace("\n", " / "), cell_sty))
+            row.append(Paragraph(cell.replace("\n", ", "), cell_sty))
         rows.append(row)
 
     room_w = min(max(page_width * 0.14, 55), 80)
@@ -586,7 +586,7 @@ def publish_exam_timetable_pdf(request):
     Shared venue (SharedVenueExamGroup, published=True):
       venue, date, start_time, end_time  →  many CourseAllocations in one room
 
-    Both are shown slashed in cells. No separate footer tables are appended
+    Both are shown comma-separated in cells. No separate footer tables are appended
     since the information is already visible in the main timetable grid.
     """
     try:

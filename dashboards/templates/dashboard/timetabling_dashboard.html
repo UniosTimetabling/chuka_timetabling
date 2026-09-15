@@ -793,60 +793,121 @@ function dashCsrf() {
   return m ? m[1] : (typeof csrftoken !== 'undefined' ? csrftoken : '');
 }
 
+// ── Popup-safe "open result" helper ─────────────────────────────────────────
+// Browsers only allow window.open() to succeed when it runs synchronously
+// inside a user gesture (the click). Our publish flow does an async fetch
+// first, so by the time we know the PDF's URL the gesture has expired and
+// window.open() gets silently blocked.
+//
+// Fix: spawn the blank tab synchronously, the moment the click happens
+// (see dashPublish below, before the fetch/await), and just hold a
+// reference to it with a small "preparing…" placeholder. Once the PDF URL
+// is known, we simply navigate that already-open tab — no new popup call
+// is made, so nothing can be blocked.
+//
+// If the tab couldn't be spawned at all (some browsers/extensions block
+// window.open() even inside the gesture), fall back to forcing a direct
+// file download instead — that's never treated as a popup.
+function dashSpawnResultTab() {
+  let tab = null;
+  try {
+    tab = window.open('about:blank', '_blank');
+    if (tab) {
+      tab.document.write(
+        '<title>Preparing your PDF…</title>' +
+        '<body style="font-family:system-ui,sans-serif;padding:2.5rem;color:#444;">' +
+        '<p>Preparing your PDF, please wait…</p></body>'
+      );
+    }
+  } catch (e) {
+    tab = null;
+  }
+  return tab;
+}
+
+function dashOpenResult(tab, url, filename) {
+  if (tab && !tab.closed) {
+    // Tab is already open (spawned during the click) — just navigate it.
+    tab.location.href = url;
+    return;
+  }
+  // Popup was blocked outright — fall back to a forced download in the
+  // current tab, which browsers never treat as a popup.
+  const a = document.createElement('a');
+  a.href = url;
+  if (filename) a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function dashCloseResultTab(tab) {
+  if (tab && !tab.closed) {
+    try { tab.close(); } catch (e) { /* ignore */ }
+  }
+}
+
 // ── Publish action map ────────────────────────────────────────────────────────
 const PUBLISH_ACTIONS = {
   publishRegular: {
     url: '/publish-regular-pdf/',
     method: 'GET',
     confirm: null,
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; Regular timetable published: <b>' + d.filename + '</b>', 'success');
-      if (d.document_url) window.open(d.document_url, '_blank');
+      if (d.document_url) dashOpenResult(tab, d.document_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishExam: {
     url: '/publish-exam-pdf/',
     method: 'GET',
     confirm: null,
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; Exam timetable published: <b>' + d.filename + '</b>', 'success');
-      if (d.document_url) window.open(d.document_url, '_blank');
+      if (d.document_url) dashOpenResult(tab, d.document_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishCampusClass: {
     url: "{% url 'campuses_timetable:campuses_publish_class' %}",
     method: 'POST',
     confirm: 'Publish the Campus class timetable? This will create a new version.',
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; ' + d.message, 'success');
-      if (d.download_url) window.open(d.download_url, '_blank');
+      if (d.download_url) dashOpenResult(tab, d.download_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishCampusExam: {
     url: "{% url 'campuses_timetable:campuses_publish_exam' %}",
     method: 'POST',
     confirm: 'Publish the Campus exam timetable? This will create a new version.',
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; ' + d.message, 'success');
-      if (d.download_url) window.open(d.download_url, '_blank');
+      if (d.download_url) dashOpenResult(tab, d.download_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishOdelClass: {
     url: "{% url 'odel_system:odel_publish_class' %}",
     method: 'POST',
     confirm: 'Publish the ODEL class timetable? This will create a new version.',
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; ' + d.message + ' &mdash; Version: ' + d.version, 'success');
-      if (d.download_url) window.open(d.download_url, '_blank');
+      if (d.download_url) dashOpenResult(tab, d.download_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishOdelExam: {
     url: "{% url 'odel_system:odel_publish_exam' %}",
     method: 'POST',
     confirm: 'Publish the ODEL exam timetable? This will create a new version.',
-    onSuccess: function(d) {
+    onSuccess: function(d, headers, tab) {
       dashToast('&#10003; ' + d.message + ' &mdash; Version: ' + d.version, 'success');
-      if (d.download_url) window.open(d.download_url, '_blank');
+      if (d.download_url) dashOpenResult(tab, d.download_url, d.filename);
+      else dashCloseResultTab(tab);
     },
   },
   publishResit: {
@@ -854,11 +915,11 @@ const PUBLISH_ACTIONS = {
     method: 'POST',
     confirm: 'Publish the Resit timetable? This will create a new PDF version.',
     isBlob: true,
-    onSuccess: function(blob, headers) {
+    onSuccess: function(blob, headers, tab) {
       const ver = headers.get('X-PDF-Version') || '';
       dashToast('&#10003; Resit timetable published' + (ver ? ' &mdash; Version ' + ver : ''), 'success');
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      dashOpenResult(tab, url, 'resit_timetable.pdf');
     },
   },
 };
@@ -871,6 +932,10 @@ async function dashPublish(btn, action) {
   if (!cfg) { console.error('Unknown action:', action); return; }
 
   if (cfg.confirm && !confirm(cfg.confirm)) return;
+
+  // Spawn the result tab NOW, still inside the click's user-gesture window
+  // (synchronously, before the first await below) so it isn't popup-blocked.
+  const resultTab = dashSpawnResultTab();
 
   setLoading(btn, true);
   const loadingMsg = btn.dataset.loading || 'Processing…';
@@ -890,10 +955,11 @@ async function dashPublish(btn, action) {
       if (resp.ok && (resp.headers.get('Content-Type') || '').includes('application/pdf')) {
         infoT.remove();
         const blob = await resp.blob();
-        cfg.onSuccess(blob, resp.headers);
+        cfg.onSuccess(blob, resp.headers, resultTab);
       } else {
         const data = await resp.json().catch(() => ({ error: 'Unexpected response' }));
         infoT.remove();
+        dashCloseResultTab(resultTab);
         dashToast('&#10007; Error: ' + (data.error || resp.statusText), 'error');
       }
       return;
@@ -903,12 +969,14 @@ async function dashPublish(btn, action) {
     infoT.remove();
 
     if (data.success) {
-      cfg.onSuccess(data, resp.headers);
+      cfg.onSuccess(data, resp.headers, resultTab);
     } else {
+      dashCloseResultTab(resultTab);
       dashToast('&#10007; Error: ' + (data.error || 'Unknown error'), 'error');
     }
   } catch (err) {
     infoT.remove();
+    dashCloseResultTab(resultTab);
     dashToast('&#10007; Network error — please try again.', 'error');
     console.error('dashPublish error:', err);
   } finally {
