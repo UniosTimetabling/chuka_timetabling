@@ -2021,7 +2021,24 @@ def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
         same = [r for r in pool_sorted if _venue_building(r[0]) == preferred_building]
         other = [r for r in pool_sorted if _venue_building(r[0]) != preferred_building]
         pool_sorted = same + other
-    remaining_courses = sorted(group_courses, key=lambda c: -course_student_count(c))
+    # Cluster same-labeled variants (identical raw course_code, e.g. "COSC 103-D")
+    # together and adjacent in the fill order. The venue-fill loop below walks
+    # remaining_courses once per venue, taking from whichever course still needs
+    # seats; if same-label variants sit next to each other in this list, they
+    # keep landing in the same venue (as long as it fits) instead of being
+    # scattered across different rooms just because a same-sized variant of a
+    # different label happened to be adjacent in a pure size sort.
+    def _variant_label(c):
+        return (getattr(c, "course_code", "") or "").strip()
+
+    label_totals = defaultdict(int)
+    for c in group_courses:
+        label_totals[_variant_label(c)] += course_student_count(c)
+
+    remaining_courses = sorted(
+        group_courses,
+        key=lambda c: (-label_totals[_variant_label(c)], _variant_label(c), -course_student_count(c))
+    )
     course_left = {c.id: course_student_count(c) for c in remaining_courses}
     assignments = []
     for row in pool_sorted:

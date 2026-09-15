@@ -185,6 +185,23 @@ apt_update_safe() {
     apt-get update -y -qq && return 0
   fi
 
+  # apt-get update exits non-zero even when only optional AppStream/dep11
+  # metadata (icons + descriptions for GUI software centers — irrelevant
+  # on a headless server) or translation files failed to fetch, while the
+  # real package indices (Packages/Release for main/universe/etc.) came
+  # down fine. This is almost always a transient mirror-sync race (the
+  # Release file published slightly before every file behind it finished
+  # propagating) and shouldn't abort a whole production deploy. Only
+  # swallow it if EVERY "Failed to fetch" line is one of these harmless
+  # kinds — any other failure still hard-fails below.
+  if grep -q 'Failed to fetch' /tmp/apt-update-err.log && \
+     ! grep -E 'Failed to fetch' /tmp/apt-update-err.log | grep -qvE '/dep11/|/cnf/|Translation-'; then
+    warn "apt-get update reported failures, but they're all optional AppStream/"
+    warn "dep11 metadata or translation files, not real package indices —"
+    warn "continuing. (Usually a transient mirror-sync race; safe to ignore.)"
+    return 0
+  fi
+
   fail "apt-get update failed:\n$(tail -5 /tmp/apt-update-err.log)"
 }
 
