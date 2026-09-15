@@ -1,0 +1,244 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Chuka University - AutoScheduler{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboards_dashboard_main_portal.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<!-- Navigation -->
+ <!-- Hero Section -->
+ <section class="hero-section">
+ <div class="container">
+ <h1>Chuka University AutoScheduler</h1>
+ <p class="lead">Revolutionizing academic scheduling for students and staff. Experience seamless timetable management, conflict-free scheduling, and enhanced educational efficiency.</p>
+ <div class="mt-4">
+ <a href="#features" class="btn btn-success me-3">Discover Features</a>
+ <a href="#portals" class="btn btn-outline-light">Access Portals</a>
+ </div>
+ </div>
+ </section>
+
+ <!-- Portal Access Cards -->
+ <section class="portal-cards" id="portals">
+ <div class="container">
+ <div class="row g-4">
+ <div class="col-md-6">
+ <div class="portal-card">
+ <div class="portal-icon">
+ <i class="fas fa-user-graduate"></i>
+ </div>
+ <h3>Student Portal</h3>
+ <p>Access your personalized timetable, course materials, academic resources, and stay updated with real-time schedule changes tailored to your program.</p>
+ <a href="/portal/" class="btn btn-success mt-3">Enter Student Portal</a>
+ </div>
+ </div>
+ <div class="col-md-6">
+ <div class="portal-card">
+ <div class="portal-icon">
+ <i class="fas fa-chalkboard-teacher"></i>
+ </div>
+ <h3>Staff Portal</h3>
+ <p>Manage courses, optimize teaching schedules, access student rosters, and utilize powerful administrative tools designed for faculty efficiency.</p>
+ <a href="/staff/portal/" class="btn btn-outline-success mt-3">Enter Staff Portal</a>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- Features Section -->
+ <section class="py-5" id="features">
+ <div class="container">
+ <h2 class="section-title">Why AutoScheduler Stands Out</h2>
+ <div class="row">
+ <div class="col-md-4 mb-4">
+ <div class="feature-card">
+ <div class="feature-icon">
+ <i class="fas fa-brain"></i>
+ </div>
+ <h4>Intelligent Scheduling</h4>
+ <p>Our advanced AI algorithms automatically generate optimal timetables while considering faculty availability, room capacity, and student preferences.</p>
+ </div>
+ </div>
+ <div class="col-md-4 mb-4">
+ <div class="feature-card">
+ <div class="feature-icon">
+ <i class="fas fa-bolt"></i>
+ </div>
+ <h4>Real-time Updates</h4>
+ <p>Instant synchronization across all platforms ensures everyone has the most current schedule information with immediate notification of changes.</p>
+ </div>
+ </div>
+ <div class="col-md-4 mb-4">
+ <div class="feature-card">
+ <div class="feature-icon">
+ <i class="fas fa-shield-alt"></i>
+ </div>
+ <h4>Conflict-Free Guarantee</h4>
+ <p>Advanced conflict detection eliminates scheduling errors, ensuring smooth academic operations without timetable clashes.</p>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- Image Gallery Section -->
+ <section class="image-section">
+ <div class="container">
+ <h2 class="section-title">Transforming Academic Experience</h2>
+ <div class="row">
+ <div class="col-md-4 mb-4">
+ <div class="image-card">
+ <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Modern University Building">
+ <div class="image-card-content">
+ <h5>State-of-the-Art Infrastructure</h5>
+ <p class="mb-0">Optimized utilization of Chuka University's modern facilities and classrooms.</p>
+ </div>
+ </div>
+ </div>
+ <div class="col-md-4 mb-4">
+ <div class="image-card">
+ <img src="https://images.unsplash.com/photo-1523580494863-6f3031224c94?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Students in Library">
+ <div class="image-card-content">
+ <h5>Enhanced Learning Environment</h5>
+ <p class="mb-0">Students enjoy balanced schedules that maximize learning and minimize stress.</p>
+ </div>
+ </div>
+ </div>
+ <div class="col-md-4 mb-4">
+ <div class="image-card">
+ <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Faculty Collaboration">
+ <div class="image-card-content">
+ <h5>Faculty Efficiency</h5>
+ <p class="mb-0">Staff benefit from streamlined administrative processes and optimized teaching loads.</p>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- Benefits Section -->
+ <section class="benefits-section" id="benefits">
+ <div class="container">
+ <h2 class="section-title">Benefits for Everyone</h2>
+ <div class="row">
+ <div class="col-md-6 mb-4">
+ <div class="benefit-card">
+ <div class="benefit-icon">
+ <i class="fas fa-user-graduate"></i>
+ </div>
+ <h4>For Students</h4>
+ <ul>
+ <li>Personalized, conflict-free timetables</li>
+ <li>Easy access to course materials and resources</li>
+ <li>Real-time notifications for schedule changes</li>
+ <li>Balanced schedules that prevent burnout</li>
+ <li>Mobile access to academic information</li>
+ </ul>
+ </div>
+ </div>
+ <div class="col-md-6 mb-4">
+ <div class="benefit-card">
+ <div class="benefit-icon">
+ <i class="fas fa-chalkboard-teacher"></i>
+ </div>
+ <h4>For Staff</h4>
+ <ul>
+ <li>Reduced administrative workload</li>
+ <li>Optimized teaching schedules</li>
+ <li>Efficient resource allocation</li>
+ <li>Comprehensive reporting tools</li>
+ <li>Streamlined departmental coordination</li>
+ </ul>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- Stats Section -->
+ <section class="stats-section">
+ <div class="container">
+ <h2 class="section-title" style="color: white;">Our Impact at Chuka University</h2>
+ <div class="row">
+ <div class="col-md-3 mb-4">
+ <div class="stat-card">
+ <div class="stat-number">2,847</div>
+ <div class="stat-label">Students Served</div>
+ </div>
+ </div>
+ <div class="col-md-3 mb-4">
+ <div class="stat-card">
+ <div class="stat-number">184</div>
+ <div class="stat-label">Faculty Members</div>
+ </div>
+ </div>
+ <div class="col-md-3 mb-4">
+ <div class="stat-card">
+ <div class="stat-number">342</div>
+ <div class="stat-label">Courses Managed</div>
+ </div>
+ </div>
+ <div class="col-md-3 mb-4">
+ <div class="stat-card">
+ <div class="stat-number">98%</div>
+ <div class="stat-label">Satisfaction Rate</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- Login Prompt -->
+ <section class="py-5">
+ <div class="container">
+ <div class="login-prompt">
+ <h3>Ready to Transform Your Academic Experience?</h3>
+ <p class="mb-4">Join thousands of students and staff already benefiting from our intelligent scheduling system.</p>
+ <div class="row justify-content-center">
+ <div class="col-md-6">
+ <a href="/portal/" class="btn btn-light btn-lg me-3 mb-3">
+ <i class="fas fa-user-graduate me-2"></i> Student Access
+ </a>
+ <a href="/staff/portal/" class="btn btn-outline-light btn-lg mb-3">
+ <i class="fas fa-chalkboard-teacher me-2"></i> Staff Access
+ </a>
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+{% endblock content %}
+
+{% block footer %}
+<footer class="footer-dark" role="contentinfo">
+  <div class="footer-content">
+    <div class="footer-col">
+      <h4>{{ site_settings.university_name|default:"Chuka University" }} AutoScheduler</h4>
+      <p>Transforming academic scheduling through innovation and technology.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Quick Access</h4>
+      <ul>
+        <li><a href="/portal/"><i class="fas fa-chevron-right"></i> Student Portal</a></li>
+        <li><a href="/staff/portal/"><i class="fas fa-chevron-right"></i> Staff Portal</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Contact</h4>
+      <ul class="contact-info">
+        <li><i class="fas fa-map-pin"></i> Chuka University, P.O. Box 109-60400, Chuka, Kenya</li>
+        <li><i class="fas fa-envelope"></i> autoscheduler@chuka.ac.ke</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — AutoScheduler</p>
+  </div>
+</footer>
+{% endblock footer %}

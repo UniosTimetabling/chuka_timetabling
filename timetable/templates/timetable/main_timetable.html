@@ -1,0 +1,126 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %} Main Timetable{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_main_timetable.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+<h2 class="mb-4"> Class Timetable</h2>
+
+ {% for day in days %}
+ <h4 class="mt-3">{{ day }}</h4>
+ <table>
+ <thead>
+ <tr>
+ <th>Venue</th>
+ {% for slot in timeslots %}
+ <th>{{ slot }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for venue in venues %}
+ <tr>
+ <td><strong>{{ venue.code }}</strong></td>
+ {% for slot in timeslots %}
+ {% with match=None %}
+ {% for entry in timetable %}
+ {% if entry.day == day and entry.venue.code == venue.code and entry.start_time|stringformat:"H:i" in slot %}
+
+ {% with match=entry %}{% endwith %}
+ {% endif %}
+ {% endfor %}
+ <td contenteditable="true"
+ data-day="{{ day }}"
+ data-slot="{{ slot }}"
+ data-venue="{{ venue.code }}">
+ {% if match %}
+ {{ match.course_allocation.course.course_code }}
+ {% endif %}
+ </td>
+ {% endwith %}
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ {% endfor %}
+
+ <h3> Lab Timetable</h3>
+ <table>
+ <thead>
+ <tr>
+ <th>Lab</th>
+ <th>Day</th>
+ <th>Start</th>
+ <th>End</th>
+ <th>Course</th>
+ </tr>
+ </thead>
+ <tbody id="lab-body">
+ {% for lab in lab_timetable %}
+ <tr>
+ <td>{{ lab.lab_venue.code }}</td>
+ <td>{{ lab.day }}</td>
+ <td contenteditable="true">{{ lab.start_time }}</td>
+ <td contenteditable="true">{{ lab.end_time }}</td>
+ <td contenteditable="true">{{ lab.lab_allocation.course_code }}
+</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * timetable_timetable_main_timetable.js
+ * Extracted inline JS from: timetable/templates/timetable/main_timetable.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+// ========== NORMAL TIMETABLE ==========
+    $("td[contenteditable=true]").on("blur", function() {
+      const td = $(this);
+      const data = {
+        day: td.data("day"),
+        slot: td.data("slot"),
+        venue: td.data("venue"),
+        course: td.text().trim(),
+        csrfmiddlewaretoken: "{{ csrf_token }}"
+      };
+
+      if (data.course === "") {
+        $.post("{% url 'delete_timetable' %}", data, () => td.text(""));
+      } else {
+        $.post("{% url 'update_timetable' %}", data, (resp) => {
+          if (resp.error) td.addClass("collision");
+          else td.removeClass("collision");
+        });
+      }
+    });
+
+    // ========== LAB TIMETABLE ==========
+    $("#lab-body td[contenteditable=true]").on("blur", function() {
+      const row = $(this).closest("tr");
+      const data = {
+        lab_venue: row.find("td:eq(0)").text().trim(),
+        day: row.find("td:eq(1)").text().trim(),
+        start_time: row.find("td:eq(2)").text().trim(),
+        end_time: row.find("td:eq(3)").text().trim(),
+        course: row.find("td:eq(4)").text().trim(),
+      };
+      fetch("{% url 'update_lab_timetable' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify(data)
+      });
+    });
+</script>
+{% endblock %}

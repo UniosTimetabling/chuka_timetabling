@@ -1,0 +1,437 @@
+{% comment %}
+Reusable SR (Special Request) dropdown/modal widget — shared by every
+allocation panel (regular /cod/, campus, resit, ODEL, lab) so the raise /
+view / edit / cancel-SR UI only needs to be built once.
+
+Include ONCE per page, near the end of the body:
+
+    {% include "special_requests/sr_widget.html" with sr_action_url=request.path %}
+
+`sr_action_url` must point at a POST endpoint on the SAME page that already
+dispatches SR_ACTIONS via special_requests.panel_actions.handle_sr_action
+(defaults to the current page's own URL if omitted).
+
+Each allocation row's "SR ▾" button must look like this, so the widget can
+find it again by id to toggle its "already flagged" styling:
+
+    <button type="button" id="sr-btn-{{ a.id }}" class="btn-sr"
+            onclick="openSrMenu(event, {{ a.id }}, '{{ a.course_code|escapejs }}')">SR ▾</button>
+
+The host page's own CSS should style `.btn-sr` / `.btn-sr.has-sr` however
+fits its row design — only the dropdown/modal chrome below is provided here.
+{% endcomment %}
+<style>
+  .sr-menu {
+    position: fixed; z-index: 5000; min-width: 220px; background: #fff;
+    border: 1px solid #d0d7de; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+    padding: 6px; display: none;
+  }
+  .sr-menu button {
+    display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 8px 10px; font-size: 13px; border-radius: 5px; cursor: pointer; color: #263238;
+  }
+  .sr-menu button:hover { background: #f1f5f9; }
+  .sr-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 5100;
+    display: none; align-items: center; justify-content: center;
+    padding: 24px 12px; box-sizing: border-box;
+  }
+  .sr-modal {
+    background: #fff; border-radius: 10px; width: 92%; max-width: 460px;
+    padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.3);
+    max-height: 90vh; overflow-y: auto; box-sizing: border-box;
+  }
+  .sr-modal h3 { margin: 0 0 4px; font-size: 16px; color: #263238; }
+  .sr-modal .sr-modal-sub { font-size: 12.5px; color: #78909c; margin-bottom: 12px; }
+  .sr-modal textarea {
+    width: 100%; min-height: 100px; border: 1px solid #cfd8dc; border-radius: 6px;
+    padding: 9px; font-size: 13.5px; font-family: inherit; resize: vertical; box-sizing: border-box;
+  }
+  .sr-modal .sr-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  .sr-modal .sr-btn-cancel { background: #eceff1; color: #455a64; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .sr-modal .sr-btn-submit { background: #00695c; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; }
+  .sr-modal .sr-btn-submit:disabled { opacity: .6; cursor: default; }
+  .sr-modal .sr-btn-delete { background: #ffebee; color: #c62828; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .sr-toast { position: fixed; bottom: 22px; right: 22px; background: #263238; color: #fff; padding: 10px 16px; border-radius: 7px; font-size: 13px; z-index: 5200; box-shadow: 0 6px 20px rgba(0,0,0,.3); }
+  .sr-modal.sr-modal-wide { max-width: 520px; }
+  .sr-course-list { max-height: 260px; overflow-y: auto; border: 1px solid #e0e6ea; border-radius: 6px; margin-top: 4px; }
+  .sr-course-row { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid #f0f3f5; font-size: 13px; }
+  .sr-course-row:last-child { border-bottom: none; }
+  .sr-course-row label { flex: 1; cursor: pointer; }
+  .sr-course-row .sr-course-lecturer { color: #90a4ae; font-size: 11.5px; }
+  .sr-select-all-row { display: flex; align-items: center; gap: 8px; padding: 6px 2px; font-size: 12.5px; font-weight: 700; color: #37474f; }
+  #srExistingList { max-height: 58vh; overflow-y: auto; padding-right: 4px; margin: 0 -4px; }
+  .sr-existing-courses { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 12px; }
+  .sr-existing-courses .cc-pill { background: #e0f2f1; color: #00695c; border: 1px solid #80cbc4; border-radius: 12px; padding: 2px 9px; font-size: 11.5px; font-weight: 700; }
+  .sr-existing-meta { font-size: 11.5px; color: #90a4ae; margin-top: 8px; }
+</style>
+
+<div id="srMenu" class="sr-menu">
+  <button type="button" data-scope="unit">Give SR for this unit only</button>
+  <button type="button" data-scope="program">Give SR for this program</button>
+  <button type="button" data-scope="program_courses">Give SR for some courses of this program</button>
+  <button type="button" data-scope="lecturer">Give SR for this lecturer</button>
+</div>
+
+<div id="srCoursesOverlay" class="sr-modal-overlay">
+  <div class="sr-modal sr-modal-wide">
+    <h3 id="srCoursesTitle">Select courses</h3>
+    <div class="sr-modal-sub" id="srCoursesSub">Choose all, or pick them one by one.</div>
+    <div class="sr-select-all-row">
+      <input type="checkbox" id="srSelectAll"> <label for="srSelectAll">Select all</label>
+    </div>
+    <div class="sr-course-list" id="srCourseList"></div>
+    <div class="sr-modal-actions">
+      <button type="button" class="sr-btn-cancel" onclick="closeSrCoursesModal()">Cancel</button>
+      <button type="button" class="sr-btn-submit" id="srCoursesContinueBtn" onclick="continueFromSrCourses()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="srModalOverlay" class="sr-modal-overlay">
+  <div class="sr-modal">
+    <h3>Special Request</h3>
+    <div class="sr-modal-sub" id="srModalSub">Describe what should be done.</div>
+    <textarea id="srDescription" maxlength="2000" placeholder="e.g. This lecturer is a delegate and should attend the Thursday meeting..."></textarea>
+    <div class="sr-modal-actions">
+      <button type="button" class="sr-btn-cancel" onclick="closeSrModal()">Cancel</button>
+      <button type="button" class="sr-btn-submit" id="srSubmitBtn" onclick="submitSr()">Submit SR</button>
+    </div>
+  </div>
+</div>
+
+<div id="srExistingOverlay" class="sr-modal-overlay">
+  <div class="sr-modal sr-modal-wide">
+    <h3>Special Request(s) on this course</h3>
+    <div class="sr-modal-sub">This course already has the request(s) below. Edit or delete any of them, or raise another one.</div>
+    <div id="srExistingList"></div>
+    <div class="sr-modal-actions">
+      <button type="button" class="sr-btn-cancel" onclick="closeSrExistingModal()">Close</button>
+      <button type="button" class="sr-btn-submit" onclick="raiseAnotherSr(event)">+ Raise another SR</button>
+    </div>
+  </div>
+</div>
+
+<template id="srExistingCardTemplate">
+  <div class="sr-existing-card" style="border:1px solid #e0e6ea;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span class="cc-pill sr-existing-scope-badge" style="font-size:10.5px;"></span>
+      <span class="sr-existing-status" style="font-size:11px;color:#78909c;font-weight:600;"></span>
+    </div>
+    <div class="sr-existing-sub" style="font-size:12px;color:#78909c;margin:6px 0;"></div>
+    <div class="sr-existing-courses"></div>
+    <textarea class="sr-existing-description" maxlength="2000"></textarea>
+    <div class="sr-existing-meta" style="font-size:11.5px;color:#90a4ae;margin-top:6px;"></div>
+    <div class="sr-modal-actions" style="margin-top:8px;">
+      <button type="button" class="sr-btn-delete sr-existing-delete-btn">Delete SR</button>
+      <button type="button" class="sr-btn-submit sr-existing-save-btn">Save changes</button>
+    </div>
+  </div>
+</template>
+
+<script>
+(function () {
+  var srMenu             = document.getElementById('srMenu');
+  var srModalOverlay     = document.getElementById('srModalOverlay');
+  var srModalSub         = document.getElementById('srModalSub');
+  var srDescription       = document.getElementById('srDescription');
+  var srSubmitBtn          = document.getElementById('srSubmitBtn');
+
+  var srCoursesOverlay    = document.getElementById('srCoursesOverlay');
+  var srCoursesTitle      = document.getElementById('srCoursesTitle');
+  var srCoursesSub        = document.getElementById('srCoursesSub');
+  var srSelectAll          = document.getElementById('srSelectAll');
+  var srCourseList          = document.getElementById('srCourseList');
+  var srCoursesContinueBtn   = document.getElementById('srCoursesContinueBtn');
+
+  var srExistingOverlay      = document.getElementById('srExistingOverlay');
+  var srExistingList         = document.getElementById('srExistingList');
+  var srExistingCardTemplate = document.getElementById('srExistingCardTemplate');
+
+  var SR_ACTION_URL = "{{ sr_action_url|default:request.path }}";
+
+  var SCOPE_LABELS = {
+    unit:            "for this unit only",
+    program:         "for this program",
+    program_courses: "for some courses of this program",
+    lecturer:        "for this lecturer",
+  };
+
+  var pendingAllocationId = null;   // the row that was clicked
+  var pendingScope        = null;
+  var pendingCourseCode   = "";
+  var pendingTargetIds    = [];     // final list of allocation ids the SR will cover
+
+  function csrf() {
+    var m = document.cookie.split('; ').find(function (r) { return r.startsWith('csrftoken='); });
+    return m ? m.split('=')[1] : '';
+  }
+
+  function srFetch(data) {
+    return fetch(SR_ACTION_URL, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf() },
+      body: new URLSearchParams(data),
+    }).then(function (r) { return r.json(); });
+  }
+
+  function showSrToast(message) {
+    var toast = document.createElement('div');
+    toast.className = 'sr-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(function () { toast.remove(); }, 3500);
+  }
+
+  function markRowFlagged(allocationId, flagged) {
+    var btn = document.getElementById('sr-btn-' + allocationId);
+    if (btn) btn.classList.toggle('has-sr', !!flagged);
+    var cardBtn = document.getElementById('sr-btn-card-' + allocationId);
+    if (cardBtn) cardBtn.classList.toggle('has-sr', !!flagged);
+  }
+
+  // ── Entry point: click "SR ▾" on a row ────────────────────────────────
+  function openSrMenu(evt, allocationId, courseCode) {
+    evt.stopPropagation();
+    pendingAllocationId = allocationId;
+    pendingCourseCode   = courseCode || "";
+
+    var anchorRect = evt.target.getBoundingClientRect();
+
+    srFetch({ action: 'get_special_request_for_allocation', allocation_id: allocationId }).then(function (json) {
+      if (json.status === 'success' && json.has_sr) {
+        openSrExistingModal(json.srs || (json.sr ? [json.sr] : []));
+      } else {
+        srMenu.style.top  = (anchorRect.bottom + 4) + 'px';
+        srMenu.style.left = Math.max(8, anchorRect.left - 40) + 'px';
+        srMenu.style.display = 'block';
+      }
+    }).catch(function () {
+      srMenu.style.top  = (anchorRect.bottom + 4) + 'px';
+      srMenu.style.left = Math.max(8, anchorRect.left - 40) + 'px';
+      srMenu.style.display = 'block';
+    });
+  }
+
+  function closeSrMenu() {
+    srMenu.style.display = 'none';
+  }
+
+  // ── Scope chosen from the dropdown ────────────────────────────────────
+  function onScopeChosen(scope) {
+    closeSrMenu();
+    pendingScope = scope;
+
+    if (scope === 'unit') {
+      pendingTargetIds = [pendingAllocationId];
+      openSrModal();
+      return;
+    }
+
+    if (scope === 'lecturer') {
+      srFetch({ action: 'get_courses_for_sr_scope', allocation_id: pendingAllocationId, scope: 'lecturer' })
+        .then(function (json) {
+          if (json.status !== 'success') { showSrToast(json.message || 'Could not load lecturer courses.'); return; }
+          pendingTargetIds = json.courses.map(function (c) { return String(c.id); });
+          openSrModal('This SR will apply to all ' + json.courses.length + ' course(s) taught by ' + json.label + ': ' +
+            json.courses.map(function (c) { return c.course_code; }).join(', '));
+        });
+      return;
+    }
+
+    srFetch({ action: 'get_courses_for_sr_scope', allocation_id: pendingAllocationId, scope: scope })
+      .then(function (json) {
+        if (json.status !== 'success') { showSrToast(json.message || 'Could not load program courses.'); return; }
+        openSrCoursesModal(scope, json.label, json.courses);
+      });
+  }
+
+  // ── Course-selection popup (program / some-courses scope) ────────────
+  function openSrCoursesModal(scope, label, courses) {
+    srCoursesTitle.textContent = scope === 'program' ? 'All courses of ' + label : 'Select courses of ' + label;
+    srCoursesSub.textContent = scope === 'program'
+      ? 'Select all, or untick the ones this SR should not cover.'
+      : 'Pick the specific courses this SR applies to.';
+
+    srCourseList.innerHTML = '';
+    courses.forEach(function (c) {
+      var row = document.createElement('div');
+      row.className = 'sr-course-row';
+      var checked = (scope === 'program') ? 'checked' : '';
+      row.innerHTML =
+        '<input type="checkbox" class="sr-course-cb" value="' + c.id + '" ' + checked + '>' +
+        '<label>' + c.course_code + (c.course_name ? ' — ' + c.course_name : '') +
+        ' <span class="sr-course-lecturer">(' + c.lecturer_name + ')</span></label>';
+      srCourseList.appendChild(row);
+    });
+
+    srSelectAll.checked = (scope === 'program');
+    srSelectAll.onchange = function () {
+      srCourseList.querySelectorAll('.sr-course-cb').forEach(function (cb) { cb.checked = srSelectAll.checked; });
+    };
+
+    srCoursesOverlay.style.display = 'flex';
+  }
+
+  function closeSrCoursesModal() {
+    srCoursesOverlay.style.display = 'none';
+  }
+
+  function continueFromSrCourses() {
+    var ids = Array.from(srCourseList.querySelectorAll('.sr-course-cb:checked')).map(function (cb) { return cb.value; });
+    if (!ids.length) {
+      showSrToast('Select at least one course.');
+      return;
+    }
+    pendingTargetIds = ids;
+    closeSrCoursesModal();
+    openSrModal('This SR will apply to ' + ids.length + ' selected course(s).');
+  }
+
+  // ── Description modal (final step for a new SR) ──────────────────────
+  function openSrModal(note) {
+    srDescription.value = '';
+    srModalSub.textContent = note || ('SR ' + SCOPE_LABELS[pendingScope] + (pendingCourseCode ? ' — ' + pendingCourseCode : ''));
+    srModalOverlay.style.display = 'flex';
+    setTimeout(function(){ srDescription.focus(); }, 50);
+  }
+
+  function closeSrModal() {
+    srModalOverlay.style.display = 'none';
+  }
+
+  function submitSr() {
+    var description = srDescription.value.trim();
+    if (!description) { srDescription.focus(); return; }
+    if (!pendingTargetIds.length || !pendingScope) return;
+
+    srSubmitBtn.disabled = true;
+    srSubmitBtn.textContent = 'Saving…';
+
+    var body = new URLSearchParams({ action: 'create_special_request', scope: pendingScope, description: description });
+    pendingTargetIds.forEach(function (id) { body.append('target_ids[]', id); });
+
+    fetch(SR_ACTION_URL, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest", "X-CSRFToken": csrf() },
+      body: body,
+    }).then(function (r) { return r.json(); }).then(function (json) {
+      srSubmitBtn.disabled = false;
+      srSubmitBtn.textContent = 'Submit SR';
+      if (json.status === 'success') {
+        closeSrModal();
+        pendingTargetIds.forEach(function (id) { markRowFlagged(id, true); });
+        showSrToast('SR saved — will show under /venues/.');
+      } else {
+        showSrToast(json.message || 'Could not save SR.');
+      }
+    }).catch(function () {
+      srSubmitBtn.disabled = false;
+      srSubmitBtn.textContent = 'Submit SR';
+      showSrToast('Network error — please try again.');
+    });
+  }
+
+  // ── Already flagged: view / edit / delete every active SR, raise another ─
+  var openSrCount = 0;
+
+  function openSrExistingModal(srs) {
+    srExistingList.innerHTML = '';
+    openSrCount = (srs || []).length;
+    (srs || []).forEach(function (sr) { srExistingList.appendChild(buildSrExistingCard(sr)); });
+    srExistingOverlay.style.display = 'flex';
+  }
+
+  function buildSrExistingCard(sr) {
+    var card = srExistingCardTemplate.content.firstElementChild.cloneNode(true);
+    card.dataset.srId = sr.id;
+
+    card.querySelector('.sr-existing-scope-badge').textContent = sr.scope_display;
+    card.querySelector('.sr-existing-status').textContent = sr.status_display;
+    card.querySelector('.sr-existing-sub').textContent = sr.scope === 'lecturer' && sr.lecturer_name
+      ? 'Raised for lecturer: ' + sr.lecturer_name
+      : (sr.scope === 'program' || sr.scope === 'program_courses') && sr.program_name
+        ? 'Raised for program: ' + sr.program_name
+        : 'What was said about this course:';
+    card.querySelector('.sr-existing-courses').innerHTML = (sr.courses || []).map(function (c) {
+      return '<span class="cc-pill">' + c.code + '</span>';
+    }).join('');
+    var textarea = card.querySelector('.sr-existing-description');
+    textarea.value = sr.description;
+    card.querySelector('.sr-existing-meta').textContent =
+      'Status: ' + sr.status_display + ' · Raised ' + sr.created_at + (sr.semester ? ' · Semester ' + sr.semester : '');
+
+    var saveBtn = card.querySelector('.sr-existing-save-btn');
+    saveBtn.addEventListener('click', function () {
+      var description = textarea.value.trim();
+      if (!description) { textarea.focus(); return; }
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving…';
+      srFetch({ action: 'update_special_request', id: sr.id, description: description }).then(function (json) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save changes';
+        showSrToast(json.status === 'success' ? 'SR updated.' : (json.message || 'Could not update SR.'));
+      });
+    });
+
+    var deleteBtn = card.querySelector('.sr-existing-delete-btn');
+    deleteBtn.addEventListener('click', function () {
+      if (!confirm('Delete this SR? It will be archived and no longer shown as active.')) return;
+      srFetch({ action: 'cancel_special_request', id: sr.id }).then(function (json) {
+        if (json.status === 'success') {
+          showSrToast('SR deleted.');
+          card.remove();
+          openSrCount -= 1;
+          if (openSrCount <= 0) {
+            markRowFlagged(pendingAllocationId, false);
+            closeSrExistingModal();
+          }
+        } else {
+          showSrToast(json.message || 'Could not delete SR.');
+        }
+      });
+    });
+
+    return card;
+  }
+
+  function closeSrExistingModal() {
+    srExistingOverlay.style.display = 'none';
+  }
+
+  // "+ Raise another SR" — reopens the scope-picker menu, centered so it's
+  // always visible regardless of where the modal button happened to be.
+  function raiseAnotherSr(evt) {
+    evt.stopPropagation();
+    closeSrExistingModal();
+    srMenu.style.display = 'block';
+    var menuWidth = srMenu.offsetWidth || 240;
+    srMenu.style.top  = '110px';
+    srMenu.style.left = Math.max(8, (window.innerWidth - menuWidth) / 2) + 'px';
+  }
+
+  srMenu.querySelectorAll('button[data-scope]').forEach(function (btn) {
+    btn.addEventListener('click', function () { onScopeChosen(btn.dataset.scope); });
+  });
+
+  document.addEventListener('click', function (e) {
+    if (srMenu.style.display === 'block' && !srMenu.contains(e.target)) closeSrMenu();
+  });
+  [srModalOverlay, srCoursesOverlay, srExistingOverlay].forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.style.display = 'none'; });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      closeSrMenu(); closeSrModal(); closeSrCoursesModal(); closeSrExistingModal();
+    }
+  });
+
+  window.openSrMenu             = openSrMenu;
+  window.closeSrModal           = closeSrModal;
+  window.closeSrCoursesModal    = closeSrCoursesModal;
+  window.continueFromSrCourses  = continueFromSrCourses;
+  window.submitSr               = submitSr;
+  window.closeSrExistingModal   = closeSrExistingModal;
+  window.raiseAnotherSr         = raiseAnotherSr;
+})();
+</script>

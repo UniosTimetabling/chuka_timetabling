@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Compose semesters — {{ allocation_set.name }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background:#eef2ef; margin:0; padding:32px; color:#1a1a1a; }
+    .wrap { max-width: 680px; margin: 0 auto; background:#fff; border:1px solid #d8dfd9; border-radius:10px; padding:28px; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color:#555; margin-bottom: 24px; }
+    .existing { margin-bottom: 24px; }
+    .layer { display:flex; justify-content:space-between; align-items:center; background:#f4f7f4; border-radius:8px; padding:10px 14px; margin-bottom:8px; }
+    .layer form { margin:0; }
+    .remove-btn { background:none; border:none; color:#a30000; cursor:pointer; font-size:13px; }
+    fieldset { border:1px solid #d8dfd9; border-radius:8px; padding:16px; margin-top:12px; }
+    legend { font-weight:600; padding: 0 6px; }
+    label { display:block; font-weight:600; margin: 12px 0 6px; font-size: 13px; }
+    select, input[type=number] { width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; }
+    .prog-list { max-height:160px; overflow:auto; border:1px solid #eee; border-radius:6px; padding:8px; margin-top:6px; }
+    .prog-list label { font-weight:normal; display:flex; align-items:center; gap:8px; margin:4px 0; }
+    .btn { display:inline-block; padding:9px 18px; border-radius:6px; border:none; background:#2e7d4f; color:#fff; font-size:14px; cursor:pointer; margin-top:14px; }
+    .btn-secondary { background:#4a6fa5; }
+    .messages li { list-style:none; background:#fff3cd; padding:8px 12px; border-radius:6px; margin-bottom:6px; }
+    .finish-row { margin-top:24px; padding-top:16px; border-top:1px solid #d8dfd9; text-align:right; }
+  </style>
+  <script>
+    function toggleScope(sel) {
+      document.getElementById('program-picker').style.display = (sel.value === 'selected') ? 'block' : 'none';
+    }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>{{ allocation_set.name }}</h1>
+    <div class="sub">{{ department.name }} — step 2 of 2: which semester(s) make up this allocation?</div>
+
+    {% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+
+    {% if existing_components %}
+    <div class="existing">
+      {% for c in existing_components %}
+        <div class="layer">
+          <span>Semester {{ c.semester_number }} — {{ c.get_scope_display }}</span>
+          <form method="post">
+            {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+            <input type="hidden" name="form_action" value="remove_semester">
+            <input type="hidden" name="component_id" value="{{ c.id }}">
+            <button type="submit" class="remove-btn">Remove</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      <input type="hidden" name="form_action" value="add_semester">
+      <fieldset>
+        <legend>Add a semester layer</legend>
+        <label>Semester number</label>
+        <input type="number" name="semester_number" min="1" max="6" value="{% if not existing_components %}1{% else %}2{% endif %}" required>
+
+        <label>Scope</label>
+        <select name="scope" onchange="toggleScope(this)">
+          <option value="all">All programs / all courses in this semester</option>
+          <option value="selected">Only selected programs</option>
+        </select>
+
+        <div id="program-picker" style="display:none;">
+          <label>Programs</label>
+          <div class="prog-list">
+            {% for p in programs %}
+              <label><input type="checkbox" name="program_ids" value="{{ p.id }}"> {{ p.name }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn">+ Add this semester</button>
+      </fieldset>
+    </form>
+
+    <div class="finish-row">
+      <form method="post" style="display:inline;">
+        {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+        <input type="hidden" name="form_action" value="finish">
+        <button type="submit" class="btn btn-secondary">
+          Finish
+          {% if allocation_set.allocation_type == "auto_full" %}— auto-allocate now{% else %}— go pick courses{% endif %}
+        </button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

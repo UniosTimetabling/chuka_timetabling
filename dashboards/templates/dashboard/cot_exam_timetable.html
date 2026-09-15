@@ -1,0 +1,673 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+{% load dict_filters %}
+
+{% block title %}COT Exam Timetable{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<style>
+  /* ── Excel Pure Grid Theme ── */
+  .et-page {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: #333333;
+    padding: 15px;
+    background-color: #ffffff;
+  }
+
+  /* Top Bar Actions & Filters (No Heading Text) */
+  .et-topbar {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Live Search Box */
+  .et-search-wrap {
+    flex: 1;
+    min-width: 250px;
+    max-width: 400px;
+    position: relative;
+  }
+  .et-search-input {
+    width: 100%;
+    padding: 6px 12px 6px 30px;
+    font-size: 13px;
+    border: 1px solid #c0c0c0;
+    border-radius: 3px;
+    background: #ffffff;
+  }
+  .et-search-wrap i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888888;
+    font-size: 12px;
+  }
+
+  /* Scrollable Department Navigation Tab Bar */
+  .et-dept-nav-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    border-bottom: 1px solid #d9d9d9;
+    margin-bottom: 15px;
+    scrollbar-width: thin;
+  }
+  .et-dept-nav-wrapper::-webkit-scrollbar {
+    height: 5px;
+  }
+  .et-dept-nav-wrapper::-webkit-scrollbar-thumb {
+    background: #cccccc;
+    border-radius: 3px;
+  }
+  .et-dept-nav {
+    display: inline-flex;
+    gap: 2px;
+    padding-bottom: 0;
+  }
+  .et-dept-tab {
+    display: inline-block;
+    background: #f3f3f3;
+    border: 1px solid #d9d9d9;
+    border-bottom: none;
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    color: #555555;
+    border-radius: 3px 3px 0 0;
+  }
+  .et-dept-tab:hover {
+    background: #e8e8e8;
+  }
+  .et-dept-tab.active {
+    background: #ffffff;
+    font-weight: bold;
+    color: #000000;
+    border-bottom: 1px solid #ffffff;
+    margin-bottom: -1px;
+  }
+
+  /* Two-Column Master Layout (Left Day Tabs + Right Main Grid) */
+  .et-main-layout {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+  }
+
+  /* Left Side Overlay Sticky Quick-Nav Tabs for Days */
+  .et-side-days-nav {
+    position: sticky;
+    top: 15px;
+    width: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: #fdfdfd;
+    padding: 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04);
+    z-index: 10;
+  }
+  .et-side-day-btn {
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 5px 8px;
+    font-size: 11px;
+    color: #444444;
+    cursor: pointer;
+    border-radius: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 2px solid transparent;
+  }
+  .et-side-day-btn:hover {
+    background: #f0f0f0;
+  }
+  .et-side-day-btn.active {
+    background: #e6f2ff;
+    color: #0056b3;
+    font-weight: bold;
+    border-left-color: #0056b3;
+  }
+
+  /* Grid Workspace */
+  .et-grid-container {
+    flex: 1;
+    min-width: 0;
+  }
+  .et-dept-section {
+    margin-bottom: 30px;
+  }
+  .et-dept-header {
+    margin-bottom: 8px;
+  }
+  .et-dept-header h2 {
+    font-size: 15px;
+    font-weight: bold;
+    margin: 0;
+    color: #111111;
+  }
+
+  /* Date Layout Rows */
+  .et-date-block {
+    margin-bottom: 20px;
+    border: 1px solid #d9d9d9;
+  }
+  .et-date-header {
+    font-size: 12px;
+    font-weight: bold;
+    background: #e9e9e9;
+    padding: 4px 8px;
+    border-bottom: 1px solid #d9d9d9;
+    color: #333333;
+  }
+
+  /* Table Grid: Standardized Low-Height Rows */
+  .et-grid-wrap {
+    overflow-x: auto;
+  }
+  .et-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+  .et-grid th, .et-grid td {
+    border: 1px solid #d9d9d9;
+    padding: 4px 6px;
+    text-align: left;
+    vertical-align: middle;
+    height: 28px;
+  }
+  
+  /* Excel Column/Row Headings */
+  .et-grid thead th {
+    background: #f2f2f2;
+    color: #333333;
+    font-weight: normal;
+    text-align: center;
+    border-bottom: 2px solid #c0c0c0;
+  }
+  .et-grid th.et-corner {
+    background: #e6e6e6;
+    width: 100px;
+    font-size: 11px;
+    color: #555555;
+    text-align: center;
+  }
+  .et-grid th.et-venue-head {
+    background: #f2f2f2;
+    font-weight: bold;
+    color: #000000;
+    width: 100px;
+    text-align: center;
+  }
+
+  /* Excel Shading Logic */
+  .et-cell--free {
+    background-color: #f9fbf9; 
+  }
+  .et-cell--occupied {
+    background-color: #fff9f2; 
+  }
+
+  /* Clean Inline Text Items */
+  .et-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+  
+  /* Highlighted Clickable Course Link Elements */
+  .et-entry-text-group {
+    display: inline-flex;
+    gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .et-course-code {
+    font-weight: bold;
+    color: #0066cc; /* Clear Excel Hyperlink Blue */
+  }
+  .et-entry-text-group:hover .et-course-code {
+    text-decoration: underline;
+    color: #004499;
+  }
+  .et-course-name {
+    color: #555555;
+  }
+  
+  /* Minimal Inline Tiny Utility Buttons Beside Text */
+  .et-entry-actions {
+    display: inline-flex;
+    gap: 2px;
+    opacity: 0.4;
+  }
+  .et-entry:hover .et-entry-actions {
+    opacity: 1;
+  }
+  .et-action-btn {
+    background: transparent;
+    border: none;
+    padding: 1px 3px;
+    font-size: 10px;
+    cursor: pointer;
+    color: #666666;
+  }
+  .et-action-btn:hover {
+    color: #0056b3;
+  }
+  .et-del-btn:hover {
+    color: #cc0000;
+  }
+
+  /* Search Match Styling */
+  .et-entry.search-hidden {
+    display: none !important;
+  }
+  .et-cell.search-highlight {
+    background-color: #fff2cc !important;
+  }
+
+  /* Modals */
+  .et-modal-overlay {
+    position: fixed;
+    top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.3);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .et-modal-overlay.open { display: flex; }
+  .et-modal {
+    background: #ffffff;
+    border: 1px solid #888888;
+    width: 380px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .et-modal-head {
+    background: #f2f2f2;
+    padding: 8px 12px;
+    border-bottom: 1px solid #d9d9d9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .et-modal-head h3 { margin: 0; font-size: 13px; font-weight: bold; }
+  .et-modal-close { background: none; border: none; font-size: 12px; cursor: pointer; }
+  .et-modal-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .et-fg { display: flex; flex-direction: column; gap: 2px; }
+  .et-fg label { font-size: 11px; font-weight: bold; color: #444; }
+  .et-fg input, .et-fg select { padding: 4px; border: 1px solid #b0b0b0; font-size: 12px; }
+  .et-modal-foot {
+    background: #f2f2f2;
+    padding: 8px 12px;
+    border-top: 1px solid #d9d9d9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .et-btn { padding: 4px 12px; font-size: 12px; cursor: pointer; border: 1px solid #ababab; background: #f4f4f4; }
+  .et-btn-save { background: #fdfdfd; font-weight: bold; }
+
+  .et-empty { padding: 30px; text-align: center; color: #888; font-size: 12px; }
+</style>
+{% endblock page_css %}
+
+{% block panel_content %}
+
+<div class="et-modal-overlay" id="etModalOverlay">
+  <div class="et-modal">
+    <div class="et-modal-head">
+      <h3 id="etModalTitle">Edit Exam Entry</h3>
+      <button class="et-modal-close" id="etModalClose">&#x2715;</button>
+    </div>
+    <div class="et-modal-body">
+      <input type="hidden" id="etEntryId">
+      <div class="et-fg">
+        <label>Venue</label>
+        <input type="text" id="etVenue">
+      </div>
+      <div class="et-fg">
+        <label>Date</label>
+        <input type="date" id="etDate">
+      </div>
+      <div class="et-fg">
+        <label>Time Slot</label>
+        <select id="etSlot">
+          <option value="">— Select slot —</option>
+          {% for s in slots %}
+          <option value="{{ s }}">{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="et-modal-foot">
+      <button class="et-btn" id="etCancelBtn">Cancel</button>
+      <button class="et-btn et-btn-save" id="etSaveBtn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="et-topbar">
+  <div class="et-search-wrap">
+    <i class="fas fa-search"></i>
+    <input type="text" id="etGridSearch" class="et-search-input" placeholder="Search course code, name, lecturer...">
+  </div>
+</div>
+
+{% if dept_list %}
+<div class="et-dept-nav-wrapper">
+  <nav class="et-dept-nav" id="etDeptNav">
+    <button class="et-dept-tab active" data-target="dept-all">All Departments</button>
+    {% for dblock in dept_list %}
+    <button class="et-dept-tab" data-target="dept-{{ dblock.dept.id }}">
+      {{ dblock.dept.name }}
+    </button>
+    {% endfor %}
+  </nav>
+</div>
+{% endif %}
+
+<div class="et-main-layout">
+
+  <aside class="et-side-days-nav" id="etSideDaysNav">
+  </aside>
+
+  <div class="et-grid-container" id="etContent">
+
+    {% if not dept_list %}
+    <div class="et-empty">
+      <p>No exam timetable entries found.</p>
+    </div>
+    {% endif %}
+
+    {% for dblock in dept_list %}
+    <section class="et-dept-section" id="dept-{{ dblock.dept.id }}">
+      <div class="et-dept-header">
+        <h2>{{ dblock.dept.name }}</h2>
+      </div>
+
+      {% for date_key, date_block in dblock.dates.items %}
+      <div class="et-date-block" id="block-{{ date_key }}" data-date-key="{{ date_key }}" data-date-label="{{ date_block.label }}">
+        <div class="et-date-header">
+          <span>{{ date_block.label }} &nbsp;|&nbsp; {{ date_key }}</span>
+        </div>
+
+        <div class="et-grid-wrap">
+          <table class="et-grid">
+            <thead>
+              <tr>
+                <th class="et-corner">Venue \ Time</th>
+                {% for slot in date_block.slots %}
+                <th class="et-slot-head">{{ slot }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for venue in date_block.venues %}
+              <tr>
+                <th class="et-venue-head">{{ venue }}</th>
+                {% for slot in date_block.slots %}
+                <td class="et-cell
+                  {% if date_block.grid|get_item:slot %}
+                    {% with sv=date_block.grid|get_item:slot %}
+                      {% if sv|get_item:venue %}et-cell--occupied{% else %}et-cell--free{% endif %}
+                    {% endwith %}
+                  {% else %}et-cell--free{% endif %}
+                ">
+                  {% with sv=date_block.grid|get_item:slot %}
+                  {% if sv %}
+                    {% with entries=sv|get_item:venue %}
+                    {% if entries %}
+                      {% for entry in entries %}
+                      <div class="et-entry" data-id="{{ entry.id }}">
+                        <div class="et-entry-text-group et-edit-trigger" data-id="{{ entry.id }}"
+                            data-venue="{{ venue }}" data-date="{{ date_key }}" data-slot="{{ slot }}">
+                          <span class="et-course-code">{{ entry.course }}</span>
+                          <span class="et-course-name">- {{ entry.name }}</span>
+                        </div>
+                        <div class="et-entry-actions">
+                          <button class="et-action-btn et-edit-btn" data-id="{{ entry.id }}"
+                            data-venue="{{ venue }}" data-date="{{ date_key }}"
+                            data-slot="{{ slot }}" title="Edit">
+                            <i class="fas fa-pencil-alt"></i>
+                          </button>
+                          <button class="et-action-btn et-del-btn" data-id="{{ entry.id }}" title="Delete">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+                  {% endif %}
+                  {% endwith %}
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+
+    </section>
+    {% endfor %}
+
+  </div>
+</div>
+
+{% endblock panel_content %}
+
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  const CSRF   = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+  const API    = "{% url 'cot_exam_api' %}";
+  const overlay  = document.getElementById('etModalOverlay');
+  const saveBtn  = document.getElementById('etSaveBtn');
+  const cancelBtn= document.getElementById('etCancelBtn');
+  const closeBtn = document.getElementById('etModalClose');
+
+  // ── Modal Display Logic ──────────────────────────────────────────
+  function openModal() { overlay.classList.add('open'); }
+  function closeModal(){ overlay.classList.remove('open'); }
+  closeBtn.addEventListener('click',  closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  // ── Dynamic Generation of Left Side Day Overlay Navigation Tabs ────
+  const sideNav = document.getElementById('etSideDaysNav');
+  const uniqueDates = {};
+  
+  document.querySelectorAll('.et-date-block').forEach(block => {
+    const key = block.dataset.dateKey;
+    const label = block.dataset.dateLabel;
+    if (key && !uniqueDates[key]) {
+      uniqueDates[key] = label;
+    }
+  });
+
+  Object.entries(uniqueDates).forEach(([key, label]) => {
+    const btn = document.createElement('button');
+    btn.className = 'et-side-day-btn';
+    btn.textContent = label || key;
+    btn.dataset.targetDate = key;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.et-side-day-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const element = document.getElementById(`block-${key}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+    sideNav.appendChild(btn);
+  });
+
+  // Highlight active left tab on scroll interface
+  const observerOptions = { root: null, rootMargin: '0px -50% -50% 0px', threshold: 0 };
+  const scrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const dateKey = entry.target.dataset.dateKey;
+        document.querySelectorAll('.et-side-day-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.targetDate === dateKey);
+        });
+      }
+    });
+  }, observerOptions);
+  document.querySelectorAll('.et-date-block').forEach(b => scrollObserver.observe(b));
+
+  // ── Top Horizontal Department Tab Switch Matrix ────────────────────
+  const tabs     = document.querySelectorAll('.et-dept-tab');
+  const sections = document.querySelectorAll('.et-dept-section');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const target = tab.dataset.target;
+      if (target === 'dept-all') {
+        sections.forEach(s => s.style.display = '');
+      } else {
+        sections.forEach(s => {
+          s.style.display = s.id === target ? '' : 'none';
+        });
+      }
+    });
+  });
+
+  // ── Client-Side Matrix Search Engine Filter ─────────────────────────
+  const searchInput = document.getElementById('etGridSearch');
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    
+    document.querySelectorAll('.et-cell').forEach(cell => {
+      cell.classList.remove('search-highlight');
+      let cellHasMatch = false;
+      const entries = cell.querySelectorAll('.et-entry');
+      
+      if (entries.length > 0) {
+        entries.forEach(entry => {
+          const contentText = entry.textContent.toLowerCase();
+          if (query === "" || contentText.includes(query)) {
+            entry.classList.remove('search-hidden');
+            cellHasMatch = true;
+          } else {
+            entry.classList.add('search-hidden');
+          }
+        });
+        
+        if (query !== "" && cellHasMatch) {
+          cell.classList.add('search-highlight');
+        }
+      }
+    });
+  });
+
+  // ── Edit Trigger (Both Link Group & Pencil Button) ────────────────
+  document.addEventListener('click', e => {
+    const trigger = e.target.closest('.et-edit-btn') || e.target.closest('.et-edit-trigger');
+    if (trigger) {
+      document.getElementById('etEntryId').value  = trigger.dataset.id;
+      document.getElementById('etVenue').value    = trigger.dataset.venue;
+      document.getElementById('etDate').value     = trigger.dataset.date;
+      document.getElementById('etSlot').value     = trigger.dataset.slot;
+      document.getElementById('etModalTitle').textContent = 'Edit Exam Entry';
+      openModal();
+    }
+  });
+
+  // ── Delete Post Action Trigger ─────────────────────────────────────
+  document.addEventListener('click', e => {
+    const delBtn = e.target.closest('.et-del-btn');
+    if (!delBtn) return;
+    if (!confirm('Delete this exam entry?')) return;
+    const id = delBtn.dataset.id;
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ action: 'delete', id })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        const entry = delBtn.closest('.et-entry');
+        const cell  = entry?.closest('.et-cell');
+        entry?.remove();
+        if (cell && !cell.querySelector('.et-entry')) {
+          cell.classList.remove('et-cell--occupied');
+          cell.classList.add('et-cell--free');
+        }
+      } else {
+        alert(d.error || 'Error deleting entry.');
+      }
+    })
+    .catch(() => alert('Network error.'));
+  });
+
+  // ── Modal Save Form Submission ────────────────────────────────────
+  saveBtn.addEventListener('click', () => {
+    const id    = document.getElementById('etEntryId').value;
+    const venue = document.getElementById('etVenue').value.trim();
+    const date  = document.getElementById('etDate').value;
+    const slot  = document.getElementById('etSlot').value;
+    if (!venue || !date || !slot) { alert('All fields are required.'); return; }
+
+    saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ action: 'update', id, venue, date, slot })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.warning) {
+        if (confirm(d.message + '\n\nProceed anyway?')) {
+          return fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ action: 'update', id, venue, date, slot, force: true })
+          }).then(r => r.json());
+        }
+        return null;
+      }
+      return d;
+    })
+    .then(d => {
+      if (d && d.success) { closeModal(); location.reload(); }
+      else if (d && d.error) alert(d.error);
+    })
+    .catch(() => alert('Network error.'))
+    .finally(() => { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; });
+  });
+
+  // ── Mutation Observer Removed to Prevent Double Parsing Conflicts ──
+  // The global layout links are safely parsed direct from base panel initialization.
+});
+</script>
+{% endblock extra_js %}

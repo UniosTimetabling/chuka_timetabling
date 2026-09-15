@@ -1,0 +1,179 @@
+{% extends "dashboard/base.html" %}
+{% block title %}Course Allocation PDFs · Chuka University{% endblock %}
+
+{% block content %}
+{{ scope|json_script:"scope-data" }}
+<div class="alloc-grid-page">
+  <div class="alloc-grid-topbar">
+    <div class="alloc-grid-title">
+      <span class="alloc-grid-title-main">Course Allocation Reports</span>
+      <span class="alloc-grid-title-sub">{{ scope_label }}</span>
+    </div>
+    <div class="alloc-grid-meta">{{ rows|length }} department{{ rows|length|pluralize }}</div>
+  </div>
+
+  <div class="alloc-scope-bar" role="tablist">
+    {% for s in scopes %}
+      <a href="{{ base_url }}?scope={{ s }}"
+         class="alloc-scope-tab{% if s == scope %} is-active{% endif %}"
+         role="tab" aria-selected="{% if s == scope %}true{% else %}false{% endif %}">{{ s|capfirst }}</a>
+    {% endfor %}
+  </div>
+
+  {% if not read_only %}
+    <div class="alloc-grid-note">Missing or out-of-date PDFs regenerate in the background — rows below update in place, no reload.</div>
+  {% endif %}
+
+  <div class="alloc-grid-wrap">
+    <table id="alloc-table" class="alloc-grid">
+      <thead>
+        <tr>
+          <th class="col-dept">Department</th>
+          <th class="col-status">Status</th>
+          <th class="col-num">Rows</th>
+          <th class="col-num">Version</th>
+          <th class="col-date">Generated</th>
+          <th class="col-pdf">PDF</th>
+          {% if not read_only %}<th class="col-action">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in rows %}
+        <tr id="row-dept-{{ entry.department.pk }}" data-dept="{{ entry.department.pk }}" class="{% if entry.is_generating %}is-generating{% elif entry.is_failed %}is-failed{% elif entry.is_stale %}is-stale{% elif entry.row_count == 0 %}is-empty{% elif entry.run and entry.run.is_ready %}is-ready{% endif %}">
+          <td class="col-dept">{{ entry.department.name }}</td>
+          <td class="cell-status col-status"{% if entry.is_failed %} title="{{ entry.run.error_message }}"{% endif %}>
+            <span class="status-pill">{% if entry.is_generating %}Generating…
+              {% elif entry.is_failed %}Failed
+              {% elif entry.row_count == 0 %}No data yet
+              {% elif entry.is_stale %}Stale (will refresh)
+              {% elif entry.run and entry.run.is_ready %}Ready
+              {% else %}Pending
+              {% endif %}</span>
+          </td>
+          <td class="cell-rows col-num">{{ entry.row_count }}</td>
+          <td class="cell-version col-num">{{ entry.run.version|default:"—" }}</td>
+          <td class="cell-generated col-date">{{ entry.run.generated_at|default:"—" }}</td>
+          <td class="cell-pdf col-pdf">
+            {% if entry.run and entry.run.is_ready %}
+              <a href="{{ entry.run.file.url }}" target="_blank" class="grid-link">Open PDF</a>
+            {% else %}<span class="cell-dash">—</span>{% endif %}
+          </td>
+          {% if not read_only %}
+          <td class="col-action">
+            <a href="{% url 'allocation_force_regenerate' scope entry.department.pk %}?next={{ base_url }}" class="grid-link grid-link--muted">Regenerate</a>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="alloc-grid-empty">No departments have submitted allocations for this scope yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+.alloc-grid-page{max-width:1280px;margin:0 auto;padding:20px 24px 40px;font-size:13.5px;color:#1c1c1c;}
+.alloc-grid-topbar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
+.alloc-grid-title-main{font-size:1.15rem;font-weight:700;color:#1c1c1c;}
+.alloc-grid-title-sub{margin-left:8px;font-size:.85rem;color:#000000;font-weight:600;text-transform:uppercase;letter-spacing:.03em;}
+.alloc-grid-meta{font-size:.78rem;color:#666;}
+
+.alloc-scope-bar{display:flex;border:1px solid #d9d3d3;border-bottom:none;background:#f3efef;}
+.alloc-scope-tab{flex:0 0 auto;padding:7px 18px;font-size:.82rem;font-weight:600;color:#4a4444;text-decoration:none;border-right:1px solid #d9d3d3;}
+.alloc-scope-tab:hover{background:#e9e3e3;}
+.alloc-scope-tab.is-active{background:#000000;color:#fff;}
+
+.alloc-grid-note{padding:6px 10px;font-size:.78rem;color:#555;background:#faf7f0;border:1px solid #eee0c0;border-top:none;}
+
+.alloc-grid-wrap{border:1px solid #d9d3d3;overflow-x:auto;}
+.alloc-grid{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.alloc-grid thead th{position:sticky;top:0;background:#efe9e9;color:#3a3535;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:7px 10px;border-bottom:2px solid #c9c0c0;border-right:1px solid #ddd6d6;white-space:nowrap;}
+.alloc-grid thead th:last-child{border-right:none;}
+.alloc-grid .col-num,.alloc-grid .col-status,.alloc-grid .col-date,.alloc-grid .col-pdf,.alloc-grid .col-action{text-align:center;}
+.alloc-grid tbody td{padding:6px 10px;border-bottom:1px solid #e6e0e0;border-right:1px solid #ececec;line-height:1.3;}
+.alloc-grid tbody td:last-child{border-right:none;}
+.alloc-grid tbody tr:nth-child(even){background:#faf9f9;}
+.alloc-grid tbody tr:hover{background:#f2ecec;}
+.alloc-grid tbody tr.is-generating{background:#fbf3e3;}
+.alloc-grid tbody tr.is-stale{background:#fdf0e6;}
+.alloc-grid tbody tr.is-failed{background:#fbe4e4;}
+.alloc-grid tbody tr.is-empty td{color:#999;}
+.alloc-grid .col-dept{font-weight:600;}
+
+.status-pill{display:inline-block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
+.is-ready .status-pill{color:#1a6b34;}
+.is-generating .status-pill{color:#9a6b00;}
+.is-stale .status-pill{color:#a3560c;}
+.is-failed .status-pill{color:#a01818;cursor:help;}
+.is-empty .status-pill{color:#999;}
+
+.grid-link{color:#1245a8;text-decoration:none;font-weight:600;font-size:.8rem;}
+.grid-link:hover{text-decoration:underline;}
+.grid-link--muted{color:#000000;}
+.cell-dash{color:#aaa;}
+.alloc-grid-empty{padding:16px;text-align:center;color:#777;}
+</style>
+
+<script>
+(function () {
+  var scopeVal = JSON.parse(document.getElementById("scope-data").textContent);
+  var pending = Array.from(document.querySelectorAll("#alloc-table tbody tr[data-dept]"))
+    .map(function (tr) { return tr.getAttribute("data-dept"); });
+
+  function setRowState(row, data) {
+    row.classList.remove("is-generating", "is-stale", "is-empty", "is-ready", "is-failed");
+    if (data.generating) {
+      row.classList.add("is-generating");
+    } else if (data.failed) {
+      row.classList.add("is-failed");
+    } else if (data.row_count === 0) {
+      row.classList.add("is-empty");
+    } else if (data.ready) {
+      row.classList.add("is-ready");
+    }
+  }
+
+  function poll() {
+    if (!pending.length) return;
+    pending.forEach(function (deptId) {
+      fetch("{% url 'allocation_api_status' %}?scope=" + scopeVal + "&department_id=" + deptId)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var row = document.getElementById("row-dept-" + deptId);
+          if (!row) return;
+          var statusCell = row.querySelector(".cell-status");
+          statusCell.textContent = data.generating ? "Generating…"
+            : (data.failed ? "Failed"
+            : (data.row_count === 0 ? "No data yet" : (data.ready ? "Ready" : "Pending")));
+          if (data.failed && data.error_message) {
+            statusCell.title = data.error_message;
+          }
+          row.querySelector(".cell-rows").textContent = data.row_count;
+          if (data.version) row.querySelector(".cell-version").textContent = data.version;
+          if (data.generated_at) row.querySelector(".cell-generated").textContent = data.generated_at;
+          var pdfCell = row.querySelector(".cell-pdf");
+          if (data.ready && data.url) {
+            pdfCell.innerHTML = '<a href="' + data.url + '" target="_blank" class="grid-link">Open PDF</a>';
+          }
+          setRowState(row, data);
+          // Stop polling this department once it's no longer generating AND
+          // has reached a terminal state (ready, failed, or genuinely no
+          // data). Previously only `ready || row_count === 0` stopped the
+          // loop — a FAILED generation matched neither, so a department
+          // that kept failing polled every 3 seconds forever, and the row
+          // just sat on "Pending" with no visible sign it was actually
+          // erroring out repeatedly in the background.
+          if (!data.generating && (data.ready || data.row_count === 0 || data.failed)) {
+            pending = pending.filter(function (id) { return id !== deptId; });
+          }
+        })
+        .catch(function () {});
+    });
+  }
+
+  setInterval(poll, 3000);
+  poll();
+})();
+</script>
+{% endblock %}

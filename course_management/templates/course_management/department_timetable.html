@@ -1,0 +1,158 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_management/css/course_management_course_management_department_timetable.css' %}">
+{% endblock page_css %}
+
+{% block title %}Department Timetable — {{ department.name }}{% endblock %}
+{% block page_title %}Department Timetable{% endblock %}
+
+{% block allocation_content %}
+<!-- Main Container -->
+<div class="container-fluid">
+
+  <!-- Header Panel -->
+  <div class="card">
+    <div class="card-header">
+      <div class="dt-header-main">
+        <h3><i class="fas fa-calendar-alt me-2"></i>DEPARTMENT TIMETABLE</h3>
+        <div class="dt-header-meta">
+          <span class="badge"><i class="fas fa-university me-1"></i><span id="deptName">{{ department.name|default:"Loading..." }}</span></span>
+          <span class="badge"><i class="fas fa-clock me-1"></i><span id="currentTime">{{ date|date:"d M Y" }}</span></span>
+        </div>
+      </div>
+      <div class="dt-header-actions no-print">
+        <button class="dt-btn dt-btn-on-dark" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+        <button class="dt-btn dt-btn-on-dark" id="printBtn" data-pdf-url="{% url 'department_timetable_pdf' %}"><i class="fas fa-file-pdf"></i> Download PDF</button>
+        <button class="dt-btn dt-btn-on-dark" id="switchDeptBtn" style="display: none;"><i class="fas fa-right-left"></i> Switch Department</button>
+        <a class="dt-btn dt-btn-on-dark" href="/cod/"><i class="fas fa-arrow-left"></i> Back to COD Panel</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
+  <div class="card no-print">
+    <div class="card-body">
+      <!-- Timetable Type + Exam Date -->
+      <div class="dt-toolbar-row">
+        <div class="dt-field">
+          <span class="dt-field-label">Timetable</span>
+          <div class="dt-segmented">
+            <input type="radio" name="timetableType" id="regularType" autocomplete="off" checked>
+            <label for="regularType"><i class="fas fa-calendar-day"></i> Regular Timetable</label>
+            <input type="radio" name="timetableType" id="examType" autocomplete="off">
+            <label for="examType"><i class="fas fa-file-alt"></i> Exam Timetable</label>
+          </div>
+        </div>
+
+        <div class="dt-field dt-field-narrow" id="examDateContainer" style="display: none;">
+          <span class="dt-field-label">Exam Date</span>
+          <div class="dt-input-group">
+            <span class="dt-input-icon"><i class="fas fa-calendar"></i></span>
+            <input type="date" class="dt-input" id="examDate" value="{{ date|date:'Y-m-d' }}">
+            <button class="dt-btn" type="button" id="clearDate"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search and Filter Row -->
+      <div class="dt-toolbar-row">
+        <div class="dt-field dt-field-grow dt-suggestions-wrap">
+          <span class="dt-field-label">Search</span>
+          <div class="dt-input-group">
+            <span class="dt-input-icon"><i class="fas fa-search"></i></span>
+            <input type="text"
+                   class="dt-input"
+                   id="searchInput"
+                   placeholder="Search course codes (e.g., CS101, MAT201) or course names..."
+                   autocomplete="off">
+            <button class="dt-btn" type="button" id="clearSearch"><i class="fas fa-times"></i> Clear</button>
+            <button class="dt-btn dt-btn-primary" type="button" id="searchBtn"><i class="fas fa-search"></i> Search</button>
+          </div>
+          <div class="dt-hint">
+            <i class="fas fa-lightbulb me-1"></i>
+            Tip: Search by course code, course name, lecturer, or venue
+          </div>
+          <div id="searchSuggestions" style="display: none;">
+            <!-- Search suggestions will appear here -->
+          </div>
+        </div>
+
+        <div class="dt-field dt-field-narrow">
+          <span class="dt-field-label">Program</span>
+          <select class="dt-select" id="programFilter">
+            <option value="">All Programs</option>
+            <!-- Programs loaded via JavaScript -->
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timetable Display Area -->
+  <div class="card">
+    <div class="card-header">
+      <h5 id="timetableTitle">
+        <i class="fas fa-table me-2"></i>
+        <span id="tableTypeLabel">Regular Timetable</span>
+        <span id="tableDateLabel">- Week View</span>
+      </h5>
+      <label class="dt-check no-print">
+        <input type="checkbox" id="compactView">
+        <span class="dt-check-label">Compact View</span>
+      </label>
+    </div>
+    <div class="card-body" style="position: relative;">
+      <!-- Loading Overlay -->
+      <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div style="text-align: center;">
+          <div class="dt-spinner"></div>
+          <p style="color: var(--dt-text-muted); font-size: .85rem;">Loading timetable data...</p>
+        </div>
+      </div>
+
+      <!-- No Data Message -->
+      <div id="noDataMessage" class="dt-empty-state" style="display: none;">
+        <i class="fas fa-calendar-times fa-3x"></i>
+        <h4>No timetable data available</h4>
+        <p>There are no courses scheduled for the selected criteria.</p>
+      </div>
+
+      <!-- Timetable Container -->
+      <div class="timetable-container" id="timetableContainer">
+        <!-- Timetable tables will be rendered here by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Details Tooltip -->
+  <div id="courseTooltip" class="course-tooltip">
+    <div class="dt-tooltip-title"><span id="tooltipCourseCode"></span> - <span id="tooltipCourseName"></span></div>
+    <div class="dt-tooltip-row"><strong>Lecturer:</strong> <span id="tooltipLecturer"></span></div>
+    <div class="dt-tooltip-row"><strong>Program:</strong> <span id="tooltipProgram"></span></div>
+    <div class="dt-tooltip-row"><strong>Venue:</strong> <span id="tooltipVenue"></span></div>
+    <div class="dt-tooltip-row"><strong>Time:</strong> <span id="tooltipTime"></span></div>
+    <div class="dt-tooltip-row"><strong>Students:</strong> <span id="tooltipStudents"></span></div>
+  </div>
+
+</div>
+
+<!--
+  jQuery — the page's own JS (course_management_course_management_department_timetable.js)
+  is written in jQuery, so it's kept.
+
+  Bootstrap CSS/JS is intentionally NOT loaded here anymore. It previously sat in a
+  template block the base template never defines, so it was silently dropped and never
+  actually loaded — every Bootstrap-styled control on this page (buttons, the type
+  toggle, the radio "pills") was rendering unstyled. This page now styles all of its
+  own controls directly (see the CSS file) and no longer depends on Bootstrap.
+-->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+{% endblock allocation_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'course_management/js/course_management_course_management_department_timetable.js' %}"></script>
+{% endblock %}

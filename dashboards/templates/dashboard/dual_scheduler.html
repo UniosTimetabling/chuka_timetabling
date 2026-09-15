@@ -1,0 +1,441 @@
+{% extends "timetable/autoscheduler_base.html" %}
+{% load static %}
+
+{% block title %}Dual-Campus Scheduler — Chuka University{% endblock %}
+{% block load_text %}Loading Dual-Campus Scheduler…{% endblock %}
+{% block page_title %}Dual-Campus Scheduler{% endblock %}
+{% block topbar_badge %}<span class="excel-badge">Dual Campus</span>{% endblock %}
+
+{% block extra_head %}
+{% include "dashboard/_excel_flat_theme.html" %}
+{% endblock %}
+
+{% block topbar_actions %}
+  <a href="{% url 'timetable_dashboard' %}" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.25)">
+    <i class="fas fa-arrow-left"></i> Dashboard
+  </a>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<!-- CONFIG STRIP -->
+<div class="config-strip">
+  <label>Start Time <input type="time" id="cfgStart" value="{{ default_start }}"></label>
+  <label>End Time   <input type="time" id="cfgEnd"   value="{{ default_end }}"></label>
+  <label>Slot (hrs) <input type="number" id="cfgSlot" value="{{ default_slot }}" min="1"></label>
+  <div class="config-strip-actions">
+    <button class="btn btn-ghost btn-sm" onclick="saveConfig()"><i class="fas fa-save"></i> Save Config</button>
+    <button class="btn btn-orange" id="runBtn" onclick="startScheduler()">
+      <i class="fas fa-play-circle"></i> Run Dual Scheduler
+    </button>
+  </div>
+</div>
+
+<!-- STATS ROW -->
+<div class="stats-row" style="margin-bottom:16px">
+  <div class="stat-card">
+    <div class="stat-val" id="mainTempCount">{{ main_temp_count }}</div>
+    <div class="stat-lbl">Main Campus (Temp)</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-val" id="campusTempCount">{{ campus_temp_count }}</div>
+    <div class="stat-lbl">Branch Campus (Temp)</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-val" id="mainPubCount">{{ main_published_count }}</div>
+    <div class="stat-lbl">Main Published</div>
+  </div>
+  <div class="stat-card cyan">
+    <div class="stat-val" id="campusPubCount">{{ campus_published_count }}</div>
+    <div class="stat-lbl">Branch Published</div>
+  </div>
+</div>
+
+<!-- CROSS-CAMPUS PANEL (hidden by default) -->
+<div class="panel" id="crossCampusPanel" style="display:none">
+  <div class="panel-head" style="border-color:var(--orange)">
+    <i class="fas fa-exchange-alt"></i> Cross-Campus Lecturers
+    <span id="crossCount" class="panel-badge">0</span>
+    <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="document.getElementById('crossCampusPanel').style.display='none'">✕</button>
+  </div>
+  <div class="panel-body" id="crossCampusBody"><p style="color:var(--text-muted)">Loading…</p></div>
+</div>
+
+<!-- TABS -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="main-tt"><i class="fas fa-calendar-alt"></i> Main Campus</button>
+  <button class="tab-btn" data-tab="campus-tt"><i class="fas fa-school"></i> Branch Campus</button>
+  <button class="tab-btn" data-tab="unscheduled">
+    <i class="fas fa-exclamation-circle"></i> Unscheduled
+    <span class="tab-badge" id="unscheduledBadge">0</span>
+  </button>
+  <button class="tab-btn" data-tab="publish"><i class="fas fa-upload"></i> Publish</button>
+</div>
+
+<!-- TAB: Main Campus -->
+<div id="main-tt-tab" class="tab-content active">
+  <div class="panel">
+    <div class="panel-head"><i class="fas fa-calendar-alt"></i> Main Campus Timetable (Draft)
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadMainTimetable()"><i class="fas fa-sync"></i> Refresh</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadCrossCampusInfo()"><i class="fas fa-exchange-alt"></i> Cross-Campus</button>
+    </div>
+    <div class="panel-body">
+      <div id="mainTTContainer"><p style="color:var(--text-muted);text-align:center;padding:30px">Loading…</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: Branch Campus -->
+<div id="campus-tt-tab" class="tab-content">
+  <div class="panel">
+    <div class="panel-head"><i class="fas fa-school"></i> Branch Campus Timetable (Draft)</div>
+    <div class="panel-body">
+      <div class="filter-row">
+        <label style="color:var(--navy-light)">Filter Campus:</label>
+        <select id="campusFilter" onchange="loadCampusTimetable()">
+          <option value="">All Branch Campuses</option>
+          {% for campus in campuses %}
+          <option value="{{ campus.id }}">{{ campus.name }} ({{ campus.code }})</option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="loadCampusTimetable()"><i class="fas fa-sync"></i> Refresh</button>
+      </div>
+      <div id="campusTTContainer"><p style="color:var(--text-muted);text-align:center;padding:30px">Select a campus or refresh to view.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: Unscheduled -->
+<div id="unscheduled-tab" class="tab-content">
+  <div class="panel">
+    <div class="panel-head" style="border-color:var(--red)"><i class="fas fa-exclamation-circle" style="color:var(--red)"></i> Unscheduled Courses</div>
+    <div class="panel-body">
+      <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:12px">Courses that could not be scheduled due to venue or slot constraints.</p>
+      <div id="unscheduledList"><p style="color:var(--text-light)">No data yet — run the scheduler first.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB: Publish -->
+<div id="publish-tab" class="tab-content">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+    <div class="panel">
+      <div class="panel-head"><i class="fas fa-upload"></i> Publish Main Campus</div>
+      <div class="panel-body">
+        <div class="box-warn"><i class="fas fa-exclamation-triangle me-2"></i>This will <strong>delete all</strong> existing main campus timetable entries and replace with current draft.</div>
+        <div id="mainPublishStatus" style="margin-bottom:10px"></div>
+        <button class="btn btn-green" style="width:100%" onclick="publishMain()">
+          <i class="fas fa-check"></i> Publish Main Campus Timetable
+        </button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head" style="border-color:var(--orange)"><i class="fas fa-upload"></i> Publish Branch Campus</div>
+      <div class="panel-body">
+        <label style="font-size:0.8rem;font-weight:600;color:var(--navy-light);display:block;margin-bottom:8px">Select campus to publish:</label>
+        <select id="publishCampusSelect" style="width:100%;padding:7px;border:1px solid var(--border);border-radius:4px;margin-bottom:12px;font-size:0.82rem">
+          <option value="">All Branch Campuses</option>
+          {% for campus in campuses %}
+          <option value="{{ campus.id }}">{{ campus.name }}</option>
+          {% endfor %}
+        </select>
+        <div class="box-warn"><i class="fas fa-exclamation-triangle me-2"></i>Existing entries for the selected campus will be replaced.</div>
+        <div id="campusPublishStatus" style="margin-bottom:10px"></div>
+        <button class="btn btn-orange" style="width:100%" onclick="publishCampus()">
+          <i class="fas fa-check"></i> Publish Branch Campus Timetable
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS OVERLAY -->
+<div class="prog-overlay" id="progressOverlay">
+  <div class="prog-modal">
+    <div class="prog-modal-head" id="modalHead">
+      <div class="head-spinner" id="modalSpinner"></div>
+      <span class="head-title" id="modalTitle">Dual-Campus Scheduler Running…</span>
+      <button onclick="cancelScheduler()" class="btn btn-ghost btn-sm" style="margin-left:auto;color:#fff;border-color:rgba(255,255,255,0.3)">✕ Cancel</button>
+    </div>
+    <div class="prog-modal-body">
+      <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">
+        <span id="progressLabel">0%</span>
+        <span id="batchLabel">Initializing…</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill" id="progressFill" style="width:0%">0%</div></div>
+
+      <div class="modal-stats">
+        <div class="ms-card green"><div class="ms-val" id="pScheduled">0</div><div class="ms-lbl">Scheduled</div></div>
+        <div class="ms-card orange"><div class="ms-val" id="pRemaining">0</div><div class="ms-lbl">Remaining</div></div>
+        <div class="ms-card cyan"><div class="ms-val" id="pCross">0/0</div><div class="ms-lbl">Current Batch</div></div>
+      </div>
+
+      <div class="action-strip">
+        <i class="fas fa-bolt"></i>
+        <span id="currentAction">Initializing…</span>
+      </div>
+
+      <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+        <i class="fas fa-terminal"></i> Process Log <small style="font-weight:400">(Auto-scrolling)</small>
+      </div>
+      <div class="console-wrap">
+        <div class="console-bar">
+          <div class="console-dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+          <span class="console-label">dual_scheduler — bash</span>
+        </div>
+        <div id="consoleOutput">
+          <div class="cl info"><span class="cl-ts">[00:00:00]</span><span class="cl-badge">INFO</span><span class="cl-msg">Starting dual scheduler…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PUBLISH OVERLAY -->
+<div class="pub-overlay" id="pubOverlay">
+  <div class="pub-card">
+    <div class="pub-spinner" id="pubSpinner"></div>
+    <div class="pub-check" id="pubCheck" style="display:none"><i class="fas fa-check"></i></div>
+    <div class="pub-title" id="pubTitle">Publishing</div>
+    <div class="pub-msg"   id="pubMsg">Please wait…</div>
+    <div class="pub-prog"><div class="pub-prog-fill" id="pubFill"></div></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let pollInterval = null, stableCount = 0;
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTabs();
+    loadMainTimetable();
+  });
+
+  function saveConfig() {
+    // Config saved inline; extend if backend endpoint available
+    showToast('info', 'Config', 'Configuration ready for next run');
+  }
+
+  /* ── TIMETABLE RENDERING ── */
+  /* Normalise any time string ("7:00:00", "07:00", "7 a.m.") → "HH:mm" */
+  function fmtTime(t) {
+    if (!t) return '00:00';
+    const iso = String(t).match(/^(\d{1,2}):(\d{2})/);
+    if (iso) return iso[1].padStart(2, '0') + ':' + iso[2];
+    const d = new Date('1970-01-01T' + t);
+    if (!isNaN(d)) return d.toTimeString().slice(0, 5);
+    return String(t).slice(0, 5);
+  }
+
+  function renderTimetable(entries, type) {
+    if (!entries.length) return '<p style="text-align:center;padding:30px;color:var(--text-muted)">No entries found. Run the scheduler first.</p>';
+    const isCampus = type === 'campus';
+    // Group by day name (weekly timetable — no dates)
+    const byDate = {};
+    const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    entries.forEach(e => {
+      const d = e.day || e.date || 'Unknown';
+      if (!byDate[d]) byDate[d] = { day: d, slots: {}, venues: new Set() };
+      const sk = `${fmtTime(e.start_time)}–${fmtTime(e.end_time)}`;
+      if (!byDate[d].slots[sk]) byDate[d].slots[sk] = [];
+      byDate[d].slots[sk].push(e);
+      byDate[d].venues.add(isCampus ? (e.campus_code||'N/A') : (e.venue||'N/A'));
+    });
+
+    let html = '';
+    const DAY_ORDER2 = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    Object.keys(byDate).sort((a,b) => { const ia=DAY_ORDER2.indexOf(a), ib=DAY_ORDER2.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); }).forEach(date => {
+      const dd = byDate[date];
+      const slotKeys = Object.keys(dd.slots).sort();
+      const venues   = [...dd.venues].sort();
+      html += `<div class="day-block">
+        <div class="day-header">
+          <i class="fas fa-calendar-day" style="opacity:0.75"></i>
+          <span style="font-weight:700">${dd.day}</span>
+          <span class="day-stats">${venues.length} venues · ${slotKeys.length} slots</span>
+        </div>
+        <div class="tt-wrap"><table class="tt-grid">
+          <thead><tr>
+            <th class="venue-th"><i class="fas fa-map-marker-alt me-1"></i>Venue</th>
+            ${slotKeys.map(sk=>`<th class="slot-th"><span class="slot-label"><small><i class="fas fa-clock"></i></small>${sk}</span></th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${venues.map(v => `<tr>
+              <td class="venue-col"><span class="venue-name">${v}</span></td>
+              ${slotKeys.map(sk => {
+                const items = (dd.slots[sk]||[]).filter(e => (isCampus?(e.campus_code||'N/A'):(e.venue||'N/A')) === v);
+                if (!items.length) return `<td><span class="cell-empty">—</span></td>`;
+                return `<td style="min-width:140px">${items.map(e => `
+                  <div class="course-chip ${e.cross_campus?'cross':''}">
+                    <span class="cc-code">${e.course_code||'N/A'}${e.cross_campus?` <span class="pill pill-orange">Cross</span>`:''}</span>
+                    <span class="cc-meta">
+                      <i class="fas fa-users"></i> ${e.students||0}
+                      ${e.lecturer?`<i class="fas fa-chalkboard-teacher"></i> ${e.lecturer}`:''}
+                      ${e.program?`<i class="fas fa-graduation-cap"></i> ${e.program}`:''}
+                    </span>
+                  </div>`).join('')}</td>`;
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+    });
+    return html;
+  }
+
+  window.loadMainTimetable = function() {
+    const c = document.getElementById('mainTTContainer');
+    c.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</p>';
+    fetch("{% url 'dual_timetable_data' %}?type=main")
+      .then(r => r.json())
+      .then(d => {
+        const entries = d.data || [];
+        document.getElementById('mainTempCount').textContent = entries.length;
+        c.innerHTML = renderTimetable(entries, 'main');
+      })
+      .catch(e => { c.innerHTML = `<div class="box-error">Error: ${e.message}</div>`; });
+  };
+
+  window.loadCampusTimetable = function() {
+    const campusId = document.getElementById('campusFilter').value;
+    const c = document.getElementById('campusTTContainer');
+    c.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</p>';
+    fetch("{% url 'dual_timetable_data' %}?type=campus" + (campusId?`&campus_id=${campusId}`:''))
+      .then(r => r.json())
+      .then(d => {
+        const entries = d.data || [];
+        document.getElementById('campusTempCount').textContent = entries.length;
+        c.innerHTML = renderTimetable(entries, 'campus');
+      })
+      .catch(e => { c.innerHTML = `<div class="box-error">Error: ${e.message}</div>`; });
+  };
+
+  window.loadCrossCampusInfo = function() {
+    document.getElementById('crossCampusPanel').style.display = 'block';
+    document.getElementById('crossCampusBody').innerHTML = '<p style="color:var(--text-muted)">Loading…</p>';
+    fetch("{% url 'cross_campus_lecturers' %}").then(r => r.json()).then(d => {
+      const lecs = d.cross_campus_lecturers || [];
+      document.getElementById('crossCount').textContent = lecs.length;
+      if (!lecs.length) { document.getElementById('crossCampusBody').innerHTML = '<p style="color:var(--text-light)">No cross-campus lecturers found.</p>'; return; }
+      document.getElementById('crossCampusBody').innerHTML = lecs.map(l => `
+        <div class="cross-card">
+          <div class="name"><i class="fas fa-user me-1"></i>${l.lecturer_name}</div>
+          <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">
+            <span class="tag tag-navy">${l.main_count} Main</span>
+            <span class="tag tag-orange">${l.campus_count} Campus</span>
+            ${(l.campus_names||[]).map(n=>`<span class="tag tag-grey">${n}</span>`).join('')}
+          </div>
+          <div style="margin-top:5px;font-size:0.72rem;color:var(--text-muted)">
+            Main: ${(l.main_courses||[]).join(', ')||'—'}<br>Campus: ${(l.campus_courses||[]).join(', ')||'—'}
+          </div>
+        </div>`).join('');
+    }).catch(e => { document.getElementById('crossCampusBody').innerHTML = `<div class="box-error">Error: ${e.message}</div>`; });
+  };
+
+  window.publishMain = function() {
+    if (!confirm('This will DELETE all existing main campus timetable entries. Continue?')) return;
+    const el = document.getElementById('mainPublishStatus');
+    el.innerHTML = '<div class="box-info">Publishing…</div>';
+    fetch("{% url 'publish_main_timetable' %}", { method:'POST', headers:{'X-CSRFToken':getCSRF(),'Content-Type':'application/json'} })
+      .then(r => r.json())
+      .then(d => {
+        el.innerHTML = d.status==='success' ? `<div class="box-ok"><i class="fas fa-check me-1"></i>${d.message}</div>` : `<div class="box-error">${d.message}</div>`;
+        if (d.count !== undefined) document.getElementById('mainPubCount').textContent = d.count;
+      }).catch(e => { el.innerHTML = `<div class="box-error">Error: ${e.message}</div>`; });
+  };
+
+  window.publishCampus = function() {
+    const campusId = document.getElementById('publishCampusSelect').value;
+    if (!confirm(`Replace entries for ${campusId?'selected campus':'ALL branch campuses'}?`)) return;
+    const el = document.getElementById('campusPublishStatus');
+    el.innerHTML = '<div class="box-info">Publishing…</div>';
+    fetch("{% url 'publish_campus_timetable' %}", { method:'POST', headers:{'X-CSRFToken':getCSRF(),'Content-Type':'application/json'}, body:JSON.stringify({campus_id:campusId||null}) })
+      .then(r => r.json())
+      .then(d => {
+        el.innerHTML = d.status==='success' ? `<div class="box-ok"><i class="fas fa-check me-1"></i>${d.message}</div>` : `<div class="box-error">${d.message}</div>`;
+        if (d.count !== undefined) document.getElementById('campusPubCount').textContent = d.count;
+      }).catch(e => { el.innerHTML = `<div class="box-error">Error: ${e.message}</div>`; });
+  };
+
+  /* ── SCHEDULER ── */
+  window.startScheduler = function() {
+    const btn = document.getElementById('runBtn');
+    btnLoad(btn, 'Scheduling…');
+    document.getElementById('progressOverlay').classList.add('show');
+    resetModal();
+    fetch("{% url 'start_dual_scheduling' %}", { method:'POST', headers:{'X-CSRFToken':getCSRF(),'Content-Type':'application/json'} })
+      .then(r => r.json())
+      .then(d => {
+        if (['started','already_running'].includes(d.status)) { pollInterval = setInterval(pollProgress, 1600); }
+        else throw new Error(d.message||'Failed to start');
+      })
+      .catch(e => { finishScheduler('error','Failed to start: '+e.message); btnReset(btn); });
+  };
+
+  function resetModal() {
+    stableCount = 0;
+    document.getElementById('modalHead').className = 'prog-modal-head';
+    document.getElementById('modalTitle').textContent = 'Dual-Campus Scheduler Running…';
+    document.getElementById('modalSpinner').style.display = 'block';
+    setProg(0,'0%','Initializing…');
+    ['pScheduled','pRemaining'].forEach(id=>document.getElementById(id).textContent='0');
+    document.getElementById('pCross').textContent = '0/0';
+    document.getElementById('currentAction').textContent = 'Initializing…';
+    document.getElementById('consoleOutput').innerHTML = '<div class="cl info"><span class="cl-ts">[--:--:--]</span><span class="cl-badge">INFO</span><span class="cl-msg">Starting…</span></div>';
+  }
+
+  function setProg(pct, label, phase) {
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressFill').textContent = label;
+    document.getElementById('progressLabel').textContent = label;
+    if (phase) document.getElementById('batchLabel').textContent = phase;
+  }
+
+  function pollProgress() {
+    fetch("{% url 'dual_scheduler_progress' %}").then(r=>r.json()).then(d => {
+      updateModalUI(d);
+      if (['completed','error','cancelled'].includes(d.status)) { clearInterval(pollInterval); finishScheduler(d.status,d.message||''); }
+      else { const p=parseInt(d.progress)||0; if(p>=100){stableCount++;if(stableCount>=3){clearInterval(pollInterval);finishScheduler('completed',d.message);}}else stableCount=0; }
+    }).catch(e => { stableCount++; if(stableCount>=5){clearInterval(pollInterval);finishScheduler('error','Lost connection: '+e.message);} });
+  }
+
+  function updateModalUI(d) {
+    const p = parseInt(d.progress)||0;
+    setProg(p, p+'%', d.batch_info||d.current_action||'');
+    document.getElementById('pScheduled').textContent = d.scheduled_count||0;
+    document.getElementById('pRemaining').textContent = d.remaining_count||0;
+    document.getElementById('pCross').textContent = d.current_batch||'0/0';
+    document.getElementById('currentAction').textContent = d.current_action||'…';
+    renderConsole(d.log_entries||d.console_output||[]);
+    const unList = d.unscheduled||[];
+    document.getElementById('unscheduledBadge').textContent = unList.length;
+    if (unList.length) document.getElementById('unscheduledList').innerHTML = unList.map(u=>`<div class="unsched-item"><i class="fas fa-times me-1"></i>${u}</div>`).join('');
+  }
+
+  function finishScheduler(status, message) {
+    clearInterval(pollInterval);
+    btnReset(document.getElementById('runBtn'));
+    document.getElementById('modalSpinner').style.display = 'none';
+    const head = document.getElementById('modalHead');
+    head.className = 'prog-modal-head ' + ({completed:'success',error:'error',cancelled:'cancelled'}[status]||'');
+    document.getElementById('modalTitle').textContent = {completed:'✓ Scheduling Complete',error:'✕ Scheduling Failed',cancelled:'⚠ Cancelled'}[status]||status;
+    document.getElementById('currentAction').textContent = message||'Done';
+    showToast(status==='completed'?'success':status==='error'?'error':'warning',
+      status==='completed'?'Complete':'Scheduling Done', message||'');
+    if (status==='completed') {
+      setTimeout(()=>loadMainTimetable(), 500);
+      setTimeout(()=>document.getElementById('progressOverlay').classList.remove('show'), 5000);
+    }
+  }
+
+  window.cancelScheduler = function() {
+    if (!confirm('Cancel scheduling?')) return;
+    clearInterval(pollInterval);
+    fetch("{% url 'cancel_dual_scheduling' %}", { method:'POST', headers:{'X-CSRFToken':getCSRF()} })
+      .then(()=>{ document.getElementById('progressOverlay').classList.remove('show'); btnReset(document.getElementById('runBtn')); })
+      .catch(e=>console.error(e));
+  };
+</script>
+{% endblock %}

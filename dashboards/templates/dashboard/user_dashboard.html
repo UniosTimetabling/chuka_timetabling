@@ -1,0 +1,747 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard</title>
+  
+  <!-- Base Dashboard CSS Links -->
+  <link rel="stylesheet" href="{% static 'dashboards/css/dashboards_dashboard_user_dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'dashboards/css/user_dashboard.css' %}">
+
+  <style>
+    /* ===== RESET & LAYOUT INTEGRATION CODE ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100vh; width: 100vw; overflow: hidden;
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px; line-height: 1.5;
+    }
+    body { display: flex; flex-direction: column; }
+
+    /* ========== TOP NAVIGATION HEADER (FOREST GREEN THEME) ========== */
+    header.top-nav {
+      background: #004d26; padding: 0 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid #007a3d;
+      flex-shrink: 0; height: 64px; z-index: 2000;
+    }
+    .header-left  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+    .header-center { display: flex; align-items: center; flex: 1; min-width: 0; padding: 0 10px; }
+    .header-center h1 {
+      font-size: 1.1rem; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    header.top-nav .logo { height: 36px; display: block; }
+
+    .hdr-divider {
+      width: 1px; height: 32px;
+      background: rgba(255,255,255,0.22); flex-shrink: 0; margin: 0 4px;
+    }
+
+    /* Top Navigation Action Links */
+    .hdr-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.13); color: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 6px; padding: 6px 13px; cursor: pointer;
+      font-size: 13.5px; font-weight: 600; text-decoration: none;
+      transition: background 0.18s, border-color 0.18s; white-space: nowrap;
+    }
+    .hdr-btn:hover { 
+      background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0.5); color: #fff;
+    }
+    .hdr-btn.active { background: #007a3d; border-color: #4ef07a; }
+    
+    /* Highlight style specifically for the Resit action mode */
+    .hdr-btn.resit-active { background: #ff7b00; border-color: #ffaa55; color: #fff; }
+    .hdr-btn.resit-active:hover { background: #e06d00; }
+
+    /* ── NOTIFICATION BELL ── */
+    .notif-btn {
+      position: relative; background: rgba(255,255,255,0.13);
+      border: 1px solid rgba(255,255,255,0.28); border-radius: 6px;
+      color: #fff; cursor: pointer; padding: 6px 12px; font-size: 18px;
+      display: flex; align-items: center; transition: background 0.18s;
+    }
+    .notif-btn:hover { background: rgba(255,255,255,0.26); }
+    .notif-badge {
+      position: absolute; top: 2px; right: 2px; background: #e53935; color: #fff;
+      font-size: 10px; font-weight: 800; border-radius: 50%; min-width: 16px;
+      height: 16px; display: flex; align-items: center; justify-content: center;
+      padding: 0 3px; border: 2px solid #004d26; pointer-events: none;
+    }
+    .notif-badge.hidden { display: none; }
+    .btn-logout { background: rgba(229, 57, 53, 0.85); border-color: rgba(255,255,255,0.2); }
+    .btn-logout:hover { background: #d32f2f; }
+
+    /* ========== NOTIFICATION DROP OVERLAY ========== */
+    .notif-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      z-index: 3000; display: none; align-items: flex-start;
+      justify-content: flex-end; padding: 68px 24px 0 0;
+    }
+    .notif-overlay.open { display: flex; }
+    .notif-modal {
+      background: #fff; border-radius: 12px; width: 400px; max-width: 95vw;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.22); display: flex; flex-direction: column;
+      max-height: calc(100vh - 84px); border: 1px solid #c8ddc8;
+    }
+    .nm-head { background: #004d26; border-radius: 12px 12px 0 0; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; }
+    .nm-head h3 { color: #fff; font-size: 15px; font-weight: 700; }
+    .nm-close { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: #fff; font-size: 16px; border-radius: 4px; padding: 2px 8px; cursor: pointer; }
+    .nm-body { flex: 1; overflow-y: auto; padding: 10px 0; }
+    .nm-item { padding: 12px 15px; border-bottom: 1px solid #eef2ef; display: flex; flex-direction: column; gap: 4px; }
+    .nm-item:hover { background: #f4fbf5; }
+    .nm-msg { font-size: 13px; color: #1a1a1a; }
+    .nm-time { font-size: 11px; color: #aaa; text-align: right; }
+    .nm-empty { padding: 32px 20px; text-align: center; color: #bbb; font-size: 14px; }
+
+    /* ========== CENTRAL SCROLL CONTENT CONTAINER ========== */
+    .dashboard-container {
+      display: flex; flex-direction: column; flex: 1; 
+      height: calc(100vh - 64px); overflow-y: auto; padding: 20px;
+    }
+    .dashboard-main { display: flex; flex-direction: column; gap: 20px; max-width: 1400px; width: 100%; margin: 0 auto; }
+    .dashboard-footer { text-align: center; padding: 20px 0; color: #666; font-size: 13px; border-top: 1px solid #ddd; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <!-- ========== TOP NAVIGATION BAR ========== -->
+  <header class="top-nav">
+    <div class="header-left">
+      <img src="{% static 'images/chuka.png' %}" alt="Chuka Logo" class="logo">
+    </div>
+    
+    <div class="header-center">
+      <h1>Welcome, {{ request.user.username }}</h1>
+    </div>
+
+    <div class="header-right">
+      <!-- Added dynamic toggles logic to maintain standard vs resit styling state values -->
+      <a href="{% url 'course_list_pdf' %}" class="hdr-btn " target="_blank">Course Allocation Pdf</a>
+      <a href="{% url 'published_timetables' %}" class="hdr-btn">Published Timetable</a>
+      <div class="hdr-divider"></div>
+
+      <!-- Live Notification Bell Trigger -->
+      <button class="notif-btn" id="notifBell" onclick="toggleNotifModal()">
+        🔔
+        {% if notifications %}
+          <span class="notif-badge" id="notifCountBadge">{{ notifications|length }}</span>
+        {% else %}
+          <span class="notif-badge hidden" id="notifCountBadge">0</span>
+        {% endif %}
+      </button>
+
+      <div class="hdr-divider"></div>
+      <a href="{% url 'logout' %}" class="hdr-btn btn-logout">Log out</a>
+    </div>
+  </header>
+
+  <!-- ========== NOTIFICATION OVERLAY PANEL ========== -->
+  <div class="notif-overlay" id="notifOverlay">
+    <div class="notif-modal">
+      <div class="nm-head">
+        <h3>Recent Notifications</h3>
+        <button class="nm-close" onclick="toggleNotifModal()">&times;</button>
+      </div>
+      <div class="nm-body">
+        {% if notifications %}
+          {% for note in notifications %}
+            <div class="nm-item">
+              <div class="nm-msg">{{ note }}</div>
+              <div class="nm-time">Just now</div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="nm-empty">No notifications yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CONTENT SCROLL WRAPPER ========== -->
+  <div class="dashboard-container">
+    <main class="dashboard-main">
+      
+      <!-- Profile Information -->
+      <div class="card">
+        <h2> Profile Information</h2>
+        <p><strong>Username:</strong> {{ request.user.username }}</p>
+        <p><strong>Email:</strong> {{ request.user.email }}</p>
+        <p><strong>Role:</strong> {{ role.title|default:"No role assigned" }}</p>
+      </div>
+
+      <!-- All Course Allocations Block Matrix Logic -->
+      <div class="card">
+        <h2> Your Course Allocations</h2>
+
+        {% if allocations %}
+          <p style="font-weight:600; margin-bottom:0.4rem; color:var(--primary-dark);">Regular</p>
+          <ul>
+            {% for alloc in allocations %}
+              <li>{{ alloc.course_code }} - {{ alloc.course_name }} <span class="status">{{ alloc.status_label }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if lab_allocations %}
+          <p style="font-weight:600; margin:0.8rem 0 0.4rem; color:var(--primary-dark);">Lab</p>
+          <ul>
+            {% for alloc in lab_allocations %}
+              <li>
+                {% with pc=alloc.program_course %}
+                  {{ pc.course_code }} - {{ pc.course_name }}
+                {% endwith %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if odel_allocations %}
+          <p style="font-weight:600; margin:0.8rem 0 0.4rem; color:var(--primary-dark);">ODEL</p>
+          <ul>
+            {% for alloc in odel_allocations %}
+              <li>{{ alloc.course_code }} - {{ alloc.course_name }} <span class="status">{{ alloc.status_label }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if campus_allocations %}
+          <p style="font-weight:600; margin:0.8rem 0 0.4rem; color:var(--primary-dark);">Campus</p>
+          <ul>
+            {% for alloc in campus_allocations %}
+              <li>
+                {% with pc=alloc.program_course %}
+                  {{ pc.course_code }} - {{ pc.course_name }}
+                {% endwith %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if resit_allocations %}
+          <p style="font-weight:600; margin:0.8rem 0 0.4rem; color:var(--primary-dark);">Resit Exams</p>
+          <ul>
+            {% for alloc in resit_allocations %}
+              <li>{{ alloc.course_code }} - {{ alloc.course_name }} <span class="status" style="background:#ff7b00; color:#fff;">Resit</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if not allocations and not lab_allocations and not odel_allocations and not campus_allocations and not resit_allocations %}
+          <div class="empty-state">
+            <p>No courses allocated yet.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Main Timetable Views Logic (Conditional Parsing Engine) -->
+      <div class="card timetable-card">
+        <h2>
+          {% if view_mode == 'exam' %}Your Exam Timetable <span class="view-indicator exam">EXAM MODE</span>
+          {% elif view_mode == 'resit' %}Your Resit Timetable <span class="view-indicator exam" style="background-color: #ff7b00;">RESIT MODE</span>
+          {% elif view_mode == 'lab' %}Your Lab Timetable <span class="view-indicator lab">LAB MODE</span>
+          {% elif view_mode == 'lab_exam' %}Your Lab Exam Timetable <span class="view-indicator lab">LAB EXAM MODE</span>
+          {% elif view_mode == 'odel' %}Your ODEL Timetable <span class="view-indicator odel">ODEL MODE</span>
+          {% elif view_mode == 'odel_exam' %}Your ODEL Exam Timetable <span class="view-indicator odel">ODEL EXAM MODE</span>
+          {% elif view_mode == 'campus' %}Your Campus Timetable <span class="view-indicator campus">CAMPUS MODE</span>
+          {% elif view_mode == 'campus_exam' %}Your Campus Exam Timetable <span class="view-indicator campus">CAMPUS EXAM MODE</span>
+          {% else %}Your Regular Timetable <span class="view-indicator regular">REGULAR MODE</span>
+          {% endif %}
+        </h2>
+
+        <!-- View Toggles Row -->
+        <div class="view-toggle">
+          <a href="?view=regular{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'regular' %}active{% endif %}">Regular</a>
+          <a href="?view=exam{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'exam' %}active{% endif %}">Exam</a>
+          <a href="?view=resit{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'resit' %}active{% endif %}">Resit Exam</a>
+          <a href="?view=lab{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'lab' %}active{% endif %}">Lab</a>
+          <a href="?view=lab_exam{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'lab_exam' %}active{% endif %}">Lab Exam</a>
+          <a href="?view=odel{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'odel' %}active{% endif %}">ODEL</a>
+          <a href="?view=odel_exam{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'odel_exam' %}active{% endif %}">ODEL Exam</a>
+          <a href="?view=campus{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'campus' %}active{% endif %}">Campus</a>
+          <a href="?view=campus_exam{% if search_query %}&course_code={{ search_query }}{% endif %}" class="toggle-btn {% if view_mode == 'campus_exam' %}active{% endif %}">Campus Exam</a>
+        </div>
+
+        <!-- Timetable Search Bar Form -->
+        <form method="get" class="timetable-search">
+          <input type="text" name="course_code" placeholder="Search by course code" value="{{ search_query }}">
+          <input type="hidden" name="view" value="{{ view_mode }}">
+          <button type="submit">Search</button>
+        </form>
+
+        <!-- 1. EXAM MODE TIMETABLE VIEW -->
+        {% if view_mode == 'exam' %}
+          {% if exam_days %}
+            {% for day in exam_days %}
+              <div class="day-timetable">
+                <h3 class="exam-day-title">
+                  {{ day.day_name }} - {{ day.date_display }}
+                  {% if day.has_merged or day.has_shared %}
+                    <span class="view-indicator exam" style="font-size:0.7rem;margin-left:10px;">
+                      {% if day.has_merged %}MERGED{% endif %}
+                      {% if day.has_merged and day.has_shared %} & {% endif %}
+                      {% if day.has_shared %}SHARED{% endif %}
+                    </span>
+                  {% endif %}
+                </h3>
+                <div class="table-wrapper">
+                  <table class="timetable exam-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr class="{% if row.is_merged or row.is_shared %}merged-row{% endif %}">
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell {% if cell.is_merged or cell.is_shared %}merged-cell{% endif %}">
+                                {% if cell.type == "regular" %}
+                                  {{ cell.course_code }} - {{ cell.course_name }}
+                                  <div class="exam-meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>Students: {{ cell.students }}</div>
+                                {% elif cell.type == "merged" %}
+                                  <strong>MERGED GROUP</strong><span class="exam-badge merged-badge">Merged</span>
+                                  <div class="merged-meta">Venue: {{ cell.venue }}<br>Total Students: {{ cell.total_students }}</div>
+                                  <ul class="courses-list">{% for course in cell.courses %}<li>{{ course.code }} - {{ course.lecturer }} ({{ course.students }} students)</li>{% endfor %}</ul>
+                                {% elif cell.type == "shared" %}
+                                  <strong>SHARED VENUE</strong><span class="exam-badge shared-badge">Shared</span>
+                                  <div class="exam-meta">Venue: {{ cell.venue }}<br>Total Students: {{ cell.total_students }}</div>
+                                  <ul class="courses-list">{% for course in cell.courses %}<li>{{ course.code }} - {{ course.program }} ({{ course.students }} students)</li>{% endfor %}</ul>
+                                {% endif %}
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No exam timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 2. RESIT EXAM MODE VIEW -->
+        {% elif view_mode == 'resit' %}
+          {% if resit_days %}
+            {% for day in resit_days %}
+              <div class="day-timetable">
+                <h3 class="exam-day-title" style="border-left: 4px solid #ff7b00;">
+                  {{ day.day_name }} - {{ day.date_display }}
+                  {% if day.has_merged %}
+                    <span class="view-indicator exam" style="font-size:0.7rem;margin-left:10px;background-color:#ff7b00;">MERGED</span>
+                  {% endif %}
+                </h3>
+                <div class="table-wrapper">
+                  <table class="timetable exam-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr class="{% if row.is_merged %}merged-row{% endif %}">
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell {% if cell.is_merged %}merged-cell{% endif %}">
+                                {% if cell.type == "regular" %}
+                                  <strong>{{ cell.course_code }}</strong> - {{ cell.course_name }}
+                                  <div class="exam-meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>Students: {{ cell.students }}</div>
+                                {% elif cell.type == "merged" %}
+                                  <strong>MERGED RESIT GROUP</strong><span class="exam-badge merged-badge" style="background-color:#ff7b00;">Merged</span>
+                                  <div class="merged-meta">Venue: {{ cell.venue }}<br>Total Students: {{ cell.total_students }}</div>
+                                  <ul class="courses-list">
+                                    {% for course in cell.courses %}
+                                      <li>{{ course.code }} - {{ course.lecturer }} ({{ course.students }} students)</li>
+                                    {% endfor %}
+                                  </ul>
+                                {% endif %}
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No resit timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 3. LAB TIMETABLE VIEW -->
+        {% elif view_mode == 'lab' %}
+          {% if lab_days %}
+            {% for day in lab_days %}
+              <div class="day-timetable">
+                <h3 class="day-title">{{ day.name }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable day-table">
+                    <thead>
+                      <tr>
+                        <th>Lab / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>{{ cell.start_time }} - {{ cell.end_time }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No lab timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 4. LAB EXAM TIMETABLE VIEW -->
+        {% elif view_mode == 'lab_exam' %}
+          {% if lab_exam_days %}
+            {% for day in lab_exam_days %}
+              <div class="day-timetable">
+                <h3 class="exam-day-title">{{ day.day_name }} - {{ day.date_display }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable exam-table">
+                    <thead>
+                      <tr>
+                        <th>Lab / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="exam-meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>Students: {{ cell.students }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No lab exam timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 5. ODEL TIMETABLE VIEW -->
+        {% elif view_mode == 'odel' %}
+          {% if odel_days %}
+            {% for day in odel_days %}
+              <div class="day-timetable">
+                <h3 class="day-title">{{ day.name }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable day-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>{{ cell.start_time }} - {{ cell.end_time }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No ODEL timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 6. ODEL EXAM TIMETABLE VIEW -->
+        {% elif view_mode == 'odel_exam' %}
+          {% if odel_exam_days %}
+            {% for day in odel_exam_days %}
+              <div class="day-timetable">
+                <h3 class="exam-day-title">{{ day.day_name }} - {{ day.date_display }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable exam-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="exam-meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>Students: {{ cell.students }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No ODEL exam timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 7. CAMPUS TIMETABLE VIEW -->
+        {% elif view_mode == 'campus' %}
+          {% if campus_days %}
+            {% for day in campus_days %}
+              <div class="day-timetable">
+                <h3 class="day-title">{{ day.name }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable day-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>{{ cell.start_time }} - {{ cell.end_time }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No campus timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 8. CAMPUS EXAM TIMETABLE VIEW -->
+        {% elif view_mode == 'campus_exam' %}
+          {% if campus_exam_days %}
+            {% for day in campus_exam_days %}
+              <div class="day-timetable">
+                <h3 class="exam-day-title">{{ day.day_name }} - {{ day.date_display }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable exam-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr>
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell">
+                                {{ cell.course_code }} - {{ cell.course_name }}
+                                <div class="exam-meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>Students: {{ cell.students }}</div>
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No campus exam timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+
+        <!-- 9. BASE REGULAR TIMETABLE FALLBACK VIEW -->
+        {% else %}
+          {% if days %}
+            {% for day in days %}
+              <div class="day-timetable">
+                <h3 class="day-title">{{ day.name }}</h3>
+                <div class="table-wrapper">
+                  <table class="timetable day-table">
+                    <thead>
+                      <tr>
+                        <th>Venue / Time</th>
+                        {% for slot in day.timeslots %}<th>{{ slot.0 }} - {{ slot.1 }}</th>{% endfor %}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for row in day.rows %}
+                        <tr class="{% if row.is_merged %}merged-row{% endif %}">
+                          <td class="venue-cell"><strong>{{ row.venue }}</strong></td>
+                          {% for cell in row.cells %}
+                            {% if cell %}
+                              <td class="course-cell {% if cell.is_merged %}merged-cell{% endif %}">
+                                {% if cell.type == "regular" %}
+                                  {{ cell.course_code }} - {{ cell.course_name }}
+                                  <div class="meta">{{ cell.lecturer }}<br>{{ cell.program }}<br>{{ cell.start_time }} - {{ cell.end_time }}</div>
+                                {% elif cell.type == "merged" %}
+                                  <strong>MERGED GROUP</strong><span class="badge merged-badge">Merged</span>
+                                  <div class="merged-meta">Venue: {{ cell.venue }}<br>{{ cell.start_time }} - {{ cell.end_time }}<br>Total Students: {{ cell.total_students }}</div>
+                                  <ul class="courses-list">{% for course in cell.courses %}<li>{{ course.code }} - {{ course.lecturer }} ({{ course.students }} students)</li>{% endfor %}</ul>
+                                {% endif %}
+                              </td>
+                            {% else %}
+                              <td class="course-cell">-</td>
+                            {% endif %}
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-state">
+              <p>No timetable entries found{% if search_query %} for "<strong>{{ search_query }}</strong>"{% endif %}.</p>
+            </div>
+          {% endif %}
+        {% endif %}
+
+        <!-- Unscheduled Courses Subsection Frame -->
+        {% if has_unscheduled and view_mode == 'regular' %}
+          <div class="unscheduled-section" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <h3 style="color: var(--primary-dark); margin-bottom: 1rem;"> Unscheduled Courses</h3>
+            <div class="table-wrapper">
+              <table class="timetable">
+                <thead>
+                  <tr>
+                    <th>Course Code</th>
+                    <th>Course Name</th>
+                    <th>Lecturer</th>
+                    <th>Program</th>
+                    <th>Department</th>
+                    <th>Students</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for course in unscheduled_courses %}
+                    <tr>
+                      <td>{{ course.course_code }}</td>
+                      <td>{{ course.course_name }}</td>
+                      <td>{{ course.lecturer.name|default:"Unassigned" }}</td>
+                      <td>{{ course.program.name|default:"N/A" }}</td>
+                      <td>{{ course.department.name|default:"N/A" }}</td>
+                      <td>{{ course.number_of_students|default:"0" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </main>
+
+    <!-- Footer System Section -->
+    <footer class="dashboard-footer">
+      <p>&copy; {% now "Y" %} Timetabling System. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- INTERACTIVE SYSTEM SCRIPT LAYERS -->
+  <script>
+    function toggleNotifModal() {
+      var overlay = document.getElementById('notifOverlay');
+      if (overlay.classList.contains('open')) {
+        overlay.classList.remove('open');
+      } else {
+        overlay.classList.add('open');
+        var badge = document.getElementById('notifCountBadge');
+        if (badge) { badge.classList.add('hidden'); }
+      }
+    }
+
+    document.getElementById('notifOverlay').addEventListener('click', function(e) {
+      if (e.target === this) { toggleNotifModal(); }
+    });
+  </script>
+</body>
+</html>

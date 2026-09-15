@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Which allocation? — {{ department.name }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background:#eef2ef; margin:0; padding:32px; color:#1a1a1a; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color:#555; margin-bottom: 24px; }
+    .card {
+      background:#fff; border:1px solid #d8dfd9; border-radius:10px;
+      padding:16px 18px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .card .name { font-weight:600; }
+    .card .meta { color:#666; font-size:13px; margin-top:2px; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:12px; margin-right:6px; }
+    .badge-draft { background:#fff3cd; color:#7a5b00; }
+    .badge-tt { background:#d7ecff; color:#0b5fa5; }
+    .badge-dvc { background:#e6d9ff; color:#5a2ea6; }
+    .badge-special { background:#ffe0e0; color:#a30000; }
+    .btn {
+      display:inline-block; padding:8px 16px; border-radius:6px; border:none;
+      background:#2e7d4f; color:#fff; text-decoration:none; font-size:14px; cursor:pointer;
+    }
+    .btn-ghost { background:transparent; color:#2e7d4f; border:1px solid #2e7d4f; }
+    .create-box { margin-top: 28px; padding-top: 20px; border-top: 1px solid #d8dfd9; text-align:center; }
+    .empty { color:#777; padding: 20px 0; }
+    .messages { margin-bottom: 16px; }
+    .messages li { list-style:none; background:#fff3cd; padding:8px 12px; border-radius:6px; margin-bottom:6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Which allocation are you editing?</h1>
+    <div class="sub">{{ department.name }}</div>
+
+    {% if messages %}
+      <ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if allocation_sets %}
+      {% for aset in allocation_sets %}
+        <div class="card">
+          <div>
+            <div class="name">{{ aset.name }}</div>
+            <div class="meta">
+              {{ aset.label }}{% if aset.academic_year %} · {{ aset.academic_year }}{% endif %}
+              {% if aset.is_special %}<span class="badge badge-special">Special</span>{% endif %}
+              {% if aset.status == "draft" %}<span class="badge badge-draft">Draft</span>{% endif %}
+              {% if aset.status == "submitted_tt" %}<span class="badge badge-tt">Submitted to TT</span>{% endif %}
+              {% if aset.status == "submitted_dvc" %}<span class="badge badge-dvc">Submitted to DVC</span>{% endif %}
+            </div>
+          </div>
+          <form method="post" action="{% url 'switch_allocation_set' %}">
+            <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+            <input type="hidden" name="allocation_set_id" value="{{ aset.id }}">
+            <input type="hidden" name="next" value="{{ next_url }}">
+            <button type="submit" class="btn">Open</button>
+          </form>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">No allocations yet for this department.</div>
+    {% endif %}
+
+    <div class="create-box">
+      <a class="btn btn-ghost" href="{% url 'create_allocation_step1' %}{% if next_url %}?next={{ next_url|urlencode }}{% endif %}">+ Create a new allocation</a>
+    </div>
+  </div>
+</body>
+</html>

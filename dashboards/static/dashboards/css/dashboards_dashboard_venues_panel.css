@@ -1,0 +1,12 @@
+/*
+ * dashboards_dashboard_venues_panel.css
+ * All styles now consolidated in venues_panel.css
+ * This file intentionally minimal to avoid duplication.
+ */
+
+/* Override any stale workspace_unified navy — enforce green */
+.header:not(.dash-topbar):not(.panel-header) {
+  background: var(--green-900, #002b20) !important;
+  color: #fff !important;
+}
+.header h1 { color: #fff !important; }

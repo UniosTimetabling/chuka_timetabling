@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}sudo-body{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_admins_sudo_base.css' %}">
+<link rel="stylesheet" href="{% static 'admins/css/admins_sudo_base.css' %}">
+{% block sudo_css %}{% endblock %}
+<link rel="stylesheet" href="{% static 'admins/css/workspace_unified.css' %}">
+<style>
+/* ── Sudo Layout ── */
+body.sudo-body { font-family: 'Inter', Arial, sans-serif; background: #f5f7fc; color: #1a2e4a; margin: 0; padding: 0; }
+
+/* Top navbar - always visible */
+.sudo-topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 52px; background: #0b1f4a;
+  display: flex; align-items: center;
+  padding: 0 1.2rem; gap: 12px; z-index: 400;
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+.sudo-topbar .menu-btn {
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  color: #fff; font-size: 15px; width: 34px; height: 34px;
+  border-radius: 6px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background .2s;
+}
+.sudo-topbar .menu-btn:hover { background: rgba(255,255,255,.22); }
+.sudo-topbar .topbar-logo { display: flex; align-items: center; gap: 9px; }
+.sudo-topbar .topbar-logo img { height: 26px; border-radius: 4px; }
+.sudo-topbar .topbar-title { color: #fff; font-weight: 700; font-size: .88rem; }
+.sudo-topbar .topbar-sub { color: rgba(255,255,255,.45); font-size: .7rem; display: block; }
+.sudo-topbar .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.sudo-topbar .topbar-user { color: rgba(255,255,255,.65); font-size: .78rem; }
+.sudo-topbar .topbar-logout {
+  color: rgba(255,255,255,.65); font-size: .78rem; text-decoration: none;
+  border: 1px solid rgba(255,255,255,.22); padding: .28rem .75rem; border-radius: 5px;
+  transition: all .2s;
+}
+.sudo-topbar .topbar-logout:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+/* Layout wrapper - accounts for fixed topbar */
+.sudo-layout {
+  display: flex; min-height: 100vh;
+  padding-top: 52px; /* offset for fixed topbar */
+}
+
+/* Sidebar */
+.sudo-sidebar {
+  width: 230px; min-width: 230px; background: #0d2252;
+  display: flex; flex-direction: column;
+  position: sticky; top: 52px;
+  height: calc(100vh - 52px); overflow-y: auto;
+   flex-shrink: 0;
+}
+.sudo-sidebar::-webkit-scrollbar { width: 4px; }
+.sudo-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+.sudo-sidebar-inner { display: flex; flex-direction: column; padding: .6rem 0 1.5rem; flex: 1; }
+
+/* Nav labels */
+.sudo-nav-label {
+  font-size: .65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .1em; color: rgba(255,255,255,.32);
+  padding: .85rem 1.1rem .3rem; margin-top: .2rem;
+}
+
+/* Nav links - no border-left accent */
+.sudo-nav-link {
+  display: flex; align-items: center; gap: 9px;
+  padding: .52rem 1.1rem; margin: 1px 6px; border-radius: 6px;
+  color: rgba(255,255,255,.7); text-decoration: none;
+  font-size: .83rem; font-weight: 500; transition: all .15s;
+}
+.sudo-nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+.sudo-nav-link.active { background: rgba(244,124,32,.2); color: #ffad60; font-weight: 600; }
+.sudo-nav-link i { width: 16px; text-align: center; font-size: .84rem; opacity: .8; flex-shrink: 0; }
+.sudo-nav-badge {
+  margin-left: auto; background: rgba(244,124,32,.3);
+  color: #ffa048; font-size: .62rem; font-weight: 700;
+  padding: .13rem .45rem; border-radius: 999px;
+}
+.sudo-nav-link.danger { color: rgba(255,110,110,.75); }
+.sudo-nav-link.danger:hover { background: rgba(255,80,80,.1); color: #ff7070; }
+.sudo-sidebar-divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: .6rem .8rem; }
+
+/* Main content */
+.sudo-main { flex: 1; padding: 1.6rem 1.8rem; background: #f5f7fc; overflow-x: hidden; min-width: 0; }
+
+/* Breadcrumb */
+.sudo-breadcrumb { font-size: .8rem; color: #9aa3b8; margin-bottom: 1.2rem; }
+.sudo-breadcrumb a { color: #6b80b8; text-decoration: none; }
+.sudo-breadcrumb a:hover { text-decoration: underline; }
+
+/* Alerts */
+.sudo-alert { padding: .75rem 1rem; border-radius: 7px; margin-bottom: .5rem; font-size: .88rem; }
+.sudo-alert-error { background: #fde8e8; color: #c62828; border: 1px solid #f5c6c6; }
+.sudo-alert-success { background: #e8f5e9; color: #1b7e3a; border: 1px solid #c3e6cb; }
+.sudo-alert-warning { background: #fff3e0; color: #b35400; border: 1px solid #ffe0b2; }
+.sudo-alert-info { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+
+/* Mobile sidebar overlay */
+.sudo-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 350; }
+.sudo-overlay.open { display: block; }
+
+/* Mobile */
+@media(max-width: 860px) {
+  .sudo-sidebar {
+    position: fixed; left: -240px; top: 52px; bottom: 0;
+    height: calc(100vh - 52px); z-index: 380; transition: left .25s;
+    width: 235px; min-width: 235px;
+  }
+  .sudo-sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,.3); }
+  .sudo-main { padding: 1.1rem 1rem; }
+  .sudo-layout { flex-direction: column; }
+}
+</style>
+{% endblock page_css %}
+
+{% block robots %}noindex, nofollow{% endblock %}
+{% block navbar %}{% endblock navbar %}
+
+{% block content %}
+<!-- Fixed Top Navbar (always visible) -->
+<header class="sudo-topbar">
+  <button class="menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="topbar-logo">
+    <img src="{% url 'site_logo' %}" alt="Logo" onerror="this.style.display='none'">
+    <div>
+      <span class="topbar-title">{{ site_settings.university_name|default:"Chuka University" }}</span>
+      <span class="topbar-sub">Admin Panel</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    {% if request.user.is_authenticated %}
+    <span class="topbar-user">{{ request.user.get_full_name|default:request.user.username }}</span>
+    {% endif %}
+    <a href="{% url 'logout' %}" class="topbar-logout">Logout</a>
+  </div>
+</header>
+<div class="sudo-overlay" id="sidebarOverlay"></div>
+
+<div class="sudo-layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sudo-sidebar" id="sudoSidebar" role="navigation" aria-label="Admin navigation">
+    <div class="sudo-sidebar-inner">
+
+      {% block sidebar_links %}
+      <!-- MAIN -->
+      <div class="sudo-nav-label">Main</div>
+      <a href="{% url 'sudo_homepage' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_homepage' %}active{% endif %}">
+        <i class="fas fa-home"></i> Home Dashboard
+      </a>
+      <a href="{% url 'sudo_dashboard' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_dashboard' %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i> Main Admin Panel
+      </a>
+      <a href="{% url 'analysis_dashboard' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'analysis_dashboard' %}active{% endif %}">
+        <i class="fas fa-chart-bar"></i> Analytics
+      </a>
+
+      <!-- USER MANAGEMENT -->
+      <hr class="sudo-sidebar-divider">
+      <div class="sudo-nav-label">User Management</div>
+      <a href="{% url 'sudo_manage_accounts' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_manage_accounts' %}active{% endif %}">
+        <i class="fas fa-users"></i> All Accounts
+      </a>
+      <a href="{% url 'reset_dean_credentials' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'reset_dean_credentials' %}active{% endif %}">
+        <i class="fas fa-user-graduate"></i> Deans &amp; Admins
+      </a>
+      <a href="{% url 'sudo_manage_dvc' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_manage_dvc' %}active{% endif %}">
+        <i class="fas fa-user-tie"></i> DVC Accounts
+      </a>
+      <a href="{% url 'cod_management' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'cod_management' %}active{% endif %}">
+        <i class="fas fa-chalkboard-teacher"></i> CODs (Heads of Dept)
+      </a>
+      <a href="{% url 'manage_cot_user' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'manage_cot_user' %}active{% endif %}">
+        <i class="fas fa-clipboard-list"></i> Exam Board Users
+      </a>
+      <a href="{% url 'admin_bulk_reset_password' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'admin_bulk_reset_password' %}active{% endif %}">
+        <i class="fas fa-key"></i> Bulk Password Reset
+        <span class="sudo-nav-badge">SUDO</span>
+      </a>
+
+      <!-- TIMETABLE -->
+      <hr class="sudo-sidebar-divider">
+      <div class="sudo-nav-label">Timetable</div>
+      <a href="{% url 'manage_timetable' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'manage_timetable' %}active{% endif %}">
+        <i class="fas fa-calendar-alt"></i> Manage Timetables
+      </a>
+      <a href="{% url 'auto_allocate_all_page' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'auto_allocate_all_page' %}active{% endif %}">
+        <i class="fas fa-magic"></i> Auto Allocation
+      </a>
+      <a href="{% url 'timetable_dashboard' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'timetable_dashboard' %}active{% endif %}">
+        <i class="fas fa-desktop"></i> Timetable Dashboard
+      </a>
+
+      <!-- ACADEMIC -->
+      <hr class="sudo-sidebar-divider">
+      <div class="sudo-nav-label">Academic</div>
+      <a href="{% url 'programs_page' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'programs_page' %}active{% endif %}">
+        <i class="fas fa-book"></i> Programs
+      </a>
+      <a href="{% url 'smart-import_export' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'smart-import_export' %}active{% endif %}">
+        <i class="fas fa-file-import"></i> Import/Export Data
+      </a>
+      <a href="{% url 'sudo_smart_import' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_smart_import' %}active{% endif %}" style="color:#7ec8f7">
+        <i class="fas fa-robot"></i> AI Smart Importer
+        <span class="sudo-nav-badge" style="background:#1a56db">AI</span>
+      </a>
+      <a href="{% url 'course_allocations_page' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'course_allocations_page' %}active{% endif %}">
+        <i class="fas fa-tasks"></i> Course Allocations
+      </a>
+      <a href="{% url 'venues_panel' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'venues_panel' %}active{% endif %}">
+        <i class="fas fa-door-open"></i> Venues &amp; Rooms
+      </a>
+
+      <!-- BACKUP & RECOVERY -->
+      <hr class="sudo-sidebar-divider">
+      <div class="sudo-nav-label">Backup &amp; Recovery</div>
+      <a href="{% url 'backup_system:dashboard' %}" class="sudo-nav-link {% if request.resolver_match.app_name == 'backup_system' %}active{% endif %}">
+        <i class="fas fa-database"></i> Backup Management
+      </a>
+      <a href="{% url 'backup_system:history' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'history' and request.resolver_match.app_name == 'backup_system' %}active{% endif %}">
+        <i class="fas fa-history"></i> Backup History
+      </a>
+      <a href="{% url 'backup_system:dr_dashboard' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'dr_dashboard' %}active{% endif %}">
+        <i class="fas fa-shield-alt"></i> Disaster Recovery
+      </a>
+      <a href="{% url 'backup_system:audit_log' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'audit_log' %}active{% endif %}">
+        <i class="fas fa-clipboard-check"></i> Audit &amp; Undo
+        <span class="sudo-nav-badge">SUDO</span>
+      </a>
+
+      <!-- SYSTEM -->
+      <hr class="sudo-sidebar-divider">
+      <div class="sudo-nav-label">System</div>
+      <a href="/admin/" class="sudo-nav-link">
+        <i class="fas fa-cog"></i> Django Admin
+      </a>
+      <a href="{% url 'sudo_ai_settings' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sudo_ai_settings' %}active{% endif %}">
+        <i class="fas fa-microchip"></i> AI Settings
+      </a>
+      <a href="{% url 'sync_settings' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'sync_settings' or request.resolver_match.url_name == 'sync_run_detail' %}active{% endif %}">
+        <i class="fas fa-sync-alt"></i> Host/Remote Sync
+      </a>
+      <a href="{% url 'feedback_panel' %}" class="sudo-nav-link {% if request.resolver_match.url_name == 'feedback_panel' %}active{% endif %}">
+        <i class="fas fa-comment-dots"></i> Feedback
+      </a>
+      <a href="/documentation/home/" class="sudo-nav-link">
+        <i class="fas fa-book-open"></i> Documentation
+      </a>
+
+      <!-- LOGOUT -->
+      <hr class="sudo-sidebar-divider">
+      <a href="{% url 'logout' %}" class="sudo-nav-link danger">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+      {% endblock sidebar_links %}
+
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="sudo-main" id="main-content" role="main">
+    <div class="sudo-breadcrumb">
+      {% block breadcrumb %}
+      <a href="{% url 'sudo_homepage' %}">Home</a> &rsaquo;
+      <span>{% block breadcrumb_current %}Admin{% endblock %}</span>
+      {% endblock breadcrumb %}
+    </div>
+
+    {% if messages %}
+    <div style="margin-bottom:1rem;">
+      {% for msg in messages %}
+      <div class="sudo-alert sudo-alert-{{ msg.tags }}">
+        {{ msg|escape }}
+        <button onclick="this.parentNode.remove()" style="float:right;background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;">&times;</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block sudo_content %}{% endblock sudo_content %}
+    {% block content_body %}{% endblock %}
+  </main>
+
+</div>
+{% endblock content %}
+
+{% block footer %}{% endblock footer %}
+
+{% block extra_js %}
+{% block sudo_js %}{% endblock sudo_js %}
+<script>
+(function(){
+  const btn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sudoSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+})();
+</script>
+{% endblock extra_js %}

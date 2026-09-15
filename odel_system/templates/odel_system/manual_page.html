@@ -1,0 +1,367 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}ODEL Timetable Management - Manual Scheduling{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'odel_system/css/odel_system_odel_system_manual_page.css' %}">
+<link rel="stylesheet" href="{% static 'odel_system/css/odel_manual.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+  <div class="loading-card">
+    <h2 class="loading-title">ODEL Timetable Management</h2>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar" style="width:0%"></div>
+    </div>
+    <div class="loading-message" id="loadingMessage">Initializing...</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="mainContent" style="opacity:0; transition:opacity 0.4s ease;">
+
+  <div class="container">
+
+    <!-- ══════════════════════════
+         LEFT PANEL
+    ══════════════════════════ -->
+    <div class="left-panel">
+
+      <!-- Mode Tabs -->
+      <div class="tab-container">
+        <button class="tab active" data-mode="class" onclick="switchMode('class')">Class Scheduling</button>
+        <button class="tab"        data-mode="exam"  onclick="switchMode('exam')">Exam Scheduling</button>
+      </div>
+
+      <!-- Add Entry form -->
+      <div class="left-panel-body">
+        <div class="left-panel-section-head">Add Timetable Entry</div>
+
+        <form id="timetableForm" style="margin-top:8px;">
+          {% csrf_token %}
+          <input type="hidden" name="type" id="entryType" value="class">
+
+          <div class="form-group">
+            <label>Course Allocation</label>
+            <select name="course_allocation" id="allocationSelect" required>
+              <option value="">Select a course...</option>
+              {% for alloc in available_allocations %}
+              <option value="{{ alloc.id }}" data-students="{{ alloc.number_of_students }}">
+                {{ alloc.course_code }} - {{ alloc.course_name }} ({{ alloc.lecturer|default:'Unassigned' }}) — {{ alloc.number_of_students }} students
+              </option>
+              {% empty %}
+              <option value="" disabled>No allocations available</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Venue</label>
+            <select name="venue" id="venueSelect" required>
+              <option value="">Select a venue...</option>
+              {% for venue in venues %}
+              <option value="{{ venue.id }}" data-capacity="{{ venue.capacity }}">
+                {{ venue.code }} (Cap: {{ venue.capacity }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" name="date" id="dateSelect" required
+              min="{{ config.start_date|date:'Y-m-d' }}"
+              max="{{ config.end_date|date:'Y-m-d' }}"
+              value="{{ config.start_date|date:'Y-m-d' }}">
+          </div>
+
+          <div class="form-group">
+            <label>Time Slot</label>
+            <select name="slot" id="slotSelect" required>
+              <option value="">Select a time slot...</option>
+            </select>
+          </div>
+
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-success" id="submitBtn">Save Entry</button>
+            <button type="button" class="btn btn-info"    id="checkAvailabilityBtn">Check Availability</button>
+          </div>
+        </form>
+
+        <div id="availabilityResult" style="display:none;" class="message"></div>
+      </div><!-- /left-panel-body -->
+
+      <!-- Scheduling Period -->
+      <div class="left-panel-body">
+        <div class="left-panel-section-head">Scheduling Period</div>
+        <div class="info-box" style="margin-top:6px;">
+          <strong>{{ config.start_date|date:'d M Y' }}</strong> to <strong>{{ config.end_date|date:'d M Y' }}</strong><br>
+          Daily: {{ config.day_start_time|time:'H:i' }} – {{ config.day_end_time|time:'H:i' }}
+        </div>
+      </div>
+
+      {% if can_clear_timetable %}
+      <!-- Clear actions -->
+      <div class="left-panel-body">
+        <div class="left-panel-section-head">Clear Timetable</div>
+        <div class="action-buttons" style="margin-top:6px;">
+          <button class="btn btn-warning" onclick="clearTimetable('class')">Clear Class</button>
+          <button class="btn btn-warning" onclick="clearTimetable('exam')">Clear Exam</button>
+          <button class="btn btn-danger"  onclick="clearTimetable('both')">Clear All</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Configuration -->
+      <div class="left-panel-body">
+        <div class="left-panel-section-head">Configuration</div>
+        <form id="configForm" style="margin-top:8px;">
+          {% csrf_token %}
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" name="start_date" id="startDate" value="{{ config.start_date|date:'Y-m-d' }}" required>
+            </div>
+            <div class="form-group">
+              <label>End Date</label>
+              <input type="date" name="end_date" id="endDate" value="{{ config.end_date|date:'Y-m-d' }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Day Start</label>
+              <input type="time" name="day_start_time" id="dayStartTime" value="{{ config.day_start_time|time:'H:i' }}" required>
+            </div>
+            <div class="form-group">
+              <label>Day End</label>
+              <input type="time" name="day_end_time" id="dayEndTime" value="{{ config.day_end_time|time:'H:i' }}" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Class Slots/Day</label>
+              <input type="number" name="class_slot_size" id="classSlotSize" value="{{ config.class_slot_size }}" min="1" max="10" required>
+            </div>
+            <div class="form-group">
+              <label>Exam Slots/Day</label>
+              <input type="number" name="exam_slot_size" id="examSlotSize" value="{{ config.exam_slot_size }}" min="1" max="10" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Exam Break Duration</label>
+            <select name="exam_break_duration" id="examBreakDuration">
+              <option value="30"  {% if config.exam_break_duration == 30  %}selected{% endif %}>30 minutes</option>
+              <option value="60"  {% if config.exam_break_duration == 60  %}selected{% endif %}>1 hour</option>
+              <option value="90"  {% if config.exam_break_duration == 90  %}selected{% endif %}>1.5 hours</option>
+              <option value="120" {% if config.exam_break_duration == 120 %}selected{% endif %}>2 hours</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-success" style="width:100%;justify-content:center;">
+            Update Configuration
+          </button>
+        </form>
+      </div><!-- /left-panel-body -->
+
+      <!-- Summary -->
+      <div class="left-panel-body summary-section">
+        <div class="left-panel-section-head">Summary</div>
+        <div class="summary-stats" style="margin-top:6px;">
+          <div class="stat-card">
+            <div class="stat-value" id="classCount">{{ class_timetable|length }}</div>
+            <div class="stat-label">Class Entries</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="examCount">{{ exam_timetable|length }}</div>
+            <div class="stat-label">Exam Entries</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-panel -->
+
+
+    <!-- ══════════════════════════
+         RIGHT PANEL — TABLE
+    ══════════════════════════ -->
+    <div class="right-panel">
+
+      <h2 id="timetableTitle">Class Timetable</h2>
+
+      <!-- CLASS TABLE -->
+      <div id="classTimetableView" class="timetable-container">
+        {% if class_timetable %}
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Time</th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Lecturer</th>
+              <th>Venue</th>
+              <th>Students</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% regroup class_timetable by date as class_days %}
+            {% for day in class_days %}
+            <tr class="day-group-row">
+              <td colspan="9">{{ day.grouper|date:'l, d F Y' }}</td>
+            </tr>
+            {% for entry in day.list %}
+            <tr>
+              <td>{{ entry.date|date:'d M Y' }}</td>
+              <td>{{ entry.date|date:'D' }}</td>
+              <td style="white-space:nowrap;">{{ entry.start_time|time:'H:i' }} – {{ entry.end_time|time:'H:i' }}</td>
+              <td><strong>{{ entry.course_code }}</strong></td>
+              <td>{{ entry.course_name }}</td>
+              <td>{{ entry.lecturer|default:'—' }}</td>
+              <td>{{ entry.venue }}</td>
+              <td style="text-align:center;">{{ entry.students }}</td>
+              <td style="text-align:center;">
+                <button class="btn-del" onclick="deleteEntry({{ entry.id }}, 'class')">Delete</button>
+              </td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="timetable-empty">No class entries yet. Add one using the form.</div>
+        {% endif %}
+      </div><!-- /classTimetableView -->
+
+      <!-- EXAM TABLE -->
+      <div id="examTimetableView" class="timetable-container" style="display:none;">
+        {% if exam_timetable %}
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Time</th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Lecturer</th>
+              <th>Venue</th>
+              <th>Students</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% regroup exam_timetable by date as exam_days %}
+            {% for day in exam_days %}
+            <tr class="day-group-row">
+              <td colspan="9">{{ day.grouper|date:'l, d F Y' }}</td>
+            </tr>
+            {% for entry in day.list %}
+            <tr>
+              <td>{{ entry.date|date:'d M Y' }}</td>
+              <td>{{ entry.date|date:'D' }}</td>
+              <td style="white-space:nowrap;">{{ entry.start_time|time:'H:i' }} – {{ entry.end_time|time:'H:i' }}</td>
+              <td><strong>{{ entry.course_code }}</strong></td>
+              <td>{{ entry.course_name }}</td>
+              <td>{{ entry.lecturer|default:'—' }}</td>
+              <td>{{ entry.venue }}</td>
+              <td style="text-align:center;">{{ entry.students }}</td>
+              <td style="text-align:center;">
+                <button class="btn-del" onclick="deleteEntry({{ entry.id }}, 'exam')">Delete</button>
+              </td>
+            </tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="timetable-empty">No exam entries yet.</div>
+        {% endif %}
+      </div><!-- /examTimetableView -->
+
+    </div><!-- /right-panel -->
+
+  </div><!-- /container -->
+</div><!-- /mainContent -->
+
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/* ── Mode switch ── */
+function switchMode(mode) {
+  document.getElementById('entryType').value = mode;
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.mode === mode)
+  );
+  document.getElementById('classTimetableView').style.display = mode === 'class' ? '' : 'none';
+  document.getElementById('examTimetableView').style.display  = mode === 'exam'  ? '' : 'none';
+  document.getElementById('timetableTitle').textContent =
+    mode === 'class' ? 'Class Timetable' : 'Exam Timetable';
+  populateSlots();
+}
+
+/* ── Populate time slots ── */
+function populateSlots() {
+  const sel  = document.getElementById('slotSelect');
+  const mode = document.getElementById('entryType').value;
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select a time slot...</option>';
+
+  const sh = parseInt("{{ config.day_start_time|time:'H' }}", 10);
+  const sm = parseInt("{{ config.day_start_time|time:'i' }}", 10);
+  const eh = parseInt("{{ config.day_end_time|time:'H' }}", 10);
+  const em = parseInt("{{ config.day_end_time|time:'i' }}", 10);
+  const n  = parseInt(mode === 'exam' ? "{{ config.exam_slot_size }}" : "{{ config.class_slot_size }}", 10);
+
+  const total    = (eh * 60 + em) - (sh * 60 + sm);
+  const slotMins = Math.floor(total / n);
+  const fmt = m => String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+
+  for (let i = 0; i < n; i++) {
+    const s = sh*60+sm + i*slotMins;
+    const e = s + slotMins;
+    const o = document.createElement('option');
+    o.value       = fmt(s) + '-' + fmt(e);
+    o.textContent = fmt(s) + ' – ' + fmt(e);
+    sel.appendChild(o);
+  }
+}
+
+/* ── Loading sequence ── */
+(function init() {
+  const bar = document.getElementById('progressBar');
+  const msg = document.getElementById('loadingMessage');
+  const mc  = document.getElementById('mainContent');
+  const ol  = document.getElementById('loadingOverlay');
+
+  function step(pct, txt, cb, delay) {
+    bar.style.width = pct + '%';
+    msg.textContent = txt;
+    if (cb) setTimeout(cb, delay || 300);
+  }
+
+  step(30, 'Loading configuration…', () =>
+    step(70, 'Building timetable…', () =>
+      step(100, 'Ready.', () => {
+        ol.classList.add('hidden');
+        mc.style.opacity = '1';
+        populateSlots();
+      }, 350)
+    )
+  );
+})();
+</script>
+<script src="{% static 'odel_system/js/odel_system_odel_system_manual_page.js' %}"></script>
+{% endblock extra_js %}

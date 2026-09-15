@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════════════════════
+# .deploy.sh — University Timetable System
+# One-shot setup/update script for running the project on a local
+# university server WITHOUT Docker (bare metal / venv + systemd + nginx).
+#
+# This exists because it's easy to forget a step when setting the project
+# up by hand (e.g. `python manage.py createcachetable`, collectstatic,
+# system libraries for mysqlclient/weasyprint, etc). Run this script
+# instead and it does all of it, in the right order, every time.
+#
+# Usage:
+#   ./.deploy.sh            # full setup/update (safe to re-run any time)
+#   ./.deploy.sh --no-deps  # skip apt/pip installs (faster repeat runs)
+#   ./.deploy.sh --help
+#
+# Safe to re-run: every step is idempotent (migrate, createcachetable
+# --noinput-ish behaviour, collectstatic, etc. do nothing destructive on
+# a system that's already up to date).
+# ══════════════════════════════════════════════════════════════════════════
+set -euo pipefail
+
+# ── Pretty output helpers ──────────────────────────────────────────────
+BOLD="$(tput bold 2>/dev/null || true)"
+GREEN="$(tput setaf 2 2>/dev/null || true)"
+YELLOW="$(tput setaf 3 2>/dev/null || true)"
+RED="$(tput setaf 1 2>/dev/null || true)"
+RESET="$(tput sgr0 2>/dev/null || true)"
+
+step()  { echo -e "\n${BOLD}${GREEN}==>${RESET} ${BOLD}$1${RESET}"; }
+info()  { echo -e "    $1"; }
+warn()  { echo -e "    ${YELLOW}! $1${RESET}"; }
+fail()  { echo -e "${RED}ERROR:${RESET} $1" >&2; exit 1; }
+
+# ── Always run from the project root (where this script lives) ───────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# ── Parse flags ─────────────────────────────────────────────────────────
+SKIP_DEPS=false
+for arg in "$@"; do
+  case "$arg" in
+    --no-deps) SKIP_DEPS=true ;;
+    --help|-h)
+      echo "Usage: ./.deploy.sh [--no-deps]"
+      echo "  --no-deps   Skip system package + pip install steps (faster on repeat runs)"
+      exit 0
+      ;;
+    *) fail "Unknown option: $arg (use --help)" ;;
+  esac
+done
+
+VENV_DIR="$SCRIPT_DIR/env"
+PYTHON_BIN="python3"
+
+# ══════════════════════════════════════════════════════════════════════════
+step "1/10  Checking prerequisites"
+# ══════════════════════════════════════════════════════════════════════════
+command -v "$PYTHON_BIN" >/dev/null 2>&1 || fail "python3 is not installed. Install Python 3.10+ first."
+info "Python: $($PYTHON_BIN --version)"
+
+if [ "$SKIP_DEPS" = false ]; then
+  if command -v apt-get >/dev/null 2>&1; then
+    if [ "$EUID" -eq 0 ] || command -v sudo >/dev/null 2>&1; then
+      step "2/10  Installing system libraries (mysqlclient, WeasyPrint, Pillow)"
+      SUDO=""
+      [ "$EUID" -ne 0 ] && SUDO="sudo"
+      $SUDO apt-get update -qq
+      $SUDO apt-get install -y --no-install-recommends \
+        python3-venv python3-dev \
+        build-essential \
+        default-libmysqlclient-dev \
+        pkg-config \
+        libcairo2-dev libpango-1.0-0 libpangocairo-1.0-0 \
+        libgdk-pixbuf2.0-0 libffi-dev libssl-dev \
+        libjpeg-dev zlib1g-dev \
+        default-mysql-client
+      info "System libraries installed."
+    else
+      warn "No root/sudo access — skipping system package install."
+      warn "If mysqlclient/WeasyPrint/Pillow fail to build below, ask an admin to run:"
+      warn "  sudo apt-get install build-essential default-libmysqlclient-dev pkg-config \\"
+      warn "    libcairo2-dev libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 \\"
+      warn "    libffi-dev libssl-dev libjpeg-dev zlib1g-dev python3-venv"
+    fi
+  else
+    warn "Not a Debian/Ubuntu system (no apt-get) — skipping system package step."
+    warn "Make sure MySQL client dev headers + Cairo/Pango (for WeasyPrint) are installed manually."
+  fi
+else
+  step "2/10  Skipping system package install (--no-deps)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+step "3/10  Setting up Python virtual environment"
+# ══════════════════════════════════════════════════════════════════════════
+if [ ! -d "$VENV_DIR" ]; then
+  $PYTHON_BIN -m venv "$VENV_DIR"
+  info "Created virtual environment at $VENV_DIR"
+else
+  info "Virtual environment already exists at $VENV_DIR"
+fi
+# shellcheck disable=SC1091
+source "$VENV_DIR/bin/activate"
+info "Activated venv: $(which python)"
+
+# ══════════════════════════════════════════════════════════════════════════
+if [ "$SKIP_DEPS" = false ]; then
+  step "4/10  Installing Python dependencies"
+  pip install --upgrade pip -q
+  pip install -r requirements.txt -q
+  info "All packages from requirements.txt installed."
+else
+  step "4/10  Skipping pip install (--no-deps)"
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+step "5/10  Configuring environment (.env)"
+# ══════════════════════════════════════════════════════════════════════════
+if [ ! -f ".env" ]; then
+  cp .env.example .env
+  warn ".env created from .env.example — EDIT IT NOW with real DB credentials,"
+  warn "SECRET_KEY, ALLOWED_HOSTS, and email settings before going further."
+  warn "Re-run this script once .env is filled in."
+  exit 1
+else
+  info ".env already exists — leaving it as is."
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+step "6/10  Waiting for the database to accept connections"
+# ══════════════════════════════════════════════════════════════════════════
+MAX_TRIES=30
+TRIES=0
+until python -c "
+import os, django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'university_timetable_system.settings')
+django.setup()
+from django.db import connection
+connection.ensure_connection()
+" 2>/dev/null; do
+  TRIES=$((TRIES + 1))
+  if [ "$TRIES" -ge "$MAX_TRIES" ]; then
+    fail "Database not reachable after ${MAX_TRIES}s. Check DB_HOST/DB_USER/DB_PASSWORD in .env and that MySQL is running."
+  fi
+  info "Database not ready yet, retrying ($TRIES/$MAX_TRIES)..."
+  sleep 1
+done
+info "Database connection OK."
+
+# ══════════════════════════════════════════════════════════════════════════
+step "7/10  Running Django checks"
+# ══════════════════════════════════════════════════════════════════════════
+python manage.py check
+
+# ══════════════════════════════════════════════════════════════════════════
+step "8/10  Applying database migrations (also seeds RBAC groups)"
+# ══════════════════════════════════════════════════════════════════════════
+# ── Pre-deployment backup (fire-and-forget, non-blocking) ─────────
+step "Pre-deployment backup (runs in background)"
+python manage.py shell -c "
+from backup_system.models import BackupConfiguration
+from backup_system.tasks import trigger_pre_change_backup
+config = BackupConfiguration.objects.filter(enabled=True, backup_type__in=['full','database']).order_by('backup_type').first()
+if config:
+    trigger_pre_change_backup(config.id, reason='pre-deployment')
+    print(f'Pre-deploy backup queued (config #{config.id})')
+else:
+    print('No active backup config found — skipping pre-deploy backup')
+" || echo 'Warning: backup_system not yet migrated — skipping pre-deploy backup'
+
+python manage.py migrate --noinput
+info "Migrations applied."
+
+# ── Database-backed cache table (the step that's easy to forget) ────────
+# NOTE: as of this codebase, CACHES in settings.py uses LocMemCache /
+# FileBasedCache, not DatabaseCache, so this table is not strictly
+# required today. It's created anyway, defensively and idempotently,
+# in case any cache alias is switched back to DatabaseCache later —
+# this exact gap caused 500s on /api/notifications/ before.
+info "Ensuring DB-backed cache table exists (createcachetable, idempotent)..."
+python manage.py createcachetable 2>&1 | grep -v "already exists" || true
+
+# ══════════════════════════════════════════════════════════════════════════
+step "9/10  Collecting static files"
+# ══════════════════════════════════════════════════════════════════════════
+python manage.py collectstatic --noinput --clear
+info "Static files collected into staticfiles/."
+
+# Ensure runtime directories exist (media, logs, file-based cache)
+mkdir -p media logs django_cache
+
+# ══════════════════════════════════════════════════════════════════════════
+step "10/10  Superuser account"
+# ══════════════════════════════════════════════════════════════════════════
+HAS_SUPERUSER=$(python manage.py shell -c "
+from django.contrib.auth import get_user_model
+U = get_user_model()
+print(U.objects.filter(is_superuser=True).exists())
+" 2>/dev/null | tail -1) || HAS_SUPERUSER="ERROR"
+
+if [ "$HAS_SUPERUSER" = "ERROR" ]; then
+  warn "Could not query the database for an existing superuser — skipping this check."
+  warn "Run 'python manage.py createsuperuser' manually if you need an admin account."
+elif [ "$HAS_SUPERUSER" = "True" ]; then
+  info "A superuser already exists — skipping creation."
+else
+  warn "No superuser found."
+  if [ -t 0 ]; then
+    read -r -p "    Create one now? [Y/n] " REPLY
+    if [[ ! "$REPLY" =~ ^[Nn]$ ]]; then
+      python manage.py createsuperuser
+    else
+      warn "Skipped. Run 'python manage.py createsuperuser' manually later."
+    fi
+  else
+    warn "Non-interactive session — skipping. Run 'python manage.py createsuperuser' manually later."
+  fi
+fi
+
+# ══════════════════════════════════════════════════════════════════════════
+echo -e "\n${BOLD}${GREEN}✓ Deployment setup complete.${RESET}"
+echo -e "  Start the dev server with:"
+echo -e "    source env/bin/activate && python manage.py runserver 0.0.0.0:8000"
+echo -e "  For production, run Gunicorn behind nginx, e.g.:"
+echo -e "    gunicorn university_timetable_system.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+echo ""

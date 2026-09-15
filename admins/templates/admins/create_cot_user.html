@@ -1,0 +1,139 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_admins_create_cot_user.css' %}">
+<link rel="stylesheet" href="{% static 'admins/css/admins_create_cot.css' %}">
+<link rel="stylesheet" href="{% static 'admins/css/admins_create_cot_user.css' %}">
+{% endblock page_css %}
+
+{% block title %}{% if editing %}Edit COT User{% else %}Create COT User{% endif %}{% endblock %}
+{% block nav_cot %}active{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+ <h1>{% if editing %}Edit COT User{% else %}Create COT User{% endif %}</h1>
+ <p>Manage Department Examination Timetable Board users</p>
+ <div class="header-bar"></div>
+</div>
+
+<!-- Form -->
+<div class="card mb-3">
+ <div class="card-header">{% if editing %}Update Existing User{% else %}Add New COT User{% endif %}</div>
+ <div class="card-body">
+ <form method="post" id="cotUserForm">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+ <div class="form-group">
+ <label for="{{ form.username.id_for_label }}">Username</label>
+ {{ form.username }}
+ {% if form.username.errors %}
+ <div style="color:#dc3545; font-size:12px; margin-top:4px;">{{ form.username.errors.0 }}</div>
+ {% endif %}
+ </div>
+ <div class="form-group">
+ <label for="{{ form.email.id_for_label }}">Email</label>
+ {{ form.email }}
+ {% if form.email.errors %}
+ <div style="color:#dc3545; font-size:12px; margin-top:4px;">{{ form.email.errors.0 }}</div>
+ {% endif %}
+ </div>
+ <div class="form-group">
+ <label for="{{ form.password.id_for_label }}">
+ Password 
+ {% if editing %}<span style="color:#666; font-weight:400;">(leave blank to keep current)</span>{% endif %}
+ </label>
+ {{ form.password }}
+ {% if form.password.errors %}
+ <div style="color:#dc3545; font-size:12px; margin-top:4px;">{{ form.password.errors.0 }}</div>
+ {% endif %}
+ </div>
+ <div class="form-group">
+ <label for="{{ form.department.id_for_label }}">Department</label>
+ {{ form.department }}
+ {% if form.department.errors %}
+ <div style="color:#dc3545; font-size:12px; margin-top:4px;">{{ form.department.errors.0 }}</div>
+ {% endif %}
+ </div>
+ </div>
+ <div style="margin-top:20px;">
+ <button type="submit" class="btn btn-primary" id="submitBtn">
+ {% if editing %}Update User{% else %}Create User{% endif %}
+ </button>
+ {% if editing %}
+ <a href="{% url 'manage_cot_user' %}" class="btn" style="background:#6c757d; color:white; margin-left:10px;">Cancel</a>
+ {% endif %}
+ </div>
+ </form>
+ </div>
+</div>
+
+<hr style="border:0; border-top:1px solid #ddd; margin:25px 0;">
+
+<!-- Existing users table -->
+<div class="card">
+ <div class="card-header">Existing COT Users</div>
+ <div class="card-body">
+ <div style="overflow-x:auto;">
+ <table style="width:100%; border-collapse:collapse; min-width:600px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:12px; text-align:left;">Username</th>
+ <th style="padding:12px; text-align:left;">Email</th>
+ <th style="padding:12px; text-align:left;">Department</th>
+ <th style="padding:12px; text-align:left;">Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for profile in cot_users %}
+ <tr style="border-bottom:1px solid #ddd;">
+ <td style="padding:12px;"><strong>{{ profile.user.username }}</strong></td>
+ <td style="padding:12px;">{{ profile.user.email }}</td>
+ <td style="padding:12px;">
+ <span style="background:#d4edda; color:#155724; padding:4px 10px; border-radius:20px; font-size:12px;">{{ profile.department.name }}</span>
+ </td>
+ <td style="padding:12px;">
+ <a href="{% url 'manage_cot_user' profile.user.id %}" class="btn btn-warning btn-sm" style="text-decoration:none;">Edit</a>
+ </td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="4" style="padding:30px; text-align:center; color:#666;">No COT users found. Create the first one above.</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+</div>
+
+{% endblock sudo_content %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * admins_admins_create_cot_user.js
+ * Extracted inline JS from: admins/templates/admins/create_cot_user.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+document.getElementById('cotUserForm').addEventListener('submit', function(e) {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+  });
+  
+  // Client-side validation
+  const passwordInput = document.querySelector('input[name="password"]');
+  if (passwordInput) {
+    passwordInput.addEventListener('blur', function() {
+      const value = this.value;
+      {% if not editing %}
+      if (value && value.length < 8) {
+        alert('Password must be at least 8 characters long.');
+      }
+      {% endif %}
+    });
+  }
+</script>
+{% endblock extra_js %}

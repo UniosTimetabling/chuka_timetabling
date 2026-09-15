@@ -1,0 +1,644 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<style>
+/* ── Flat, Excel-like data grid for Program Enrollment ─────────────────── */
+.peg-wrap { width: 100%; max-width: 100%; box-sizing: border-box; padding: 14px 18px 24px; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+
+.peg-topbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.peg-title { font-size: 18px; font-weight: 700; color: #1b1b1b; margin-right: 8px; white-space: nowrap; }
+.peg-refyear {
+  font-size: 12.5px; background: #eef6ee; border: 1px solid #cfe8cf; color: #256029;
+  padding: 4px 10px; border-radius: 4px; white-space: nowrap;
+}
+.peg-refyear b { font-size: 14px; }
+.peg-spacer { flex: 1 1 auto; }
+
+.peg-input, .peg-select {
+  font-size: 13px; padding: 6px 9px; border: 1px solid #d0d3d8; border-radius: 4px;
+  background: #fff; height: 32px;
+}
+.peg-input:focus, .peg-select:focus { outline: none; border-color: #2E7D32; box-shadow: 0 0 0 2px rgba(46,125,50,.15); }
+
+.peg-btn {
+  font-size: 13px; font-weight: 600; padding: 0 12px; height: 32px; border-radius: 4px;
+  border: 1px solid transparent; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.peg-btn-green  { background: #2E7D32; color: #fff; }
+.peg-btn-green:hover { background: #276e2a; }
+.peg-btn-outline { background: #fff; color: #333; border-color: #d0d3d8; }
+.peg-btn-outline:hover { background: #f5f5f5; }
+.peg-btn-amber  { background: #b5691a; color: #fff; }
+.peg-btn-amber:hover { background: #a15c15; }
+.peg-btn:disabled { opacity: .5; cursor: default; }
+.peg-btn-xs { height: 26px; padding: 0 8px; font-size: 12px; }
+
+.peg-year-ctrl { display: flex; align-items: center; gap: 4px; }
+
+/* Stats strip - compact, inline text not big boxes */
+.peg-stats { font-size: 12.5px; color: #555; margin-bottom: 8px; display: flex; gap: 18px; flex-wrap: wrap; }
+.peg-stats b { color: #1b1b1b; }
+
+/* ── The grid itself ───────────────────────────────────────────────────── */
+.peg-grid-outer {
+  width: 100%;
+  border: 1px solid #d7dade;
+  border-radius: 6px;
+  overflow: auto;              /* scrolls both ways, independent of page */
+  max-height: 68vh;
+  background: #fff;
+}
+/* table-layout:fixed forces the un-sized Program column to claim ALL
+   remaining space instead of shrinking to the <input>'s default
+   browser-rendered width (~200px), which is what was truncating names
+   and leaving the rest of the screen blank. */
+.peg-grid-outer .peg-table.peg-table,
+table.peg-table.peg-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13px;
+}
+.peg-grid-outer .peg-table.peg-table col:nth-child(1) { width: 44px !important; }
+.peg-grid-outer .peg-table.peg-table col.peg-col-prog { width: auto !important; }
+.peg-table thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: #f3f4f6; color: #444; text-align: left; font-weight: 700;
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em;
+  padding: 9px 10px; border-bottom: 2px solid #d7dade; border-right: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+.peg-table thead th:first-child { position: sticky; left: 0; z-index: 3; }
+.peg-table tbody td {
+  padding: 0; border-bottom: 1px solid #edeef0; border-right: 1px solid #edeef0;
+  vertical-align: middle;
+}
+.peg-table tbody tr:hover { background: #fafbfc; }
+.peg-table tbody tr.peg-row-dirty { background: #fff8e6; }
+.peg-table tbody tr.peg-row-new { background: #eef6ee; }
+
+.peg-cell-idx { text-align: center; color: #9aa0a6; font-size: 12px; padding: 8px 6px !important; width: 34px; }
+.peg-cell-num { text-align: right; font-variant-numeric: tabular-nums; }
+.peg-cell-readonly { color: #6b7280; text-align: right; padding: 8px 10px !important; background: #fafafa; }
+
+.peg-cell-input {
+  width: 100%; height: 34px; border: none; background: transparent; padding: 0 10px;
+  font-size: 13px; box-sizing: border-box; color: #1b1b1b;
+}
+.peg-cell-input:focus { outline: 2px solid #2E7D32; outline-offset: -2px; background: #fff; }
+.peg-cell-input.peg-num { text-align: right; font-variant-numeric: tabular-nums; }
+.peg-cell-select { width: 100%; height: 34px; border: none; background: transparent; padding: 0 8px; font-size: 13px; }
+.peg-cell-select:focus { outline: 2px solid #2E7D32; outline-offset: -2px; background: #fff; }
+
+.peg-study-badge {
+  display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  background: #e7f0fe; color: #1a56b0;
+}
+.peg-study-badge.peg-none { background: #f1f1f1; color: #999; }
+
+.peg-del-btn {
+  width: 100%; height: 34px; border: none; background: transparent; color: #b0b3b8;
+  cursor: pointer; font-size: 15px;
+}
+.peg-del-btn:hover { color: #c0392b; background: #fdecea; }
+
+.peg-cell-dept { color: #666; font-size: 12.5px; padding: 8px 10px !important; }
+.peg-cell-prog { padding: 0 !important; font-weight: 600; }
+.peg-cell-prog-text {
+  width: 100%; min-height: 34px; box-sizing: border-box;
+  padding: 8px 10px !important; font-size: 13px; color: #1b1b1b;
+  white-space: normal; word-break: break-word; line-height: 1.35;
+  display: flex; align-items: center;
+}
+
+.peg-addrow-td { padding: 9px 10px !important; color: #2E7D32; font-weight: 600; cursor: pointer; }
+.peg-addrow-td:hover { background: #f3faf3; }
+
+.peg-empty-td { padding: 26px 10px !important; text-align: center; color: #999; }
+
+.peg-savepill {
+  position: fixed; bottom: 18px; right: 18px; background: #1b1b1b; color: #fff;
+  font-size: 12.5px; padding: 8px 14px; border-radius: 20px; opacity: 0; pointer-events: none;
+  transition: opacity .25s ease; z-index: 50;
+}
+.peg-savepill.show { opacity: .92; }
+.peg-savepill.err { background: #c0392b; }
+
+.peg-file-hidden { display: none; }
+.peg-upload-msgs { font-size: 12px; margin-top: 6px; }
+.peg-upload-msgs .ok  { color: #256029; }
+.peg-upload-msgs .err { color: #c0392b; }
+.peg-err-list { font-size: 11.5px; color: #c0392b; margin: 4px 0 0 18px; padding: 0; max-height: 90px; overflow: auto; }
+
+.peg-help {
+  font-size: 12px; color: #777; margin-bottom: 10px; line-height: 1.5;
+}
+</style>
+{% endblock page_css %}
+
+{% block title %}Program Enrollment — Student Numbers{% endblock %}
+{% block page_title %}Program Enrollment{% endblock %}
+
+{% block header_controls %}
+<a href="{% url homepage_url %}" class="hdr-btn">
+ <i class="fas fa-home"></i> <span class="d-none d-md-inline">Homepage</span>
+</a>
+{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+<div class="peg-wrap">
+
+  <div class="peg-help">
+    One row per <strong>intake cohort</strong> (the calendar year a program's students were admitted).
+    <strong>Study Year</strong> is computed automatically from the reference year — click any Entry Year
+    or Students cell to edit it directly, like a spreadsheet.
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="peg-topbar">
+    <span class="peg-title">Program Enrollment</span>
+
+    <span class="peg-refyear">Reference year: <b id="refYearBadge">{{ reference_year }}</b></span>
+
+    {% if is_admin or is_superuser %}
+    <div class="peg-year-ctrl">
+      <button class="peg-btn peg-btn-outline peg-btn-xs" id="advRevBtn" title="Roll back one year">−1</button>
+      <button class="peg-btn peg-btn-outline peg-btn-xs" id="advFwdBtn" title="Advance one year">+1</button>
+      <input type="number" class="peg-input" id="explicitYrInp" placeholder="set year…" style="width:96px;height:26px;font-size:12px;">
+      <button class="peg-btn peg-btn-amber peg-btn-xs" id="setYrBtn">Set</button>
+    </div>
+    {% endif %}
+
+    <span class="peg-spacer"></span>
+
+    <input type="text" class="peg-input" id="tSrch" placeholder="🔍 Search program…" style="width:200px;">
+
+    {% if is_superuser or is_admin %}
+    <select class="peg-select" id="tDeptFilt">
+      <option value="">All Departments</option>
+      {% for d in departments %}<option value="{{ d.id }}">{{ d.name }}</option>{% endfor %}
+    </select>
+    {% endif %}
+
+    <select class="peg-select" id="tYrFilt">
+      <option value="">All Study Years</option>
+      <option value="1">Year 1</option><option value="2">Year 2</option>
+      <option value="3">Year 3</option><option value="4">Year 4</option>
+      <option value="5">Year 5</option><option value="6">Year 6</option>
+    </select>
+
+    <button class="peg-btn peg-btn-outline" id="addRowBtn">+ Add Row</button>
+
+    <button class="peg-btn peg-btn-outline" onclick="downloadTemplate('csv')" title="Download enrollment data as CSV">⭳ CSV</button>
+    <button class="peg-btn peg-btn-outline" onclick="downloadTemplate('xlsx')" title="Download enrollment data as XLSX">⭳ XLSX</button>
+    <button class="peg-btn peg-btn-outline" id="uploadTriggerBtn">⭱ Upload</button>
+    <input type="file" id="fileUpload" class="peg-file-hidden" accept=".csv,.xlsx,.xls,.json">
+  </div>
+
+  <div class="peg-upload-msgs" id="uploadSt"></div>
+  <ul class="peg-err-list" id="uploadErrList"></ul>
+
+  <!-- STATS -->
+  <div class="peg-stats">
+    <span><b id="sTotalRec">{{ enrollments|length }}</b> records</span>
+    <span><b id="sPrograms">{{ programs|length }}</b> programs</span>
+    <span><b id="sStudents">—</b> total students (visible)</span>
+  </div>
+
+  <!-- GRID -->
+  <div class="peg-grid-outer">
+    <table class="peg-table">
+      <colgroup>
+        <col style="width:44px !important;">              <!-- # -->
+        <col class="peg-col-prog">                        <!-- Program — takes all remaining width -->
+        {% if is_superuser or is_admin %}<col style="width:170px !important;">{% endif %}  <!-- Department -->
+        <col style="width:110px !important;">             <!-- Entry Year -->
+        <col style="width:110px !important;">             <!-- Study Year -->
+        <col style="width:120px !important;">             <!-- Students -->
+        <col style="width:36px !important;">              <!-- delete icon -->
+      </colgroup>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Program</th>
+          {% if is_superuser or is_admin %}<th>Department</th>{% endif %}
+          <th>Entry Year</th>
+          <th>Study Year</th>
+          <th>Students</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tBody">
+        {% for e in enrollments %}
+        <tr data-id="{{ e.id }}" data-prog="{{ e.program.id }}" data-dept="{{ e.program.department.id }}"
+            data-entry="{{ e.entry_year }}" data-studyyr="{{ e.study_year }}">
+          <td class="peg-cell-idx">{{ forloop.counter }}</td>
+          <td class="peg-cell-prog">
+            <div class="peg-cell-prog-text" title="{{ e.program.name }} — program can't be changed on an existing row; delete and re-add if you picked the wrong one.">{{ e.program.name }}</div>
+          </td>
+          {% if is_superuser or is_admin %}<td class="peg-cell-dept">{{ e.program.department.name }}</td>{% endif %}
+          <td>
+            <input type="number" class="peg-cell-input peg-num" value="{{ e.entry_year }}"
+                   data-field="entry_year" data-orig="{{ e.entry_year }}"
+                   onfocus="pegCellFocus(this)" onkeydown="pegCellKeydown(event,this)" oninput="pegCellDirty(this)">
+          </td>
+          <td class="peg-cell-readonly">
+            {% if e.study_year >= 1 %}<span class="peg-study-badge">Year {{ e.study_year }}</span>
+            {% else %}<span class="peg-study-badge peg-none">not yet</span>{% endif %}
+          </td>
+          <td>
+            <input type="number" class="peg-cell-input peg-num" value="{{ e.number_of_students }}" min="0"
+                   data-field="number_of_students" data-orig="{{ e.number_of_students }}"
+                   onfocus="pegCellFocus(this)" onkeydown="pegCellKeydown(event,this)" oninput="pegCellDirty(this)">
+          </td>
+          <td><button class="peg-del-btn" onclick="pegDeleteRow({{ e.id }}, this)" title="Delete row">✕</button></td>
+        </tr>
+        {% empty %}
+        <tr class="peg-empty-row"><td class="peg-empty-td" colspan="7">No enrollment records yet — click "+ Add Row" to start.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="peg-savepill" id="pegPill"></div>
+
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * program_enrollment.html — flat spreadsheet-style grid.
+ * One row = one ProgramEnrollment (program, entry_year, number_of_students).
+ * Study Year is always derived client-side too for the live "not yet" hint,
+ * but the server value (returned from save/get) is the source of truth.
+ */
+
+const URL_SAVE     = "{% url 'save_program_enrollment' %}";
+const URL_SAVE_SEM = "{% url 'save_enrollment_single_sem' %}";
+const URL_DEL      = "{% url 'delete_program_enrollment' %}";
+const URL_ADVANCE  = "{% url 'advance_academic_year' %}";
+const URL_UPLOAD   = "{% url 'upload_enrollment_file' %}";
+const URL_TEMPLATE = "{% url 'enrollment_template' %}";
+
+const CSRF = () => { const m = document.cookie.match(/csrftoken=([^;]+)/); return m ? m[1] : ''; };
+const IS_ADMIN_OR_SUPER = {{ is_admin|yesno:"true,false" }} || {{ is_superuser|yesno:"true,false" }};
+let   REFERENCE_YEAR = {{ reference_year }};
+
+const PROGRAMS = [
+  {% for p in programs %}{ id: {{ p.id }}, name: "{{ p.name|escapejs }}", dept: {{ p.department.id }}, deptName: "{{ p.department.name|escapejs }}" }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+function studyYearOf(entryYear) { return REFERENCE_YEAR - entryYear + 1; }
+
+function pill(msg, isErr) {
+  const p = document.getElementById('pegPill');
+  p.textContent = msg;
+  p.className = 'peg-savepill show' + (isErr ? ' err' : '');
+  clearTimeout(p._t);
+  p._t = setTimeout(() => p.classList.remove('show'), 2200);
+}
+
+function recalcTotal() {
+  let t = 0;
+  document.querySelectorAll('#tBody tr:not(.peg-empty-row)').forEach(r => {
+    if (r.style.display === 'none') return;
+    const inp = r.querySelector('input[data-field="number_of_students"]');
+    if (inp) t += parseInt(inp.value) || 0;
+  });
+  document.getElementById('sStudents').textContent = t.toLocaleString();
+}
+recalcTotal();
+
+// ── Filters ──────────────────────────────────────────────────────────────
+function applyFilters() {
+  const q  = (document.getElementById('tSrch').value || '').toLowerCase();
+  const df = document.getElementById('tDeptFilt');
+  const dv = df ? df.value : '';
+  const yv = document.getElementById('tYrFilt').value;
+  let v = 0;
+  document.querySelectorAll('#tBody tr:not(.peg-empty-row):not(.peg-row-new)').forEach(r => {
+    const txt  = r.textContent.toLowerCase();
+    const show = (!q  || txt.includes(q))
+              && (!dv || r.dataset.dept === dv)
+              && (!yv || r.dataset.studyyr === yv);
+    r.style.display = show ? '' : 'none';
+    if (show) v++;
+  });
+  document.getElementById('rCnt') && (document.getElementById('rCnt').textContent = v);
+  document.getElementById('sTotalRec').textContent = v;
+  recalcTotal();
+}
+['tSrch','tYrFilt'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', applyFilters);
+});
+const tdf = document.getElementById('tDeptFilt');
+if (tdf) tdf.addEventListener('change', applyFilters);
+
+// ── Cell editing (existing rows) ─────────────────────────────────────────
+function pegCellFocus(inp) { inp.select(); }
+function pegCellDirty(inp) {
+  const row = inp.closest('tr');
+  row.classList.add('peg-row-dirty');
+  if (inp.dataset.field === 'entry_year') {
+    const badge = row.querySelector('.peg-study-badge');
+    const v = parseInt(inp.value);
+    if (!isNaN(v) && badge) {
+      const sy = studyYearOf(v);
+      row.dataset.studyyr = sy;
+      badge.textContent = sy >= 1 ? `Year ${sy}` : 'not yet';
+      badge.classList.toggle('peg-none', sy < 1);
+    }
+  }
+  if (inp.dataset.field === 'number_of_students') recalcTotal();
+}
+function pegCellKeydown(e, inp) {
+  if (e.key === 'Enter') { e.preventDefault(); inp.blur(); pegSaveCell(inp); }
+  if (e.key === 'Escape') { inp.value = inp.dataset.orig; inp.closest('tr').classList.remove('peg-row-dirty'); inp.blur(); }
+}
+document.getElementById('tBody').addEventListener('focusout', (e) => {
+  const inp = e.target;
+  if (inp.tagName === 'INPUT' && inp.dataset.field) pegSaveCell(inp);
+});
+
+async function pegSaveCell(inp) {
+  if (inp.value === inp.dataset.orig) return;   // nothing changed
+  const row = inp.closest('tr');
+  const id  = row.dataset.id;
+  const field = inp.dataset.field;
+  const val = parseInt(inp.value);
+  if (isNaN(val) || val < 0) { inp.value = inp.dataset.orig; return; }
+
+  try {
+    let r, d;
+    if (field === 'number_of_students') {
+      r = await fetch(URL_SAVE_SEM, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ enrollment_id: id, number_of_students: val })
+      });
+      d = await r.json();
+    } else {
+      // entry_year change -> re-save via full save (program stays the same, entry_year changes)
+      const progId = row.dataset.prog;
+      r = await fetch(URL_SAVE, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          program_id: progId,
+          entry_year: val,
+          number_of_students: row.querySelector('input[data-field="number_of_students"]').value,
+        })
+      });
+      d = await r.json();
+      if (d.success) { row.dataset.id = d.enrollment_id; }
+    }
+
+    if (d.success) {
+      inp.dataset.orig = val;
+      row.dataset.entry = row.querySelector('input[data-field="entry_year"]').value;
+      row.classList.remove('peg-row-dirty');
+      pill('✓ Saved');
+    } else {
+      inp.value = inp.dataset.orig;
+      pill(d.error || 'Save failed.', true);
+    }
+  } catch (e) {
+    inp.value = inp.dataset.orig;
+    pill('Network error: ' + e.message, true);
+  }
+}
+
+// ── Delete row ────────────────────────────────────────────────────────────
+async function pegDeleteRow(enrollId, btn) {
+  if (!confirm('Delete this enrollment record?')) return;
+  btn.disabled = true;
+  try {
+    const r = await fetch(URL_DEL, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF(), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ enrollment_id: enrollId })
+    });
+    const d = await r.json();
+    if (d.success) {
+      btn.closest('tr').remove();
+      const left = document.querySelectorAll('#tBody tr:not(.peg-empty-row):not(.peg-row-new)').length;
+      document.getElementById('sTotalRec').textContent = left;
+      if (!left) {
+        document.getElementById('tBody').innerHTML =
+          '<tr class="peg-empty-row"><td class="peg-empty-td" colspan="7">No enrollment records yet — click "+ Add Row" to start.</td></tr>';
+      }
+      recalcTotal();
+      pill('✓ Deleted');
+    } else {
+      alert(d.error || 'Delete failed.');
+      btn.disabled = false;
+    }
+  } catch (e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false;
+  }
+}
+
+// ── Add new row inline ────────────────────────────────────────────────────
+document.getElementById('addRowBtn').addEventListener('click', () => {
+  const tbody = document.getElementById('tBody');
+  const empty = tbody.querySelector('.peg-empty-row');
+  if (empty) empty.remove();
+
+  const hasDeptCol = document.querySelectorAll('.peg-table thead th').length ===
+                      (IS_ADMIN_OR_SUPER ? 7 : 6);
+
+  let progOptions = '<option value="">— select program —</option>';
+  PROGRAMS.forEach(p => { progOptions += `<option value="${p.id}" data-dept="${p.dept}">${p.name}</option>`; });
+
+  const deptTd = hasDeptCol ? `<td class="peg-cell-dept" id="newRowDept">—</td>` : '';
+
+  const row = document.createElement('tr');
+  row.className = 'peg-row-new';
+  row.innerHTML = `
+    <td class="peg-cell-idx">•</td>
+    <td class="peg-cell-prog"><select class="peg-cell-select" id="newRowProg">${progOptions}</select></td>
+    ${deptTd}
+    <td><input type="number" class="peg-cell-input peg-num" id="newRowEntry" placeholder="${REFERENCE_YEAR}" value="${REFERENCE_YEAR}"></td>
+    <td class="peg-cell-readonly"><span class="peg-study-badge" id="newRowBadge">Year 1</span></td>
+    <td><input type="number" class="peg-cell-input peg-num" id="newRowStu" placeholder="0" min="0"></td>
+    <td><button class="peg-del-btn" onclick="this.closest('tr').remove(); if(!document.querySelectorAll('#tBody tr:not(.peg-empty-row)').length){document.getElementById('tBody').innerHTML='<tr class=\\'peg-empty-row\\'><td class=\\'peg-empty-td\\' colspan=\\'7\\'>No enrollment records yet — click \\'+ Add Row\\' to start.</td></tr>';}" title="Cancel">✕</button></td>
+  `;
+  tbody.appendChild(row);
+
+  const progSel   = row.querySelector('#newRowProg');
+  const entryInp  = row.querySelector('#newRowEntry');
+  const stuInp    = row.querySelector('#newRowStu');
+  const badge     = row.querySelector('#newRowBadge');
+  const deptCell  = row.querySelector('#newRowDept');
+
+  function updateBadge() {
+    const v = parseInt(entryInp.value);
+    if (!isNaN(v)) {
+      const sy = studyYearOf(v);
+      badge.textContent = sy >= 1 ? `Year ${sy}` : 'not yet';
+      badge.classList.toggle('peg-none', sy < 1);
+    }
+  }
+  entryInp.addEventListener('input', updateBadge);
+  updateBadge();
+
+  if (progSel && deptCell) {
+    progSel.addEventListener('change', () => {
+      const opt = progSel.selectedOptions[0];
+      deptCell.textContent = opt && opt.dataset.dept
+        ? (PROGRAMS.find(p => p.id == opt.value) || {}).deptName || '—'
+        : '—';
+    });
+  }
+
+  async function commitNewRow() {
+    const pId = progSel.value;
+    const entryYear = entryInp.value;
+    const stu = stuInp.value;
+    if (!pId || entryYear === '' || stu === '') return;  // wait for all three fields
+
+    try {
+      const r = await fetch(URL_SAVE, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ program_id: pId, entry_year: entryYear, number_of_students: stu })
+      });
+      const d = await r.json();
+      if (d.success) {
+        row.dataset.id       = d.enrollment_id;
+        row.dataset.prog     = d.program_id;
+        row.dataset.dept     = d.department_id || '';
+        row.dataset.entry    = d.entry_year;
+        row.dataset.studyyr  = d.study_year;
+        row.classList.remove('peg-row-new');
+        pill('✓ Row added');
+        document.getElementById('sTotalRec').textContent =
+          document.querySelectorAll('#tBody tr:not(.peg-empty-row)').length;
+        recalcTotal();
+      } else {
+        pill(d.error || 'Save failed.', true);
+      }
+    } catch (e) {
+      pill('Network error: ' + e.message, true);
+    }
+  }
+
+  [progSel, entryInp, stuInp].forEach(el => {
+    el.addEventListener('change', commitNewRow);
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commitNewRow(); } });
+  });
+
+  progSel.focus();
+});
+
+// ── Academic year advance / rollback / set ────────────────────────────────
+async function pegAdvance(params, confirmMsg) {
+  if (!confirm(confirmMsg)) return;
+  document.querySelectorAll('#advFwdBtn,#advRevBtn,#setYrBtn').forEach(b => b && (b.disabled = true));
+  try {
+    const r = await fetch(URL_ADVANCE, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF(), 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params)
+    });
+    const d = await r.json();
+    if (d.success) {
+      pill(`✓ Reference year is now ${d.current_year}. Refreshing…`);
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      pill(d.error || 'Update failed.', true);
+    }
+  } catch (e) {
+    pill('Error: ' + e.message, true);
+  } finally {
+    document.querySelectorAll('#advFwdBtn,#advRevBtn,#setYrBtn').forEach(b => b && (b.disabled = false));
+  }
+}
+const advFwdBtn = document.getElementById('advFwdBtn');
+if (advFwdBtn) advFwdBtn.addEventListener('click', () => pegAdvance(
+  { direction: 'forward' },
+  `Advance the reference year from ${REFERENCE_YEAR} to ${REFERENCE_YEAR + 1}? Every cohort in every department reclassifies immediately.`
+));
+const advRevBtn = document.getElementById('advRevBtn');
+if (advRevBtn) advRevBtn.addEventListener('click', () => pegAdvance(
+  { direction: 'reverse' },
+  `Roll the reference year back from ${REFERENCE_YEAR} to ${REFERENCE_YEAR - 1}?`
+));
+const setYrBtn = document.getElementById('setYrBtn');
+if (setYrBtn) setYrBtn.addEventListener('click', () => {
+  const v = document.getElementById('explicitYrInp').value;
+  if (!v) { pill('Enter a year first.', true); return; }
+  pegAdvance({ year: v }, `Set the reference year to ${v}? Every cohort in every department reclassifies immediately.`);
+});
+
+// ── Template download — asks first whether to add a new enrollment year ──
+function downloadTemplate(fmt) {
+  const wantsNewYear = confirm(
+    "Add a NEW enrollment year for every program in this file?\n\n" +
+    "OK  → yes, include a row for a new intake year for every program (to fill in).\n" +
+    "Cancel → no, just export the current data so I can update existing numbers."
+  );
+
+  let url = `${URL_TEMPLATE}?fmt=${fmt}`;
+
+  if (wantsNewYear) {
+    const yr = prompt("Which entry year should be added for every program?", REFERENCE_YEAR);
+    if (yr === null) return;              // user backed out entirely
+    const trimmed = yr.trim();
+    if (trimmed) url += `&new_entry_year=${encodeURIComponent(trimmed)}`;
+  }
+
+  window.location.href = url;
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────
+const fileInput = document.getElementById('fileUpload');
+document.getElementById('uploadTriggerBtn').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', async () => {
+  const f = fileInput.files[0];
+  if (!f) return;
+  const formData = new FormData();
+  formData.append('enrollment_file', f);
+  formData.append('csrfmiddlewaretoken', CSRF());
+
+  const stEl = document.getElementById('uploadSt');
+  stEl.textContent = 'Uploading…'; stEl.className = 'peg-upload-msgs';
+  document.getElementById('uploadErrList').innerHTML = '';
+
+  try {
+    const r = await fetch(URL_UPLOAD, { method: 'POST', body: formData });
+    const d = await r.json();
+    if (d.success) {
+      stEl.textContent = `✓ Imported ${d.saved} row(s)${d.skipped ? `, ${d.skipped} skipped.` : '.'} Refreshing…`;
+      stEl.className = 'peg-upload-msgs ok';
+      if (d.errors && d.errors.length) {
+        const ul = document.getElementById('uploadErrList');
+        d.errors.forEach(e => { const li = document.createElement('li'); li.textContent = e; ul.appendChild(li); });
+      }
+      if (d.saved > 0) setTimeout(() => location.reload(), 1800);
+    } else {
+      stEl.textContent = d.error || 'Upload failed.';
+      stEl.className = 'peg-upload-msgs err';
+    }
+  } catch (e) {
+    stEl.textContent = 'Network error: ' + e.message;
+    stEl.className = 'peg-upload-msgs err';
+  } finally {
+    fileInput.value = '';
+  }
+});
+</script>
+{% endblock extra_js %}

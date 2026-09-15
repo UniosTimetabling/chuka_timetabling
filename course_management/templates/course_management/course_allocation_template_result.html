@@ -1,0 +1,51 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Course Allocation Template — Import Result{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+  {% if department %}<span class="dept-badge">{{ department.name }}</span>{% endif %}
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .cat-container { padding: 1rem; width: 100%; max-width: 900px; margin: 0 auto; }
+    .cat-card { background: white; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #e5e9e0; overflow: hidden; }
+    .cat-card-header { padding: 1rem 1.5rem; background: #fafbf8; border-bottom: 1px solid #e5e9e0; }
+    .cat-card-header h2 { font-size: 1.15rem; font-weight: 600; color: #1e4620; margin: 0; }
+    .cat-card-body { padding: 1.25rem 1.5rem; }
+    .cat-summary { display: flex; gap: 1.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .cat-stat { background: #eaf1fb; color: #1a4d8f; padding: 0.6rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; font-weight: 600; }
+    .cat-stat.created { background: #eaf6ea; color: #1e4620; }
+    .cat-stat.skipped { background: #fbe6e5; color: #b3261e; }
+    .cat-warnings { background: #fff8e1; border: 1px solid #f0dca0; color: #7a5c00; padding: 0.9rem 1.1rem; border-radius: 0.5rem; font-size: 0.85rem; }
+    .cat-warnings ul { margin: 0.5rem 0 0 1.1rem; }
+    .cat-btn-back { display: inline-block; margin-top: 1rem; padding: 0.55rem 1.1rem; border-radius: 0.5rem; background: #1e4620; color: white; text-decoration: none; font-size: 0.88rem; font-weight: 600; }
+</style>
+
+<div class="cat-container">
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>Import Result</h2></div>
+    <div class="cat-card-body">
+      <div class="cat-summary">
+        <span class="cat-stat created">Created: {{ created }}</span>
+        <span class="cat-stat">Updated: {{ updated }}</span>
+        <span class="cat-stat skipped">Skipped: {{ skipped }}</span>
+      </div>
+
+      {% if warnings %}
+      <div class="cat-warnings">
+        <strong>{{ warnings|length }} row(s) need your attention:</strong>
+        <ul>
+          {% for w in warnings %}<li>{{ w }}</li>{% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <a href="{% url 'cod_panel' %}" class="cat-btn-back">Back to COD Panel</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

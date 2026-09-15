@@ -1,0 +1,108 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'export_import/css/official_tt_pdf.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title }}</title>
+  <style>
+    /* Report-specific additions — the shared official_tt_pdf.css above
+       supplies the memo-header/logo/motto/reference styling used on every
+       other officially published Chuka University document. */
+    .sr-dept-section { margin-bottom: 18px; page-break-inside: avoid; }
+    .sr-dept-title {
+      font-size: 12.5pt; font-weight: bold; text-transform: uppercase;
+      background: #f0f0f0; border-left: 4px solid #1E90FF;
+      padding: 4px 8px; margin-bottom: 6px;
+    }
+    table.sr-table { width: 100%; border-collapse: collapse; font-size: 8.7pt; }
+    table.sr-table th, table.sr-table td {
+      border: 1px solid #999; padding: 4px 5px; vertical-align: top; text-align: left;
+    }
+    table.sr-table th { background: #e6e6e6; font-weight: bold; }
+    .sr-scope-pill {
+      display: inline-block; border: 1px solid #999; border-radius: 8px;
+      padding: 1px 6px; font-size: 7.8pt; white-space: nowrap;
+    }
+    .sr-archived { color: #999; font-style: italic; }
+    .sr-report-meta { font-size: 8.5pt; color: #555; margin-bottom: 10px; text-align: right; }
+    .sr-empty { text-align: center; color: #777; padding: 20px; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <!-- OFFICIAL MEMO HEADER -->
+  <div class="memo-header">
+    {% if logo_url %}
+      <div><img src="{{ logo_url }}" alt="{{ university_name }} Logo" class="university-logo"></div>
+    {% endif %}
+    <div class="university-brand">
+      <div class="university-name-part">{{ university_name|upper }}</div>
+    </div>
+    <div class="university-motto">
+      <span>{{ motto_latin }}</span>
+      <span class="motto-separator">|</span>
+      <span>{{ motto_swahili }}</span>
+    </div>
+    <div class="reference-line">
+      <span class="reference-number">{{ reference_number }}</span>
+      <span class="document-date">{{ current_date }}</span>
+    </div>
+    <div class="directorate-line">{{ directorate_name }}</div>
+    <div class="contact-info">
+      <span class="contact-item">Telephone: {{ telephone }}</span>
+      <span class="contact-separator">•</span>
+      <span class="contact-item">Email: {{ email }}</span>
+      <span class="contact-separator">•</span>
+      <span class="contact-item">Address: {{ address }}</span>
+      <span class="contact-separator">•</span>
+      <span class="contact-item">Website: {{ website }}</span>
+    </div>
+    <div class="document-title">{{ title }}</div>
+  </div>
+
+  <div class="sr-report-meta">
+    Generated {{ current_date }}{% if department_filter %} · Department: {{ department_filter }}{% endif %}
+    · {{ total }} request{{ total|pluralize }}{% if show_archived %} (including archived){% endif %}
+  </div>
+
+  {% if by_department %}
+    {% for dept_name, requests in by_department.items %}
+    <div class="sr-dept-section">
+      <div class="sr-dept-title">{{ dept_name }} ({{ requests|length }})</div>
+      <table class="sr-table">
+        <thead>
+          <tr>
+            <th style="width:9%;">Scope</th>
+            <th style="width:16%;">Course(s)</th>
+            <th style="width:13%;">Lecturer</th>
+            <th style="width:30%;">Description</th>
+            <th style="width:8%;">Status</th>
+            <th style="width:7%;">Semester</th>
+            <th style="width:17%;">Raised</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sr in requests %}
+          <tr{% if sr.archived %} class="sr-archived"{% endif %}>
+            <td><span class="sr-scope-pill">{{ sr.get_scope_display }}</span></td>
+            <td>
+              {% if sr.affected_courses %}{{ sr.affected_courses|join:", " }}{% else %}{{ sr.course_code|default:"—" }}{% endif %}
+            </td>
+            <td>{{ sr.lecturer.display_name|default:"—" }}</td>
+            <td>{{ sr.description }}</td>
+            <td>{{ sr.get_status_display }}{% if sr.archived %} (archived){% endif %}</td>
+            <td>{{ sr.semester|default:"—" }}</td>
+            <td>{{ sr.created_at|date:"d M Y H:i" }}{% if sr.created_by %} — {{ sr.created_by.get_full_name|default:sr.created_by.username }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="sr-empty">No special requests to report.</div>
+  {% endif %}
+
+</body>
+</html>

@@ -1,0 +1,204 @@
+/*
+ * timetable_timetable_official_timetable_pdf.css
+ * Extracted from: timetable/templates/timetable/official_timetable_pdf.html
+ */
+
+body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            margin: 0.3cm 0.3cm;
+            color: #000;
+            line-height: 1.3;
+            width: 100%;
+        }
+
+        /* ---------------- HEADER ---------------- */
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+            width: 98%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .header .logo-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .header .logo-line img {
+            width: 60px;
+            height: auto;
+        }
+
+        .header .subtext {
+            font-size: 14px;
+            margin-top: 3px;
+            line-height: 1.2;
+            font-weight: bold;
+        }
+
+        .header .subtext strong {
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .header .meta {
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.3;
+            margin-top: 6px;
+            font-weight: bold;
+        }
+
+        .header .meta hr {
+            margin: 4px auto;
+            width: 60%;
+            border: 1px solid #000;
+        }
+
+        .header h3 {
+            font-size: 16px;
+            text-decoration: underline;
+            margin-top: 6px;
+            text-align: center;
+            font-weight: bold;
+            color: #cc0000;
+        }
+
+        /* ---------------- TABLE ---------------- */
+        .table-container {
+            width: 98%;
+            margin: 0 auto;
+            page-break-inside: avoid;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 4px;
+            font-size: 13px;
+            table-layout: fixed;
+        }
+        
+        th, td {
+            border: 2px solid #000;
+            text-align: center;
+            padding: 5px 3px;
+            vertical-align: middle;
+            word-wrap: break-word;
+            font-weight: bold;
+            height: 40px;
+        }
+        
+        th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .venue-col {
+            font-weight: bold;
+            background-color: #f5f5f5;
+            width: 14%;
+            font-size: 13px;
+        }
+
+        .time-col {
+            width: 7%;
+            font-size: 13px;
+        }
+
+        .day-title {
+            text-align: center;
+            font-size: 16px;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: underline;
+            width: 98%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* ---------------- FOOTER ---------------- */
+        .footer {
+            font-size: 12px;
+            margin-top: 12px;
+            line-height: 1.3;
+            white-space: pre-line;
+            border-top: 2px solid #000;
+            padding-top: 6px;
+            text-align: center;
+            font-weight: bold;
+            width: 98%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .footer strong {
+            font-weight: bold;
+        }
+
+        /* ---------------- SECTION HEADERS ---------------- */
+        h3 {
+            text-align: center;
+            text-decoration: underline;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 12px 0 6px 0;
+            width: 98%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* ---------------- TABLE CELL CONTENT ---------------- */
+        td div {
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        td div strong {
+            font-weight: bold;
+        }
+
+        hr[style*="dotted"] {
+            margin: 3px 0 !important;
+        }
+
+        /* ---------------- ADDITIONAL TABLES ---------------- */
+        .additional-table {
+            width: 98%;
+            margin: 0 auto;
+        }
+
+        .additional-table table {
+            width: 100%;
+            font-size: 12px;
+        }
+
+        .additional-table th,
+        .additional-table td {
+            padding: 4px 3px;
+            font-size: 12px;
+            height: 35px;
+        }
+
+        /* ---------------- EMPTY CELL STYLING ---------------- */
+        .empty-cell {
+            color: #999;
+            font-style: italic;
+        }

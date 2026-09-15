@@ -1,0 +1,289 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Feedback Panel · Chuka University{% endblock %}
+
+{% block extra_css %}
+  /* ── page wrapper ── */
+  .fb-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  /* ── hero header ── */
+  .fb-hero {
+    padding-bottom:.5rem;
+    margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .fb-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+
+  /* ── section title (excel accent bar) ── */
+  .excel-section-title {
+    font-size:.9rem; font-weight:700; color:#000;
+    margin:1.4rem 0 .5rem;
+    text-transform:uppercase; letter-spacing:.5px;
+    border-left:4px solid #107c41; padding-left:6px;
+  }
+
+  /* ── search row ── */
+  .fb-search-form {
+    display:flex; gap:6px; align-items:center;
+  }
+  .fb-search-form input[type="text"] {
+    border:1px solid #000; padding:4px 8px;
+    font-size:.82rem; border-radius:0; width:220px;
+    margin:0;
+  }
+  .fb-search-form button {
+    border:1px solid #000; background:#107c41; color:#fff;
+    padding:4px 14px; font-size:.82rem; font-weight:700;
+    cursor:pointer; border-radius:0;
+  }
+  .fb-search-form button:hover { background:#0e6b36; }
+
+  /* ── action bar ── */
+  .fb-action-bar {
+    display:flex; gap:8px; align-items:center;
+    flex-wrap:wrap; margin-bottom:.6rem;
+  }
+  .fb-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 12px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000; cursor:pointer;
+    text-decoration:none; border-radius:0;
+    transition:background .12s, color .12s;
+  }
+  .fb-btn:hover               { background:#f1f5f9; }
+  .fb-btn.fb-btn-green        { background:#107c41; color:#fff; border-color:#107c41; }
+  .fb-btn.fb-btn-green:hover  { background:#0e6b36; }
+  .fb-btn.fb-btn-orange       { background:#e65100; color:#fff; border-color:#e65100; }
+  .fb-btn.fb-btn-orange:hover { background:#c84600; }
+
+  /* ── summary stat tiles ── */
+  .fb-stats-row {
+    display:flex; gap:0; margin-bottom:1rem; border:1px solid #000;
+  }
+  .fb-stat {
+    flex:1; padding:8px 12px; border-right:1px solid #000;
+    min-width:80px;
+  }
+  .fb-stat:last-child { border-right:none; }
+  .fb-stat-label { font-size:.68rem; font-weight:700; text-transform:uppercase; color:#475569; }
+  .fb-stat-value { font-size:1.3rem; font-weight:800; color:#000; }
+  .fb-stat-value.green { color:#107c41; }
+  .fb-stat-value.orange{ color:#e65100; }
+
+  /* ── excel-style data table ── */
+  .fb-table-wrap { width:100%; overflow-x:auto; margin-bottom:1rem; }
+  .fb-table {
+    width:100%; border-collapse:collapse;
+    font-size:.8rem; background:#fff;
+    border-bottom:2px solid #107c41;
+  }
+  .fb-table th, .fb-table td {
+    border:1px solid #000 !important;
+    padding:5px 7px;
+    vertical-align:top; text-align:left;
+    border-radius:0 !important;
+    background:none !important;
+  }
+  .fb-table th {
+    font-weight:700; font-size:.75rem;
+    text-transform:uppercase; color:#000;
+    border-bottom:2px solid #000 !important;
+    white-space:nowrap;
+  }
+  .fb-table tr:nth-child(even) td { background:#f8fdf9 !important; }
+  .fb-table tr:hover td { background:#e8f5e9 !important; }
+
+  /* status badges */
+  .fb-status {
+    display:inline-block; padding:1px 7px;
+    font-size:.68rem; font-weight:700;
+    border:1px solid #000; white-space:nowrap;
+  }
+  .fb-status.pending  { background:#fff3e0; color:#e65100; }
+  .fb-status.seen     { background:#e8f5e9; color:#107c41; }
+  .fb-status.attended { background:#e3f2fd; color:#1565c0; }
+  .fb-status.solved   { background:#f3e5f5; color:#6a1b9a; }
+
+  /* message cell truncation */
+  .fb-msg { max-width:320px; word-break:break-word; }
+
+  /* inline status action buttons */
+  .fb-row-actions { display:flex; gap:4px; flex-wrap:wrap; }
+  .fb-row-btn {
+    border:1px solid #000; background:transparent;
+    padding:2px 8px; font-size:.7rem; font-weight:700;
+    cursor:pointer; border-radius:0; white-space:nowrap;
+  }
+  .fb-row-btn:hover { background:#f1f5f9; }
+  .fb-row-btn.seen     { border-color:#107c41; color:#107c41; }
+  .fb-row-btn.attended { border-color:#1565c0; color:#1565c0; }
+  .fb-row-btn.solved   { border-color:#6a1b9a; color:#6a1b9a; }
+
+  /* empty state */
+  .fb-empty {
+    border:1px solid #000; padding:28px; text-align:center;
+    font-size:.88rem; color:#475569; background:#fafafa;
+  }
+
+  /* ── toast ── */
+  #fb-toast-wrap {
+    position:fixed; bottom:1.2rem; right:1.2rem;
+    z-index:9999; display:flex; flex-direction:column; gap:6px;
+  }
+  .fb-toast {
+    min-width:220px; max-width:360px; padding:9px 13px;
+    font-size:.82rem; font-weight:700; border:1px solid #000;
+    display:flex; align-items:center; gap:8px;
+    animation:fbToastIn .2s ease;
+  }
+  @keyframes fbToastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .fb-toast.success { background:#e8f5e9; color:#107c41; }
+  .fb-toast.error   { background:#ffebee; color:#b71c1c; }
+  .fb-toast.info    { background:#e3f2fd; color:#1565c0; }
+  .fb-toast-close   { background:none; border:none; cursor:pointer; margin-left:auto; font-size:1rem; color:inherit; }
+{% endblock %}
+
+{% block content %}
+<div class="fb-page">
+
+  <!-- ── Hero ── -->
+  <div class="fb-hero">
+    <h2>Feedback Panel</h2>
+    <form method="get" class="fb-search-form">
+      <input type="text" name="q" value="{{ query }}" placeholder="Search by name, email, message…">
+      <button type="submit"><i class="bi bi-search"></i> Search</button>
+    </form>
+  </div>
+
+  <!-- ── Stat tiles ── -->
+  {% if feedbacks %}
+  <div class="fb-stats-row">
+    <div class="fb-stat">
+      <div class="fb-stat-label">Total</div>
+      <div class="fb-stat-value">{{ feedbacks|length }}</div>
+    </div>
+    <div class="fb-stat">
+      <div class="fb-stat-label">Pending</div>
+      <div class="fb-stat-value orange">{{ feedbacks|length }}</div>
+    </div>
+    <div class="fb-stat">
+      <div class="fb-stat-label">Search</div>
+      <div class="fb-stat-value {% if query %}green{% endif %}">{{ query|default:"—" }}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Action bar ── -->
+  <div class="fb-action-bar">
+    <a href="{% url 'export_feedbacks' %}" class="fb-btn fb-btn-green">
+      <i class="bi bi-funnel"></i> Manage &amp; Export
+    </a>
+    <a href="{% url 'timetable_dashboard' %}" class="fb-btn">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+
+  <!-- ── Section title ── -->
+  <div class="excel-section-title">Feedback Submissions</div>
+
+  <!-- ── Table ── -->
+  {% if feedbacks %}
+  <div class="fb-table-wrap">
+    <table class="fb-table">
+      <thead>
+        <tr>
+          <th style="width:120px;">Date</th>
+          <th style="width:160px;">Full Name</th>
+          <th style="width:180px;">Email</th>
+          <th style="width:110px;">Adm No.</th>
+          <th>Message</th>
+          <th style="width:90px;">Status</th>
+          <th style="width:160px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in feedbacks %}
+        <tr id="fb-row-{{ f.id }}">
+          <td style="white-space:nowrap; font-size:.75rem;">{{ f.created_at|date:"M d, Y H:i" }}</td>
+          <td>{{ f.full_name }}</td>
+          <td style="font-size:.75rem;">{{ f.email }}</td>
+          <td>{{ f.admission_number|default:"—" }}</td>
+          <td class="fb-msg">{{ f.message }}</td>
+          <td>
+            <span class="fb-status {{ f.status|default:'pending' }}" id="fb-status-{{ f.id }}">
+              {{ f.get_status_display|default:"Pending" }}
+            </span>
+          </td>
+          <td>
+            <div class="fb-row-actions">
+              <button class="fb-row-btn seen"     onclick="fbUpdateStatus({{ f.id }}, 'seen')">Seen</button>
+              <button class="fb-row-btn attended" onclick="fbUpdateStatus({{ f.id }}, 'attended')">Attended</button>
+              <button class="fb-row-btn solved"   onclick="fbUpdateStatus({{ f.id }}, 'solved')">Solved</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="fb-empty">
+    <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+    No feedback submissions yet{% if query %} matching "<strong>{{ query }}</strong>"{% endif %}.
+    {% if query %}<br><a href="{% url 'feedback_panel' %}" style="color:#107c41;">Clear search</a>{% endif %}
+  </div>
+  {% endif %}
+
+</div>
+
+<div id="fb-toast-wrap"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function fbToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 4000 : ttl;
+  const w = document.getElementById('fb-toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'fb-toast ' + (type || 'info');
+  t.innerHTML = msg + '<button class="fb-toast-close" onclick="this.closest(\'.fb-toast\').remove()">&times;</button>';
+  w.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+}
+
+function fbCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+function fbUpdateStatus(id, status) {
+  if (!confirm('Mark this feedback as ' + status + '?')) return;
+  fetch("{% url 'update_feedback_status' %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fbCsrf() },
+    body: JSON.stringify({ action: 'individual', feedback_id: id, status: status })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      const el = document.getElementById('fb-status-' + id);
+      if (el) {
+        el.textContent = d.new_status_display || status;
+        el.className = 'fb-status ' + (d.new_status || status);
+      }
+      fbToast('&#10003; Status updated to <b>' + (d.new_status_display || status) + '</b>', 'success');
+    } else {
+      fbToast('&#10007; Error: ' + (d.error || 'Unknown error'), 'error');
+    }
+  })
+  .catch(() => fbToast('&#10007; Network error — try again.', 'error'));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,852 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Resit — Auto-Scheduler{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  /* --- EXCEL CORE THEME RESET & FLAT BOUNDARIES --- */
+  :root {
+    --excel-green: #107c41;
+    --excel-green-dark: #0a4e29;
+    --excel-border: #107c41;
+    --excel-grid: #ccc;
+    --excel-bg-gray: #f3f2f1;
+    --excel-header-bg: #f8f9fa;
+    --text-main: #000000;
+    --header-h: 60px;
+  }
+
+  *{box-sizing:border-box;}
+  body {
+    background-color: var(--excel-bg-gray);
+    color: var(--text-main);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.82rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* --- TOPBAR (flat, replaces gradient navy bar) --- */
+  .topbar{position:fixed;top:0;left:0;right:0;height:var(--header-h);z-index:500;background:var(--excel-green);display:flex;align-items:center;gap:12px;padding:0 18px;border-bottom:2px solid var(--excel-green-dark);}
+  .topbar-brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0;}
+  .topbar-logo{height:34px;flex-shrink:0;}
+  .topbar-title{font-size:1.05rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .excel-badge{background:#fff;color:var(--excel-green);padding:2px 8px;font-size:.72rem;font-weight:700;margin-left:8px;}
+  .topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0;}
+  .icon-btn{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);padding:6px 10px;cursor:pointer;font-size:1rem;display:flex;align-items:center;border-radius:0!important;box-shadow:none!important;}
+  .icon-btn:hover{background:rgba(255,255,255,.3);}
+  .stat-chip{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;font-weight:700;padding:3px 10px;white-space:nowrap;border:1px solid rgba(255,255,255,.4);}
+  .chip-amber{background:rgba(0,0,0,.18);color:#ffe082;}
+  .chip-white{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* --- SLIDE-OUT MENU (flat) --- */
+  #menuOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:350;}
+  #menuOverlay.open{display:block;}
+  .menu-panel{position:fixed;top:var(--header-h);left:0;height:calc(100vh - var(--header-h));width:240px;background:var(--excel-header-bg);border-right:1px solid var(--excel-grid);padding:8px 0;z-index:360;overflow-y:auto;transform:translateX(-100%);transition:transform .18s ease;}
+  .menu-panel.open{transform:translateX(0);}
+  .menu-section-label{color:#555;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:10px 16px 4px;}
+  .menu-item{color:#000;text-decoration:none;font-size:.86rem;display:flex;align-items:center;gap:10px;padding:8px 16px;border-left:3px solid transparent;}
+  .menu-item:hover{background:#e1dfdd;}
+  .menu-item.active-page{background:#fff;border-left-color:var(--excel-green);font-weight:700;color:var(--excel-green);}
+  .menu-divider{border:none;border-top:1px solid var(--excel-grid);margin:6px 0;}
+
+  /* --- TWO-COLUMN FLAT WORKSPACE LAYOUT --- */
+  .workspace-container {
+    display: flex;
+    min-height: calc(100vh - var(--header-h));
+    margin-top: var(--header-h);
+    position: relative;
+    border-top: 1px solid var(--excel-green);
+  }
+
+  .excel-nav-rail {
+    width: 60px;
+    background: var(--excel-header-bg);
+    border-right: 1px solid var(--excel-grid);
+    position: sticky;
+    top: var(--header-h);
+    align-self: start;
+    height: calc(100vh - var(--header-h));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 0 4px;
+    gap: 4px;
+    z-index: 10;
+    overflow-y: auto;
+  }
+  .rail-label{font-size:.62rem;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:4px;text-align:center;width:100%;}
+  .rail-anchor{width:100%;padding:6px 2px;display:block;border:1px solid var(--excel-grid);background:#fff;color:var(--text-main);cursor:pointer;font-size:.7rem;font-weight:600;text-align:center;text-decoration:none;box-shadow:none!important;}
+  .rail-anchor:hover{background:var(--excel-bg-gray);color:var(--excel-green);}
+
+  .workspace-body{flex:1;padding:12px;overflow-x:hidden;}
+
+  /* --- CONFIGURATION STRIP --- */
+  .config-strip{display:flex;flex-wrap:wrap;align-items:center;gap:16px;background:#fff;border:1px solid var(--excel-border);padding:10px 16px;margin-bottom:0;border-radius:0!important;box-shadow:none!important;}
+  .config-strip label{display:flex;align-items:center;gap:6px;font-weight:600;color:#000;font-size:.82rem;}
+  .config-strip input[type="date"],
+  .config-strip input[type="time"],
+  .config-strip input[type="number"],
+  .config-strip input[type="text"],
+  .config-strip select{
+    border:1px solid var(--excel-grid);padding:4px 6px;font-size:.82rem;background:#fff;height:28px;
+    outline:none;border-radius:0!important;box-shadow:none!important;width:110px;
+  }
+  .config-strip input:focus,.config-strip select:focus{border:1px solid var(--excel-green);}
+  .config-strip-actions{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap;}
+
+  /* --- EXCEL FLAT BUTTONS --- */
+  .btn-excel{background:var(--excel-green);color:#fff;border:1px solid var(--excel-green-dark);padding:4px 12px;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;border-radius:0!important;box-shadow:none!important;text-decoration:none;}
+  .btn-excel:hover{background:var(--excel-green-dark);}
+  .btn-excel:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-excel-ghost{background:#fff;color:var(--text-main);border:1px solid var(--excel-grid);padding:4px 12px;font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:28px;border-radius:0!important;box-shadow:none!important;text-decoration:none;}
+  .btn-excel-ghost:hover{background:var(--excel-bg-gray);}
+  .btn-excel-danger{background:#fff;color:#d32f2f;border:1px solid #d32f2f;font-weight:600;}
+  .btn-excel-danger:hover{background:#ffebee;}
+  .btn-excel-publish{background:var(--excel-green-dark);border-color:#06321a;}
+  .btn-excel-publish:hover{background:#06321a;}
+
+  /* --- META STATUS STRIP --- */
+  .meta-status-strip{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--excel-border);border-top:none;padding:6px 16px;margin-bottom:12px;font-size:.78rem;color:#000;flex-wrap:wrap;}
+  .meta-divider{width:1px;background:var(--excel-grid);height:14px;}
+
+  /* --- ACTIONS BAR --- */
+  .actions-bar{display:flex;align-items:center;background:#fff;border:1px solid var(--excel-grid);padding:6px 12px;margin-bottom:12px;gap:8px;flex-wrap:wrap;}
+  .actions-bar-right{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+
+  /* --- STATS STRIP (compact, sits inside actions row) --- */
+  .stat-box{display:flex;align-items:center;gap:6px;border:1px solid var(--excel-grid);padding:4px 10px;background:#fff;}
+  .stat-box .sv{font-size:1rem;font-weight:800;color:var(--excel-green);}
+  .stat-box .sl{font-size:.7rem;color:#555;}
+  .stat-box.orange .sv{color:#e65100;}
+
+  /* --- DATA TABLE / TIMETABLE GRID --- */
+  .data-table-wrap{overflow-x:auto;background:#fff;border:1px solid var(--excel-grid)!important;}
+  table.data-table, table.tt-grid{width:100%;border-collapse:collapse!important;border:none!important;margin:0;}
+  table.data-table th, table.tt-grid th{background:var(--excel-header-bg)!important;color:var(--text-main);font-weight:600;border:1px solid var(--excel-grid)!important;padding:6px 8px;font-size:.82rem;text-align:left;box-shadow:none!important;}
+  table.data-table td, table.tt-grid td{background:#fff!important;color:var(--text-main);border:1px solid var(--excel-grid)!important;padding:6px 8px;font-size:.82rem;vertical-align:top;box-shadow:none!important;}
+  table.tt-grid tr:hover td{background:#fff!important;}
+  .venue-col,.venue-th{background:var(--excel-header-bg)!important;font-weight:600;width:110px;border-right:1px solid var(--excel-grid)!important;}
+  .course-chip{padding:2px 0;border:none!important;background:transparent!important;box-shadow:none!important;}
+  .cc-code{display:inline;font-weight:700;color:#000;}
+  .cc-meta{display:inline;font-size:.82rem;color:#333;margin-left:4px;}
+  .cell-empty{color:#bfbfbf;display:block;}
+
+  .day-block{margin-bottom:25px;background:#fff;border:1px solid var(--excel-grid);scroll-margin-top:10px;}
+  .day-header{background:var(--excel-green);color:#fff;padding:6px 12px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .day-stats{margin-left:auto;font-size:.78rem;font-weight:400;}
+
+  .loading-indicator{padding:20px;text-align:center;background:#fff;border:1px solid var(--excel-grid);margin:10px 0;}
+  .box-info{background:#fff;border:1px solid var(--excel-grid);padding:14px 16px;font-size:.84rem;color:#000;}
+  .box-error{background:#fff;border:1px solid #d32f2f;border-left:4px solid #d32f2f;padding:14px 16px;font-size:.84rem;color:#b71c1c;}
+
+  /* --- INLINE ALERTS (flat) --- */
+  .inline-alert{display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border:1px solid var(--excel-grid);font-size:.8rem;line-height:1.5;background:#fff;}
+  .inline-alert.danger{border-color:#d32f2f;color:#b71c1c;}
+  .inline-alert.warning{border-color:#e65100;color:#e65100;}
+  .inline-alert.info{border-color:#0d6efd;color:#0d47a1;}
+
+  /* --- EXCEL MODAL OVERLAY --- */
+  .excel-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4)!important;display:none;align-items:center;justify-content:center;z-index:2000;padding:20px;}
+  .excel-modal-overlay.show{display:flex!important;}
+  .excel-modal{background:#fff!important;border:2px solid var(--excel-green)!important;width:680px;max-width:100%;max-height:calc(100vh - 40px);display:flex;flex-direction:column;box-shadow:none!important;border-radius:0!important;}
+  .excel-modal-head{background:var(--excel-green)!important;color:#fff!important;padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;}
+  .excel-modal-head .mode-pill{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.22);padding:2px 8px;}
+  .excel-modal-body{padding:16px;background:#fff!important;overflow-y:auto;flex-grow:1;}
+  .excel-modal-foot{padding:10px;background:var(--excel-header-bg)!important;border-top:1px solid var(--excel-grid)!important;display:flex;justify-content:flex-end;gap:6px;flex-shrink:0;}
+
+  .prog-wrap{background:var(--excel-bg-gray)!important;border:1px solid var(--excel-grid)!important;height:24px;margin:12px 0;border-radius:0!important;box-shadow:none!important;}
+  .prog-fill{height:100%!important;width:0%;text-align:center;font-weight:700;line-height:22px;font-size:.8rem;box-shadow:none!important;transition:width .1s linear,background-color 0s ease!important;color:#000;}
+  .stage-yellow{background-color:#ffc107!important;color:#000!important;}
+  .stage-blue{background-color:#0d6efd!important;color:#fff!important;}
+  .stage-green{background-color:#107c41!important;color:#fff!important;}
+  .stage-red{background-color:#d32f2f!important;color:#fff!important;}
+
+  .modal-stats{display:grid!important;grid-template-columns:repeat(3,1fr)!important;border:1px solid var(--excel-grid)!important;margin-bottom:12px!important;background:#fff!important;border-radius:0!important;}
+  .ms-card{padding:8px!important;text-align:center!important;border:none!important;border-right:1px solid var(--excel-grid)!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;}
+  .ms-card:last-child{border-right:none!important;}
+  .ms-val{font-size:1.2rem!important;font-weight:700!important;color:#000!important;}
+  .ms-lbl{font-size:.7rem!important;color:#444!important;text-transform:uppercase!important;font-weight:600!important;}
+
+  .action-strip{background:#fff!important;border:1px solid var(--excel-grid)!important;padding:6px 10px;font-size:.82rem;margin-bottom:12px;color:#000!important;border-radius:0!important;}
+  .failed-block{background:#fff;border:1px solid #d32f2f;border-left:4px solid #d32f2f;padding:9px 12px;margin-bottom:10px;max-height:140px;overflow-y:auto;}
+  .failed-block p{font-size:.83rem;font-weight:700;color:#b71c1c;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+  .failed-block ul{font-size:.8rem;color:#b71c1c;padding-left:16px;margin:0;}
+
+  .console-wrap{background:#000!important;color:#00ff00!important;font-family:"Consolas",monospace;font-size:.76rem;padding:10px;height:140px;overflow-y:auto;border:1px solid var(--excel-grid)!important;box-shadow:none!important;}
+  .console-wrap .cl{margin-bottom:2px;}
+  .console-wrap .cl-ts{color:#4a6}
+  .console-wrap .cl-badge{font-weight:700;margin-right:4px;}
+  .console-wrap .cl.info .cl-badge{color:#4fc3f7;}
+  .console-wrap .cl.warning .cl-badge{color:#ffd54f;}
+  .console-wrap .cl.error .cl-badge{color:#ff5252;}
+  .console-wrap .cl.success .cl-badge{color:#69f0ae;}
+  .console-wrap .cl-msg{color:#00ff00;}
+
+  .toast{position:fixed;bottom:20px;right:20px;z-index:9999;padding:10px 16px;border:1px solid var(--excel-grid);font-size:.84rem;font-weight:600;color:#000;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s;display:flex;align-items:center;gap:8px;border-radius:0!important;}
+  .toast.show{opacity:1;pointer-events:auto;}
+  .toast.success{border-left:4px solid var(--excel-green);}
+  .toast.error{border-left:4px solid #d32f2f;}
+  .toast.info{border-left:4px solid #0d6efd;}
+
+  .skip-link{position:absolute;left:-9999px;}
+  .skip-link:focus{left:8px;top:8px;background:#fff;border:1px solid var(--excel-green);padding:4px 8px;z-index:9999;}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <button class="icon-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
+    <img src="{% static 'images/chuka.png' %}" alt="Logo" class="topbar-logo">
+    <span class="topbar-title">Resit — Auto-Scheduler<span class="excel-badge">Resits</span></span>
+  </div>
+  <div class="topbar-actions">
+    <span class="stat-chip chip-amber"><i class="fas fa-hourglass-half"></i> <span id="topStatUnscheduled">{{ unscheduled_count }}</span> unscheduled</span>
+    <span class="stat-chip chip-white"><i class="fas fa-layer-group"></i> <span id="topStatTotal">{{ total_count }}</span> total</span>
+    <button class="icon-btn" onclick="loadTimetable()"><i class="fas fa-sync"></i></button>
+    <a href="{% url 'timetable_dashboard' %}" class="icon-btn"><i class="fas fa-gauge-high"></i></a>
+  </div>
+</div>
+
+<div id="menuOverlay" onclick="closeMenu()"></div>
+<nav id="menuPanel" class="menu-panel">
+  <div class="menu-section-label">Navigation</div>
+  <a href="{% url 'timetable_dashboard' %}" class="menu-item"><i class="fas fa-gauge-high"></i> Dashboard</a>
+  <hr class="menu-divider">
+  <div class="menu-section-label">Resit Scheduling</div>
+  <a href="/resits/manual/" class="menu-item"><i class="fas fa-calendar-days"></i> Manual Timetabling</a>
+  <a href="/resits/auto/" class="menu-item active-page"><i class="fas fa-microchip"></i> Auto Scheduler</a>
+  <hr class="menu-divider">
+  <div class="menu-section-label">Main Timetable</div>
+  <a href="{% url 'timetable_panel' %}" class="menu-item"><i class="fas fa-table"></i> Main Timetabling</a>
+  <a href="{% url 'autoscheduler_home' %}" class="menu-item"><i class="fas fa-robot"></i> Main Auto Scheduler</a>
+  <hr class="menu-divider">
+  <a href="{% url 'logout' %}" class="menu-item"><i class="fas fa-right-from-bracket"></i> Logout</a>
+</nav>
+
+<div class="workspace-container">
+
+  <aside class="excel-nav-rail" id="leftRailAnchors">
+    <div class="rail-label">Days</div>
+    <button class="rail-anchor" onclick="window.scrollTo({top:0,behavior:'smooth'})">Top</button>
+    <div style="width:90%;height:1px;background:var(--excel-grid);margin:4px 0;"></div>
+  </aside>
+
+  <main class="workspace-body" id="main-content">
+
+    <div class="config-strip" id="configStrip">
+      <label>Academic Year:
+        <input type="text" class="form-control" id="cfgAcYear" placeholder="2025/2026" value="{{ config.academic_year|default:'' }}">
+      </label>
+      <label>Semester:
+        <input type="text" id="cfgSemester" placeholder="S1" value="{{ config.semester|default:'' }}">
+      </label>
+      <label>Start Date:
+        <input type="date" id="cfgStartDate" value="{{ config.start_date|date:'Y-m-d'|default:'' }}">
+      </label>
+      <label>Day Start:
+        <input type="time" id="cfgStartTime" value="{{ config.start_time|time:'H:i'|default:'08:00' }}">
+      </label>
+      <label>Day End:
+        <input type="time" id="cfgEndTime" value="{{ config.end_time|time:'H:i'|default:'17:00' }}">
+      </label>
+      <label>Slot Size (hrs):
+        <input type="number" id="cfgSlotSize" min="1" max="8" value="{{ config.slot_size|default:2 }}">
+      </label>
+      <label>Max Days:
+        <input type="number" id="cfgMaxDays" min="1" max="90" value="{{ config.max_exam_days|default:10 }}">
+      </label>
+      <label>Break (hrs):
+        <input type="number" id="cfgBreak" min="0" max="8" step="0.5" value="{% if config and config.spacing_ratio >= 1 %}{{ config.spacing_ratio|floatformat:0 }}{% else %}0{% endif %}">
+      </label>
+
+      <div class="config-strip-actions">
+        <button type="button" class="btn-excel" id="btnSaveConfig" onclick="saveConfig()"><i class="fas fa-floppy-disk"></i> Save Config</button>
+        <button type="button" class="btn-excel" id="cardRunBtn" onclick="startScheduler()" {% if not config %}disabled{% endif %}><i class="fas fa-circle-play"></i> Run Auto-Scheduler</button>
+        <button type="button" class="btn-excel btn-excel-publish" id="cardPublishBtn" onclick="confirmPublish()" disabled><i class="fas fa-paper-plane"></i> Publish to Timetable</button>
+      </div>
+    </div>
+
+    <div class="meta-status-strip">
+      <span id="configStatusLabel"><strong>Configuration:</strong> {% if config %}Configured{% else %}Not Set{% endif %}</span>
+      <div class="meta-divider"></div>
+      <span><strong>Mode:</strong> Student-conflict-aware, 1 session per course</span>
+      <div class="meta-divider"></div>
+      <span><strong>Auto-clear:</strong> Each run wipes existing temp entries first</span>
+      <div class="meta-divider"></div>
+      <span id="configMsg" style="display:none;font-weight:700;"></span>
+    </div>
+
+    <div class="inline-alert danger" id="noConfigWarning" style="margin-bottom:12px;{% if config %}display:none;{% endif %}">
+      <i class="fas fa-triangle-exclamation"></i>
+      <span>No configuration found. Fill in the form above and save before running the scheduler.</span>
+    </div>
+
+    <nav class="actions-bar">
+      <div class="stat-box orange"><span class="sv" id="statUnscheduled">{{ unscheduled_count }}</span><span class="sl">Unscheduled</span></div>
+      <div class="stat-box"><span class="sv" id="statInTemp">{{ temp_count }}</span><span class="sl">In Temp</span></div>
+      <div class="stat-box"><span class="sv" id="statTotal">{{ total_count }}</span><span class="sl">Total</span></div>
+      <span id="configInfo" style="font-size:.78rem;color:#555;">{% if config %}Config: {{ config.start_date|date:'Y-m-d'|default:'?' }} → max {{ config.max_exam_days }} days · {{ config.slot_size }}h slots{% else %}<span style="color:#d32f2f;"><i class="fas fa-circle-exclamation"></i> No config set</span>{% endif %}</span>
+      <div class="actions-bar-right">
+        <a href="{% url 'timetable_dashboard' %}" class="btn-excel-ghost"><i class="fas fa-arrow-left"></i> Dashboard</a>
+      </div>
+    </nav>
+
+    <div id="timetableContainer">
+      {% if config %}
+        <div class="loading-indicator" id="ttInitialLoad"><i class="fas fa-spinner fa-spin"></i> Loading timetable…</div>
+      {% else %}
+        <div class="box-info" id="ttInitialLoad"><i class="fas fa-circle-info"></i> No configuration found. Fill in the form above and save before running the scheduler.</div>
+      {% endif %}
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── PROGRESS MODAL ───────────────────────────────────────── -->
+<div class="excel-modal-overlay" id="progressModal">
+  <div class="excel-modal">
+    <div class="excel-modal-head">
+      <span><i class="fas fa-hourglass-half"></i> Resit Scheduling Processing Engine</span>
+      <span class="mode-pill" id="modePill">student-aware</span>
+    </div>
+    <div class="excel-modal-body">
+      <div style="display:flex;justify-content:space-between;font-weight:700;color:#000;">
+        <span id="progLabel">Starting…</span>
+        <span id="progPct">0%</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill stage-yellow" id="progFill">0%</div></div>
+
+      <div class="modal-stats">
+        <div class="ms-card"><div class="ms-val" id="msSched">0</div><div class="ms-lbl">Scheduled</div></div>
+        <div class="ms-card"><div class="ms-val" id="msRemain">–</div><div class="ms-lbl">Remaining</div></div>
+        <div class="ms-card"><div class="ms-val" id="msTotal">–</div><div class="ms-lbl">Total</div></div>
+      </div>
+
+      <div class="action-strip"><i class="fas fa-bolt"></i> <span id="currentAction">Initialising…</span></div>
+
+      <div class="failed-block" id="failedBlock" style="display:none;">
+        <p><i class="fas fa-circle-exclamation"></i> Could not schedule:</p>
+        <ul id="failedList"></ul>
+      </div>
+
+      <div style="font-weight:700;color:#000;margin-bottom:4px;"><i class="fas fa-terminal"></i> Terminal Process Engine Log:</div>
+      <div class="console-wrap" id="consoleOutput">
+        <div class="cl info"><span class="cl-ts">[00:00:00]</span><span class="cl-badge">INFO</span><span class="cl-msg">Waiting to start…</span></div>
+      </div>
+    </div>
+    <div class="excel-modal-foot" id="progressModalFoot">
+      <button type="button" class="btn-excel-ghost" onclick="closeProgressModal()" id="closeProgBtn" style="display:none;"><i class="fas fa-xmark"></i> Close</button>
+      <button type="button" class="btn-excel" onclick="loadTimetable();closeProgressModal()" id="refreshCloseBtn" style="display:none;"><i class="fas fa-sync"></i> Refresh &amp; Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PUBLISH CONFIRM MODAL ───────────────────────────────────────── -->
+<div class="excel-modal-overlay" id="publishConfirmModal">
+  <div class="excel-modal" style="width:460px;">
+    <div class="excel-modal-head"><span><i class="fas fa-paper-plane"></i> Publish Draft Timetable</span></div>
+    <div class="excel-modal-body">
+      <div class="inline-alert warning" style="margin-bottom:14px;">
+        <i class="fas fa-triangle-exclamation"></i>
+        <span>This will <strong>replace</strong> the entire published timetable with the current draft, then clear the draft. This cannot be undone.</span>
+      </div>
+      <div class="inline-alert info" style="margin-bottom:16px;">
+        <i class="fas fa-circle-info"></i>
+        <span><strong id="pubConfirmCount">0</strong> draft entries will be published. You will be redirected to the Manual Timetabling panel when done.</span>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-excel-ghost" onclick="closePublishConfirm()"><i class="fas fa-xmark"></i> Cancel</button>
+        <button class="btn-excel btn-excel-publish" id="pubConfirmBtn" onclick="doPublish()"><i class="fas fa-paper-plane"></i> Yes, Publish Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PUBLISH PROGRESS MODAL ─────────────────────────────────────── -->
+<div class="excel-modal-overlay" id="publishProgressModal">
+  <div class="excel-modal" style="width:480px;">
+    <div class="excel-modal-head"><span><i class="fas fa-arrows-rotate" id="pubSpinnerIcon"></i> Publishing Timetable…</span></div>
+    <div class="excel-modal-body">
+      <div style="display:flex;justify-content:space-between;font-weight:700;color:#000;">
+        <span id="pubProgLabel">Starting…</span>
+        <span id="pubProgPct">0%</span>
+      </div>
+      <div class="prog-wrap"><div class="prog-fill stage-yellow" id="pubProgFill">0%</div></div>
+
+      <div class="modal-stats" style="grid-template-columns:repeat(2,1fr)!important;">
+        <div class="ms-card"><div class="ms-val" id="pubStatCopied">–</div><div class="ms-lbl">Copied</div></div>
+        <div class="ms-card"><div class="ms-val" id="pubStatTotal">–</div><div class="ms-lbl">Total</div></div>
+      </div>
+
+      <div class="action-strip" id="pubActionStrip"><i class="fas fa-arrows-rotate"></i> <span id="pubCurrentStep">Preparing…</span></div>
+
+      <div style="font-weight:700;color:#000;margin-bottom:4px;"><i class="fas fa-terminal"></i> Publish Log:</div>
+      <div class="console-wrap" id="pubConsole"></div>
+
+      <div id="pubDoneRow" style="display:none;margin-top:12px;">
+        <div class="inline-alert" id="pubDoneAlert" style="border-color:var(--excel-green);color:var(--excel-green-dark);">
+          <i class="fas fa-circle-check"></i>
+          <span id="pubDoneMsg">Published successfully! Redirecting…</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = "{{ csrf_token }}";
+let pollingInterval = null;
+let currentJobTotal = 0;
+let startTime = null;
+let slotGrid = [];
+let venues = [];
+let drafts = [];
+
+function toggleMenu() {
+  document.getElementById('menuPanel').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('open');
+}
+function closeMenu() { document.getElementById('menuPanel').classList.remove('open'); document.getElementById('menuOverlay').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+
+function openProgressModal() { document.getElementById('progressModal').classList.add('show'); }
+function closeProgressModal() { if (pollingInterval) return; document.getElementById('progressModal').classList.remove('show'); }
+
+function showToast(msg, type='info', duration=3500) {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type} show`;
+  t.innerHTML = `<i class="fas fa-${type==='success'?'circle-check':'circle-exclamation'}"></i> ${msg}`;
+  clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function addLog(level, msg) {
+  const ts = new Date().toLocaleTimeString('en-GB');
+  const out = document.getElementById('consoleOutput');
+  const div = document.createElement('div');
+  div.className = `cl ${level.toLowerCase()}`;
+  div.innerHTML = `<span class="cl-ts">[${ts}]</span><span class="cl-badge">${level}</span><span class="cl-msg">${msg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+  out.appendChild(div); out.scrollTop = out.scrollHeight;
+}
+
+function elapsed() { const s = Math.floor((Date.now() - (startTime || Date.now())) / 1000); return s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${s%60}s`; }
+
+async function saveConfig() {
+  const btn = document.getElementById('btnSaveConfig');
+  const msg = document.getElementById('configMsg');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+  const payload = {
+    academic_year: document.getElementById('cfgAcYear').value.trim(),
+    semester: document.getElementById('cfgSemester').value.trim(),
+    start_date: document.getElementById('cfgStartDate').value,
+    start_time: document.getElementById('cfgStartTime').value,
+    end_time: document.getElementById('cfgEndTime').value,
+    slot_size: parseInt(document.getElementById('cfgSlotSize').value) || 2,
+    max_exam_days: parseInt(document.getElementById('cfgMaxDays').value) || 10,
+    break_between_slots: parseFloat(document.getElementById('cfgBreak').value) || 0,
+  };
+
+  try {
+    const resp = await fetch('/resits/manual/config/save/', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showToast(data.message || 'Configuration saved.', 'success');
+      msg.style.display = 'inline-block'; msg.style.color = 'var(--excel-green)'; msg.textContent = '✓ ' + (data.message || 'Saved.');
+      document.getElementById('configStatusLabel').innerHTML = '<strong>Configuration:</strong> Configured';
+      document.getElementById('cardRunBtn').disabled = false;
+      document.getElementById('noConfigWarning').style.display = 'none';
+      document.getElementById('configInfo').innerHTML = `Config: ${payload.start_date} → max ${payload.max_exam_days} days · ${payload.slot_size}h slots`;
+      await loadTimetable();
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    } else {
+      showToast(data.error || 'Save failed.', 'error');
+      msg.style.display = 'inline-block'; msg.style.color = '#d32f2f'; msg.textContent = '✗ ' + (data.error || 'Error.');
+    }
+  } catch(e) { showToast('Network error: ' + e.message, 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-floppy-disk"></i> Save Config';
+}
+
+async function loadTimetable() {
+  const c = document.getElementById('timetableContainer');
+
+  if (!document.getElementById('cfgStartDate').value) {
+    c.innerHTML = '<div class="box-info"><i class="fas fa-circle-info"></i> No configuration found. Fill in the form above and save before running the scheduler.</div>';
+    return;
+  }
+
+  const isFirstLoad = !!document.getElementById('ttInitialLoad');
+  if (isFirstLoad) {
+    c.innerHTML = '<div class="loading-indicator"><i class="fas fa-spinner fa-spin"></i> Loading timetable…</div>';
+  }
+
+  try {
+    const [tempResp, panelResp] = await Promise.all([
+      fetch('/resits/auto/temp-data/'),
+      fetch('/resits/manual/data/'),
+    ]);
+    if (!tempResp.ok)  throw new Error('temp-data HTTP ' + tempResp.status);
+    if (!panelResp.ok) throw new Error('panel-data HTTP ' + panelResp.status);
+
+    const tempData  = await tempResp.json();
+    const panelData = await panelResp.json();
+
+    drafts = tempData.entries || [];
+
+    slotGrid = (panelData.slot_grid && panelData.slot_grid.length)
+      ? panelData.slot_grid
+      : _slotGridFromDrafts(drafts);
+
+    venues = (panelData.venues && panelData.venues.length)
+      ? panelData.venues
+      : _venuesFromDrafts(drafts);
+
+    document.getElementById('statInTemp').textContent = drafts.length;
+
+    const publishBtn = document.getElementById('cardPublishBtn');
+    if (publishBtn) publishBtn.disabled = drafts.length === 0;
+
+    renderTimetable(drafts, slotGrid, venues);
+  } catch(e) { c.innerHTML = `<div class="box-error"><i class="fas fa-triangle-exclamation"></i> Failed: ${e.message}</div>`; }
+}
+
+function _slotGridFromDrafts(entries) {
+  const seen = new Set();
+  const grid = [];
+  const sorted = [...entries].sort((a, b) =>
+    (a.date + a.start_time).localeCompare(b.date + b.start_time)
+  );
+  sorted.forEach(e => {
+    const key = `${e.date}|${e.start_time}|${e.end_time}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      grid.push({ date: e.date, day: e.day_name || '', start_time: e.start_time, end_time: e.end_time });
+    }
+  });
+  return grid;
+}
+
+function _venuesFromDrafts(entries) {
+  const seen = new Set();
+  const list = [];
+  entries.forEach(e => {
+    const code = e.venue || 'N/A';
+    if (!seen.has(code)) { seen.add(code); list.push({ code, name: code }); }
+  });
+  list.sort((a, b) => a.code.localeCompare(b.code));
+  return list;
+}
+
+function renderTimetable(draftEntries, slotsList, venuesList) {
+  const container = document.getElementById('timetableContainer');
+  const railContainer = document.getElementById('leftRailAnchors');
+  railContainer.innerHTML = '<div class="rail-label">Days</div><button class="rail-anchor" onclick="window.scrollTo({top:0,behavior:\'smooth\'})">Top</button><div style="width:90%;height:1px;background:var(--excel-grid);margin:4px 0;"></div>';
+
+  if (!slotsList || !slotsList.length) {
+    container.innerHTML = draftEntries && draftEntries.length
+      ? '<div class="box-info"><i class="fas fa-circle-info"></i> Draft entries exist but no slot grid could be built. Try refreshing the page.</div>'
+      : '<div class="box-info"><i class="fas fa-circle-info"></i> No timetable entries yet. Run the auto-scheduler to generate a draft.</div>';
+    return;
+  }
+
+  const entryMap = {};
+  draftEntries.forEach(entry => {
+    const key = `${entry.date}|${entry.start_time}–${entry.end_time}|${entry.venue || 'N/A'}`;
+    if (!entryMap[key]) entryMap[key] = [];
+    entryMap[key].push(entry);
+  });
+
+  const byDate = {};
+  slotsList.forEach(slot => {
+    if (!byDate[slot.date]) byDate[slot.date] = { day: slot.day, slots: [] };
+    byDate[slot.date].slots.push(slot);
+  });
+
+  const sortedDates = Object.keys(byDate).sort();
+  let html = '';
+  let dayIndex = 1;
+
+  sortedDates.forEach(date => {
+    const { day, slots } = byDate[date];
+    const totalExams = draftEntries.filter(e => e.date === date).length;
+    const elementId = `day-block-${date}`;
+
+    const railBtn = document.createElement('button');
+    railBtn.className = 'rail-anchor';
+    railBtn.title = `${date} (${day})`;
+    railBtn.innerText = `D${dayIndex}`;
+    railBtn.onclick = function() { document.getElementById(elementId).scrollIntoView({ behavior: 'smooth' }); };
+    railContainer.appendChild(railBtn);
+
+    html += `<div class="day-block" id="${elementId}">
+      <div class="day-header">
+        <i class="fas fa-calendar-day"></i>
+        <span>${date} — ${day}</span>
+        <span class="day-stats">${venuesList.length} venue${venuesList.length !== 1 ? 's' : ''} · ${slots.length} slot${slots.length !== 1 ? 's' : ''} · ${totalExams} exam${totalExams !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="data-table-wrap"><table class="tt-grid"><thead><tr>
+        <th class="venue-th">Venue</th>
+        ${slots.map(s => `<th>${s.start_time}–${s.end_time}</th>`).join('')}
+      </tr></thead><tbody>`;
+
+    const venuesWithEntries = [];
+    const venuesEmpty = [];
+
+    venuesList.forEach(v => {
+      const vCode = v.code || v.name || '?';
+      const hasEntry = slots.some(slot => {
+        const key = `${date}|${slot.start_time}–${slot.end_time}|${vCode}`;
+        return (entryMap[key] || []).length > 0;
+      });
+      if (hasEntry) venuesWithEntries.push(v);
+      else          venuesEmpty.push(v);
+    });
+
+    const renderVenueRow = (v, isEmptySection) => {
+      const vCode = v.code || v.name || '?';
+      let row = `<tr>`;
+      row += isEmptySection
+        ? `<td class="venue-col" style="opacity:.55">${vCode}</td>`
+        : `<td class="venue-col">${vCode}</td>`;
+      slots.forEach(slot => {
+        const key = `${date}|${slot.start_time}–${slot.end_time}|${vCode}`;
+        const entries = entryMap[key] || [];
+        if (!entries.length) {
+          row += `<td><span class="cell-empty">—</span></td>`;
+        } else {
+          const totalStudents = entries.reduce((s, e) => s + (e.registered_students || 0), 0);
+          row += `<td style="min-width:110px">`;
+          entries.forEach(e => {
+            row += `<div class="course-chip" title="${(e.course_name || '').replace(/"/g,"'")}"><span class="cc-code">${e.course_code || 'N/A'}</span></div>`;
+          });
+          row += `<span class="cc-meta">[${totalStudents} stu.]</span></td>`;
+        }
+      });
+      row += `</tr>`;
+      return row;
+    };
+
+    venuesWithEntries.forEach(v => { html += renderVenueRow(v, false); });
+
+    if (venuesEmpty.length) {
+      html += `<tr>
+        <td colspan="${slots.length + 1}" style="padding:4px 12px;background:var(--excel-header-bg);border-top:1px dashed var(--excel-grid);font-size:.68rem;font-weight:700;color:#555;letter-spacing:.6px;text-transform:uppercase;">
+          Unoccupied venues
+        </td>
+      </tr>`;
+      venuesEmpty.forEach(v => { html += renderVenueRow(v, true); });
+    }
+
+    html += `</tbody></table></div></div>`;
+    dayIndex++;
+  });
+
+  container.innerHTML = html || '<div class="box-info"><i class="fas fa-circle-info"></i> No timetable entries yet.</div>';
+}
+
+async function startScheduler() {
+  resetProgressUI();
+  openProgressModal();
+  setRunBtns(true);
+  startTime = Date.now();
+  addLog('INFO', 'Starting scheduler — 1 session per course, student-conflict-aware. Auto-clearing temp entries first…');
+
+  try {
+    const resp = await fetch('/resits/auto/run/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ clear_existing: true }),
+    });
+    const data = await resp.json();
+    if (!data.success) { addLog('ERROR', data.error || 'Failed to start'); setRunBtns(false); return; }
+    currentJobTotal = data.total || 0;
+    document.getElementById('msTotal').textContent = currentJobTotal;
+    document.getElementById('msRemain').textContent = currentJobTotal;
+    addLog('INFO', `Job started — ${currentJobTotal} course(s) to schedule`);
+    pollingInterval = setInterval(() => pollProgress(data.job_id), 1200);
+  } catch(err) { addLog('ERROR', 'Network error: ' + err.message); setRunBtns(false); }
+}
+
+function pollProgress(jobId) {
+  fetch(`/resits/auto/progress/${jobId}/`)
+    .then(r => r.json())
+    .then(p => {
+      const total = currentJobTotal || p.total || 1;
+      const sched = p.scheduled || 0;
+      const pct = Math.min(100, Math.round((sched / total) * 100));
+      const fill = document.getElementById('progFill');
+
+      fill.style.width = pct + '%'; fill.textContent = pct + '%';
+      fill.className = 'prog-fill ' + (pct < 35 ? 'stage-yellow' : pct <= 85 ? 'stage-blue' : 'stage-green');
+
+      document.getElementById('progPct').textContent = pct + '%';
+      document.getElementById('progLabel').textContent = `Scheduled ${sched} / ${total}`;
+      document.getElementById('msSched').textContent = sched;
+      document.getElementById('msRemain').textContent = Math.max(0, total - sched);
+      document.getElementById('currentAction').textContent = p.current_action || `Scheduling session ${sched + 1}…`;
+
+      if (p.failed && p.failed.length) {
+        document.getElementById('failedBlock').style.display = 'block';
+        document.getElementById('failedList').innerHTML = p.failed.map(c => `<li>${c}</li>`).join('');
+      }
+
+      if (p.status === 'done') {
+        clearInterval(pollingInterval); pollingInterval = null;
+        fill.className = 'prog-fill stage-green';
+        fill.style.width = '100%'; fill.textContent = '100%';
+        setRunBtns(false);
+        document.getElementById('closeProgBtn').style.display = 'inline-flex';
+        document.getElementById('refreshCloseBtn').style.display = 'inline-flex';
+        document.getElementById('progLabel').textContent = `Complete — ${sched} course(s) scheduled.`;
+        addLog('SUCCESS', `Done in ${elapsed()}. ${sched} scheduled.`);
+        if (p.conflict_warnings && p.conflict_warnings.length) {
+          addLog('WARNING', `${p.conflict_warnings.length} soft student conflict(s) — timetabler review recommended.`);
+          p.conflict_warnings.forEach(w => addLog('WARNING', w));
+        }
+        loadTimetable();
+      }
+    })
+    .catch(() => {});
+}
+
+function resetProgressUI() {
+  const fill = document.getElementById('progFill');
+  fill.style.width = '0%'; fill.textContent = '0%'; fill.className = 'prog-fill stage-yellow';
+  document.getElementById('progPct').textContent = '0%';
+  document.getElementById('progLabel').textContent = 'Starting…';
+  document.getElementById('msSched').textContent = '0';
+  document.getElementById('msRemain').textContent = '–';
+  document.getElementById('msTotal').textContent = '–';
+  document.getElementById('currentAction').textContent = 'Initialising…';
+  document.getElementById('failedBlock').style.display = 'none';
+  document.getElementById('failedList').innerHTML = '';
+  document.getElementById('closeProgBtn').style.display = 'none';
+  document.getElementById('refreshCloseBtn').style.display = 'none';
+  document.getElementById('consoleOutput').innerHTML = '<div class="cl info"><span class="cl-ts">[00:00:00]</span><span class="cl-badge">INFO</span><span class="cl-msg">Waiting to start…</span></div>';
+}
+
+function setRunBtns(disabled) {
+  const btn = document.getElementById('cardRunBtn');
+  btn.disabled = disabled;
+  btn.innerHTML = disabled ? '<i class="fas fa-spinner fa-spin"></i> Scheduling…' : '<i class="fas fa-circle-play"></i> Run Auto-Scheduler';
+}
+
+// ── PUBLISH ────────────────────────────────────────────────────────────────
+
+function confirmPublish() {
+  document.getElementById('pubConfirmCount').textContent = drafts.length;
+  document.getElementById('publishConfirmModal').classList.add('show');
+}
+
+function closePublishConfirm() {
+  document.getElementById('publishConfirmModal').classList.remove('show');
+}
+
+function addPubLog(level, msg) {
+  const out = document.getElementById('pubConsole');
+  const ts  = new Date().toLocaleTimeString('en-GB');
+  const div = document.createElement('div');
+  div.className = `cl ${level.toLowerCase()}`;
+  div.innerHTML = `<span class="cl-ts">[${ts}]</span><span class="cl-badge">${level}</span><span class="cl-msg">${msg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+function setPubStep(msg) {
+  document.getElementById('pubCurrentStep').textContent = msg;
+}
+
+async function doPublish() {
+  closePublishConfirm();
+  document.getElementById('pubConsole').innerHTML = '';
+  document.getElementById('pubDoneRow').style.display = 'none';
+  const fill = document.getElementById('pubProgFill');
+  fill.style.width = '0%'; fill.textContent = '0%'; fill.className = 'prog-fill stage-yellow';
+  document.getElementById('pubProgPct').textContent = '0%';
+  document.getElementById('pubProgLabel').textContent = 'Starting…';
+  document.getElementById('pubStatCopied').textContent = '–';
+  document.getElementById('pubStatTotal').textContent = drafts.length;
+  document.getElementById('publishProgressModal').classList.add('show');
+
+  document.getElementById('cardRunBtn').disabled   = true;
+  document.getElementById('cardPublishBtn').disabled = true;
+
+  addPubLog('INFO', `Starting publish — ${drafts.length} draft entries to promote…`);
+
+  setPubStep('Clearing existing published timetable…');
+  animatePubBar(20, '20%', 'Clearing published timetable…', 'stage-yellow');
+  addPubLog('INFO', 'Step 1 / 3 — clearing ResitTimetable…');
+
+  try {
+    const resp = await fetch('/resits/auto/publish/', {
+      method:  'POST',
+      headers: { 'X-CSRFToken': CSRF },
+    });
+
+    animatePubBar(60, '60%', 'Copying draft entries…', 'stage-blue');
+    addPubLog('INFO', 'Step 2 / 3 — bulk-copying temp → published timetable…');
+
+    if (resp.ok && (resp.url.includes('/resits/manual/') || resp.redirected)) {
+      animatePubBar(100, '100%', 'Done!', 'stage-green');
+      addPubLog('INFO', 'Step 3 / 3 — clearing temp timetable…');
+      addPubLog('SUCCESS', `Published ${drafts.length} entries successfully. Redirecting…`);
+
+      document.getElementById('pubStatCopied').textContent = drafts.length;
+      document.getElementById('pubProgLabel').textContent  = 'Complete!';
+      document.getElementById('pubDoneMsg').textContent    =
+        `${drafts.length} entries published. Redirecting to Manual Timetabling…`;
+      document.getElementById('pubDoneAlert').style.cssText = 'border-color:var(--excel-green);color:var(--excel-green-dark);';
+      document.getElementById('pubDoneRow').style.display = 'block';
+
+      setTimeout(() => { window.location.href = '/resits/manual/'; }, 1800);
+
+    } else {
+      let errMsg = `HTTP ${resp.status}`;
+      try { const j = await resp.json(); errMsg = j.error || errMsg; } catch(_) {}
+      throw new Error(errMsg);
+    }
+
+  } catch(err) {
+    animatePubBar(0, '0%', 'Failed', 'stage-red');
+    addPubLog('ERROR', 'Publish failed: ' + err.message);
+    document.getElementById('pubProgLabel').textContent = 'Failed — see log above.';
+    document.getElementById('pubDoneMsg').textContent   = '✗ Publish failed: ' + err.message;
+    document.getElementById('pubDoneAlert').style.cssText = 'border-color:#d32f2f;color:#b71c1c;';
+    document.getElementById('pubDoneRow').style.display = 'block';
+
+    document.getElementById('cardRunBtn').disabled    = false;
+    document.getElementById('cardPublishBtn').disabled = drafts.length === 0;
+  }
+}
+
+function animatePubBar(pct, label, stepMsg, stageClass) {
+  const fill = document.getElementById('pubProgFill');
+  fill.style.width = pct + '%';
+  fill.textContent = label;
+  fill.className = 'prog-fill ' + (stageClass || 'stage-yellow');
+  document.getElementById('pubProgPct').textContent   = label;
+  document.getElementById('pubProgLabel').textContent = stepMsg;
+  if (stepMsg) setPubStep(stepMsg);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadTimetable();
+});
+</script>
+{% endblock %}

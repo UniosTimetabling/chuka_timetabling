@@ -1,0 +1,19 @@
+================================================================================
+  COURSE ALLOCATION REPORT — BY PROGRAM, YEAR & SEMESTER
+  Generated : 2026-08-01 05:41:21
+================================================================================
+  Programs          : 0
+  Total allocations : 0
+================================================================================
+
+  Column legend:
+    TOT – total allocations   APR – approved by DVC
+    SUB – submitted to TT     REJ – rejected by DVC
+    PND – pending (not yet approved or rejected)
+    Year ? / S? – allocations with no linked ProgramCourse
+
+================================================================================
+
+================================================================================
+  END OF REPORT
+================================================================================

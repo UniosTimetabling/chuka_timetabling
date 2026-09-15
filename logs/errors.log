@@ -1,0 +1,226 @@
+ERROR 2026-09-14 21:12:39,907 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-15 09:16:52,982 django.request middleware:45 Unhandled exception on GET /timetable/analysis/export-unscheduled-only/?scope=exam | user=dravis | ip=127.0.0.1 | OSError: 
+fileName='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png' identity=[ImageReader@0x7f273abb5a90 filename='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'] Cannot open resource "/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png"
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 523, in open_for_read
+    return open_for_read_by_name(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 463, in open_for_read_by_name
+    return open(name,mode)
+FileNotFoundError: [Errno 2] No such file or directory: '/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 530, in open_for_read
+    return BytesIO((datareader if name[:5].lower()=='data:' else rlUrlRead)(name))
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 476, in rlUrlRead
+    return urlopen(name).read()
+           ~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 473, in open
+    req = Request(fullurl, data)
+  File "/usr/lib/python3.13/urllib/request.py", line 292, in __init__
+    self.full_url = url
+    ^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 318, in full_url
+    self._parse()
+    ~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/urllib/request.py", line 347, in _parse
+    raise ValueError("unknown url type: %r" % self.full_url)
+ValueError: unknown url type: '/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 643, in __init__
+    fp = open_for_read(fileName,'b')
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 534, in open_for_read
+    return open_for_read(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 532, in open_for_read
+    raise IOError('Cannot open resource "%s"' % name)
+OSError: Cannot open resource "/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png"
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 1917, in export_unscheduled_only_pdf
+    return _pdf_response(elements, _scope_filename(request, "unscheduled_only_report.pdf"), template_config, ref, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 518, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 158, in _add
+    w, h = flowable.wrap(aW, h)
+           ~~~~~~~~~~~~~^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 510, in wrap
+    return self.drawWidth, self.drawHeight
+           ^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 504, in __getattr__
+    self._setup_inner()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 461, in _setup_inner
+    img = self._img
+          ^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 498, in __getattr__
+    self._img = ImageReader(self._file)
+                ~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 655, in __init__
+    annotateException('\nfileName=%r identity=%s'%(fileName,self.identity()))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 1176, in annotateException
+    rl_reraise(t,t(sep.join((_ for _ in (msg,str(v),postMsg) if _))),b)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 138, in rl_reraise
+    raise v.with_traceback(b)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 643, in __init__
+    fp = open_for_read(fileName,'b')
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 534, in open_for_read
+    return open_for_read(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 532, in open_for_read
+    raise IOError('Cannot open resource "%s"' % name)
+OSError: 
+fileName='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png' identity=[ImageReader@0x7f273abb5a90 filename='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'] Cannot open resource "/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png"
+ERROR 2026-09-15 09:16:54,025 django.request log:246 Internal Server Error: /timetable/analysis/export-unscheduled-only/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 523, in open_for_read
+    return open_for_read_by_name(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 463, in open_for_read_by_name
+    return open(name,mode)
+FileNotFoundError: [Errno 2] No such file or directory: '/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 530, in open_for_read
+    return BytesIO((datareader if name[:5].lower()=='data:' else rlUrlRead)(name))
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 476, in rlUrlRead
+    return urlopen(name).read()
+           ~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 189, in urlopen
+    return opener.open(url, data, timeout)
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 473, in open
+    req = Request(fullurl, data)
+  File "/usr/lib/python3.13/urllib/request.py", line 292, in __init__
+    self.full_url = url
+    ^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/urllib/request.py", line 318, in full_url
+    self._parse()
+    ~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/urllib/request.py", line 347, in _parse
+    raise ValueError("unknown url type: %r" % self.full_url)
+ValueError: unknown url type: '/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 643, in __init__
+    fp = open_for_read(fileName,'b')
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 534, in open_for_read
+    return open_for_read(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 532, in open_for_read
+    raise IOError('Cannot open resource "%s"' % name)
+OSError: Cannot open resource "/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png"
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 1917, in export_unscheduled_only_pdf
+    return _pdf_response(elements, _scope_filename(request, "unscheduled_only_report.pdf"), template_config, ref, compiled_by=_full_name(request))
+  File "/home/dravis/Downloads/chuka_timetabling/timetable/analysis_reports.py", line 518, in _pdf_response
+    doc.build(doc_elements, onFirstPage=on_page, onLaterPages=on_page)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1322, in build
+    BaseDocTemplate.build(self,flowables, canvasmaker=canvasmaker)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 1083, in build
+    self.handle_flowable(flowables)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/doctemplate.py", line 932, in handle_flowable
+    if frame.add(f, canv, trySplit=self.allowSplitting):
+       ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/frames.py", line 158, in _add
+    w, h = flowable.wrap(aW, h)
+           ~~~~~~~~~~~~~^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 510, in wrap
+    return self.drawWidth, self.drawHeight
+           ^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 504, in __getattr__
+    self._setup_inner()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 461, in _setup_inner
+    img = self._img
+          ^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/platypus/flowables.py", line 498, in __getattr__
+    self._img = ImageReader(self._file)
+                ~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 655, in __init__
+    annotateException('\nfileName=%r identity=%s'%(fileName,self.identity()))
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 1176, in annotateException
+    rl_reraise(t,t(sep.join((_ for _ in (msg,str(v),postMsg) if _))),b)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 138, in rl_reraise
+    raise v.with_traceback(b)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 643, in __init__
+    fp = open_for_read(fileName,'b')
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 534, in open_for_read
+    return open_for_read(name,mode)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/reportlab/lib/utils.py", line 532, in open_for_read
+    raise IOError('Cannot open resource "%s"' % name)
+OSError: 
+fileName='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png' identity=[ImageReader@0x7f273abb5a90 filename='/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png'] Cannot open resource "/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png"
+ERROR 2026-09-15 09:16:54,054 django.server basehttp:212 "GET /timetable/analysis/export-unscheduled-only/?scope=exam HTTP/1.1" 500 273635
+ERROR 2026-09-15 09:17:48,616 django.request middleware:45 Unhandled exception on GET /media/timetable_logos/university_logo.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+ERROR 2026-09-15 09:17:51,420 django.request middleware:45 Unhandled exception on GET /media/timetable_logos/university_logo.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/timetable_logos/university_logo.png” does not exist
+ERROR 2026-09-15 09:18:34,397 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=dravis | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist

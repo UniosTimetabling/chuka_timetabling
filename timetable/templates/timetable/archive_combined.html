@@ -1,0 +1,120 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Timetable Archiving Panel{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_archive_combined.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+<div class="container mt-4 p-3 p-md-4">
+ <!-- Header Section -->
+ <div class="header-section text-center">
+ <h3 class="mb-3">Timetable Archiving Panel</h3>
+ <p class="mb-0">
+ Manage all timetable archives here. You can archive, view, and restore past timetables easily.
+ </p>
+ </div>
+
+ <!-- Archive Form -->
+ <div class="form-section">
+ <h5 class="text-success mb-3">
+ <span class="icon-badge">️</span> Archive Current Timetable
+ </h5>
+ <form method="POST" class="mt-3">
+ {% csrf_token %}
+ <div class="row mb-3">
+ <div class="col-md-4 mb-3 mb-md-0">
+ <label class="form-label fw-semibold">Academic Year</label>
+ <input type="text" name="academic_year" class="form-control" placeholder="e.g. 2024/2025" required>
+ </div>
+ <div class="col-md-4 mb-3 mb-md-0">
+ <label class="form-label fw-semibold">Semester</label>
+ <select name="semester" class="form-select" required>
+ <option value="">Select Semester</option>
+ <option value="1">1st Semester</option>
+ <option value="2">2nd Semester</option>
+ </select>
+ </div>
+ <div class="col-md-4">
+ <label class="form-label fw-semibold">Timetable Type</label>
+ <select name="timetable_type" class="form-select" required>
+ <option value="">Select Type</option>
+ <option value="MAIN">Main Timetable</option>
+ <option value="EXAM">Exam Timetable</option>
+ </select>
+ </div>
+ </div>
+ <button type="submit" class="btn btn-success w-100 mt-2"> Archive Now</button>
+ </form>
+ </div>
+
+ <!-- Divider -->
+ <div class="divider"></div>
+
+ <!-- Archive Panel -->
+ <h4 class="text-success mb-3">
+ <span class="icon-badge"></span> Archived Timetables
+ </h4>
+
+ {% if messages %}
+ <div class="mb-4">
+ {% for message in messages %}
+ <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+ {{ message }}
+ <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+ </div>
+ {% endfor %}
+ </div>
+ {% endif %}
+
+ {% for key, archives in grouped.items %}
+ <div class="card">
+ <div class="card-header">
+ {{ key|title }} Timetables
+ </div>
+ <div class="card-body p-0">
+ {% if archives %}
+ <div class="table-responsive">
+ <table class="table table-bordered table-hover align-middle mb-0">
+ <thead class="table-success">
+ <tr>
+ <th>Academic Year</th>
+ <th>Semester</th>
+ <th>Archived By</th>
+ <th>Date</th>
+ <th>Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for a in archives %}
+ <tr>
+ <td>{{ a.academic_year }}</td>
+ <td>{{ a.get_semester_display }}</td>
+ <td>{{ a.archived_by }}</td>
+ <td>{{ a.archived_at|date:"Y-m-d H:i" }}</td>
+ <td>
+ <form method="POST" action="{% url 'unarchive_timetable' a.id %}" style="display:inline;">
+ {% csrf_token %}
+ <button class="btn btn-sm btn-primary">
+ Unarchive
+ </button>
+ </form>
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="p-4 text-center text-muted">
+ No archives found for this category.
+ </div>
+ {% endif %}
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+{% endblock panel_content %}

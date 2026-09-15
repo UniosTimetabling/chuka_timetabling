@@ -1,0 +1,199 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Admin Panel - AJAX Foods & Offers{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'mess/css/mess_mess_admin.css' %}">
+<link rel="stylesheet" href="{% static 'mess/css/mess_admin.css' %}">
+{% endblock page_css %}
+
+{% block dash_content %}
+<div class="container">
+ <h1> AJAX Admin Panel</h1>
+
+ <div id="notify" class="notification"></div>
+
+ <div class="grid-container">
+ <!-- Food Section -->
+ <section class="food-section">
+ <h2>Add Food</h2>
+ <form id="foodForm" class="food-form">
+ {% csrf_token %}
+ <div class="form-group">
+ <input type="text" name="name" placeholder="Food Name" required>
+ </div>
+ <div class="form-group">
+ <textarea name="description" placeholder="Description" rows="3"></textarea>
+ </div>
+ <div class="form-group">
+ <input type="number" step="0.01" name="price" placeholder="Price">
+ </div>
+ <div class="form-group">
+ <label for="food-images">Food Images</label>
+ <input type="file" id="food-images" name="images" multiple>
+ </div>
+ <div class="form-group">
+ <input type="text" name="options" placeholder="Option 1">
+ </div>
+ <div class="form-group">
+ <input type="text" name="options" placeholder="Option 2">
+ </div>
+ <button type="submit"> Add Food</button>
+ </form>
+
+ <h2>Existing Foods</h2>
+ <div id="foodList" class="food-list">
+ {% for food in foods %}
+ <div class="item" id="food-{{ food.id }}">
+ <h3>{{ food.name }} - Ksh {{ food.price }}</h3>
+ <p>{{ food.description }}</p>
+ <button class="delete" onclick="deleteFood({{ food.id }})"> Delete</button>
+ </div>
+ {% endfor %}
+ </div>
+ </section>
+
+ <!-- Offer Section -->
+ <section class="offer-section">
+ <h2>Add Offer</h2>
+ <form id="offerForm" class="offer-form">
+ {% csrf_token %}
+ <div class="form-group">
+ <input type="text" name="title" placeholder="Offer Title" required>
+ </div>
+ <div class="form-group">
+ <textarea name="description" placeholder="Description" rows="3"></textarea>
+ </div>
+ <div class="form-group">
+ <input type="number" step="0.01" name="discount" placeholder="Discount (%)">
+ </div>
+ <div class="form-group">
+ <label for="offer-image">Offer Image</label>
+ <input type="file" id="offer-image" name="image">
+ </div>
+ <div class="form-group">
+ <label>Start Date</label>
+ <input type="date" name="start_date" required>
+ </div>
+ <div class="form-group">
+ <label>End Date</label>
+ <input type="date" name="end_date" required>
+ </div>
+ <button type="submit"> Add Offer</button>
+ </form>
+
+ <h2>Existing Offers</h2>
+ <div id="offerList" class="offer-list">
+ {% for offer in offers %}
+ <div class="item" id="offer-{{ offer.id }}">
+ <h3>{{ offer.title }} - {{ offer.discount }}%</h3>
+ <p>{{ offer.description }}</p>
+ <small>Valid: {{ offer.start_date }} → {{ offer.end_date }}</small><br>
+ <button class="delete" onclick="deleteOffer({{ offer.id }})"> Delete</button>
+ </div>
+ {% endfor %}
+ </div>
+ </section>
+ </div>
+ </div>
+{% endblock dash_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * mess_mess_admin.js
+ * Extracted inline JS from: mess/templates/mess/admin.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+function showNotify(msg, type="success") {
+      const box = document.getElementById("notify");
+      box.innerText = msg;
+      box.className = `notification ${type}`;
+      box.style.display = "block";
+      setTimeout(() => box.style.display = "none", 3000);
+    }
+
+    // ---------------- Foods ----------------
+    document.getElementById("foodForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      let formData = new FormData(this);
+
+      const res = await fetch("{% url 'add_food' %}", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const foodList = document.getElementById("foodList");
+        foodList.innerHTML += `
+          <div class="item" id="food-${data.id}">
+            <h3>${data.name} - Ksh ${data.price}</h3>
+            <p>${data.description}</p>
+            <button class="delete" onclick="deleteFood(${data.id})">🗑 Delete</button>
+          </div>`;
+        this.reset();
+        showNotify("Food added successfully!", "success");
+      } else {
+        showNotify("Error adding food", "error");
+      }
+    });
+
+    async function deleteFood(id) {
+      if (!confirm("Are you sure you want to delete this food item?")) return;
+      
+      const res = await fetch(`/api/delete-food/${id}/`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById(`food-${id}`).remove();
+        showNotify("Food deleted!", "success");
+      } else {
+        showNotify("Error deleting food", "error");
+      }
+    }
+
+    // ---------------- Offers ----------------
+    document.getElementById("offerForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      let formData = new FormData(this);
+
+      const res = await fetch("{% url 'add_offer' %}", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const offerList = document.getElementById("offerList");
+        offerList.innerHTML += `
+          <div class="item" id="offer-${data.id}">
+            <h3>${data.title} - ${data.discount || 0}%</h3>
+            <p>${data.description}</p>
+            <small>Valid: ${data.start_date} → ${data.end_date}</small><br>
+            <button class="delete" onclick="deleteOffer(${data.id})">🗑 Delete</button>
+          </div>`;
+        this.reset();
+        showNotify("Offer added successfully!", "success");
+      } else {
+        showNotify("Error adding offer", "error");
+      }
+    });
+
+    async function deleteOffer(id) {
+      if (!confirm("Are you sure you want to delete this offer?")) return;
+      
+      const res = await fetch(`/api/delete-offer/${id}/`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById(`offer-${id}`).remove();
+        showNotify("Offer deleted!", "success");
+      } else {
+        showNotify("Error deleting offer", "error");
+      }
+    }
+</script>
+{% endblock %}

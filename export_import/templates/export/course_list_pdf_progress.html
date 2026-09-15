@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Generating Course Allocations PDF - Chuka University{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<style>
+    /* Absolute Grid Placement Framework holding background simulation sheet */
+    .excel-backdrop-container {
+        position: relative;
+        min-height: 88vh;
+        background-color: #ffffff;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+    }
+
+    .excel-menu-ribbon {
+        background: #f3f2f1;
+        border-bottom: 1px solid #d2d2d2;
+        padding: 8px 16px;
+        display: flex;
+        gap: 20px;
+        font-size: 12px;
+        color: #323130;
+        user-select: none;
+    }
+
+    .excel-menu-ribbon span.active-tab { 
+        font-weight: 700; 
+        color: #1e7145; 
+        border-bottom: 3px solid #1e7145;
+        padding-bottom: 4px;
+    }
+
+    /* Beautiful High Fidelity visible excel preview grid background layout style */
+    .excel-table-scroll-wrapper {
+        padding: 15px;
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .excel-spreadsheet-grid {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+    }
+
+    .excel-spreadsheet-grid th, .excel-spreadsheet-grid td {
+        border: 1px solid #d2d2d2;
+        padding: 6px 12px;
+        font-size: 12px;
+        color: #555555;
+        text-align: left;
+    }
+
+    .excel-spreadsheet-grid th {
+        background: #f3f2f1;
+        font-weight: 600;
+        color: #323130;
+        text-align: center;
+        width: 40px;
+    }
+
+    .excel-spreadsheet-grid tr.row-headers td {
+        background: #f3f2f1;
+        font-weight: bold;
+        color: #323130;
+        text-align: center;
+    }
+
+    /* Foreground Center Modal Overlay and Focus Frame */
+    .progress-overlay-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 32, 53, 0.65); /* Elegant Dark Blue Mask */
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+    }
+
+    .progress-modal-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 40px 35px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        border-top: 6px solid #1e7145; /* Clean Corporate Green Identification Strip */
+    }
+
+    .loading-ring-spinner {
+        display: inline-block;
+        width: 50px;
+        height: 50px;
+        border: 4px solid #e5e7eb;
+        border-radius: 50%;
+        border-top-color: #1e7145;
+        animation: spin-rotation 0.85s linear infinite;
+        margin-bottom: 20px;
+    }
+
+    @keyframes spin-rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .modal-main-heading {
+        font-size: 22px;
+        font-weight: 700;
+        color: #1a3a5c;
+        margin-bottom: 4px;
+    }
+
+    .modal-sub-heading {
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        font-weight: 600;
+        margin-bottom: 25px;
+    }
+
+    .progress-bar-track-line {
+        background: #e5e7eb;
+        border-radius: 10px;
+        height: 10px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .progress-bar-fill-line {
+        background: linear-gradient(90deg, #1e7145 0%, #2ecc71 100%);
+        width: 5%;
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.3s ease;
+    }
+
+    .numerical-counter-label {
+        font-size: 16px;
+        font-weight: 700;
+        color: #1e7145;
+        margin-bottom: 4px;
+    }
+
+    .status-description-text {
+        font-size: 13.5px;
+        color: #4b5563;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="excel-backdrop-container">
+    <div class="excel-menu-ribbon">
+        <span class="active-tab">Master Schedule View</span> <span>Data Ribbon</span> <span>Page Layout</span> <span>Export Hub</span>
+    </div>
+    
+    <div class="excel-table-scroll-wrapper">
+        <table class="excel-spreadsheet-grid">
+            <tr class="row-headers">
+                <th></th>
+                <td>A</td>
+                <td>B</td>
+                <td>C</td>
+                <td>D</td>
+                <td>E</td>
+            </tr>
+            {% for x in "1234567890123456789" %}
+            <tr>
+                <th>{{ forloop.counter }}</th>
+                <td style="color: #1e7145; font-weight: 600;">COSC {{ x }}02</td>
+                <td>Systems Architecture Matrix Grid</td>
+                <td>Department of Computer Science</td>
+                <td>Assigned Faculty Lecturer</td>
+                <td>Regular Class Stream</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="progress-overlay-modal">
+        <div class="progress-modal-card">
+            <div class="loading-ring-spinner" id="modalSpinner"></div>
+            <div class="modal-main-heading" id="modalTitle">Compiling Master Document</div>
+            <div class="modal-sub-heading">Chuka University Timetabling Engine</div>
+            
+            <div class="numerical-counter-label" id="percentText">5%</div>
+            <div class="progress-bar-track-line">
+                <div class="progress-bar-fill-line" id="barFill"></div>
+            </div>
+            <div class="status-description-text" id="statusMessage">Spawning background compiler handles...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_js %}
+{{ block.super }}
+<script>
+    let trackerPollInterval = null;
+    const trackingSessionKey = "{{ session_id }}";
+    
+    function triggerAsyncGeneration() {
+        // Explicitly routing targeted post actions inside URLs boundaries
+        const urlGenerateEndpoint = "{% url 'course_list_pdf_generate' %}";
+        
+        const formData = new FormData();
+        formData.append('session_id', trackingSessionKey);
+
+        fetch(urlGenerateEndpoint, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData,
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'started') {
+                // Poll progress endpoint every 400ms for fast feedback
+                trackerPollInterval = setInterval(pollGenerationProgress, 400);
+            } else {
+                displayExecutionError('Failed to start PDF generation worker.');
+            }
+        })
+        .catch(err => {
+            console.error('System Exception:', err);
+            displayExecutionError('Network communication error encountered.');
+        });
+    }
+    
+    function pollGenerationProgress() {
+        // Routes to the dedicated check_pdf_progress_api view
+        const statusUrl = "{% url 'course_list_pdf_status' %}?session_id=" + encodeURIComponent(trackingSessionKey);
+        
+        fetch(statusUrl, { method: 'GET', credentials: 'same-origin' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.progress === 100 || data.status === 'completed') {
+                clearInterval(trackerPollInterval);
+                
+                document.getElementById('barFill').style.width = '100%';
+                document.getElementById('percentText').innerText = '100%';
+                document.getElementById('modalTitle').innerText = 'Document Ready';
+                document.getElementById('statusMessage').innerText = 'Downloading course allocations file...';
+                document.getElementById('modalSpinner').style.borderTopColor = '#2ecc71';
+                
+                // AUTOMATIC REDIRECT DOWNLOAD HANDLER - Seamless execution loop
+                window.location.href = "{% url 'course_list_pdf_download' %}?session_id=" + encodeURIComponent(trackingSessionKey);
+                
+            } else {
+                let currentPercentage = data.progress || 15;
+                document.getElementById('barFill').style.width = currentPercentage + '%';
+                document.getElementById('percentText').innerText = currentPercentage + '%';
+                document.getElementById('statusMessage').innerText = data.message || 'Formatting data frames...';
+            }
+        })
+        .catch(err => {
+            console.error('Polling error:', err);
+        });
+    }
+    
+    function displayExecutionError(errorMessageString) {
+        clearInterval(trackerPollInterval);
+        document.getElementById('modalTitle').innerText = 'Generation Interrupted';
+        document.getElementById('modalTitle').style.color = '#e74c3c';
+        document.getElementById('statusMessage').innerText = errorMessageString;
+        document.getElementById('statusMessage').style.color = '#e74c3c';
+        document.getElementById('modalSpinner').style.animation = 'none';
+        document.getElementById('modalSpinner').style.borderTopColor = '#e74c3c';
+        document.getElementById('percentText').style.color = '#e74c3c';
+    }
+    
+    function getCookie(name) {
+        let valueMatches = null;
+        if (document.cookie && document.cookie !== '') {
+            const splitCookies = document.cookie.split(';');
+            for (let i = 0; i < splitCookies.length; i++) {
+                const currentIterationCookie = splitCookies[i].trim();
+                if (currentIterationCookie.substring(0, name.length + 1) === (name + '=')) {
+                    valueMatches = decodeURIComponent(currentIterationCookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return valueMatches;
+    }
+    
+    document.addEventListener('DOMContentLoaded', triggerAsyncGeneration);
+</script>
+{% endblock %}

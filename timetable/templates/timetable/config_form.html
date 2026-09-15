@@ -1,0 +1,177 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Scheduler Configuration{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_config_form.css' %}">
+<style>
+  .config-section {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .config-section h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.05rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 8px;
+  }
+  .config-section .note-inline {
+    font-size: 0.82rem;
+    color: #666;
+    margin-top: 3px;
+  }
+  .toggle-section {
+    border-left: 4px solid #3498db;
+    padding-left: 12px;
+    margin-top: 12px;
+  }
+  .section-save-btn {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .section-save-btn button {
+    padding: 7px 22px;
+    font-size: 0.88rem;
+    border-radius: 4px;
+    border: 1px solid #3498db;
+    background: #3498db;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .section-save-btn button:hover {
+    background: #2176ae;
+    border-color: #2176ae;
+  }
+  /* success / error message flash */
+  .django-messages { list-style: none; padding: 0; margin: 0 0 18px; }
+  .django-messages li { padding: 9px 14px; border-radius: 4px; font-size: 0.88rem; margin-bottom: 6px; }
+  .django-messages li.success { background: #d1f5e0; border: 1px solid #198754; color: #145a32; }
+  .django-messages li.error   { background: #fde8e8; border: 1px solid #c0392b; color: #7b1010; }
+</style>
+{% endblock page_css %}
+
+{% block panel_content %}
+<div class="container">
+  <img src="{% static 'images/chuka.png' %}" alt="Chuka University Logo" class="logo">
+  <h1>Scheduler Configuration</h1>
+
+  {% if messages %}
+  <ul class="django-messages">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <div class="note">
+    ️ Please enter time in <strong>24-hour format (HH:MM:SS)</strong>.<br>
+    Example: <code>07:00:00</code> for 7 AM, <code>19:00:00</code> for 7 PM.
+  </div>
+
+  <!-- ── 1. Regular Weekday Session ──────────────────────────────────────── -->
+  <form method="post" id="regularForm">
+    {% csrf_token %}
+    <div class="config-section">
+      <h3>📅 Regular Weekday Session</h3>
+      {% for field in form_regular %}
+        <div class="form-group">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}
+            <small class="note-inline">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <div style="color:red;font-size:0.85em;margin-top:5px;">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <div class="section-save-btn">
+        <button type="submit" name="save_regular">💾 Save Regular Session</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- ── 2. Evening Classes ──────────────────────────────────────────────── -->
+  <form method="post" id="eveningForm">
+    {% csrf_token %}
+    <div class="config-section">
+      <h3>🌙 Evening Classes</h3>
+      <p style="font-size:0.88rem;color:#555;margin-bottom:12px;">
+        When enabled, courses individually flagged as <strong>Evening/Weekend</strong>
+        (<code>is_evening_weekend = True</code>) are scheduled into weekday evening slots.
+        Regular daytime courses are <strong>never</strong> moved here.
+        Defaults to a single <strong>7:00 PM – 9:00 PM</strong> block per weekday.
+      </p>
+      {% for field in form_evening %}
+        <div class="form-group {% if field.name != 'enable_evening_classes' %}toggle-section{% endif %}">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}
+            <small class="note-inline">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <div style="color:red;font-size:0.85em;margin-top:5px;">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <div class="section-save-btn">
+        <button type="submit" name="save_evening">💾 Save Evening Config</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- ── 3. Weekend Classes ──────────────────────────────────────────────── -->
+  <form method="post" id="weekendForm">
+    {% csrf_token %}
+    <div class="config-section">
+      <h3>📆 Weekend Classes</h3>
+      <p style="font-size:0.88rem;color:#555;margin-bottom:12px;">
+        When enabled, courses flagged <strong>Evening/Weekend</strong> that could not
+        fit into evening slots are placed on <strong>Saturday</strong>.
+        Regular courses are <strong>never</strong> placed here.
+        Defaults to <strong>9:00 AM – 5:00 PM</strong> with 3-hour slots.
+      </p>
+      {% for field in form_weekend %}
+        <div class="form-group">
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}
+            <small class="note-inline">{{ field.help_text }}</small>
+          {% endif %}
+          {% for error in field.errors %}
+            <div style="color:red;font-size:0.85em;margin-top:5px;">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+      <div class="section-save-btn">
+        <button type="submit" name="save_weekend">💾 Save Weekend Config</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <a href="{% url 'autoscheduler_home' %}" class="btn" style="display: inline-block; padding: 8px 20px; font-size: 0.9rem; border-radius: 4px; border: 1px solid #3498db; background: #3498db; color: #fff; text-decoration: none; cursor: pointer; font-weight: 600; transition: background 0.15s;">
+        ← Return to Dashboard
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'timetable/js/timetable_timetable_config_form.js' %}"></script>
+{% endblock %}

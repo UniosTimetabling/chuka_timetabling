@@ -1,0 +1,241 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+
+{% block title %}AI Settings{% endblock %}
+{% block breadcrumb_current %}AI Settings{% endblock %}
+
+{% block sudo_content %}
+<style>
+.ai-page { max-width: 1000px; margin: 0 auto; }
+.ai-header h1 { font-size: 1.4rem; font-weight: 700; color: #0b1f4a; margin: 0 0 .25rem; }
+.ai-header p { color: #5a6a82; font-size: .88rem; margin: 0 0 1.4rem; }
+
+.ai-status-banner {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .8rem 1rem; border-radius: 8px; margin-bottom: 1.4rem; font-size: .87rem;
+}
+.ai-status-on { background: #d1fae5; border: 1px solid #6ee7b7; color: #065f46; }
+.ai-status-off { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+
+.ai-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.3rem 1.5rem; margin-bottom: 1.2rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.ai-card-title { font-size: .82rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #7b8fa6; margin: 0 0 1rem; }
+
+.ai-provider-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: .8rem 0; border-bottom: 1px solid #f1f5f9;
+}
+.ai-provider-row:last-child { border-bottom: none; }
+.ai-provider-name { font-weight: 700; color: #0b1f4a; font-size: .9rem; }
+.ai-provider-meta { color: #7b8fa6; font-size: .78rem; margin-top: .15rem; }
+.ai-provider-key { font-family: monospace; color: #1565c0; font-size: .78rem; }
+.ai-badge-active { background: #1e8449; color: #fff; padding: .15rem .55rem; border-radius: 20px; font-size: .7rem; font-weight: 700; margin-left: .5rem; }
+.ai-badge-off { background: #f1f5f9; color: #7b8fa6; padding: .15rem .55rem; border-radius: 20px; font-size: .7rem; font-weight: 600; margin-left: .5rem; }
+
+.ai-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.ai-btn { padding: .4rem .85rem; border-radius: 6px; font-size: .78rem; font-weight: 600; cursor: pointer; border: none; }
+.ai-btn-primary { background: #1a56db; color: #fff; }
+.ai-btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #d1d8e0; }
+.ai-btn-danger { background: #fee2e2; color: #991b1b; }
+.ai-btn-warn { background: #fff3e0; color: #b35400; }
+
+.ai-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media(max-width: 680px) { .ai-form-grid { grid-template-columns: 1fr; } }
+.ai-label { font-size: .8rem; font-weight: 600; color: #374151; display: block; margin-bottom: .35rem; }
+.ai-input, .ai-select { width: 100%; padding: .55rem .75rem; border: 1px solid #d1d8e0; border-radius: 7px; font-size: .85rem; box-sizing: border-box; }
+.ai-hint { font-size: .74rem; color: #8fa3b8; margin-top: .3rem; }
+.ai-test-result { margin-top: .5rem; font-size: .8rem; }
+</style>
+
+<div class="ai-page">
+  <div class="ai-header">
+    <h1>AI Settings</h1>
+    <p>Central registry for any AI provider used across the system (Smart Importer and future modules read from here — nothing is hard-coded to one AI).</p>
+  </div>
+
+  {% if active %}
+  <div class="ai-status-banner ai-status-on">
+    ✅ AI is <strong>enabled</strong> — active provider: <strong>{{ active.name }}</strong> ({{ active.get_provider_display }} · {{ active.model_name }})
+  </div>
+  {% else %}
+  <div class="ai-status-banner ai-status-off">
+    ⚠️ No AI provider is active. AI-powered features (like Smart Importer's document parsing) will fall back to their normal non-AI behaviour — nothing will break, but PDF/Word smart extraction and "Refine with AI" won't be available.
+  </div>
+  {% endif %}
+
+  <!-- Existing providers -->
+  <div class="ai-card">
+    <div class="ai-card-title">Configured Providers</div>
+    {% if providers %}
+      {% for row in providers %}
+      <div class="ai-provider-row">
+        <div>
+          <div class="ai-provider-name">
+            {{ row.obj.name }}
+            {% if row.obj.is_active %}<span class="ai-badge-active">ACTIVE</span>{% else %}<span class="ai-badge-off">inactive</span>{% endif %}
+          </div>
+          <div class="ai-provider-meta">{{ row.obj.get_provider_display }} · {{ row.obj.model_name }}{% if row.obj.base_url %} · {{ row.obj.base_url }}{% endif %}</div>
+          {% if row.obj.provider == "generic" %}
+          <div class="ai-provider-meta">↳ {{ row.obj.generic_http_method }} · response path: <code>{{ row.obj.generic_response_text_path }}</code></div>
+          {% endif %}
+          {% if row.masked_key %}<div class="ai-provider-key">🔒 {{ row.masked_key }}</div>{% endif %}
+        </div>
+        <div class="ai-actions">
+          {% if not row.obj.is_active %}
+          <form method="post" action="{% url 'sudo_ai_settings_activate' row.obj.pk %}" style="display:inline">
+            {% csrf_token %}
+            <button class="ai-btn ai-btn-primary" type="submit">Activate</button>
+          </form>
+          {% endif %}
+          <button class="ai-btn ai-btn-secondary" type="button" onclick="testProvider({{ row.obj.pk }})">Test</button>
+          <form method="post" action="{% url 'sudo_ai_settings_delete' row.obj.pk %}" style="display:inline" onsubmit="return confirm('Delete this provider?');">
+            {% csrf_token %}
+            <button class="ai-btn ai-btn-danger" type="submit">Delete</button>
+          </form>
+        </div>
+      </div>
+      <div id="test-result-{{ row.obj.pk }}" class="ai-test-result"></div>
+      {% endfor %}
+    {% else %}
+      <p style="color:#9aabb8;font-size:.85rem">No providers configured yet. Add one below.</p>
+    {% endif %}
+
+    {% if active %}
+    <form method="post" action="{% url 'sudo_ai_settings_deactivate_all' %}" style="margin-top:1rem">
+      {% csrf_token %}
+      <button class="ai-btn ai-btn-warn" type="submit">Disable AI everywhere</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <!-- Add new provider -->
+  <div class="ai-card">
+    <div class="ai-card-title">Add / Update Provider</div>
+    <form method="post" action="{% url 'sudo_ai_settings_save' %}">
+      {% csrf_token %}
+      <div class="ai-form-grid">
+        <div>
+          <label class="ai-label">Label</label>
+          <input class="ai-input" name="name" placeholder="e.g. Gemini Flash (default)" required>
+        </div>
+        <div>
+          <label class="ai-label">Provider</label>
+          <select class="ai-select" name="provider" id="provider-select" required>
+            {% for value, label in provider_choices %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="preset-field" style="display:none">
+          <label class="ai-label">Quick fill (optional)</label>
+          <select class="ai-select" id="preset-select">
+            <option value="">— pick a known OpenAI-compatible provider —</option>
+            {% for key, url in openai_compatible_presets.items %}
+            <option value="{{ url }}">{{ key }}</option>
+            {% endfor %}
+          </select>
+          <p class="ai-hint">Just fills in the Base URL below. Not in the list? Paste its base URL by hand — any OpenAI-compatible API works.</p>
+        </div>
+        <div>
+          <label class="ai-label">Model name</label>
+          <input class="ai-input" name="model_name" placeholder="gemini-2.5-flash / gpt-4o-mini / claude-sonnet-4-6 / deepseek-chat / llama3" required>
+        </div>
+        <div>
+          <label class="ai-label">API Key</label>
+          <input class="ai-input" type="password" name="api_key" autocomplete="new-password" placeholder="Leave blank to keep existing key">
+          <p class="ai-hint">Encrypted before storage. Not needed for local Ollama.</p>
+        </div>
+        <div>
+          <label class="ai-label" id="base-url-label">Base URL (optional)</label>
+          <input class="ai-input" name="base_url" id="base-url-input" placeholder="Only for custom / self-hosted endpoints">
+        </div>
+        <div>
+          <label class="ai-label">Timeout (seconds)</label>
+          <input class="ai-input" type="number" name="request_timeout_seconds" value="60" min="5" max="300">
+        </div>
+      </div>
+
+      <div id="generic-fields" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px dashed #d1d8e0">
+        <div class="ai-card-title" style="margin-bottom:.6rem">Generic API Template <span style="font-weight:400;text-transform:none;letter-spacing:normal;color:#8fa3b8">— for any provider that isn't OpenAI-shaped, including ones released in the future</span></div>
+        <div class="ai-form-grid">
+          <div>
+            <label class="ai-label">HTTP method</label>
+            <input class="ai-input" name="generic_http_method" id="generic_http_method" value="{{ generic_defaults.http_method }}">
+          </div>
+          <div>
+            <label class="ai-label">Response text path</label>
+            <input class="ai-input" name="generic_response_text_path" id="generic_response_text_path" value="{{ generic_defaults.response_text_path }}" placeholder="choices.0.message.content">
+            <p class="ai-hint">Dotted path to the reply text in the JSON response.</p>
+          </div>
+        </div>
+        <div style="margin-top:1rem">
+          <label class="ai-label">Headers template (JSON)</label>
+          <textarea class="ai-input" name="generic_headers_template" id="generic_headers_template" rows="4" style="font-family:monospace">{{ generic_defaults.headers_template }}</textarea>
+          <p class="ai-hint">Use <code>{% templatetag openbrace %}{% templatetag openbrace %}api_key{% templatetag closebrace %}{% templatetag closebrace %}</code> anywhere the key belongs (e.g. an Authorization header).</p>
+        </div>
+        <div style="margin-top:1rem">
+          <label class="ai-label">Request body template (JSON)</label>
+          <textarea class="ai-input" name="generic_body_template" id="generic_body_template" rows="4" style="font-family:monospace">{{ generic_defaults.body_template }}</textarea>
+          <p class="ai-hint">Use <code>{% templatetag openbrace %}{% templatetag openbrace %}model{% templatetag closebrace %}{% templatetag closebrace %}</code> and <code>{% templatetag openbrace %}{% templatetag openbrace %}prompt{% templatetag closebrace %}{% templatetag closebrace %}</code> as placeholders — they're substituted safely as JSON strings, so quotes/newlines in prompts can't break the JSON.</p>
+        </div>
+        <p class="ai-hint">Set <strong>Base URL</strong> above to the full endpoint you're POSTing to (e.g. <code>https://api.example.com/v1/chat</code>) — for this provider type it's the whole URL, not just a prefix.</p>
+      </div>
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:.5rem;">
+        <input type="checkbox" id="is_active" name="is_active" style="width:auto">
+        <label for="is_active" style="font-size:.85rem;color:#374151">Make this the active provider</label>
+      </div>
+      <button class="ai-btn ai-btn-primary" type="submit" style="margin-top:1rem">Save Provider</button>
+    </form>
+  </div>
+</div>
+
+<script>
+function getCsrf(){
+  return document.cookie.split(';').map(c=>c.trim()).find(c=>c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+async function testProvider(pk){
+  const box = document.getElementById('test-result-'+pk);
+  box.textContent = 'Testing…';
+  try {
+    const resp = await fetch(`/sudo-dashboard/ai-settings/${pk}/test/`, {
+      method:'POST',
+      headers:{'X-CSRFToken':getCsrf()}
+    });
+    const data = await resp.json();
+    if(data.ok){
+      box.innerHTML = `<span style="color:#065f46">✅ Working — replied: "${data.reply}"</span>`;
+    } else {
+      box.innerHTML = `<span style="color:#991b1b">❌ ${data.error}</span>`;
+    }
+  } catch(e){
+    box.innerHTML = `<span style="color:#991b1b">❌ Network error: ${e.message}</span>`;
+  }
+}
+
+// Show/hide the preset picker and the Generic API Template section
+// depending on which provider is selected, and let picking a preset
+// autofill the Base URL field.
+(function(){
+  const providerSelect = document.getElementById('provider-select');
+  const presetField = document.getElementById('preset-field');
+  const presetSelect = document.getElementById('preset-select');
+  const genericFields = document.getElementById('generic-fields');
+  const baseUrlInput = document.getElementById('base-url-input');
+  const baseUrlLabel = document.getElementById('base-url-label');
+
+  function refresh(){
+    const val = providerSelect.value;
+    presetField.style.display = (val === 'custom') ? '' : 'none';
+    genericFields.style.display = (val === 'generic') ? '' : 'none';
+    baseUrlLabel.textContent = (val === 'generic')
+      ? 'Base URL (full endpoint — required)'
+      : 'Base URL (optional)';
+  }
+
+  providerSelect.addEventListener('change', refresh);
+  presetSelect.addEventListener('change', function(){
+    if (presetSelect.value) baseUrlInput.value = presetSelect.value;
+  });
+  refresh();
+})();
+</script>
+{% endblock %}

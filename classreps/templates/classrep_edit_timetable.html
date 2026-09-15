@@ -1,0 +1,52 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Edit Timetable — Class Rep Portal{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'classreps/css/classrep_edit_timetable.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-custom" style="padding:3rem 0;">
+ <h2 class="section-title">Edit Timetable — {{ program.name }}</h2>
+ <p><strong>Class Rep:</strong> {{ class_rep.user.get_full_name|default:class_rep.user.username }}</p>
+
+ <form method="post">
+ {% csrf_token %}
+ <div style="overflow-x:auto;">
+ <table class="dash-table" style="width:100%;border-collapse:collapse;">
+ <thead>
+ <tr>
+ <th>Course</th><th>Day</th><th>Start Time</th><th>End Time</th><th>Venue</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for entry in timetable_entries %}
+ <tr>
+ <td>
+ <strong>{{ entry.course_allocation.course_code }}</strong><br>
+ <small>{{ entry.course_allocation.course_name }}</small>
+ </td>
+ <td><input type="text" name="entry_{{ entry.pk }}_day" value="{{ entry.day }}" class="form-control"></td>
+ <td><input type="time" name="entry_{{ entry.pk }}_start_time" value="{{ entry.start_time|time:'H:i' }}" class="form-control"></td>
+ <td><input type="time" name="entry_{{ entry.pk }}_end_time" value="{{ entry.end_time|time:'H:i' }}" class="form-control"></td>
+ <td><input type="text" name="entry_{{ entry.pk }}_venue" value="{{ entry.venue }}" class="form-control"></td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="5" style="text-align:center;padding:1.5rem;color:var(--cu-muted);">No timetable entries found for this program.</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ <div style="margin-top:1.2rem;display:flex;gap:10px;">
+ <button type="submit" class="btn-dash-primary">Apply Changes</button>
+ <a href="{% url 'home' %}" class="btn-dash-secondary">Cancel</a>
+ </div>
+ </form>
+</div>
+
+{% block footer %}<footer style="background:var(--panel-navy,#0d1b3e);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:1px solid rgba(255,255,255,.08);" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}
+{% endblock %}

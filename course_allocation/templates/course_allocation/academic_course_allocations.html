@@ -1,0 +1,814 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<style>
+/* ── Course Allocations Page — Optimized Excel Grid Layout ── */
+:root {
+  --navy:        #0d1b3e;
+  --green:       #217346;
+  --green-lt:    #e8f5e9;
+  --green-bd:    #c8e6c9;
+  --white:       #ffffff;
+  --bg:          #f4f5f7;
+  --border:      #d0d7de;
+  --border-dk:   #b0bcc8;
+  --row-alt:     #f9fbf9;
+  --text:        #24292f;
+  --muted:       #57606a;
+  --ok-bg:       #d4edda; --ok-tx: #155724;
+  --warn-bg:     #fff3cd; --warn-tx: #856404;
+  --err-bg:      #f8d7da; --err-tx: #721c24;
+}
+
+* { box-sizing: border-box; }
+
+.alloc-page {
+  display: flex; 
+  gap: 0; 
+  min-height: calc(100vh - 70px);
+  background: var(--bg); 
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Calibri", Arial, sans-serif;
+  font-size: 14px; 
+  color: var(--text);
+}
+
+/* ── PERFORMANCE SIDEBAR (No lagging transitions) ── */
+.sidebar {
+  width: 280px; 
+  min-width: 280px;
+  background: var(--white); 
+  border-right: 1px solid var(--border);
+  display: flex; 
+  flex-direction: column; 
+  overflow: hidden;
+  flex-shrink: 0;
+  will-change: transform;
+}
+.sidebar-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--navy);
+  color: #fff;
+}
+.sidebar-head h3 {
+  margin: 0; font-size: 14px; font-weight: 700; color: #fff;
+  display: flex; align-items: center; gap: 8px;
+}
+.sidebar-search {
+  padding: 12px 14px 8px;
+  position: relative;
+  background: #fafafa;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-search input {
+  width: 100%; padding: 7px 32px 7px 12px;
+  border: 1px solid var(--border); border-radius: 4px;
+  font-size: 13px; outline: none; color: var(--text);
+  background: var(--white);
+}
+.sidebar-search input:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(33,115,70,0.15); }
+.sidebar-search i {
+  position: absolute; right: 24px; top: 50%;
+  transform: translateY(-50%); color: var(--muted); font-size: 13px;
+}
+.sidebar-scroll { overflow-y: auto; flex: 1; }
+
+/* Faculty / Dept structure */
+.sb-faculty { border-bottom: 1px solid var(--border); }
+.sb-faculty-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: #f8f9fa; border: none;
+  padding: 12px 16px; font-size: 13px; font-weight: 600;
+  color: var(--navy); cursor: pointer; text-align: left;
+}
+.sb-faculty-btn:hover { background: #f1f3f5; }
+.sb-faculty-btn.active { background: var(--navy); color: #fff; }
+.sb-faculty-btn .sb-count {
+  margin-left: auto; font-size: 11px; font-weight: 700;
+  background: #e9ecef; color: var(--muted);
+  border-radius: 12px; padding: 2px 8px;
+}
+.sb-faculty-btn.active .sb-count { background: rgba(255,255,255,.2); color: #fff; }
+.sb-chevron { margin-left: 4px; font-size: 10px; transition: transform .15s ease; }
+.sb-faculty-btn.open .sb-chevron { transform: rotate(90deg); }
+
+.sb-depts { display: none; background: #fafbfc; }
+.sb-depts.open { display: block; }
+.sb-dept-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: none; border: none;
+  padding: 10px 16px 10px 32px; font-size: 13px;
+  color: var(--text); cursor: pointer; text-align: left;
+  border-bottom: 1px solid #f1f3f5;
+}
+.sb-dept-btn:hover { background: var(--green-lt); }
+.sb-dept-btn.active { 
+  background: var(--green-lt); 
+  color: var(--green); 
+  font-weight: 700; 
+  border-left: 4px solid var(--green); 
+}
+.sb-dept-btn .sb-count { margin-left: auto; font-size: 11px; color: var(--muted); }
+.sb-dept-btn.active .sb-count { color: var(--green); font-weight: 700; }
+
+/* Lecturer Mini Grid */
+.sb-lect-table {
+  margin: 6px 16px 12px 32px;
+  border: 1px solid var(--border);
+  overflow: hidden; font-size: 12px;
+  display: none; background: var(--white);
+}
+.sb-lect-table.open { display: block; }
+.sb-lect-table table { width: 100%; border-collapse: collapse; }
+.sb-lect-table thead th {
+  background: #f1f3f5; color: var(--text); font-weight: 700;
+  padding: 6px 10px; font-size: 11px; text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.sb-lect-table tbody tr { border-bottom: 1px solid #f1f3f5; }
+.sb-lect-table tbody tr:last-child { border-bottom: none; }
+.sb-lect-table td { padding: 6px 10px; color: var(--text); }
+.sb-lect-table td.lect-name { font-weight: 500; color: var(--text); }
+.sb-lect-table td.lect-count { text-align: center; font-weight: 700; color: var(--green); }
+
+/* ── MAIN WORKSPACE CONTENT ── */
+.main-content {
+  flex: 1; 
+  min-width: 0; /* Fallback viewport clipping safety fix */
+  overflow: hidden;
+  display: flex; 
+  flex-direction: column;
+}
+
+/* Action Header Panel */
+.content-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 24px;
+  background: var(--white); border-bottom: 1px solid var(--border);
+}
+.content-topbar-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+.breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted); white-space: nowrap;
+}
+.breadcrumb span { color: var(--text); font-weight: 600; }
+.tb-search {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 12px; background: #f8f9fa; width: 280px;
+}
+.tb-search input {
+  border: none; background: none; outline: none;
+  font-size: 13px; color: var(--text); width: 100%;
+}
+.tb-search i { color: var(--muted); }
+.content-topbar-right { display: flex; gap: 10px; }
+
+/* Control Buttons */
+.btn {
+  border: none; border-radius: 4px; padding: 8px 16px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-green   { background: var(--green); color: #fff; }
+.btn-outline { background: var(--white); color: var(--text); border: 1px solid var(--border); }
+.btn:hover { filter: brightness(0.95); }
+
+.content-body { 
+  padding: 24px; 
+  flex: 1; 
+  overflow-y: auto; 
+}
+
+/* Operational Statistics Grid */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px; 
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--white); border: 1px solid var(--border);
+  padding: 14px 18px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.stat-card-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--muted); margin-bottom: 6px;
+}
+.stat-card-value {
+  font-size: 24px; font-weight: 700; color: var(--navy); line-height: 1;
+}
+.stat-card-value.green { color: var(--green); }
+
+/* Block Panels */
+.prog-block {
+  background: var(--white); border: 1px solid var(--border);
+  margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.prog-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 18px; background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  border-left: 4px solid var(--navy);
+  cursor: pointer; user-select: none;
+}
+.prog-header h4 { margin: 0; font-size: 14px; font-weight: 700; color: var(--navy); flex: 1; }
+.prog-header .prog-count {
+  font-size: 12px; font-weight: 600; background: #eaeef2; color: var(--text);
+  border-radius: 12px; padding: 2px 10px;
+}
+.prog-chevron { color: var(--muted); font-size: 12px; transition: transform .15s ease; }
+.prog-block.open .prog-chevron { transform: rotate(90deg); }
+.prog-body { display: none; }
+.prog-block.open .prog-body { display: block; }
+
+.year-sep {
+  padding: 8px 18px; background: #f1f3f5;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 700; color: #444;
+  letter-spacing: .5px; display: flex; align-items: center; gap: 8px;
+}
+
+/* ── PROFESSIONAL EXCEL GRID SCROLL DATA TABLES ── */
+.xt-container {
+  width: 100%;
+  overflow-x: auto;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+}
+table.xt {
+  width: 100%; 
+  border-collapse: collapse; 
+  font-size: 13.5px;
+  table-layout: auto;
+}
+table.xt th, table.xt td {
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+table.xt thead th {
+  background: var(--green); 
+  color: #fff; 
+  font-weight: 600;
+  font-size: 13px; 
+  padding: 8px 14px; 
+  text-align: left;
+  white-space: nowrap;
+  position: sticky; top: 0;
+}
+/* Excel Row Indicator Column Header */
+table.xt thead th:first-child {
+  width: 50px; 
+  min-width: 50px;
+  text-align: center;
+  background: #d0e1d4; 
+  color: #1c4d31;
+  font-weight: 700;
+}
+table.xt tbody tr { background: var(--white); }
+table.xt tbody tr:nth-child(even) { background: var(--row-alt); }
+table.xt tbody tr:hover { background: #f2f7f4; }
+
+table.xt td {
+  padding: 8px 14px; 
+  color: var(--text); 
+  vertical-align: middle;
+  white-space: nowrap;
+}
+/* Excel Row Indicator Left Sticky Cell Styling */
+table.xt td:first-child {
+  text-align: center; 
+  color: #555; 
+  font-size: 11px;
+  background: #f1f3f5 !important; 
+  font-weight: 700;
+  user-select: none;
+}
+table.xt tr td:last-child, table.xt tr th:last-child {
+  border-right: none;
+}
+
+.code-cell { font-weight: 700; color: var(--navy); font-family: 'Consolas', monospace; }
+.lect-cell { color: var(--green); font-weight: 600; }
+.lect-cell.unassigned { color: var(--muted); font-style: italic; font-weight: 400; }
+
+/* Operational Status Labels */
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 2px;
+}
+.badge-ok   { background: var(--ok-bg);   color: var(--ok-tx); border: 1px solid #c3e6cb; }
+.badge-warn { background: var(--warn-bg);  color: var(--warn-tx); border: 1px solid #ffeeba; }
+.badge-err  { background: var(--err-bg);   color: var(--err-tx); border: 1px solid #f5c6cb; }
+.badge-gray { background: #e9ecef; color: var(--muted); border: 1px solid var(--border); }
+
+.act-btn {
+  border: 1px solid var(--border); border-radius: 3px; padding: 4px 10px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--white); color: var(--text);
+}
+.act-btn:hover { background: #f8f9fa; border-color: var(--border-dk); }
+.act-delete:hover { background: var(--err-bg); color: var(--err-tx); border-color: #f5c6cb; }
+
+/* Dialog Windows */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 1200;
+  align-items: center; justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+.modal-box {
+  background: var(--white); border-radius: 6px;
+  width: min(96vw, 500px); max-height: 90vh;
+  overflow-y: auto; box-shadow: 0 4px 24px rgba(0,0,0,.15);
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; background: var(--navy); color: #fff;
+}
+.modal-head h5 { margin: 0; font-size: 15px; font-weight: 700; color: #fff; }
+.modal-close {
+  background: none; border: none; color: rgba(255,255,255,.8);
+  font-size: 24px; cursor: pointer; line-height: 1; padding: 0;
+}
+.modal-close:hover { color: #fff; }
+.modal-body { padding: 20px; }
+.modal-footer {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 20px; border-top: 1px solid var(--border); background: #fafbfc;
+}
+.form-label { font-size: 12.5px; font-weight: 600; color: var(--text); display: block; margin-bottom: 6px; }
+.form-control, .form-select {
+  width: 100%; border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 12px; font-size: 13.5px; color: var(--text); outline: none;
+}
+.form-control:focus, .form-select:focus { border-color: var(--green); box-shadow: 0 0 0 2px rgba(33,115,70,0.15); }
+.mb-3 { margin-bottom: 16px; }
+
+@media (max-width: 992px) {
+  .sidebar { display: none; }
+  .sidebar.open { display: flex; position: fixed; left:0; top:0; bottom:0; z-index: 500; }
+}
+</style>
+{% endblock page_css %}
+
+{% block title %}Course Allocations{% endblock %}
+{% block page_title %}Academic Affairs – Course Allocations{% endblock %}
+
+{% block header_controls %}
+<a href="{% url 'auto_allocate_all_page' %}" class="hdr-btn hdr-btn--accent">
+  <i class="fas fa-robot"></i> <span class="d-none d-md-inline">Auto Allocate</span>
+</a>
+<a href="{% url 'view_export_course_allocations' %}" class="hdr-btn">
+  <i class="fas fa-print"></i> <span class="d-none d-md-inline">Print / Export</span>
+</a>
+{% endblock %}
+
+{% block allocation_content %}
+<div class="alloc-page">
+
+  <!-- ===== LEFT SIDEBAR ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <h3><i class="fas fa-sitemap"></i> Browse by Dept</h3>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="sb-search" placeholder="Search department…">
+      <i class="fas fa-search"></i>
+    </div>
+    <div class="sidebar-scroll" id="sb-scroll">
+      {% for fac_name, fac_data in hierarchy.items %}
+      <div class="sb-faculty" data-faculty="{{ fac_name }}">
+        <button class="sb-faculty-btn" data-fac="{{ fac_name }}">
+          <i class="fas fa-building" style="font-size:12px;opacity:.7;"></i>
+          <span>{{ fac_name }}</span>
+          <span class="sb-count">{{ fac_data.total }}</span>
+          <i class="fas fa-chevron-right sb-chevron"></i>
+        </button>
+        <div class="sb-depts" data-fac-depts="{{ fac_name }}">
+          {% for dept_name, dept_data in fac_data.departments.items %}
+          <button class="sb-dept-btn" data-dept="{{ dept_data.id }}" data-dept-name="{{ dept_name }}" data-fac-name="{{ fac_name }}">
+            <i class="fas fa-folder" style="font-size:11px;opacity:.6;"></i>
+            <span>{{ dept_name }}</span>
+            <span class="sb-count">{{ dept_data.total }}</span>
+          </button>
+          <div class="sb-lect-table" id="sb-lect-{{ dept_data.id }}">
+            <table>
+              <thead>
+                <tr><th>Lecturer</th><th>#</th></tr>
+              </thead>
+              <tbody>
+                {% for lect_name, lect_info in dept_data.lecturers.items %}
+                <tr>
+                  <td class="lect-name">{{ lect_name }}</td>
+                  <td class="lect-count">{{ lect_info.courses|length }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="2" style="color:#aaa;font-style:italic;padding:6px 8px;">No lecturers assigned</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% empty %}
+      <div style="padding:20px;text-align:center;color:#aaa;font-size:13px;">No allocations found.</div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <!-- ===== MAIN WORKSPACE ===== -->
+  <div class="main-content">
+    <div class="content-topbar">
+      <div class="content-topbar-left">
+        <div class="breadcrumb" id="breadcrumb">
+          <i class="fas fa-home" style="font-size:12px;"></i>
+          <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+          <span id="bc-faculty">All Faculties</span>
+          <span id="bc-dept-sep" style="display:none;">
+            <i class="fas fa-chevron-right" style="font-size:10px;"></i>
+            <span id="bc-dept"></span>
+          </span>
+        </div>
+        <div class="tb-search">
+          <i class="fas fa-search"></i>
+          <input type="text" id="main-search" placeholder="Search course, lecturer…">
+        </div>
+      </div>
+      <div class="content-topbar-right">
+        <button class="btn btn-green" id="add-btn"><i class="fas fa-plus"></i> Add Allocation</button>
+        <button class="btn btn-outline" id="expand-all-btn"><i class="fas fa-expand-alt"></i> Expand All</button>
+        <button class="btn btn-outline" id="collapse-all-btn"><i class="fas fa-compress-alt"></i> Collapse</button>
+      </div>
+    </div>
+
+    <div class="content-body" id="content-body">
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-card">
+          <div class="stat-card-label">Total Courses</div>
+          <div class="stat-card-value" id="stat-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Departments</div>
+          <div class="stat-card-value" id="stat-depts">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Programs</div>
+          <div class="stat-card-value" id="stat-progs">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-label">Lecturers Assigned</div>
+          <div class="stat-card-value green" id="stat-lects">—</div>
+        </div>
+      </div>
+
+      <div id="alloc-container">
+        <div class="empty-msg" id="alloc-loading" style="text-align: center; padding: 40px; color: var(--muted);">
+          <i class="fas fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>
+          Loading allocations workspace grid…
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONTROL FORM MODAL ===== -->
+<div class="modal-backdrop" id="allocModal">
+  <div class="modal-box">
+    <form id="alloc-form">
+      <div class="modal-head">
+        <h5 id="modal-title">Course Allocation</h5>
+        <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="alloc-id" name="id">
+        <div class="mb-3">
+          <label class="form-label">Course Code</label>
+          <input id="course_code" name="course_code" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Course Name</label>
+          <input id="course_name" name="course_name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Department</label>
+          <select id="department" name="department" class="form-select">
+            {% for d in departments %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Program</label>
+          <select id="program" name="program" class="form-select">
+            <option value="">— None —</option>
+            {% for p in programs %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Lecturer</label>
+          <select id="lecturer" name="lecturer" class="form-select">
+            <option value="">Unassigned</option>
+            {% for l in lecturers %}
+            <option value="{{ l.id }}">{{ l.display_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Number of Students</label>
+          <input type="number" id="number_of_students" name="number_of_students" class="form-control" min="0">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" id="modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-green"><i class="fas fa-save"></i> Save Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function(){
+  // ── Data Hub ──
+  const HIERARCHY = {{ hierarchy_json|safe }};
+  let activeFilter = { faculty: null, dept: null, deptName: null, search: '' };
+
+  // ── Modal Handlers ──
+  const modal = document.getElementById('allocModal');
+  const allocForm = document.getElementById('alloc-form');
+
+  function openModal(title) {
+    document.getElementById('modal-title').textContent = title || 'Course Allocation';
+    modal.classList.add('open');
+  }
+  function closeModal() { modal.classList.remove('open'); }
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  document.getElementById('add-btn').addEventListener('click', () => {
+    allocForm.reset();
+    document.getElementById('alloc-id').value = '';
+    openModal('Add Course Allocation');
+  });
+
+  allocForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    fetch("{% url 'save_course_allocation' %}", {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: new FormData(this)
+    }).then(r => r.json()).then(resp => {
+      if (resp.success) { closeModal(); location.reload(); }
+    });
+  });
+
+  // ── High Performance Navigation Panel Interactions ──
+  document.querySelectorAll('.sb-faculty-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const fac = this.dataset.fac;
+      const depts = document.querySelector(`[data-fac-depts="${fac}"]`);
+      const isAlreadyOpen = depts.classList.contains('open');
+      
+      // Fast state changes using single layouts resets
+      document.querySelectorAll('.sb-depts.open').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.sb-faculty-btn.open').forEach(b => b.classList.remove('open'));
+      document.querySelectorAll('.sb-faculty-btn.active').forEach(b => b.classList.remove('active'));
+      
+      if (!isAlreadyOpen) {
+        depts.classList.add('open');
+        this.classList.add('open', 'active');
+        activeFilter.faculty = fac;
+      } else {
+        activeFilter.faculty = null;
+      }
+      
+      activeFilter.dept = null;
+      activeFilter.deptName = null;
+      updateBreadcrumb();
+      renderContent();
+    });
+  });
+
+  document.querySelectorAll('.sb-dept-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.querySelectorAll('.sb-dept-btn.active').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.sb-lect-table.open').forEach(t => t.classList.remove('open'));
+      
+      this.classList.add('active');
+      const deptId = this.dataset.dept;
+      const lt = document.getElementById(`sb-lect-${deptId}`);
+      if (lt) lt.classList.add('open');
+
+      activeFilter.faculty = this.dataset.facName;
+      activeFilter.dept = parseInt(deptId);
+      activeFilter.deptName = this.dataset.deptName;
+      updateBreadcrumb();
+      renderContent();
+    });
+  });
+
+  // Smooth Sidebar Filtering
+  document.getElementById('sb-search').addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.sb-faculty').forEach(fac => {
+      let anyVisible = false;
+      fac.querySelectorAll('.sb-dept-btn').forEach(btn => {
+        const match = btn.dataset.deptName.toLowerCase().includes(q) || btn.dataset.facName.toLowerCase().includes(q);
+        btn.style.display = match ? '' : 'none';
+        if (match) anyVisible = true;
+      });
+      const facTitleMatch = fac.querySelector('.sb-faculty-btn').textContent.toLowerCase().includes(q);
+      fac.style.display = (anyVisible || facTitleMatch) ? '' : 'none';
+    });
+  });
+
+  function updateBreadcrumb() {
+    document.getElementById('bc-faculty').textContent = activeFilter.faculty || 'All Faculties';
+    const deptSep = document.getElementById('bc-dept-sep');
+    if (activeFilter.deptName) {
+      deptSep.style.display = '';
+      document.getElementById('bc-dept').textContent = activeFilter.deptName;
+    } else {
+      deptSep.style.display = 'none';
+    }
+  }
+
+  document.getElementById('main-search').addEventListener('input', function() {
+    activeFilter.search = this.value.toLowerCase();
+    renderContent();
+  });
+
+  document.getElementById('expand-all-btn').addEventListener('click', () => {
+    document.querySelectorAll('.prog-block').forEach(b => b.classList.add('open'));
+  });
+  document.getElementById('collapse-all-btn').addEventListener('click', () => {
+    document.querySelectorAll('.prog-block').forEach(b => b.classList.remove('open'));
+  });
+
+  // ── Grid Engine Rendering ──
+  function getFilteredData() {
+    const result = [];
+    for (const [facName, facData] of Object.entries(HIERARCHY)) {
+      if (activeFilter.faculty && facName !== activeFilter.faculty) continue;
+      for (const [deptName, deptData] of Object.entries(facData.departments)) {
+        if (activeFilter.dept && deptData.id !== activeFilter.dept) continue;
+        for (const [progName, progData] of Object.entries(deptData.programs)) {
+          for (const [yearKey, allocs] of Object.entries(progData.years)) {
+            const filtered = allocs.filter(a => {
+              if (!activeFilter.search) return true;
+              const s = activeFilter.search;
+              return (a.course_code||'').toLowerCase().includes(s) || 
+                     (a.course_name||'').toLowerCase().includes(s) || 
+                     (a.lecturer||'').toLowerCase().includes(s);
+            });
+            if (filtered.length > 0) {
+              result.push({ facName, deptName, progName, yearKey, allocs: filtered, deptId: deptData.id, progId: progData.id });
+            }
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  function renderContent() {
+    const container = document.getElementById('alloc-container');
+    const rows = getFilteredData();
+
+    if (rows.length === 0) {
+      container.innerHTML = `<div style="text-align:center;padding:40px;color:var(--muted);"><i class="fas fa-folder-open" style="font-size:24px;display:block;margin-bottom:8px;"></i>No record matches found.</div>`;
+      updateStats(0, 0, 0, 0);
+      return;
+    }
+
+    const byProg = {};
+    for (const row of rows) {
+      const key = row.progName + '||' + row.deptName;
+      if (!byProg[key]) {
+        byProg[key] = { 
+          progName: row.progName, 
+          deptName: row.facName !== activeFilter.faculty ? row.deptName + ' (' + row.facName + ')' : row.deptName, 
+          years: {} 
+        };
+      }
+      if (!byProg[key].years[row.yearKey]) byProg[key].years[row.yearKey] = [];
+      byProg[key].years[row.yearKey].push(...row.allocs);
+    }
+
+    updateStats(
+      rows.reduce((s,r) => s + r.allocs.length, 0),
+      new Set(rows.map(r => r.deptId)).size,
+      new Set(rows.map(r => r.progId)).size,
+      new Set(rows.flatMap(r => r.allocs.map(a => a.lecturer_id)).filter(Boolean)).size
+    );
+
+    let html = '';
+    let globalRow = 1;
+
+    for (const [key, pg] of Object.entries(byProg)) {
+      const totalInProg = Object.values(pg.years).reduce((s,a) => s + a.length, 0);
+      html += `<div class="prog-block open">
+        <div class="prog-header" onclick="this.closest('.prog-block').classList.toggle('open')">
+          <i class="fas fa-book-open" style="color:var(--navy);font-size:13px;opacity:.8;"></i>
+          <h4>${esc(pg.progName)}</h4>
+          <span style="font-size:12px;color:var(--muted);margin-right:12px;">${esc(pg.deptName)}</span>
+          <span class="prog-count">${totalInProg} courses</span>
+          <i class="fas fa-chevron-right prog-chevron"></i>
+        </div>
+        <div class="prog-body">`;
+
+      for (const [yearKey, allocs] of Object.entries(pg.years)) {
+        html += `<div class="year-sep"><i class="fas fa-calendar-alt" style="font-size:11px;"></i> ${esc(yearKey)}</div>
+          <div class="xt-container">
+            <table class="xt">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Course Code</th>
+                  <th>Course Specification / Title</th>
+                  <th>Assigned Lecturer</th>
+                  <th>Enrolled Students</th>
+                  <th>Workflow Status</th>
+                  <th style="width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>`;
+        for (const a of allocs) {
+          const statusBadge = a.approved ? `<span class="badge badge-ok">Approved</span>` : 
+                             (a.status ? `<span class="badge badge-warn">${esc(a.status)}</span>` : `<span class="badge badge-gray">Pending</span>`);
+          const lectCell = a.lecturer ? `<span class="lect-cell">${esc(a.lecturer)}</span>` : `<span class="lect-cell unassigned">Unassigned</span>`;
+          
+          html += `<tr>
+            <td>${globalRow++}</td>
+            <td><span class="code-cell">${esc(a.course_code)}</span></td>
+            <td style="white-space:normal; font-weight:500;">${esc(a.course_name)}</td>
+            <td>${lectCell}</td>
+            <td style="font-weight:600;">${a.number_of_students||a.students||0}</td>
+            <td>${statusBadge}</td>
+            <td>
+              <button class="act-btn" onclick="editAlloc(${a.id},'${esc(a.course_code)}','${esc(a.course_name)}')"><i class="fas fa-edit"></i> Edit</button>
+              <button class="act-btn act-delete" onclick="deleteAlloc(${a.id})"><i class="fas fa-trash-alt"></i></button>
+            </td>
+          </tr>`;
+        }
+        html += `</tbody></table></div>`;
+      }
+      html += `</div></div>`;
+      globalRow = 1; 
+    }
+    container.innerHTML = html;
+  }
+
+  function updateStats(total, depts, progs, lects) {
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-depts').textContent = depts;
+    document.getElementById('stat-progs').textContent = progs;
+    document.getElementById('stat-lects').textContent = lects;
+  }
+
+  window.editAlloc = function(id, code, name) {
+    allocForm.reset();
+    document.getElementById('alloc-id').value = id;
+    document.getElementById('course_code').value = code;
+    document.getElementById('course_name').value = name;
+    openModal('Edit Course Allocation');
+  };
+
+  window.deleteAlloc = function(id) {
+    if (!confirm('Confirm deletion of this course allocation record?')) return;
+    fetch(`/course-allocations/delete/${id}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') }
+    }).then(r => r.json()).then(resp => { if (resp.success) location.reload(); });
+  };
+
+  function esc(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+    return v ? v[2] : '';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('alloc-loading').style.display = 'none';
+    renderContent();
+    const firstFacBtn = document.querySelector('.sb-faculty-btn');
+    if (firstFacBtn) firstFacBtn.click();
+  });
+})();
+</script>
+{% endblock extra_js %}

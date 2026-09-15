@@ -1,0 +1,11 @@
+/*
+ * timetable_timetable_main_timetable.css
+ * Extracted from: timetable/templates/timetable/main_timetable.html
+ */
+
+body { font-family: 'Segoe UI', sans-serif; background: #f9fafb; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
+    th { background: #fefcc0; }
+    td[contenteditable="true"] { background: #eef; cursor: pointer; }
+    .collision { background-color: #fbb !important; }

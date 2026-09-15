@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utility Office Dashboard</title>
+
+  <style>
+    :root {
+      --primary: #004d26;
+      --primary-dark: #003318;
+      --accent: #007a3d;
+      --danger: #d32f2f;
+      --text-light: #666;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --border: #ddd;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 15px; line-height: 1.5;
+      padding-bottom: 40px;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--primary); padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid var(--accent);
+      height: 64px; margin-bottom: 32px;
+    }
+    .header h1 {
+      font-size: 1.25rem; font-weight: 700; color: #fff; flex: 1; margin-left: 16px;
+    }
+    .header img { height: 38px; display: block; }
+    .header .home-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.13); color: #fff;
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 6px; padding: 6px 13px; cursor: pointer;
+      font-size: 13.5px; font-weight: 600; text-decoration: none;
+      transition: background 0.18s; white-space: nowrap;
+    }
+    .header .home-btn:hover { background: rgba(255,255,255,0.26); }
+
+    .container { max-width: 1100px; width: 100%; margin: 0 auto; padding: 0 20px; }
+
+    .intro { margin-bottom: 28px; }
+    .intro h2 { font-size: 1.4rem; color: var(--primary-dark); margin-bottom: 6px; }
+    .intro p { color: var(--text-light); font-size: 14.5px; }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .option-card {
+      background: #fff; border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      padding: 28px 26px; text-decoration: none; color: inherit;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .option-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,77,38,0.15);
+      border-color: var(--accent);
+    }
+    .option-card .icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: #e5f3ec; color: var(--primary);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 700;
+    }
+    .option-card h3 { font-size: 1.15rem; color: var(--primary-dark); }
+    .option-card p { color: var(--text-light); font-size: 14px; flex: 1; }
+
+    .stat-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+    .stat-pill {
+      background: #f2f6f4; border: 1px solid var(--border);
+      border-radius: 999px; padding: 5px 14px; font-size: 12.5px; font-weight: 600;
+      color: var(--primary-dark);
+    }
+    .stat-pill b { color: var(--accent); font-size: 13.5px; }
+
+    .go-arrow {
+      align-self: flex-end; font-weight: 700; color: var(--accent);
+      font-size: 14px; display: inline-flex; align-items: center; gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University Logo">
+    <h1>Utility Office Dashboard</h1>
+    <a href="{% url 'logout' %}" class="home-btn">Logout</a>
+  </div>
+
+  <div class="container">
+    <div class="intro">
+      <h2>Welcome, Utility Office</h2>
+      <p>Choose what you'd like to manage. Timetabling venues and meeting venues are kept completely separate.</p>
+    </div>
+
+    <div class="card-grid">
+
+      <a href="{% url 'venues_panel' %}" class="option-card">
+        <div class="icon">&#127970;</div>
+        <h3>Manage Venues</h3>
+        <p>
+          Manage lecture &amp; exam timetabling venues — buildings, venues, lab venues,
+          venue specializations, blocked venues, and lecturer constraints used by the autoscheduler.
+        </p>
+        <div class="stat-row">
+          <span class="stat-pill">Buildings: <b>{{ buildings_count }}</b></span>
+          <span class="stat-pill">Venues: <b>{{ venues_count }}</b></span>
+        </div>
+        <span class="go-arrow">Open Venues Panel &rarr;</span>
+      </a>
+
+      <a href="{% url 'meeting_venues_panel' %}" class="option-card">
+        <div class="icon">&#128197;</div>
+        <h3>Meeting Venues &amp; Scheduling</h3>
+        <p>
+          Manage meeting venues (halls, boardrooms, workshops, labs) separately from
+          timetabling venues. Book a venue, unbook it, or transfer a meeting to another
+          venue, day, or time.
+        </p>
+        <div class="stat-row">
+          <span class="stat-pill">Meeting Venues: <b>{{ meeting_venues_count }}</b></span>
+          <span class="stat-pill">Currently Booked: <b>{{ active_meetings_count }}</b></span>
+        </div>
+        <span class="go-arrow">Open Meeting Venues &rarr;</span>
+      </a>
+
+    </div>
+  </div>
+
+</body>
+</html>

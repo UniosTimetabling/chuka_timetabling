@@ -1,0 +1,177 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In · Chuka University Timetabling</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0b1f4a; --navy-mid: #1a3260; --navy-dk: #071435;
+      --orange: #f47c20; --orange-lt: #ffa048;
+      --white: #ffffff; --surface: #f5f7fc; --border: #dde4f3;
+      --text: #0b1f4a; --text-mid: #4a5778;
+      --error: #c62828; --success: #1b7e3a;
+    }
+    html, body { height: 100%; font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; }
+    .login-wrapper { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
+
+    /* LEFT */
+    .login-left {
+      position: relative;
+      background: linear-gradient(155deg, var(--navy-dk) 0%, var(--navy-mid) 55%, #1e4080 100%);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: flex-start;
+      padding: 3.5rem 3rem; overflow: hidden; color: var(--white);
+    }
+    .login-left::before {
+      content:''; position:absolute; top:-120px; right:-120px;
+      width:420px; height:420px;
+      background:radial-gradient(circle,rgba(244,124,32,.22) 0%,transparent 70%);
+      pointer-events:none;
+    }
+    .left-ring {
+      position:absolute; top:50%; right:-160px; transform:translateY(-50%);
+      width:400px; height:400px; border-radius:50%;
+      border:60px solid rgba(255,255,255,.04); pointer-events:none;
+    }
+    .left-ring2 {
+      position:absolute; bottom:-60px; left:-60px;
+      width:250px; height:250px; border-radius:50%;
+      border:40px solid rgba(244,124,32,.08); pointer-events:none;
+    }
+    .left-content { position:relative; z-index:2; max-width:440px; }
+    .left-logo { display:flex; align-items:center; gap:14px; margin-bottom:3rem; }
+    .left-logo img { height:56px; width:auto; object-fit:contain; border-radius:8px; filter:brightness(1.1) drop-shadow(0 2px 10px rgba(0,0,0,.3)); }
+    .left-logo-fallback { width:56px; height:56px; background:var(--orange); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:800; color:var(--white); flex-shrink:0; }
+    .left-logo-text { display:flex; flex-direction:column; }
+    .left-logo-text strong { font-size:1rem; font-weight:700; letter-spacing:.01em; line-height:1.2; }
+    .left-logo-text span { font-size:.72rem; color:rgba(255,255,255,.55); letter-spacing:.06em; text-transform:uppercase; }
+    .left-headline { font-size:2.6rem; font-weight:800; line-height:1.15; letter-spacing:-.02em; margin-bottom:1.1rem; }
+    .left-headline em { font-style:normal; color:var(--orange); }
+    .left-sub { font-size:.95rem; color:rgba(255,255,255,.65); line-height:1.65; margin-bottom:2.5rem; max-width:360px; }
+    .left-features { display:flex; flex-direction:column; gap:.9rem; }
+    .left-feature { display:flex; align-items:center; gap:.75rem; font-size:.85rem; color:rgba(255,255,255,.75); }
+    .left-feature-icon { width:30px; height:30px; background:rgba(244,124,32,.18); border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--orange-lt); font-size:.8rem; flex-shrink:0; }
+    .left-footer { position:absolute; bottom:2rem; left:3rem; font-size:.72rem; color:rgba(255,255,255,.3); letter-spacing:.03em; z-index:2; }
+
+    /* RIGHT */
+    .login-right { background:var(--white); display:flex; flex-direction:column; justify-content:center; align-items:center; padding:3rem 2.5rem; position:relative; }
+    .login-form-box { width:100%; max-width:420px; animation:slideIn .4s cubic-bezier(.4,0,.2,1); }
+    @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+    .form-header { margin-bottom:2rem; }
+    .form-header h2 { font-size:1.85rem; font-weight:800; color:var(--navy); letter-spacing:-.02em; margin-bottom:.4rem; }
+    .form-header p { font-size:.87rem; color:var(--text-mid); }
+    .messages-area { margin-bottom:1.2rem; }
+    .msg-item { display:flex; align-items:flex-start; gap:9px; padding:.65rem .9rem; border-radius:8px; font-size:.84rem; margin-bottom:.4rem; }
+    .msg-item.error   { background:#fde8e8; color:var(--error);   border:1px solid #f5c6c6; }
+    .msg-item.warning { background:#fff3e0; color:#b35400;        border:1px solid #ffe0b2; }
+    .msg-item.success { background:#e8f5e9; color:var(--success); border:1px solid #c3e6cb; }
+    .msg-item.info    { background:#e3f2fd; color:#1565c0;        border:1px solid #bbdefb; }
+    .field-group { margin-bottom:1.15rem; }
+    .field-group label { display:block; font-size:.78rem; font-weight:600; color:var(--text-mid); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.4rem; }
+    .field-group input { width:100%; padding:.8rem 1rem; border:1.5px solid var(--border); border-radius:9px; font-size:.95rem; color:var(--text); background:var(--surface); outline:none; transition:border-color .2s,box-shadow .2s; }
+    .field-group input:focus { border-color:var(--orange); background:var(--white); box-shadow:0 0 0 3.5px rgba(244,124,32,.13); }
+    .field-group input::placeholder { color:#b3bdcf; }
+    .pw-wrap { position:relative; }
+    .pw-wrap input { padding-right:3rem; }
+    .pw-toggle { position:absolute; right:.9rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#b3bdcf; font-size:.95rem; padding:0; transition:color .2s; }
+    .pw-toggle:hover { color:var(--navy); }
+    .forgot-row { display:flex; justify-content:flex-end; margin-top:.3rem; margin-bottom:.6rem; }
+    .forgot-row a { font-size:.8rem; color:var(--orange); text-decoration:none; font-weight:600; }
+    .forgot-row a:hover { text-decoration:underline; }
+    .submit-btn { width:100%; padding:.9rem; background:linear-gradient(135deg,var(--orange) 0%,#e06a10 100%); color:var(--white); border:none; border-radius:9px; font-size:1rem; font-weight:700; cursor:pointer; letter-spacing:.02em; transition:transform .15s,box-shadow .15s; box-shadow:0 4px 16px rgba(244,124,32,.38); margin-top:.5rem; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .submit-btn:hover { transform:translateY(-1px); box-shadow:0 7px 22px rgba(244,124,32,.48); }
+    .divider { display:flex; align-items:center; gap:.8rem; margin:1.4rem 0; color:#b3bdcf; font-size:.75rem; letter-spacing:.04em; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+    .form-footer { text-align:center; font-size:.82rem; color:var(--text-mid); }
+    .form-footer a { color:var(--orange); text-decoration:none; font-weight:600; }
+    .form-footer a:hover { text-decoration:underline; }
+    .right-badge { position:absolute; bottom:1.5rem; font-size:.73rem; color:#b3bdcf; text-align:center; letter-spacing:.03em; }
+    @media(max-width:860px){ .login-wrapper{grid-template-columns:1fr} .login-left{display:none} .login-right{min-height:100vh;padding:2.5rem 1.5rem} }
+    @media(max-width:480px){ .login-right{padding:2rem 1.2rem} .form-header h2{font-size:1.5rem} }
+  </style>
+</head>
+<body>
+<div class="login-wrapper">
+
+  <!-- LEFT -->
+  <div class="login-left">
+    <div class="left-ring"></div>
+    <div class="left-ring2"></div>
+    <div class="left-content">
+      <div class="left-logo">
+        <img src="/media/site/logo/chuka.png" alt="Chuka University"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div class="left-logo-fallback" style="display:none;">CU</div>
+        <div class="left-logo-text">
+          <strong>Chuka University</strong>
+          <span>Timetabling System</span>
+        </div>
+      </div>
+      <h1 class="left-headline">Smarter <em>Scheduling,</em><br>Seamlessly Managed.</h1>
+      <p class="left-sub">One platform for timetables, room allocation, exam scheduling, and academic coordination — built for Chuka University.</p>
+      <div class="left-features">
+        <div class="left-feature"><div class="left-feature-icon"><i class="fas fa-calendar-check"></i></div><span>Automated timetable generation &amp; conflict detection</span></div>
+        <div class="left-feature"><div class="left-feature-icon"><i class="fas fa-door-open"></i></div><span>Real-time room &amp; venue management</span></div>
+        <div class="left-feature"><div class="left-feature-icon"><i class="fas fa-users-cog"></i></div><span>Role-based access for Deans, CODs &amp; Staff</span></div>
+        <div class="left-feature"><div class="left-feature-icon"><i class="fas fa-file-pdf"></i></div><span>Instant PDF export &amp; timetable publishing</span></div>
+      </div>
+    </div>
+    <div class="left-footer">&copy; {% now "Y" %} Chuka University &mdash; Directorate of Timetabling &amp; Examinations</div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="login-right">
+    <div class="login-form-box">
+      <div class="form-header">
+        <h2>Welcome back</h2>
+        <p>Sign in to your timetabling account to continue</p>
+      </div>
+
+      {% if messages %}
+      <div class="messages-area">
+        {% for msg in messages %}
+        <div class="msg-item {{ msg.tags }}">
+          <i class="fas fa-{% if 'error' in msg.tags %}exclamation-circle{% elif 'success' in msg.tags %}check-circle{% elif 'warning' in msg.tags %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+          <span>{{ msg }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <form method="post" id="loginForm" autocomplete="on">
+        {% csrf_token %}
+        <div class="field-group">
+          <label for="id_username">Username</label>
+          <input type="text" name="username" id="id_username" placeholder="Enter your username" autocomplete="username" required autofocus>
+        </div>
+        <div class="field-group">
+          <label for="id_password">Password</label>
+          <div class="pw-wrap">
+            <input type="password" name="password" id="id_password" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" id="togglePw" aria-label="Toggle password"><i class="fas fa-eye" id="pwIcon"></i></button>
+          </div>
+        </div>
+        <div class="forgot-row"><a href="{% url 'password_reset_request' %}">Forgot password?</a></div>
+        <button type="submit" class="submit-btn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+      </form>
+
+      <div class="divider">NEED HELP?</div>
+      <div class="form-footer">Contact IT Support: <a href="mailto:ttsupport@chuka.ac.ke">ttsupport@chuka.ac.ke</a></div>
+    </div>
+    <div class="right-badge">Chuka University &mdash; Timetabling &amp; Examinations Portal</div>
+  </div>
+</div>
+<script>
+(function(){
+  const btn=document.getElementById('togglePw'),inp=document.getElementById('id_password'),ico=document.getElementById('pwIcon');
+  if(btn) btn.addEventListener('click',function(){const s=inp.type==='password';inp.type=s?'text':'password';ico.className=s?'fas fa-eye-slash':'fas fa-eye';});
+})();
+</script>
+</body>
+</html>

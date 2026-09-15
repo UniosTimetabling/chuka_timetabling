@@ -1,0 +1,360 @@
+/*
+ * unified.css — Global Uniformity Layer
+ * Loaded by ALL pages via base.css @import or page_css block.
+ * Enforces consistent: buttons, tables, backgrounds, forms, badges.
+ * Removes emoji from functional UI elements via CSS.
+ */
+
+/* ═══════════════════════════════════════════════════
+   BUTTON SYSTEM — one set of classes for all pages
+   ═══════════════════════════════════════════════════ */
+.btn, button, input[type="submit"], input[type="button"] {
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* Primary — green */
+.btn-primary, .btn-pg-primary, .btn-dash-primary,
+.btn-card, .btn-blue, .btn-submit,
+input[type="submit"].btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.52rem 1.3rem;
+  border-radius: 6px;
+  background: var(--cu-green, #005a48);
+  color: #fff !important;
+  font-size: 0.855rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  white-space: nowrap;
+}
+.btn-primary:hover, .btn-pg-primary:hover, .btn-dash-primary:hover,
+.btn-card:hover, .btn-submit:hover {
+  background: #007558;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,90,72,.25);
+  color: #fff !important;
+}
+
+/* Secondary — outlined */
+.btn-secondary, .btn-pg-outline, .btn-dash-secondary,
+.btn-outline, .btn-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.52rem 1.3rem;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--cu-text, #4a504c) !important;
+  font-size: 0.855rem;
+  font-weight: 500;
+  border: 1px solid var(--cu-border, #dde0dd);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-secondary:hover, .btn-pg-outline:hover, .btn-dash-secondary:hover {
+  background: var(--cu-green-light, #e0f4ed);
+  border-color: var(--cu-green, #005a48);
+  color: var(--cu-green, #005a48) !important;
+}
+
+/* Danger */
+.btn-danger, .btn-delete, .btn-dash-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.52rem 1.3rem;
+  border-radius: 6px;
+  background: #fff0f0;
+  color: #b03030 !important;
+  font-size: 0.855rem;
+  font-weight: 500;
+  border: 1px solid rgba(176,48,48,.2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-danger:hover, .btn-delete:hover { background: #b03030; color: #fff !important; }
+
+/* Small variant */
+.btn-sm { padding: 0.35rem 0.85rem !important; font-size: 0.78rem !important; }
+.btn-xs { padding: 0.25rem 0.65rem !important; font-size: 0.73rem !important; }
+
+/* ═══════════════════════════════════════════════════
+   TABLE SYSTEM — uniform across all pages
+   ═══════════════════════════════════════════════════ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.855rem;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+}
+
+table thead tr {
+  background: var(--cu-green, #005a48);
+  color: #fff;
+}
+
+table thead th {
+  padding: 0.72rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  border: none;
+  white-space: nowrap;
+}
+
+table tbody tr {
+  border-bottom: 1px solid var(--cu-border, #dde0dd);
+  transition: background 0.12s;
+}
+table tbody tr:last-child { border-bottom: none; }
+table tbody tr:hover { background: var(--cu-green-light, #e0f4ed); }
+table tbody tr:nth-child(even) { background: var(--grey-50, #f8f9f8); }
+table tbody tr:nth-child(even):hover { background: var(--cu-green-light, #e0f4ed); }
+
+table tbody td {
+  padding: 0.72rem 1rem;
+  color: var(--cu-text, #4a504c);
+  vertical-align: middle;
+  border: none;
+}
+
+.table-responsive, .table-wrap { overflow-x: auto; border-radius: 8px; }
+
+/* Panel tables (navy header) */
+.panel-table thead tr, .timetable-table thead tr {
+  background: #1b5e20;
+}
+
+/* ═══════════════════════════════════════════════════
+   FORM INPUTS — consistent across all pages
+   ═══════════════════════════════════════════════════ */
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="date"], input[type="time"],
+input[type="search"], select, textarea {
+  font-family: var(--font-body, 'Inter', system-ui, sans-serif);
+  width: 100%;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--cu-border, #dde0dd);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--cu-text, #4a504c);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--cu-green, #005a48);
+  box-shadow: 0 0 0 3px rgba(0,90,72,.1);
+}
+label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cu-text, #4a504c);
+  margin-bottom: 4px;
+}
+select { appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%239a9e9b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  padding-right: 2.4rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   CARD SYSTEM
+   ═══════════════════════════════════════════════════ */
+.card, .dash-card, .panel-card, .theme-card, .stat-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid var(--cu-border, #dde0dd);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════
+   BADGE SYSTEM
+   ═══════════════════════════════════════════════════ */
+.badge, .status-badge, .tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-success, .badge-green { background: #e8f5e9; color: #1b5e20; }
+.badge-warning, .badge-amber { background: #fff3e0; color: #e65100; }
+.badge-danger,  .badge-red   { background: #ffebee; color: #c62828; }
+.badge-info,    .badge-blue  { background: #e3f2fd; color: #0277bd; }
+.badge-muted,   .badge-grey  { background: #f5f5f5; color: #616161; }
+
+/* ═══════════════════════════════════════════════════
+   PAGE BACKGROUND — consistent
+   ═══════════════════════════════════════════════════ */
+body { background: var(--cu-bg, #f8f9f8) !important; }
+body.dashboard-body { background: var(--cu-bg, #f8f9f8) !important; }
+body.panel-page { background: #f4f7fb !important; }
+body.sudo-body  { background: #f0f2f5 !important; }
+
+/* ═══════════════════════════════════════════════════
+   ALERTS / MESSAGES
+   ═══════════════════════════════════════════════════ */
+.alert, .message-box {
+  padding: 0.85rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.alert-success { background: #e8f5e9;  color: #1b5e20; }
+.alert-error, .alert-danger { background: #ffebee;  color: #c62828; }
+.alert-warning  { background: #fff3e0;  color: #e65100; }
+.alert-info     { background: #e3f2fd;  color: #0277bd; }
+
+/* ═══════════════════════════════════════════════════
+   SECTION / PAGE HEADERS
+   ═══════════════════════════════════════════════════ */
+.page-title, h1.section-title, .panel-title {
+  font-family: var(--font-display, 'Source Serif 4', Georgia, serif);
+  font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+  font-weight: 700;
+  color: var(--cu-heading, #004033);
+  margin-bottom: 1.2rem;
+}
+
+/* ═══════════════════════════════════════════════════
+   NAVIGATION DOUBLE-NAV PREVENTION
+   Makes sure internal navs inside panel pages don't double
+   ═══════════════════════════════════════════════════ */
+.timetable-base-content .app-header,
+.timetable-base-content .main-navbar,
+.dashboard-page-content .site-header {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════
+   MODAL UNIFROM STYLE
+   ═══════════════════════════════════════════════════ */
+.modal-overlay, .modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-box, .modal-content {
+  background: #fff;
+  border-radius: 14px;
+  padding: 2rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0,0,0,.2);
+}
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR — subtle
+   ═══════════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cu-border, #dde0dd); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--cu-muted, #9a9e9b); }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE TABLES
+   ═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  table { font-size: 0.78rem; }
+  table thead th, table tbody td { padding: 0.55rem 0.65rem; }
+  .btn, .btn-primary, .btn-secondary { padding: 0.45rem 0.9rem !important; font-size: 0.78rem !important; }
+}
+
+/* ===== GLOBAL FORM FIXES (timetable system) ===== */
+
+/* Ensure forms in panel pages display correctly */
+.page-content .form-group,
+.panel-body .form-group,
+.dash-content .form-group {
+  margin-bottom: 1rem;
+}
+
+.page-content .form-group label,
+.panel-body .form-group label,
+.dash-content .form-group label {
+  display: block;
+  margin-bottom: .35rem;
+  font-weight: 600;
+  font-size: .85rem;
+  color: var(--text-dark, #1a2e1a);
+}
+
+.page-content .form-group input,
+.page-content .form-group select,
+.page-content .form-group textarea,
+.panel-body .form-group input,
+.panel-body .form-group select,
+.panel-body .form-group textarea {
+  width: 100%;
+  padding: .5rem .75rem;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: .9rem;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.page-content .form-group input:focus,
+.page-content .form-group select:focus,
+.page-content .form-group textarea:focus,
+.panel-body .form-group input:focus,
+.panel-body .form-group select:focus,
+.panel-body .form-group textarea:focus {
+  outline: none;
+  border-color: var(--green-main, #006400);
+  box-shadow: 0 0 0 3px rgba(0,100,0,.12);
+}
+
+/* ===== GLOBAL TABLE OVERFLOW FIXES ===== */
+.excel-table-wrap,
+.alloc-wrap,
+.list-scroll,
+.panel-scroll,
+div[style*="overflow-x:auto"] {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure tables never overflow their container without scroll */
+.page-content table:not(.xl),
+.panel-body table:not(.xl) {
+  max-width: 100%;
+}
+
+/* ===== SKIP LINK ===== */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--green-main, #006400);
+  color: #fff;
+  padding: 8px;
+  z-index: 9999;
+  transition: top .2s;
+}
+.skip-link:focus {
+  top: 0;
+}

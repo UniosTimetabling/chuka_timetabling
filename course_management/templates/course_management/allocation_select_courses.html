@@ -1,0 +1,88 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Select courses — {{ allocation_set.name }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background:#eef2ef; margin:0; padding:32px; color:#1a1a1a; }
+    .wrap { max-width: 760px; margin: 0 auto; display:flex; gap:20px; }
+    .col { background:#fff; border:1px solid #d8dfd9; border-radius:10px; padding:20px; }
+    .col-left { width: 220px; flex-shrink:0; }
+    .col-right { flex:1; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .sub { color:#555; margin-bottom: 16px; font-size: 13px; }
+    .prog-link { display:block; padding:8px 10px; border-radius:6px; text-decoration:none; color:#1a1a1a; margin-bottom:4px; }
+    .prog-link.active { background:#dcf0e2; font-weight:600; }
+    .course-row { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid #f0f0f0; }
+    .course-row.added { color:#999; }
+    .btn { display:inline-block; padding:9px 18px; border-radius:6px; border:none; background:#2e7d4f; color:#fff; font-size:14px; cursor:pointer; margin-top:14px; }
+    .btn-done { background:#4a6fa5; }
+    .messages li { list-style:none; background:#fff3cd; padding:8px 12px; border-radius:6px; margin-bottom:6px; }
+    .empty { color:#777; padding: 16px 0; }
+    .badge-added { font-size:11px; background:#e0f2e6; color:#1e6b3c; padding:2px 6px; border-radius:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="col col-left">
+      <h1>Programs</h1>
+      {% for p in programs %}
+        <a class="prog-link {% if selected_program_id == p.id|stringformat:'s' %}active{% endif %}"
+           href="?program_id={{ p.id }}{% if next_url %}&next={{ next_url|urlencode }}{% endif %}">{{ p.name }}</a>
+      {% endfor %}
+      <form method="post" style="margin-top:20px;">
+        {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+        <input type="hidden" name="form_action" value="done">
+        <button type="submit" class="btn btn-done">Done — go to panel</button>
+      </form>
+    </div>
+
+    <div class="col col-right">
+      <h1>{{ allocation_set.name }}</h1>
+      <div class="sub">{% if selected_program_id %}Pick courses to add, tick, then Add.{% else %}Choose a program on the left.{% endif %}</div>
+
+      {% if messages %}<ul class="messages">{% for m in messages %}<li>{{ m }}</li>{% endfor %}</ul>{% endif %}
+
+      {% if selected_program_id %}
+        {% if courses_for_program %}
+        <form method="post">
+          {% csrf_token %}
+          {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+          <input type="hidden" name="form_action" value="add_courses">
+          <input type="hidden" name="program_id" value="{{ selected_program_id }}">
+          {% for c in courses_for_program %}
+            <div class="course-row {% if c.id in already_added_ids %}added{% endif %}">
+              {% if c.id in already_added_ids %}
+                <span class="badge-added">Added</span>
+              {% else %}
+                <input type="checkbox" name="program_course_ids" value="{{ c.id }}">
+              {% endif %}
+              <span>{{ c.course_code }} — {{ c.course_name }} (Sem {{ c.semester }}, Yr {{ c.year }})</span>
+            </div>
+          {% endfor %}
+          <div style="margin-top:14px;">
+            <label for="numGroups" style="font-size:13px;font-weight:600;color:#333;">
+              Groups per selected course
+            </label>
+            <input type="number" id="numGroups" name="num_groups" min="1" max="20" value="1"
+                   style="width:70px;margin-left:8px;padding:6px;border:1px solid #ccc;border-radius:4px;">
+            <div style="font-size:12px;color:#777;margin-top:4px;">
+              1 = a single plain row per course (default). A higher number creates that many
+              lettered groups for EVERY ticked course at once, e.g. 4 courses × 10 groups =
+              EDFO 111-A…-J, EDFO 112-A…-J, etc. — same lettering convention as COD panel's
+              "Add Group(s)…".
+            </div>
+          </div>
+          <button type="submit" class="btn">+ Add ticked courses</button>
+        </form>
+        {% else %}
+          <div class="empty">No curriculum courses found for this program.</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

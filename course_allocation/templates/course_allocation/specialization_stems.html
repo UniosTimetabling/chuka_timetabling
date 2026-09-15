@@ -1,0 +1,932 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Specialization Stems{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+    <span class="dept-badge">{{ department.name }}</span>
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .combinations-container {
+        padding: 1rem;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .card {
+        background: white;
+        border-radius: 0.75rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        border: 1px solid #e5e9e0;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .card-header {
+        padding: 1rem 1.5rem;
+        background: #fafbf8;
+        border-bottom: 1px solid #e5e9e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e4620;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+        margin-bottom: 1.25rem;
+        background: #fefef9;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        border: 1px solid #eef2e8;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .filter-group label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #5b6e53;
+    }
+
+    .filter-group select, .filter-group input {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #cfdec5;
+        background: white;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+
+    .course-multiselect {
+        width: 100%;
+        border: 1px solid #d4e2cb;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        background: #fff;
+        font-size: 0.85rem;
+        min-height: 200px;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        text-decoration: none;
+    }
+
+    .btn-primary { background: #1f6e2f; color: white; }
+    .btn-primary:hover { background: #145a24; }
+    .btn-secondary { background: #eef3ea; border-color: #c8dbc0; color: #2a5e2a; }
+    .btn-secondary:hover { background: #e2ecdb; }
+    .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.7rem; }
+
+    .btn-icon {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 1rem;
+        transition: all 0.1s;
+    }
+    .btn-icon.edit:hover { background: #e8f0e4; color: #1f6e2f; }
+    .btn-icon.delete:hover { background: #fee8e7; color: #c73e2b; }
+    .btn-icon.add:hover { background: #e8f0e4; color: #1f6e2f; }
+    .btn-icon-label {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-size: 0.72rem; font-weight: 600; cursor: pointer;
+        padding: 0.3rem 0.6rem; border-radius: 0.375rem; border: 1px solid transparent;
+        background: #f3f6f0; color: #3a5c33; transition: all 0.1s;
+    }
+    .btn-icon-label.edit:hover   { background: #e8f0e4; color: #1f6e2f; border-color: #c8dbc0; }
+    .btn-icon-label.delete       { background: #fdf1f0; color: #a4372a; }
+    .btn-icon-label.delete:hover { background: #fee8e7; color: #c73e2b; border-color: #f3c6c1; }
+    .btn-icon-label.add          { background: #eaf3e6; color: #1f6e2f; }
+    .btn-icon-label.add:hover    { background: #dcecd6; border-color: #c8dbc0; }
+
+    .data-table { width: 100%; border-collapse: collapse; table-layout: auto; }
+    .data-table th {
+        text-align: left;
+        padding: 0.75rem 0.5rem;
+        font-weight: 600;
+        color: #3a5c33;
+        border-bottom: 2px solid #e6ede1;
+        font-size: 0.8rem;
+    }
+    .data-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #eff3ea;
+        vertical-align: middle;
+    }
+
+    .badge-count {
+        background: #e1ecd9;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1.5rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #2b6e2b;
+    }
+
+    .stem-badge {
+        background: #dcebff;
+        padding: 0.2rem 0.6rem;
+        border-radius: 1rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #1c4e8a;
+        display: inline-block;
+        margin: 0.15rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #8ba07f;
+        font-style: italic;
+    }
+
+    .toast-notify {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #1e3a1e;
+        color: white;
+        padding: 0.75rem 1.25rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        z-index: 1100;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 2000;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 0.75rem;
+        max-width: 560px;
+        width: 90%;
+        padding: 1.5rem;
+        box-shadow: 0 20px 35px rgba(0,0,0,0.2);
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    .modal-header {
+        display: flex; justify-content: space-between;
+        margin-bottom: 1rem; font-weight: 600; font-size: 1.1rem;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.85rem; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; padding: 0.6rem; border-radius: 0.375rem; border: 1px solid #ccc; font-size: 0.85rem;
+    }
+    .text-muted { color: #6f8f66; font-size: 0.7rem; }
+    hr { margin: 1rem 0; border-color: #e6ede1; }
+
+    .loading-spinner {
+        display: inline-block; width: 14px; height: 14px;
+        border: 2px solid #e1ecd9; border-top-color: #1f6e2f;
+        border-radius: 50%; animation: spin 0.6s linear infinite; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .expand-icon {
+        cursor: pointer; transition: transform 0.2s; display: inline-block;
+        font-size: 0.9rem; color: #5b8c4e; width: 24px; text-align: center;
+    }
+    .expand-icon:hover { color: #1f6e2f; }
+    .hidden-row { display: none; }
+
+    .info-note {
+        background: #eef3ea; padding: 0.5rem 1rem; border-radius: 0.5rem;
+        margin-bottom: 1rem; font-size: 0.75rem; color: #2a5e2a;
+    }
+    .info-note.warn { background: #fff4e5; color: #8a5a00; }
+
+    .stem-block {
+        border: 1px solid #e6ede1;
+        border-radius: 0.5rem;
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+    }
+    .stem-block-header {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0.6rem 0.9rem;
+        background: #f5f8f2;
+        cursor: pointer;
+    }
+    .stem-block-body { padding: 0.75rem 0.9rem; display: none; }
+    .stem-block-body.open { display: block; }
+
+    .table-responsive { overflow-x: auto; width: 100%; }
+
+    @media (max-width: 768px) {
+        .combinations-container { padding: 0.5rem; }
+        .card-header { flex-direction: column; align-items: flex-start; }
+        .filter-group { min-width: 100%; }
+    }
+</style>
+
+<div class="combinations-container">
+
+    <div class="info-note">
+        <i class="fas fa-info-circle"></i>
+        <strong>Specialization Stems</strong> are different from Selection Groups. A student picks
+        exactly ONE <strong>stem</strong> (e.g. "Artificial Intelligence") out of a category and then takes
+        <strong>ALL</strong> the courses in that stem together. Courses inside the SAME stem must never clash
+        with each other. Courses that belong to DIFFERENT stems of the SAME category may safely share a
+        timeslot, since a student only ever follows one stem.
+    </div>
+
+    <!-- Create New Specialization Category -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-sitemap"></i> Create New Specialization Category</h2>
+            <span class="text-muted">e.g. "Year 3 Semester 1 Specialization"</span>
+        </div>
+        <div class="card-body">
+            <form id="createCategoryForm">
+                {% csrf_token %}
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label>Program</label>
+                        <select id="categoryProgramId" required>
+                            <option value="">-- Select a Program --</option>
+                            {% for p in programs %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Year (Optional)</label>
+                        <select id="categoryYear">
+                            <option value="">Any Year</option>
+                            {% for y in years %}
+                            <option value="{{ y }}">Year {{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Semester (Optional)</label>
+                        <select id="categorySemester">
+                            <option value="">Any Semester</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" id="categoryNameInput" placeholder="e.g., 'Year 3 Specialization Track'" required>
+                </div>
+                <div style="text-align: right;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Create Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Categories -->
+    <div class="card">
+        <div class="card-header">
+            <h2><i class="fas fa-layer-group"></i> Specialization Categories</h2>
+            <span class="badge-count">{{ categories.count }} categories</span>
+        </div>
+        <div class="card-body">
+            {% if categories %}
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;"></th>
+                            <th>Category</th>
+                            <th>Program</th>
+                            <th>Year / Semester</th>
+                            <th># Stems</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in categories %}
+                        <tr id="cat-row-{{ cat.id }}">
+                            <td>
+                                <span class="expand-icon" onclick="toggleCategory({{ cat.id }})">
+                                    <i class="fas {% if cat.stems.all %}fa-chevron-down{% else %}fa-chevron-right{% endif %}"></i>
+                                </span>
+                            </td>
+                            <td><strong>{{ cat.name }}</strong></td>
+                            <td>{{ cat.program.name }}</td>
+                            <td>
+                                {% if cat.year %}Y{{ cat.year }}{% else %}Any Year{% endif %}
+                                {% if cat.semester %} / S{{ cat.semester }}{% endif %}
+                            </td>
+                            <td><span class="badge-count">{{ cat.stem_total }}</span></td>
+                            <td>
+                                <button class="btn-icon-label add" title="Add Stem" onclick="showAddStemModal({{ cat.id }}, '{{ cat.name|escapejs }}', {{ cat.program.id }})">
+                                    <i class="fas fa-plus-circle"></i> Add Stem
+                                </button>
+                                <button class="btn-icon-label delete" title="Delete Category" onclick="deleteCategory({{ cat.id }})">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="cat-detail-{{ cat.id }}" class="{% if not cat.stems.all %}hidden-row{% endif %}">
+                            <td colspan="6" style="background:#fafbf8; padding: 1rem;">
+                                {% for stem in cat.stems.all %}
+                                <div class="stem-block">
+                                    <div class="stem-block-header" onclick="toggleStem({{ stem.id }})">
+                                        <span>
+                                            <span class="stem-badge">{{ stem.name }}</span>
+                                            <span class="text-muted">{{ stem.courses.count }} course{{ stem.courses.count|pluralize }}</span>
+                                        </span>
+                                        <span>
+                                            <button class="btn-icon-label edit" title="Rename Stem" onclick="event.stopPropagation(); showEditStemModal({{ stem.id }}, '{{ stem.name|escapejs }}')">
+                                                <i class="fas fa-edit"></i> Rename
+                                            </button>
+                                            <button class="btn-icon-label delete" title="Delete Stem" onclick="event.stopPropagation(); deleteStem({{ stem.id }})">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </span>
+                                    </div>
+                                    <div class="stem-block-body open" id="stem-body-{{ stem.id }}">
+                                        {% if stem.courses.all %}
+                                        <table style="width:100%; border-collapse: collapse;">
+                                            <thead>
+                                                <tr style="border-bottom: 1px solid #d4e2cb;">
+                                                    <th style="text-align:left; padding: 0.4rem;">Course Code</th>
+                                                    <th style="text-align:left; padding: 0.4rem;">Course Name</th>
+                                                    <th style="text-align:left; padding: 0.4rem;">Y/S</th>
+                                                    <th style="text-align:left; padding: 0.4rem; width:60px;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for ca in stem.courses.all %}
+                                                <tr>
+                                                    <td style="padding: 0.4rem;"><code>{{ ca.course_code }}</code></td>
+                                                    <td style="padding: 0.4rem;">{{ ca.course_name|truncatechars:50 }}</td>
+                                                    <td style="padding: 0.4rem;">Y{{ ca.program_course.year }} S{{ ca.program_course.semester }}</td>
+                                                    <td style="padding: 0.4rem;">
+                                                        <button class="btn-icon-label delete" title="Remove from stem" onclick="removeCourseFromStem({{ stem.id }}, {{ ca.id }})">
+                                                            <i class="fas fa-times-circle"></i> Remove
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                        {% else %}
+                                        <p class="text-muted">No courses in this stem yet.</p>
+                                        {% endif %}
+                                        <div style="margin-top: 0.75rem;">
+                                            <button class="btn btn-secondary btn-sm" onclick="showAddCoursesToStemModal({{ stem.id }}, '{{ stem.name|escapejs }}', {{ stem.category.program.id }})">
+                                                <i class="fas fa-plus"></i> Add More Courses
+                                            </button>
+                                            <button class="btn btn-secondary btn-sm" onclick="showMapGroupsModal({{ stem.id }}, '{{ stem.name|escapejs }}', {{ stem.category.program.id }})">
+                                                <i class="fas fa-users"></i> Map to Student Group(s)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <p class="text-muted">No stems yet in this category. Click "+" above to add one, e.g. "Artificial Intelligence", "Cybersecurity", "Networking".</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open" style="font-size: 2rem; opacity: 0.5;"></i>
+                <p>No specialization categories created yet. Create one above!</p>
+                <p class="text-muted">A category is a choice-point (e.g. "Year 3 Specialization") containing several stems.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add Stem Modal -->
+<div id="addStemModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>Add Stem to <span id="addStemCategoryName"></span></span>
+            <button onclick="closeModal('addStemModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form id="addStemForm">
+            <input type="hidden" id="addStemCategoryId">
+            <input type="hidden" id="addStemProgramId">
+            <div class="form-group">
+                <label>Stem Name</label>
+                <input type="text" id="stemNameInput" placeholder="e.g. 'Artificial Intelligence'" required>
+                <small class="text-muted">Defaults to the category name. Only change this if the category will have more than one stem for students to choose between.</small>
+            </div>
+            <div class="form-group">
+                <label>Select Courses for this Stem (Ctrl/Cmd + click for multiple)</label>
+                <select id="stemCoursesSelect" multiple size="8" class="course-multiselect" required>
+                    <option disabled>Loading courses...</option>
+                </select>
+                <div id="stemCoursesLoading" style="display:none; text-align:center; padding: 1rem;">
+                    <span class="loading-spinner"></span> Loading courses...
+                </div>
+                <small class="text-muted">Students who choose this stem take ALL of these courses together — they must never clash with each other.</small>
+            </div>
+            <div class="info-note">
+                A student who picks "<span id="addStemCategoryName2"></span>" and this stem takes every course
+                listed here. Different stems in the same category may share a timeslot.
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addStemModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Stem</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Stem Modal -->
+<div id="editStemModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span>Rename Stem</span>
+            <button onclick="closeModal('editStemModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form id="editStemForm">
+            <input type="hidden" id="editStemId">
+            <div class="form-group">
+                <label>Stem Name</label>
+                <input type="text" id="editStemName" required>
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editStemModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add Courses to Existing Stem Modal -->
+<div id="addCoursesToStemModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header">
+            <span>Add Courses to <span id="addCoursesStemName"></span></span>
+            <button onclick="closeModal('addCoursesToStemModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <form id="addCoursesToStemForm">
+            <input type="hidden" id="addCoursesStemId">
+            <input type="hidden" id="addCoursesStemProgramId">
+            <div class="form-group">
+                <label>Select Courses to Add (Ctrl/Cmd + click for multiple)</label>
+                <select id="addCoursesToStemSelect" multiple size="8" class="course-multiselect">
+                    <option disabled>Loading courses...</option>
+                </select>
+                <div id="addCoursesToStemLoading" style="display:none; text-align:center; padding: 1rem;">
+                    <span class="loading-spinner"></span> Loading...
+                </div>
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addCoursesToStemModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Selected Courses</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Map Stem to Student Group(s) Modal -->
+<div id="mapGroupsModal" style="display:none;" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <span>Map <span id="mapGroupsStemName"></span> to Student Group(s)</span>
+            <button onclick="closeModal('mapGroupsModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        </div>
+        <input type="hidden" id="mapGroupsStemId">
+        <p class="text-muted" style="margin-bottom:0.75rem;">
+            Tick which Student Group(s) may choose this stem. Leave everything unticked to keep it open/shared to every group.
+        </p>
+        <div id="mapGroupsList" style="max-height:280px; overflow-y:auto; border:1px solid #e6ede1; border-radius:0.5rem; padding:0.5rem 0.75rem;">
+            <span class="text-muted">Loading groups...</span>
+        </div>
+        <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('mapGroupsModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="mapGroupsSaveBtn" onclick="saveMapGroups()">Save Mapping</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showToast(message, type = 'success') {
+        let toast = document.createElement('div');
+        toast.className = 'toast-notify';
+        toast.style.background = type === 'error' ? '#b33a2e' : '#1e6b2c';
+        toast.innerHTML = message;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.remove(); }, 3500);
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function toggleCategory(catId) {
+        const row = document.getElementById(`cat-detail-${catId}`);
+        const icon = document.querySelector(`#cat-row-${catId} .expand-icon i`);
+        if (row.classList.contains('hidden-row')) {
+            row.classList.remove('hidden-row');
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-down');
+        } else {
+            row.classList.add('hidden-row');
+            icon.classList.remove('fa-chevron-down');
+            icon.classList.add('fa-chevron-right');
+        }
+    }
+
+    function toggleStem(stemId) {
+        const body = document.getElementById(`stem-body-${stemId}`);
+        body.classList.toggle('open');
+    }
+
+    const csrfToken = () => document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    async function fetchCourses(programId, year) {
+        let url = '/ajax/get-program-courses/';
+        const params = new URLSearchParams();
+        if (programId) params.append('program_id', programId);
+        if (year) params.append('year', year);
+        url += '?' + params.toString();
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return resp.json();
+    }
+
+    function populateSelect(selectEl, courses) {
+        selectEl.innerHTML = '';
+        if (courses.length === 0) {
+            const opt = document.createElement('option');
+            opt.disabled = true;
+            opt.textContent = 'No courses available for this program';
+            selectEl.appendChild(opt);
+            return;
+        }
+        courses.forEach(c => {
+            let opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.course_code} — ${c.course_name} (Y${c.year} S${c.semester})`;
+            selectEl.appendChild(opt);
+        });
+    }
+
+    // ── Create Category ──────────────────────────────────────────────
+    document.getElementById('createCategoryForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const programId = document.getElementById('categoryProgramId').value;
+        if (!programId) { showToast('Please select a program', 'error'); return; }
+        const name = document.getElementById('categoryNameInput').value.trim();
+        if (!name) { showToast('Please enter a category name', 'error'); return; }
+        const year = document.getElementById('categoryYear').value;
+        const semester = document.getElementById('categorySemester').value;
+
+        const formData = new FormData();
+        formData.append('category_program_id', programId);
+        formData.append('category_name', name);
+        if (year) formData.append('category_year', year);
+        if (semester) formData.append('category_semester', semester);
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="loading-spinner" style="border-top-color:white;"></span> Creating...';
+        submitBtn.disabled = true;
+
+        try {
+            const resp = await fetch('/cod/specialization-stems/add-category/', {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 900);
+            } else {
+                showToast(data.message || 'Error creating category', 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        } catch (err) {
+            showToast('Network error. Try again.', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+
+    async function deleteCategory(catId) {
+        if (!confirm('Delete this specialization category and ALL its stems?')) return;
+        try {
+            const resp = await fetch(`/specialization-category/delete/${catId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Delete failed', 'error');
+            }
+        } catch(e) { showToast('Error deleting', 'error'); }
+    }
+
+    // ── Add Stem ──────────────────────────────────────────────────────
+    async function showAddStemModal(catId, catName, programId) {
+        document.getElementById('addStemCategoryId').value = catId;
+        document.getElementById('addStemProgramId').value = programId;
+        document.getElementById('addStemCategoryName').innerText = catName;
+        document.getElementById('addStemCategoryName2').innerText = catName;
+        document.getElementById('stemNameInput').value = catName;
+        document.getElementById('addStemModal').style.display = 'flex';
+
+        const select = document.getElementById('stemCoursesSelect');
+        const loading = document.getElementById('stemCoursesLoading');
+        select.style.display = 'none';
+        loading.style.display = 'block';
+        try {
+            const courses = await fetchCourses(programId, null);
+            populateSelect(select, courses);
+        } catch(e) {
+            select.innerHTML = '<option disabled>Error loading courses</option>';
+        } finally {
+            select.style.display = '';
+            loading.style.display = 'none';
+        }
+    }
+
+    document.getElementById('addStemForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const catId = document.getElementById('addStemCategoryId').value;
+        const stemName = document.getElementById('stemNameInput').value.trim();
+        const selected = Array.from(document.getElementById('stemCoursesSelect').selectedOptions);
+        const pcIds = selected.map(o => o.value).filter(v => v);
+
+        if (!stemName) { showToast('Please enter a stem name', 'error'); return; }
+        if (pcIds.length === 0) { showToast('Please select at least one course', 'error'); return; }
+
+        const formData = new FormData();
+        formData.append('stem_name', stemName);
+        pcIds.forEach(id => formData.append('program_course_ids', id));
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="loading-spinner" style="border-top-color:white;"></span> Creating...';
+        submitBtn.disabled = true;
+
+        try {
+            const resp = await fetch(`/specialization-category/add-stem/${catId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 900);
+            } else {
+                showToast(data.message || 'Error creating stem', 'error');
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        } catch(err) {
+            showToast('Network error. Try again.', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+
+    async function deleteStem(stemId) {
+        if (!confirm('Delete this stem? Its courses will remain but be detached from the stem.')) return;
+        try {
+            const resp = await fetch(`/specialization-stem/delete/${stemId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Delete failed', 'error');
+            }
+        } catch(e) { showToast('Error deleting', 'error'); }
+    }
+
+    function showEditStemModal(stemId, name) {
+        document.getElementById('editStemId').value = stemId;
+        document.getElementById('editStemName').value = name;
+        document.getElementById('editStemModal').style.display = 'flex';
+    }
+
+    document.getElementById('editStemForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const stemId = document.getElementById('editStemId').value;
+        const newName = document.getElementById('editStemName').value;
+        try {
+            const resp = await fetch(`/specialization-stem/update/${stemId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast('Stem updated');
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Update failed', 'error');
+            }
+        } catch(e) { showToast('Error updating', 'error'); }
+        closeModal('editStemModal');
+    });
+
+    async function showAddCoursesToStemModal(stemId, stemName, programId) {
+        document.getElementById('addCoursesStemId').value = stemId;
+        document.getElementById('addCoursesStemProgramId').value = programId;
+        document.getElementById('addCoursesStemName').innerText = stemName;
+        document.getElementById('addCoursesToStemModal').style.display = 'flex';
+
+        const select = document.getElementById('addCoursesToStemSelect');
+        const loading = document.getElementById('addCoursesToStemLoading');
+        select.style.display = 'none';
+        loading.style.display = 'block';
+        try {
+            const courses = await fetchCourses(programId, null);
+            populateSelect(select, courses);
+        } catch(e) {
+            select.innerHTML = '<option disabled>Error loading courses</option>';
+        } finally {
+            select.style.display = '';
+            loading.style.display = 'none';
+        }
+    }
+
+    document.getElementById('addCoursesToStemForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const stemId = document.getElementById('addCoursesStemId').value;
+        const selected = Array.from(document.getElementById('addCoursesToStemSelect').selectedOptions);
+        const pcIds = selected.map(o => o.value).filter(v => v);
+        if (pcIds.length === 0) { showToast('Please select courses to add', 'error'); return; }
+
+        const formData = new FormData();
+        pcIds.forEach(id => formData.append('program_course_ids', id));
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="loading-spinner"></span> Adding...';
+        submitBtn.disabled = true;
+
+        try {
+            const resp = await fetch(`/specialization-stem/add-courses/${stemId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Failed to add courses', 'error');
+            }
+        } catch(e) {
+            showToast('Error adding courses', 'error');
+        } finally {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+        closeModal('addCoursesToStemModal');
+    });
+
+    async function removeCourseFromStem(stemId, courseId) {
+        if (!confirm('Remove this course from the stem?')) return;
+        try {
+            const resp = await fetch(`/specialization-stem/remove-course/${stemId}/${courseId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast('Course removed');
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                showToast(data.message || 'Remove failed', 'error');
+            }
+        } catch(e) { showToast('Error', 'error'); }
+    }
+
+    // ── Map Stem to Student Group(s) ─────────────────────────────────
+    async function showMapGroupsModal(stemId, stemName, programId) {
+        document.getElementById('mapGroupsStemId').value = stemId;
+        document.getElementById('mapGroupsStemName').innerText = stemName;
+        document.getElementById('mapGroupsModal').style.display = 'flex';
+
+        const list = document.getElementById('mapGroupsList');
+        list.innerHTML = '<span class="text-muted">Loading groups...</span>';
+        try {
+            const formData = new FormData();
+            formData.append('action', 'list_student_groups');
+            const resp2 = await fetch("{% url 'cod_panel' %}", {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData
+            });
+            const data2 = await resp2.json();
+            if (data2.status !== 'success') { list.innerHTML = '<span class="text-muted">Could not load groups.</span>'; return; }
+            const groups = (data2.groups || []).filter(g => String(g.program_id) === String(programId));
+            if (!groups.length) { list.innerHTML = '<span class="text-muted">No student groups exist yet for this program.</span>'; return; }
+
+            // Fetch current mapping for this stem via the specialization tree endpoint.
+            const treeResp = await fetch(`/ajax/specialization-tree/?program_id=${programId}`);
+            const categories = await treeResp.json();
+            let mappedIds = [];
+            categories.forEach(cat => cat.stems.forEach(s => { if (s.id === stemId && s.mapped_group_ids) mappedIds = s.mapped_group_ids; }));
+
+            list.innerHTML = groups.map(g => `
+                <label style="display:block; padding:0.3rem 0;">
+                    <input type="checkbox" value="${g.id}" class="map-groups-cb" ${mappedIds.includes(g.id) ? 'checked' : ''}>
+                    ${g.name} — Y${g.year} S${g.semester} (${g.intake})
+                </label>
+            `).join('');
+        } catch (e) {
+            list.innerHTML = '<span class="text-muted">Error loading groups.</span>';
+        }
+    }
+
+    async function saveMapGroups() {
+        const stemId = document.getElementById('mapGroupsStemId').value;
+        const checked = Array.from(document.querySelectorAll('.map-groups-cb:checked')).map(cb => cb.value);
+        const btn = document.getElementById('mapGroupsSaveBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="loading-spinner" style="border-top-color:white;"></span> Saving...';
+        btn.disabled = true;
+        try {
+            const formData = new FormData();
+            checked.forEach(id => formData.append('group_ids', id));
+            const resp = await fetch(`/specialization-stem/map-groups/${stemId}/`, {
+                method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData
+            });
+            const data = await resp.json();
+            if (data.status === 'success') {
+                showToast(data.message);
+                closeModal('mapGroupsModal');
+            } else {
+                showToast(data.message || 'Error saving mapping', 'error');
+            }
+        } catch (e) {
+            showToast('Network error saving mapping', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    window.onclick = function(event) {
+        ['addStemModal', 'editStemModal', 'addCoursesToStemModal', 'mapGroupsModal'].forEach(id => {
+            const modal = document.getElementById(id);
+            if (event.target === modal) closeModal(id);
+        });
+    };
+</script>
+{% endblock %}

@@ -1,0 +1,1256 @@
+{% extends "timetable/autoscheduler_base.html" %}
+{% load static %}
+
+{% block title %}Exam AutoScheduler — Chuka University{% endblock %}
+{% block load_text %}Loading Exam AutoScheduler…{% endblock %}
+{% block page_title %}Exam AutoScheduler{% endblock %}
+{% block topbar_badge %}<span class="excel-badge">Exams</span>{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* --- EXCEL CORE THEME RESET & FLAT BOUNDARIES --- */
+  :root {
+    --excel-green: #107c41;
+    --excel-green-dark: #0a4e29;
+    --excel-border: #107c41;       
+    --excel-grid: #ccc;            /* Clean spreadsheet gridlines */
+    --excel-bg-gray: #f3f2f1;
+    --excel-header-bg: #f8f9fa;
+    --text-main: #000000;
+  }
+
+  body {
+    background-color: var(--excel-bg-gray);
+    color: var(--text-main);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    font-size: 0.82rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* --- TWO-COLUMN FLAT WORKSPACE LAYOUT --- */
+  .workspace-container {
+    display: flex;
+    min-height: calc(100vh - 50px);
+    position: relative;
+    border-top: 1px solid var(--excel-green);
+  }
+
+  /* Sticky Left Navigation Rail - Pure Flat */
+  .excel-nav-rail {
+    width: 65px;
+    background: var(--excel-header-bg);
+    border-right: 1px solid var(--excel-grid);
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 4px 0 4px;
+    gap: 4px;
+    box-sizing: border-box;
+    z-index: 10;
+    overflow-y: auto;
+  }
+
+  .rail-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #555;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .rail-anchor {
+    width: 100%;
+    padding: 6px 2px;
+    display: block;
+    border: 1px solid var(--excel-grid);
+    background: #fff;
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  .rail-anchor:hover {
+    background: var(--excel-bg-gray);
+    color: var(--excel-green);
+  }
+
+  /* Main Workspace Area */
+  .workspace-body {
+    flex: 1;
+    padding: 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* --- CONFIGURATION ROW (FORM STRIP) --- */
+  .config-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid var(--excel-border); 
+    padding: 10px 16px;
+    margin-bottom: 0px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .config-strip label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: #000;
+    font-size: 0.82rem;
+  }
+
+  .config-strip input[type="date"],
+  .config-strip input[type="time"],
+  .config-strip input[type="number"],
+  .config-strip select {
+    border: 1px solid var(--excel-grid);
+    padding: 4px 6px;
+    font-size: 0.82rem;
+    background: #fff;
+    height: 28px;
+    box-sizing: border-box;
+    outline: none;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .config-strip input:focus, .config-strip select:focus {
+    border: 1px solid var(--excel-green);
+  }
+
+  /* --- RUN AUTOSCHEDULER TOP RIGHT ALIGNMENT --- */
+  .config-strip-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto; 
+  }
+
+  /* --- EXCEL FLAT BUTTONS --- */
+  .btn-excel {
+    background: var(--excel-green);
+    color: #fff;
+    border: 1px solid var(--excel-green-dark);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .btn-excel:hover {
+    background: var(--excel-green-dark);
+  }
+  .btn-excel-ghost {
+    background: #fff;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid);
+    padding: 4px 12px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    box-sizing: border-box;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .btn-excel-ghost:hover {
+    background: var(--excel-bg-gray);
+  }
+
+  /* Integrated Select-and-Run Engine Box Group */
+  .excel-input-group {
+    display: inline-flex;
+    border: 1px solid var(--excel-green);
+    overflow: hidden;
+    height: 28px;
+    box-shadow: none !important;
+  }
+  .excel-input-group select {
+    border: none;
+    border-right: 1px solid var(--excel-grid);
+    height: 100%;
+  }
+  .excel-input-group .btn-excel {
+    border: none;
+    height: 100%;
+  }
+
+  /* --- COMPACT META STATUS STRIP --- */
+  .meta-status-strip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--excel-border);
+    border-top: none;
+    padding: 6px 16px;
+    margin-bottom: 12px;
+    font-size: 0.78rem;
+    color: #000;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .meta-divider {
+    width: 1px;
+    background: var(--excel-grid);
+    height: 14px;
+  }
+
+  /* --- ACTION NAVIGATION BAR --- */
+  .actions-bar {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    padding: 6px 12px;
+    margin-bottom: 12px;
+    gap: 8px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .actions-bar-right {
+    margin-left: auto;
+    display: flex;
+    gap: 6px;
+  }
+
+  /* --- EXCEL WORKBOOK TABS --- */
+  .tab-nav {
+    display: flex;
+    background: transparent;
+    border-bottom: 1px solid var(--excel-grid);
+    padding-left: 8px;
+    gap: 2px;
+    border-radius: 0 !important;
+  }
+  .tab-btn {
+    background: #e1dfdd;
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid);
+    border-bottom: none;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .tab-btn.active {
+    background: #fff !important;
+    font-weight: 700;
+    color: var(--excel-green);
+    border-top: 2px solid var(--excel-green);
+    position: relative;
+    top: 1px;
+    z-index: 2;
+  }
+
+  .tab-content {
+    display: none;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    padding: 12px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .tab-content.active {
+    display: block;
+  }
+
+  /* --- EXCEL-STYLE TIMETABLE GRID --- */
+  .data-table-wrap {
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid var(--excel-grid) !important;
+  }
+  
+  table.data-table, table.tt-grid {
+    width: 100%;
+    border-collapse: collapse !important;
+    border: none !important;
+    margin: 0;
+  }
+
+  table.data-table th, table.tt-grid th {
+    background: var(--excel-header-bg) !important;
+    color: var(--text-main);
+    font-weight: 600;
+    border: 1px solid var(--excel-grid) !important; 
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    text-align: left;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  table.data-table td, table.tt-grid td {
+    background: #fff !important; 
+    color: var(--text-main);
+    border: 1px solid var(--excel-grid) !important; 
+    padding: 6px 8px;
+    font-size: 0.82rem;
+    vertical-align: top;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  table.data-table tr:hover td, 
+  table.tt-grid tr:hover td,
+  table.tt-grid td:hover {
+    background: #fff !important;
+    transform: none !important;
+  }
+
+  .venue-col, .venue-th {
+    background: var(--excel-header-bg) !important;
+    font-weight: 600;
+    width: 110px;
+    border-right: 1px solid var(--excel-grid) !important;
+  }
+
+  .course-chip {
+    padding: 2px 0;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+  .cc-code {
+    display: inline;
+    font-weight: 700;
+    color: #000;
+  }
+  .cc-meta {
+    display: inline;
+    font-size: 0.82rem;
+    color: #333;
+    margin-left: 4px;
+  }
+  .cell-empty {
+    color: #bfbfbf;
+    display: block;
+  }
+
+  .day-block {
+    margin-bottom: 25px;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    scroll-margin-top: 10px; 
+  }
+  .day-header {
+    background: var(--excel-green); 
+    color: #fff;
+    padding: 6px 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-stats {
+    margin-left: auto;
+    font-size: 0.78rem;
+    font-weight: 400;
+  }
+
+  /* --- PROCESS INDICATOR MODAL STYLING (FIXED TOP/BOTTOM OVERFLOW) --- */
+  .excel-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4) !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px; /* Window padding to handle small screens */
+    box-sizing: border-box;
+  }
+  .excel-modal-overlay.show { display: flex !important; }
+  
+  .excel-modal {
+    background: #ffffff !important;
+    border: 2px solid var(--excel-green) !important;
+    width: 750px;
+    max-width: 100%;
+    max-height: calc(100vh - 40px); /* Restrict absolute boundaries */
+    display: flex;
+    flex-direction: column;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    box-sizing: border-box;
+  }
+  .excel-modal-head {
+    background: var(--excel-green) !important;
+    color: #ffffff !important;
+    padding: 10px 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0; /* Guard header height */
+  }
+  .excel-modal-body { 
+    padding: 16px; 
+    background: #ffffff !important; 
+    overflow-y: auto; /* Allow pure internal scrolling if body contents exceed boundaries */
+    flex-grow: 1;
+  }
+  
+  .prog-wrap {
+    background: var(--excel-bg-gray) !important;
+    border: 1px solid var(--excel-grid) !important;
+    height: 24px;
+    margin: 12px 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  /* --- FIX: FORCED REMOVAL OF THE CSS TRANSITION BLEND FROM BOOTSTRAP --- */
+  .prog-fill {
+    height: 100% !important;
+    width: 0%;
+    text-align: center;
+    font-weight: 700;
+    line-height: 22px;
+    font-size: 0.8rem;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    /* Kill background-color transition to prevent muddy yellow-blue-brownish mixtures */
+    transition: width 0.1s linear, background-color 0s ease !important; 
+  }
+  
+  /* PRECISE HIGH-CONTRAST STAGE ENHANCEMENTS */
+  .stage-yellow { background-color: #ffc107 !important; color: #000000 !important; }
+  .stage-blue   { background-color: #0d6efd !important; color: #ffffff !important; }
+  .stage-green  { background-color: #107c41 !important; color: #ffffff !important; }
+
+  /* ABSOLUTE FLAT MATRIX — NO CARD SHADING OR HIGHLIGHT ARTIFACTS ALLOWED */
+  .modal-stats {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    border: 1px solid var(--excel-grid) !important;
+    margin-bottom: 12px !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    border-radius: 0 !important;
+  }
+  .ms-card {
+    padding: 8px !important;
+    text-align: center !important;
+    border: none !important;
+    border-right: 1px solid var(--excel-grid) !important;
+    background: #ffffff !important;  
+    box-shadow: none !important;      
+    text-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .ms-card:last-child { border-right: none !important; }
+  .ms-val { font-size: 1.2rem !important; font-weight: 700 !important; color: #000000 !important; }
+  .ms-lbl { font-size: 0.72rem !important; color: #444444 !important; text-transform: uppercase !important; font-weight: 600 !important; }
+
+  .action-strip {
+    background: #ffffff !important;
+    border: 1px solid var(--excel-grid) !important;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    margin-bottom: 12px;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .console-wrap {
+    background: #000000 !important;
+    color: #00ff00 !important;
+    font-family: "Consolas", monospace;
+    font-size: 0.78rem;
+    padding: 10px;
+    height: 140px;
+    overflow-y: auto;
+    border: 1px solid var(--excel-grid) !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .excel-badge {
+    background: var(--excel-green);
+    color: #fff;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .excel-modal-foot {
+    padding: 10px;
+    background: var(--excel-header-bg) !important;
+    border-top: 1px solid var(--excel-grid) !important;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    box-shadow: none !important;
+    flex-shrink: 0; /* Guard footer bounds */
+  }
+  .loading-indicator {
+    padding: 20px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid var(--excel-grid);
+    margin: 10px 0;
+  }
+  .day-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 6px;
+    padding: 10px 0;
+  }
+  .day-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--excel-header-bg);
+    border: 1px solid var(--excel-grid);
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="workspace-container">
+  
+  <aside class="excel-nav-rail" id="leftRailAnchors">
+    <div class="rail-label">Sheets</div>
+    <button class="rail-anchor" onclick="window.scrollTo({top:0, behavior:'smooth'})">Top</button>
+    <div style="width:90%; height:1px; background:var(--excel-grid); margin:4px 0;"></div>
+  </aside>
+
+  <main class="workspace-body">
+
+    <form id="examConfigForm" class="config-strip" method="post">
+      {% csrf_token %}
+      <label>Start Date:
+        <input type="date" name="start_date" value="{{ config.start_date|date:'Y-m-d' }}">
+      </label>
+      <label>Start Time:
+        <input type="time" name="start_time" value="{{ config.start_time|time:'H:i' }}">
+      </label>
+      <label>End Time:
+        <input type="time" name="end_time" value="{{ config.end_time|time:'H:i' }}">
+      </label>
+      <label>Slot Size (hrs):
+        <input type="number" name="slot_size" value="{{ config.slot_size }}">
+      </label>
+      <label>Max Days:
+        <input type="number" name="max_exam_days" value="{{ config.max_exam_days }}">
+      </label>
+
+      <div class="config-strip-actions">
+        <button type="button" id="toggleExcluded" class="btn btn-excel-ghost">
+          <i class="fas fa-calendar-minus"></i> Excluded Days
+        </button>
+        <button type="submit" id="saveConfigBtn" class="btn btn-excel">
+          <i class="fas fa-save"></i> Save Config
+        </button>
+        
+        <div class="excel-input-group">
+          <select id="schedulerLogicType" title="Scheduler Logic Profile">
+            <option value="standard">Standard Sequential Logic</option>
+            <option value="capacity">Capacity Optimization Engine</option>
+          </select>
+          <button type="button" id="runSchedulerBtn" class="btn btn-excel" onclick="startAutoscheduler()">
+            <i class="fas fa-play-circle"></i> Run Autoscheduler
+          </button>
+        </div>
+        
+        <button type="button" class="btn btn-excel-ghost" onclick="loadTimetableData()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
+      </div>
+    </form>
+
+    <div class="meta-status-strip">
+      <span><strong>System Constraints Settings:</strong></span>
+      <div class="meta-divider"></div>
+      <span>Evening Classes Allocations: <strong>Active Allowed</strong></span>
+      <div class="meta-divider"></div>
+      <span>Weekend Classes Scheduling: <strong>Suspended</strong></span>
+      <div class="meta-divider"></div>
+      <span id="configMessage" style="display:none; color:var(--excel-green); font-weight:700;"></span>
+    </div>
+
+    <nav class="actions-bar">
+      <a href="{% url 'timetable_dashboard' %}" class="btn btn-excel-ghost">
+        <i class="fas fa-arrow-left"></i> Dashboard
+      </a>
+      
+      <div class="actions-bar-right">
+        {% for label, url_name in navbar_links.items %}
+          <button class="btn btn-excel" onclick="showPublish('{{ label }}', '{% url url_name %}', getCSRF())">
+            <i class="fas fa-upload"></i> {{ label }}
+          </button>
+        {% endfor %}
+      </div>
+    </nav>
+
+    <div class="tab-nav">
+      <button class="tab-btn active" data-tab="all"><i class="fas fa-table"></i> All Exams Grid</button>
+      <button class="tab-btn" data-tab="temp"><i class="fas fa-list-alt"></i> Temp Data Sheet</button>
+      <button class="tab-btn" data-tab="merged"><i class="fas fa-object-group"></i> Merged Groups</button>
+      <button class="tab-btn" data-tab="shared"><i class="fas fa-door-open"></i> Shared Venues</button>
+    </div>
+
+    <div class="loading-indicator" id="loadingIndicator" style="display:none;">
+      <i class="fas fa-spinner fa-spin"></i> Reading spreadsheet matrix arrays…
+    </div>
+
+    <div id="all-tab" class="tab-content active">
+      <div id="allExamsContainer"></div>
+    </div>
+
+    <div id="temp-tab" class="tab-content">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>ID</th><th>Date</th><th>Start Time</th><th>Venue</th><th>Course Code</th><th>Students</th><th>Lecturer</th></tr>
+          </thead>
+          <tbody id="tempTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="merged-tab" class="tab-content">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>#</th><th>Base Course</th><th>Merged Courses</th><th>Date</th><th>Time</th><th>Venue</th></tr>
+          </thead>
+          <tbody id="mergedTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="shared-tab" class="tab-content">
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Venue</th><th>Date</th><th>Start Time</th><th>Course Allocations</th></tr>
+          </thead>
+          <tbody id="sharedTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="excel-modal-overlay" id="excludedDaysModal">
+  <div class="excel-modal" style="width: 500px;">
+    <div class="excel-modal-head">
+      <span>Select Days to Exclude</span>
+      <span style="cursor:pointer;" id="closeExcludedX">&times;</span>
+    </div>
+    <div class="excel-modal-body">
+      <div class="day-grid">
+        {% for date, day in date_range %}
+          <label class="day-label">
+            <input type="checkbox" name="excluded_days[]" value="{{ date }}"
+                   {% if date in excluded_list %}checked{% endif %}>
+            {{ date }} ({{ day }})
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="excel-modal-foot">
+      <button type="button" class="btn btn-excel-ghost" id="closeExcludedBtn">Cancel</button>
+      <button type="button" class="btn btn-excel" id="saveExcludedDays">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="excel-modal-overlay" id="constraintConfirmModal">
+  <div class="excel-modal">
+    <div class="excel-modal-head">
+      <span><i class="fas fa-shield-alt"></i> Confirm Constraints Before Running</span>
+    </div>
+    <div class="excel-modal-body">
+      <p style="font-size:0.88rem;color:#555;margin-bottom:14px;">
+        These constraint categories will be applied to this exam scheduling run. Untick anything you want to
+        <strong>ignore for this run only</strong> — persisted settings won't change.
+      </p>
+      <div id="examConstraintList" style="max-height:340px;overflow-y:auto;">
+        <div style="text-align:center;padding:20px;color:#999;">
+          <i class="fas fa-spinner fa-spin"></i> Loading constraints…
+        </div>
+      </div>
+    </div>
+    <div class="excel-modal-foot" style="display:flex;justify-content:space-between;align-items:center;">
+      <a href="{% url 'venues_panel' %}#tab-constraint_toggles" target="_blank" style="font-size:0.82rem;color:#004d26;font-weight:600;text-decoration:none;">
+        <i class="fas fa-sliders-h"></i> Manage / add / remove constraint rules →
+      </a>
+      <div>
+      <button type="button" class="btn btn-excel-ghost" onclick="document.getElementById('constraintConfirmModal').classList.remove('show')">
+        Cancel
+      </button>
+      <button type="button" class="btn btn-excel" onclick="confirmAndStartAutoscheduler()">
+        <i class="fas fa-play"></i> Yes, Run Scheduler
+      </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="excel-modal-overlay" id="schedulerProgressModal">
+  <div class="excel-modal">
+    <div class="excel-modal-head">
+      <span>Exam Scheduling Processing Engine</span>
+    </div>
+    <div class="excel-modal-body">
+      
+      <div style="display:flex; justify-content:space-between; font-weight:700; color:#000;">
+        <span id="batchInfo">Phase 1: Analyzing rules & resolving venue spaces...</span>
+        <span id="progressPercentage">0%</span>
+      </div>
+      
+      <div class="prog-wrap">
+        <div class="prog-fill stage-yellow" id="progressBar">0%</div>
+      </div>
+
+      <div class="modal-stats">
+        <div class="ms-card">
+          <div class="ms-val" id="scheduledCount">0</div>
+          <div class="ms-lbl">Cells Scheduled</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="remainingCount">0</div>
+          <div class="ms-lbl">Remaining Allocations</div>
+        </div>
+        <div class="ms-card">
+          <div class="ms-val" id="currentBatch">0/0</div>
+          <div class="ms-lbl">Current Batch Row</div>
+        </div>
+      </div>
+
+      <div class="action-strip" id="currentAction">
+        Initializing workspace engine metrics...
+      </div>
+
+      <div style="font-weight:700; color:#000; margin-bottom:4px;"><i class="fas fa-terminal"></i> Terminal Process Engine Log:</div>
+      <div class="console-wrap" id="consoleOutput">
+        <div>[SYSTEM INITIALIZATION] Running verification rules sequence...</div>
+      </div>
+    </div>
+    <div class="excel-modal-foot">
+      <button type="button" class="btn btn-excel-ghost" style="color:#d32f2f; border-color:#d32f2f; font-weight:600;" onclick="cancelScheduling()">
+        Break Process Execution
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="excel-modal-overlay" id="pubOverlay">
+  <div class="excel-modal" style="width:400px; text-align:center;">
+    <div class="excel-modal-head"><span>Publish Workbook Execution</span></div>
+    <div class="excel-modal-body" style="padding: 30px 20px; background:#fff;">
+      <i class="fas fa-spinner fa-spin" id="pubSpinner" style="font-size: 2rem; color: var(--excel-green);"></i>
+      <i class="fas fa-check" id="pubCheck" style="display:none; font-size: 2rem; color: #198754;"></i>
+      <div id="pubTitle" style="font-weight:700; margin-top:10px; color:#000;">Committing Timetable Structures</div>
+      <div id="pubMsg" style="color:#555; font-size:0.78rem;">Writing changes into backend schema registers...</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+  let timetableData = {
+    venues: [],
+    tempData: [],
+    mergedGroups: [],
+    sharedGroups: [],
+    slots: {{ tableslots|safe }},
+    daysWithNames: {{ days_with_names|safe }}
+  };
+
+  let progressInterval, isScheduling = false;
+
+  const API_URLS = {
+    venues:       "{% url 'api_exam_venues' %}",
+    tempData:     "{% url 'api_exam_temp_data' %}",
+    mergedGroups: "{% url 'api_exam_merged_groups' %}",
+    sharedGroups: "{% url 'api_exam_shared_venues' %}",
+    updateConfig: "{% url 'update_exam_config' %}"
+  };
+
+  function initTabs() {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
+      });
+    });
+  }
+
+  function getCSRF() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+  }
+
+  function showPublish(label, url, csrf) {
+    const overlay  = document.getElementById('pubOverlay');
+    const spinner  = document.getElementById('pubSpinner');
+    const check    = document.getElementById('pubCheck');
+    const title    = document.getElementById('pubTitle');
+    const msg      = document.getElementById('pubMsg');
+
+    spinner.style.display = '';
+    check.style.display   = 'none';
+    title.textContent     = `Publishing ${label}…`;
+    msg.textContent       = 'Please wait…';
+    overlay.classList.add('show');
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrf);
+
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: fd })
+    .then(r => {
+      const ct = r.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        if (r.ok || r.status === 302 || r.redirected) {
+          spinner.style.display = 'none';
+          check.style.display   = '';
+          title.textContent     = 'Published Successfully!';
+          setTimeout(() => { window.location.href = '/exam/timetable/'; }, 1200);
+        } else {
+          throw new Error(`Server returned execution status ${r.status}`);
+        }
+        return null;
+      }
+      return r.json();
+    })
+    .then(data => {
+      if (data === null) return;
+      if (data.status === 'success') {
+        spinner.style.display = 'none';
+        check.style.display   = '';
+        title.textContent     = 'Published!';
+        setTimeout(() => { window.location.href = '/exam/timetable/'; }, 1200);
+      } else {
+        throw new Error(data.message || 'Error occurred.');
+      }
+    })
+    .catch(err => {
+      spinner.style.display = 'none';
+      title.textContent     = 'Publish Phase Error';
+      msg.textContent       = err.message;
+      setTimeout(() => { overlay.classList.remove('show'); }, 3500);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTabs();
+    initExcludedModal();
+    loadTimetableData();
+
+    document.getElementById('examConfigForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      showMsg('Writing config parameters…', 'info');
+      fetch(API_URLS.updateConfig, { method: 'POST', headers: { 'X-CSRFToken': getCSRF() }, body: data })
+      .then(r => r.json())
+      .then(d => { 
+          showMsg(d.message || 'Config Committed', 'success');
+          setTimeout(() => { window.location.reload(); }, 600);
+      })
+      .catch(e => { showMsg('Error: ' + e.message, 'error'); });
+    });
+  });
+
+  function initExcludedModal() {
+    const modal = document.getElementById('excludedDaysModal');
+    const open  = document.getElementById('toggleExcluded');
+    const closeX = document.getElementById('closeExcludedX');
+    const closeBtn = document.getElementById('closeExcludedBtn');
+    const saveBtn  = document.getElementById('saveExcludedDays');
+
+    open.addEventListener('click', () => modal.classList.add('show'));
+    function closeModal() { modal.classList.remove('show'); }
+    closeX.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+
+    saveBtn.addEventListener('click', async function() {
+      const selected = [...document.querySelectorAll('#excludedDaysModal input[type="checkbox"]:checked')].map(c => c.value);
+      try {
+        const fd = new FormData();
+        fd.append('excluded_days[]', selected.join(','));
+        const res = await fetch(API_URLS.updateConfig, { method:'POST', headers:{'X-CSRFToken': getCSRF()}, body: fd });
+        const d = await res.json();
+        if (d.status === 'success') { 
+            closeModal(); 
+            showMsg('Excluded elements adjusted', 'success'); 
+            setTimeout(() => { window.location.reload(); }, 600);
+        }
+        else throw new Error(d.message);
+      } catch(e) { alert(e.message); }
+    });
+  }
+
+  function showMsg(text, type) {
+    const el = document.getElementById('configMessage');
+    el.textContent = `[${type.toUpperCase()}] ${text}`;
+    el.style.display = 'inline-block';
+    setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+
+  async function loadTimetableData() {
+    document.getElementById('loadingIndicator').style.display = 'block';
+    try {
+      const [vR, tR, mR, sR] = await Promise.all([
+        fetch(API_URLS.venues), fetch(API_URLS.tempData),
+        fetch(API_URLS.mergedGroups), fetch(API_URLS.sharedGroups)
+      ]);
+      const [vD, tD, mD, sD] = await Promise.all([vR.json(), tR.json(), mR.json(), sR.json()]);
+      timetableData.venues       = vD.venues || vD || [];
+      timetableData.tempData     = tD.temp_data || tD || [];
+      timetableData.mergedGroups = mD.merged_groups || mD || [];
+      timetableData.sharedGroups = sD.shared_groups || sD || [];
+      renderAllExams();
+      renderTempData();
+      renderMergedGroups();
+      renderSharedVenues();
+    } catch(e) {
+      console.error(e);
+    } finally {
+      document.getElementById('loadingIndicator').style.display = 'none';
+    }
+  }
+
+  function renderAllExams() {
+    const container = document.getElementById('allExamsContainer');
+    const railContainer = document.getElementById('leftRailAnchors');
+    
+    railContainer.innerHTML = '<div class="rail-label">Sheets</div><button class="rail-anchor" onclick="window.scrollTo({top:0, behavior:\'smooth\'})">Top</button><div style="width:90%; height:1px; background:var(--excel-grid); margin:4px 0;"></div>';
+
+    if (!timetableData.tempData.length) {
+      container.innerHTML = '<div style="padding:15px; border:1px solid var(--excel-grid);">No workbook records available. Click "Run Autoscheduler" to populate.</div>';
+      return;
+    }
+
+    const slotLabelMap = {};
+    if (Array.isArray(timetableData.slots)) {
+      timetableData.slots.forEach(s => {
+        if (Array.isArray(s) && s.length >= 2) {
+          const start = String(s[0]).substring(0, 5);
+          slotLabelMap[start] = `${start} – ${String(s[1]).substring(0,5)}`;
+        }
+      });
+    }
+
+    const dayNameMap = {};
+    if (Array.isArray(timetableData.daysWithNames)) {
+      timetableData.daysWithNames.forEach(([d, n]) => { 
+        dayNameMap[d] = n; 
+      });
+    }
+
+    const byDate = {}, dateSlots = {}, dateVenues = {};
+    timetableData.tempData.forEach(e => {
+      const date  = e.date || 'Unknown';
+      const slot  = (e.start_time || '').substring(0, 5) || 'N/A';
+      const venue = e.venue__code || e.venue || 'N/A';
+      if (!byDate[date]) { byDate[date] = {}; dateSlots[date] = new Set(); dateVenues[date] = new Set(); }
+      dateSlots[date].add(slot); dateVenues[date].add(venue);
+      if (!byDate[date][slot]) byDate[date][slot] = {};
+      if (!byDate[date][slot][venue]) byDate[date][slot][venue] = [];
+      byDate[date][slot][venue].push(e);
+    });
+
+    container.innerHTML = '';
+    let dayIndex = 1;
+    
+    Object.keys(byDate).sort().forEach((date) => {
+      const slots  = [...dateSlots[date]].filter(Boolean).sort();
+      const venues = [...dateVenues[date]].filter(Boolean).sort();
+      
+      const dayName = dayNameMap[date] || 'Exam Day';
+      const elementId = `day-block-${date}`;
+
+      const railBtn = document.createElement('button');
+      railBtn.className = 'rail-anchor';
+      railBtn.title = `${date} (${dayName})`;
+      railBtn.innerText = `D${dayIndex}`;
+      railBtn.onclick = function() {
+        document.getElementById(elementId).scrollIntoView({ behavior: 'smooth' });
+      };
+      railContainer.appendChild(railBtn);
+
+      const block = document.createElement('div');
+      block.className = 'day-block';
+      block.id = elementId;
+      block.innerHTML = `
+        <div class="day-header">
+          <span>Sheet Workspace: ${dayName}, ${date}</span>
+          <span class="day-stats">${venues.length} Rows · ${slots.length} Columns</span>
+        </div>`;
+
+      const wrap  = document.createElement('div');
+      wrap.className = 'data-table-wrap';
+      const table = document.createElement('table');
+      table.className = 'tt-grid';
+
+      const thead = document.createElement('thead');
+      const hrow  = document.createElement('tr');
+      const corner = document.createElement('th');
+      corner.className = 'venue-th';
+      corner.innerText = 'Venue Space';
+      hrow.appendChild(corner);
+      
+      slots.forEach(s => {
+        const th = document.createElement('th');
+        th.innerText = slotLabelMap[s] || s;
+        hrow.appendChild(th);
+      });
+      thead.appendChild(hrow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      venues.forEach(venue => {
+        const row = document.createElement('tr');
+        const vc  = document.createElement('td');
+        vc.className = 'venue-col';
+        vc.innerText = venue;
+        row.appendChild(vc);
+        
+        slots.forEach(s => {
+          const td = document.createElement('td');
+          const items = (byDate[date][s] && byDate[date][s][venue]) || [];
+          if (!items.length) { 
+            td.innerHTML = '<span class="cell-empty">—</span>'; 
+          } else {
+            items.forEach(e => {
+              const code     = e.course_allocation__course_code || e.course_code || 'N/A';
+              const students = e.course_allocation__number_of_students || e.students || 0;
+              const chip = document.createElement('div');
+              chip.className = 'course-chip';
+              chip.innerHTML = `<span class="cc-code">${code}</span><span class="cc-meta">[${students}]</span>`;
+              td.appendChild(chip);
+            });
+          }
+          row.appendChild(td);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      block.appendChild(wrap);
+      container.appendChild(block);
+      
+      dayIndex++;
+    });
+  }
+
+  function renderTempData() {
+    const body = document.getElementById('tempTableBody');
+    body.innerHTML = '';
+    if (!timetableData.tempData.length) return;
+    [...timetableData.tempData].sort((a,b) => a.date.localeCompare(b.date)).forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${e.id||'—'}</td><td>${e.date||'—'}</td><td>${(e.start_time||'').substring(0,5)||'—'}</td>
+        <td>${e.venue__code||e.venue||'—'}</td><td><strong>${e.course_allocation__course_code||e.course_code||'—'}</strong></td>
+        <td>${e.course_allocation__number_of_students||e.students||0}</td><td>${e.course_allocation__lecturer||e.lecturer||'—'}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  function renderMergedGroups() {
+    const body = document.getElementById('mergedTableBody');
+    body.innerHTML = '';
+    if (!timetableData.mergedGroups.length) return;
+    timetableData.mergedGroups.forEach((g, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td>${g.base_code||g.base_course||'—'}</td><td>${(g.merged_courses||g.merged||[]).join(', ')}</td>
+        <td>${g.date||'—'}</td><td>${g.start_time||g.time||'—'}</td><td>${g.venue||'—'}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  function renderSharedVenues() {
+    const body = document.getElementById('sharedTableBody');
+    body.innerHTML = '';
+    if (!timetableData.sharedGroups.length) return;
+    timetableData.sharedGroups.forEach(g => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${g.venue||g.venue_id||'—'}</td><td>${g.date||'—'}</td><td>${g.start_time||'—'}</td>
+        <td>${Array.isArray(g.course_allocations)?g.course_allocations.join(', '):g.course_allocations}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  /* ── SCHEDULER ENGINE MULTI-STAGE SEQUENCER ── */
+  function startAutoscheduler() {
+    const listEl = document.getElementById('examConstraintList');
+    listEl.innerHTML = '<div style="text-align:center;padding:20px;color:#999;"><i class="fas fa-spinner fa-spin"></i> Loading constraints…</div>';
+    document.getElementById('constraintConfirmModal').classList.add('show');
+
+    fetch('{% url "scheduler_constraint_summary" %}?scheduler_type=exam')
+      .then(r => r.json())
+      .then(d => {
+        if (d.status !== 'success' || !d.constraints.length) {
+          listEl.innerHTML = '<p style="color:#666;font-size:0.85rem;">No constraint rules are configured yet — the scheduler will run with defaults only.</p>';
+          return;
+        }
+        listEl.innerHTML = d.constraints.map(c => `
+          <label style="display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid #eee;cursor:pointer;">
+            <input type="checkbox" class="exam-constraint-toggle" data-key="${c.key}" ${c.is_enabled ? 'checked' : ''} style="margin-top:3px;">
+            <span>
+              <div style="font-weight:600;font-size:0.88rem;color:#333;">
+                ${c.label}
+                <span style="font-weight:400;color:#888;font-size:0.78rem;">(${c.rule_count} active rule${c.rule_count === 1 ? '' : 's'})</span>
+              </div>
+              <div style="font-size:0.8rem;color:#666;margin-top:2px;">${c.description}</div>
+            </span>
+          </label>
+        `).join('');
+      })
+      .catch(() => {
+        listEl.innerHTML = '<p style="color:#cc0000;font-size:0.85rem;">Could not load constraints — the scheduler will still run using its saved defaults.</p>';
+      });
+  }
+
+  function confirmAndStartAutoscheduler() {
+    const disabled = Array.from(document.querySelectorAll('.exam-constraint-toggle'))
+      .filter(cb => !cb.checked)
+      .map(cb => cb.dataset.key);
+
+    document.getElementById('constraintConfirmModal').classList.remove('show');
+
+    isScheduling = true;
+
+    const bar = document.getElementById('progressBar');
+    bar.style.width = '0%';
+    bar.textContent = '0%';
+    bar.className = "prog-fill stage-yellow"; /* Pure Initial State */
+
+    document.getElementById('schedulerProgressModal').classList.add('show');
+
+    clearInterval(progressInterval);
+    progressInterval = setInterval(updateProgress, 1000);
+
+    fetch('{% url "run_exam_autoscheduler" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRF(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disabled_constraints: disabled })
+    })
+    .then(r => r.json())
+    .then(d => { if (d.status !== 'started') completeScheduling(d); })
+    .catch(e => completeScheduling({ status: 'error', message: e.message }));
+  }
+
+  function updateProgress() {
+    if (!isScheduling) return;
+    fetch('{% url "scheduler_progress_exam" %}')
+      .then(r => r.json())
+      .then(d => {
+        const pct = typeof d.progress === 'number' ? d.progress : 0;
+        const status = d.status || '';
+
+        if (['completed', 'partial', 'error', 'cancelled'].includes(status) || pct >= 100) {
+          completeScheduling(d);
+          return;
+        }
+
+        const bar = document.getElementById('progressBar');
+        bar.style.width = pct + '%';
+        bar.textContent = pct + '%';
+        document.getElementById('progressPercentage').textContent = pct + '%';
+        
+        // FORCED PROGRESSIVE STAGE CONTROLLER (0-35-85-100) WITHOUT DELAY ARTIFACTS:
+        if (pct < 35) {
+          bar.className = "prog-fill stage-yellow";
+          document.getElementById('batchInfo').textContent = "Phase 1: Analyzing rules & resolving venue spaces...";
+        } else if (pct >= 35 && pct <= 85) {
+          bar.className = "prog-fill stage-blue";
+          document.getElementById('batchInfo').textContent = "Phase 2: Executing bulk allocation & processing course matrices...";
+        } else {
+          bar.className = "prog-fill stage-green";
+          document.getElementById('batchInfo').textContent = "Phase 3: Final optimization routines & conflict check passes pass...";
+        }
+
+        document.getElementById('scheduledCount').textContent = d.scheduled_count || 0;
+        document.getElementById('remainingCount').textContent = d.remaining_count || 0;
+        document.getElementById('currentBatch').textContent = `${d.current_batch || 0}/${d.total_batches || 0}`;
+        document.getElementById('currentAction').textContent = d.current_action || 'Processing rows...';
+        
+        if (d.log_entries) {
+          const consoleBox = document.getElementById('consoleOutput');
+          consoleBox.innerHTML = d.log_entries.slice(-10).map(l => {
+            let lineText = "";
+            if (l && typeof l === 'object') {
+              lineText = l.message || JSON.stringify(l);
+            } else {
+              lineText = String(l);
+            }
+            return `<div>${lineText}</div>`;
+          }).join('');
+          consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+      })
+      .catch(() => {});
+  }
+
+  function completeScheduling(data) {
+    clearInterval(progressInterval);
+    isScheduling = false;
+    
+    const bar = document.getElementById('progressBar');
+    bar.style.width = '100%';
+    bar.textContent = '100%';
+    bar.className = "prog-fill stage-green";
+    
+    document.getElementById('progressPercentage').textContent = '100%';
+    document.getElementById('batchInfo').textContent = "Execution Sequence Terminated.";
+    document.getElementById('currentAction').textContent = data.message || 'Done';
+    
+    setTimeout(() => {
+      document.getElementById('schedulerProgressModal').classList.remove('show');
+      loadTimetableData();
+    }, 2000);
+  }
+
+  function cancelScheduling() {
+    if (!confirm('Break processing workflow execution?')) return;
+    fetch('{% url "cancel_scheduling_exam" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCSRF(), 'Content-Type': 'application/json' }
+    })
+    .then(() => completeScheduling({ status: 'cancelled', message: 'Engine halted by operator.' }));
+  }
+</script>
+{% endblock %}

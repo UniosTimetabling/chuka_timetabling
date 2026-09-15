@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<title>System Update — Chuka University Timetabling System</title>
+<style>
+  :root{
+    --navy:#16305c;
+    --blue-mid:#2f7fd9;
+    --blue-bright:#3d8ef2;
+    --blue-pale:#eaf2fb;
+    --blue-outer:#a9d2f0;
+    --blob-1:#bcdcf4;
+    --blob-2:#d7ebfa;
+    --grey-text:#5c6b7c;
+    --white:#ffffff;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%; margin:0;
+    font-family:'Segoe UI', Inter, Roboto, Arial, sans-serif;
+    background:var(--blue-outer);
+    color:var(--navy);
+  }
+  body{
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:32px;
+  }
+  .card{
+    width:100%; max-width:1040px;
+    background:var(--white);
+    border-radius:6px;
+    box-shadow:0 30px 60px rgba(15,40,80,0.25);
+    display:flex;
+    overflow:hidden;
+    min-height:560px;
+  }
+
+  /* ---------- LEFT PANEL ---------- */
+  .left{
+    flex:0 0 40%;
+    padding:64px 48px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .eyebrow-icon{
+    display:flex; align-items:center; gap:10px; margin-bottom:22px;
+  }
+  h1{
+    font-size:2.3rem;
+    line-height:1.15;
+    margin:0 0 20px;
+    font-weight:800;
+    letter-spacing:.2px;
+  }
+  h1 span{ display:block; }
+  h1 .l1{ color:var(--navy); }
+  h1 .l2{ color:var(--blue-bright); }
+  p.sub{
+    color:var(--grey-text);
+    font-size:1rem;
+    line-height:1.7;
+    margin:0 0 30px;
+    max-width:34ch;
+  }
+  footer.site{
+    margin-top:34px;
+    font-size:.8rem;
+    color:#9aa7b5;
+  }
+
+  /* ---------- RIGHT PANEL ---------- */
+  .right{
+    flex:1;
+    position:relative;
+    background:var(--blue-pale);
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .right svg{ width:100%; height:100%; max-width:640px; }
+
+  /* progress bar fill animation */
+  #progress-fill{
+    animation:fillbar 6s ease-in-out infinite;
+    transform-origin:left center;
+  }
+  @keyframes fillbar{
+    0%{ transform:scaleX(.35); }
+    50%{ transform:scaleX(.92); }
+    100%{ transform:scaleX(.35); }
+  }
+  #pct-text{ animation:fadenum 6s ease-in-out infinite; }
+  @keyframes fadenum{ 0%,100%{opacity:.85;} 50%{opacity:1;} }
+
+  #clock-hand-min{
+    transform-origin:487px 245px;
+    animation:tickmin 6s linear infinite;
+  }
+  #clock-hand-hr{
+    transform-origin:487px 245px;
+    animation:tickhr 24s linear infinite;
+  }
+  @keyframes tickmin{ to{ transform:rotate(360deg); } }
+  @keyframes tickhr{ to{ transform:rotate(360deg); } }
+
+  #gear-a{ transform-origin:452px 320px; animation:spinA 5s linear infinite; }
+  #gear-b{ transform-origin:494px 300px; animation:spinB 3.5s linear infinite reverse; }
+  @keyframes spinA{ to{ transform:rotate(360deg); } }
+  @keyframes spinB{ to{ transform:rotate(360deg); } }
+
+  #arrow-up{ animation:floatUp 2.4s ease-in-out infinite; }
+  #arrow-down{ animation:floatDown 2.4s ease-in-out infinite; }
+  @keyframes floatUp{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-6px);} }
+  @keyframes floatDown{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(6px);} }
+
+
+
+  @media (max-width: 860px){
+    .card{ flex-direction:column; min-height:0; }
+    .left{ flex:none; padding:44px 32px 28px; text-align:center; align-items:center; }
+    .left p.sub{ max-width:none; }
+    .right{ padding:24px; }
+    .right svg{ max-width:460px; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="left">
+      <h1><span class="l1">SYSTEM</span><span class="l2">UPDATE</span></h1>
+      <p class="sub">We're updating the Chuka University Timetabling System.<br>Check back in a few minutes.</p>
+      <footer class="site">Chuka University Timetabling System</footer>
+    </div>
+
+    <div class="right">
+      <svg viewBox="0 0 640 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Illustration of a system update in progress">
+        <!-- soft blob background shapes -->
+        <path d="M60 40 C220 -20 420 10 560 90 C620 170 560 260 600 340 C640 420 520 470 400 460 C260 450 180 480 100 430 C10 370 40 260 20 180 C0 110 -20 80 60 40 Z" fill="var(--blob-1)" opacity="0.55"/>
+        <path d="M120 70 C260 20 430 50 520 130 C580 200 540 300 560 380 C420 430 300 400 200 420 C110 438 60 380 50 300 C40 220 20 130 120 70 Z" fill="var(--blob-2)" opacity="0.6"/>
+
+        <!-- clock -->
+        <g>
+          <circle cx="487" cy="245" r="52" fill="var(--white)" stroke="var(--navy)" stroke-width="6"/>
+          <circle cx="487" cy="245" r="6" fill="var(--navy)"/>
+          <line id="clock-hand-hr" x1="487" y1="245" x2="487" y2="215" stroke="var(--navy)" stroke-width="6" stroke-linecap="round"/>
+          <line id="clock-hand-min" x1="487" y1="245" x2="512" y2="245" stroke="var(--navy)" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="487" cy="193" r="9" fill="var(--blue-bright)"/>
+        </g>
+
+        <!-- cloud with up/down arrows -->
+        <g transform="translate(500,60)">
+          <path d="M0 30 a20 20 0 0 1 6-39 a26 26 0 0 1 49-8 a22 22 0 0 1 25 34 a18 18 0 0 1-6 33 Z" fill="var(--white)" stroke="#dfeaf6" stroke-width="2"/>
+          <g id="arrow-down" transform="translate(18,10)">
+            <line x1="0" y1="0" x2="0" y2="20" stroke="var(--navy)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M-7 13 L0 22 L7 13" fill="none" stroke="var(--navy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <g id="arrow-up" transform="translate(42,10)">
+            <line x1="0" y1="4" x2="0" y2="24" stroke="var(--navy)" stroke-width="5" stroke-linecap="round"/>
+            <path d="M-7 11 L0 2 L7 11" fill="none" stroke="var(--navy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+
+        <!-- side up arrows -->
+        <g id="arrow-up" opacity="0.7">
+          <line x1="600" y1="330" x2="600" y2="290" stroke="var(--navy)" stroke-width="5" stroke-linecap="round"/>
+          <path d="M588 302 L600 288 L612 302" fill="none" stroke="var(--navy)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <!-- browser window -->
+        <g transform="translate(300,190)">
+          <rect x="0" y="0" width="270" height="185" rx="6" fill="var(--white)" stroke="#dfeaf6" stroke-width="2"/>
+          <rect x="0" y="0" width="270" height="28" rx="6" fill="#eef4fb"/>
+          <circle cx="16" cy="14" r="3.4" fill="#c7d5e4"/>
+          <circle cx="28" cy="14" r="3.4" fill="#c7d5e4"/>
+          <circle cx="40" cy="14" r="3.4" fill="#c7d5e4"/>
+          <rect x="70" y="9" width="160" height="10" rx="5" fill="#dbe6f2"/>
+          <circle cx="250" cy="14" r="4" fill="#c7d5e4"/>
+
+          <rect x="0" y="28" width="270" height="157" fill="var(--blue-bright)"/>
+
+          <!-- gears -->
+          <g fill="none" stroke="var(--white)" stroke-width="5">
+            <g id="gear-a">
+              <circle cx="0" cy="0" r="18" transform="translate(122,90)"/>
+              <g stroke-width="5">
+                <line x1="122" y1="66" x2="122" y2="58"/>
+                <line x1="122" y1="114" x2="122" y2="122"/>
+                <line x1="98" y1="90" x2="90" y2="90"/>
+                <line x1="146" y1="90" x2="154" y2="90"/>
+                <line x1="105" y1="73" x2="99" y2="67"/>
+                <line x1="139" y1="107" x2="145" y2="113"/>
+                <line x1="139" y1="73" x2="145" y2="67"/>
+                <line x1="105" y1="107" x2="99" y2="113"/>
+              </g>
+            </g>
+            <g id="gear-b">
+              <circle cx="0" cy="0" r="13" transform="translate(158,72)"/>
+              <g stroke-width="4">
+                <line x1="158" y1="55" x2="158" y2="49"/>
+                <line x1="158" y1="89" x2="158" y2="95"/>
+                <line x1="141" y1="72" x2="135" y2="72"/>
+                <line x1="175" y1="72" x2="181" y2="72"/>
+              </g>
+            </g>
+          </g>
+
+          <text x="135" y="128" text-anchor="middle" fill="var(--white)" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="1">UPDATING&#8230;</text>
+
+          <rect x="35" y="140" width="200" height="8" rx="4" fill="rgba(255,255,255,0.35)"/>
+          <rect id="progress-fill" x="35" y="140" width="200" height="8" rx="4" fill="var(--navy)"/>
+
+          <text id="pct-text" x="135" y="168" text-anchor="middle" fill="var(--white)" font-family="Segoe UI, Arial, sans-serif" font-size="12" opacity="0.9">Please wait&#8230;</text>
+        </g>
+
+        <!-- plant pots -->
+        <g transform="translate(255,398)">
+          <rect x="-16" y="12" width="32" height="26" rx="3" fill="var(--navy)"/>
+          <path d="M0 12 C-14 0 -18 -22 -8 -30 C-2 -18 -2 -4 0 12 Z" fill="var(--blue-mid)"/>
+          <path d="M0 12 C14 -2 20 -26 10 -34 C2 -20 0 -4 0 12 Z" fill="var(--blue-bright)"/>
+        </g>
+        <g transform="translate(560,398)">
+          <rect x="-16" y="12" width="32" height="26" rx="3" fill="var(--navy)"/>
+          <path d="M0 12 C-14 -4 -12 -28 -2 -34 C2 -20 2 -4 0 12 Z" fill="var(--blue-mid)"/>
+          <path d="M0 12 C12 -6 16 -24 8 -32 C0 -18 -1 -2 0 12 Z" fill="var(--blue-bright)"/>
+        </g>
+
+        <!-- mechanic figure (static pose, two-handed grip on the wrench) -->
+        <g transform="translate(196,266)">
+          <!-- legs -->
+          <rect x="14" y="96" width="15" height="42" rx="6" fill="var(--blue-mid)"/>
+          <rect x="40" y="96" width="15" height="42" rx="6" fill="var(--blue-mid)"/>
+          <!-- torso -->
+          <rect x="6" y="46" width="62" height="56" rx="12" fill="var(--navy)"/>
+          <!-- head -->
+          <circle cx="37" cy="26" r="18" fill="#e3ad81"/>
+          <path d="M18 24 a19 19 0 0 1 38 0 Z" fill="var(--navy)"/>
+
+          <!-- back arm: relaxed, resting at the side -->
+          <path d="M62 54 C70 66 70 78 64 88" fill="none" stroke="var(--navy)" stroke-width="13" stroke-linecap="round"/>
+          <circle cx="63" cy="90" r="8" fill="#e3ad81"/>
+
+          <!-- front arm: bent, hand closes around the wrench shaft -->
+          <path d="M8 54 C-2 62 -2 72 8 78" fill="none" stroke="var(--navy)" stroke-width="13" stroke-linecap="round"/>
+          <circle cx="10" cy="79" r="9" fill="#e3ad81"/>
+
+          <!-- wrench: handle passes straight through the closed fist, head pointing down-right -->
+          <g transform="translate(10,79) rotate(52)">
+            <rect x="-30" y="-5" width="76" height="10" rx="5" fill="var(--white)" stroke="#c9d6e3" stroke-width="1.5"/>
+            <circle cx="46" cy="0" r="12" fill="none" stroke="var(--white)" stroke-width="7"/>
+            <circle cx="46" cy="0" r="12" fill="none" stroke="#c9d6e3" stroke-width="1.5"/>
+          </g>
+          <!-- fingers wrapped over the handle, drawn after the wrench so they sit on top -->
+          <path d="M2 71 q8 -10 18 -2 q3 8 -3 14 q-11 3 -15 -12 Z" fill="#e3ad81"/>
+        </g>
+      </svg>
+    </div>
+
+  </div>
+
+<script>
+  // Poll the real site quietly in the background; the moment it responds
+  // with something other than our own maintenance 503, reload for real.
+  const CHECK_EVERY_MS = 8000;
+
+  async function checkIfBack() {
+    try {
+      const res = await fetch('/', { method: 'HEAD', cache: 'no-store' });
+      if (res.status !== 503) {
+        window.location.reload();
+      }
+    } catch (e) {
+      // network hiccup mid-deploy — just try again on the next tick
+    }
+  }
+
+  setInterval(checkIfBack, CHECK_EVERY_MS);
+</script>
+</body>
+</html>

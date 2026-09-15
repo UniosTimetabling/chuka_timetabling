@@ -1,0 +1,183 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_export_smart_import_export_page.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_smart.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_smart_import_export_page.css' %}">
+{% endblock page_css %}
+
+{% block title %}Smart Import / Export{% endblock %}
+{% block nav_import %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+ <h1>Smart Data Import / Export</h1>
+ <p>Upload course master data, templates, and manage imports/exports</p>
+ <div class="header-bar"></div>
+</div>
+
+{% if messages %}
+ {% for message in messages %}
+ <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+ {% endfor %}
+{% endif %}
+
+{% if import_errors %}
+ <div class="alert alert-danger">
+ <strong>Import Errors</strong>
+ <div class="error-list">
+ {% for error in import_errors %}
+ <div>{{ error }}</div>
+ {% endfor %}
+ </div>
+ </div>
+{% endif %}
+
+<div class="import-grid">
+ <!-- MAIN COLUMN -->
+ <div>
+ <!-- IMPORT -->
+ <div class="card">
+ <h2> Import Data</h2>
+
+ <form method="post" enctype="multipart/form-data">
+ {% csrf_token %}
+
+ <div class="form-group">
+ <label>Select Model *</label>
+ <select name="model_name" class="form-control" required>
+ <option value="">-- Select Model --</option>
+ {% for model in models %}
+ <option value="{{ model }}" {% if model_name == model %}selected{% endif %}>
+ {{ model }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label>Upload File *</label>
+ <input type="file" name="file" class="form-control" accept=".csv,.xlsx,.xls,.json" required>
+ <div class="help-text">Supported formats: CSV, Excel (.xlsx, .xls), JSON</div>
+ </div>
+
+ <div>
+ <button class="btn btn-primary">Upload & Preview</button>
+ <button type="reset" class="btn btn-warning">Clear</button>
+ </div>
+ </form>
+ </div>
+
+ <!-- PREVIEW -->
+ {% if preview_mode %}
+ <div class="card">
+ <h2> Preview & Confirm</h2>
+
+ <div class="alert alert-info">
+ <strong>Model:</strong> {{ model_name }} | 
+ <strong>Rows:</strong> {{ total_rows }} | 
+ <strong>File:</strong> {{ file_name }}
+ </div>
+
+ <h3>Field Mapping</h3>
+ <table>
+ <thead>
+ <tr>
+ <th>Uploaded Field</th>
+ <th>Status</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for field in uploaded_fields %}
+ <tr>
+ <td>{{ field }}</td>
+ <td>
+ {% if field in model_fields %}
+ <span class="success"> Match</span>
+ {% elif field in similar_fields %}
+ <span class="success">↳ Mapped</span>
+ {% else %}
+ <span class="warning"> Extra</span>
+ {% endif %}
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+
+ {% if preview_rows %}
+ <h3>Data Preview (first 10 rows)</h3>
+ <div class="preview-container">
+ <table>
+ <thead>
+ <tr>
+ {% for f in uploaded_fields %}<th>{{ f|truncatechars:15 }}</th>{% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in preview_rows %}
+ <tr>
+ {% for cell in row %}<td>{{ cell|truncatechars:20 }}</td>{% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% endif %}
+
+ <div class="mt-4">
+ {% if missing_required %}
+ <div class="alert alert-danger">Missing required fields: {{ missing_required|join:", " }}</div>
+ <a href="." class="btn btn-danger">Cancel Import</a>
+ {% else %}
+ <form method="get" style="display:inline;">
+ <input type="hidden" name="action" value="confirm_import">
+ <input type="hidden" name="model" value="{{ model_name }}">
+ <button class="btn btn-success">Confirm Import</button>
+ </form>
+ <a href="." class="btn btn-danger">Cancel</a>
+ {% endif %}
+ </div>
+ </div>
+ {% endif %}
+
+ <!-- Templates -->
+ <div class="card">
+ <h2> Download Templates</h2>
+ <div class="template-buttons">
+ {% for model in models %}
+ <a class="btn btn-info" href="?action=template&model={{ model }}">
+ {{ model }} Template
+ </a>
+ {% endfor %}
+ </div>
+ </div>
+ </div>
+
+ <!-- SIDE COLUMN -->
+ <div>
+ <div class="card">
+ <h2> Export Data</h2>
+ <div class="export-buttons">
+ {% for model in models %}
+ <div style="margin-bottom: 15px;">
+ <strong>{{ model }}</strong>
+ <div style="display: flex; gap: 5px; margin-top: 5px;">
+ <a class="btn btn-primary btn-sm" href="?action=export&model={{ model }}&format=csv">CSV</a>
+ <a class="btn btn-success btn-sm" href="?action=export&model={{ model }}&format=excel">Excel</a>
+ <a class="btn btn-warning btn-sm" href="?action=export&model={{ model }}&format=json">JSON</a>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+ </div>
+ </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'export_import/js/export_import_export_smart_import_export_page.js' %}"></script>
+<script src="{% static 'export_import/js/export_import_smart.js' %}"></script>
+{% endblock extra_js %}
