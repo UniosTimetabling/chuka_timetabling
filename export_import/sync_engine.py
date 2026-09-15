@@ -87,6 +87,32 @@ VERIFY_TIMEOUT_SECONDS = 20
 # the remote worker.
 SYNC_MAX_ROWS_PER_REQUEST = 100
 
+# Previously, a run that finished with some models failed just... finished,
+# leaving it to whoever clicked "Sync Now" to notice and click it again —
+# and again, since each click only ever pushes forward whatever the LAST
+# run left outstanding (SyncRecordState only advances for rows that were
+# actually confirmed sent). That's correct but tedious, and easy to
+# mistake for "it's stuck" when it's actually inching forward each time.
+#
+# run_sync() now does that re-clicking itself: after a pass over every
+# model, if anything failed, it waits AUTO_RETRY_PASS_DELAY_SECONDS and
+# runs another pass over the model list IN THE SAME SyncRun — a model
+# that already succeeded has nothing left to send (its hash is already
+# up to date) so it's a cheap no-op skip, while a model that failed
+# gets a fresh attempt. This continues until either:
+#   (a) a pass completes with nothing failed — the run is genuinely done, or
+#   (b) the exact same model(s) fail with the exact same error two passes
+#       in a row — that's not a transient blip self-healing, it's a
+#       deterministic problem (e.g. the remote's Gunicorn/Nginx timeout
+#       still needs raising — see REQUEST_TIMEOUT_SECONDS above) that more
+#       passes will not fix, so it stops immediately rather than hammering
+#       the remote with a doomed request over and over, or
+#   (c) MAX_SYNC_PASSES is reached regardless.
+# Whichever it is, the run's final error_message says which, so it's
+# never ambiguous why it stopped.
+MAX_SYNC_PASSES = 5
+AUTO_RETRY_PASS_DELAY_SECONDS = 15
+
 # A run genuinely stuck in "running" (dev server auto-reloaded mid-sync,
 # the daemon thread died some other way, the process was killed) would
 # otherwise block every future sync forever, since both trigger_sync and
@@ -94,7 +120,15 @@ SYNC_MAX_ROWS_PER_REQUEST = 100
 # Anything still "running" past this many minutes is almost certainly
 # dead, not actually working — reap_stale_runs() below fails it so a new
 # attempt can start.
-STALE_RUN_MINUTES = 15
+#
+# Raised from 15 to 45 once run_sync started doing up to MAX_SYNC_PASSES
+# retry passes for a single run (see above): a large, genuinely-still-
+# working sync (e.g. a big first-time sync of ProgramCourse/
+# ArchivedCourseAllocation-sized tables across several retry passes,
+# each separated by AUTO_RETRY_PASS_DELAY_SECONDS) can legitimately take
+# longer than 15 minutes now, and the old threshold would have reaped a
+# healthy run out from under itself mid-pass.
+STALE_RUN_MINUTES = 45
 
 
 def reap_stale_runs():
@@ -457,69 +491,34 @@ def test_connection():
     return {"ok": True, "remote_mode": data.get("mode"), "remote_enabled": data.get("is_enabled")}
 
 
-def run_sync(triggered_by=None, existing_run=None):
-    """Sends every changed model, in dependency order, to the configured
-    remote, throttled between models. Pass `existing_run` (a SyncRun
-    already created with status='running') when calling this from a
-    background thread via start_sync_in_background, so the caller has an
-    id to return/poll immediately instead of waiting for the whole run."""
-    from core.models import SyncNode, SyncRun, SyncModelLog, SyncRecordState
+def _run_sync_pass(run, node, token, verify, ordered_models, candidate_labels, pass_number):
+    """One full sweep over every model in `ordered_models`, sending
+    whatever's currently changed. This is the entire body of what used
+    to be run_sync()'s only pass — factored out so run_sync can call it
+    more than once (see MAX_SYNC_PASSES above) without duplicating the
+    per-model logic.
 
-    node = SyncNode.get_settings()
-    run = existing_run or SyncRun.objects.create(
-        triggered_by=triggered_by,
-        remote_url=node.remote_url,
-        status="running",
-    )
-    node.last_sync_started_at = timezone.now()
-    node.last_sync_status = "running"
-    node.save(update_fields=["last_sync_started_at", "last_sync_status"])
+    A model that fully succeeded on an earlier pass has nothing left to
+    send here (its SyncRecordState hash is already current), so re-
+    running this against every model on every pass is cheap for
+    anything already done — the real work only happens for whatever is
+    still outstanding.
 
-    if not node.is_host:
-        run.status = "failed"
-        run.error_message = "This installation is not in HOST mode."
-        run.finished_at = timezone.now()
-        run.save()
-        node.last_sync_status = "failed"
-        node.last_sync_finished_at = timezone.now()
-        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
-        return run
-
-    if not node.remote_url or not node.get_token():
-        run.status = "failed"
-        run.error_message = "Remote URL and/or shared token are not configured."
-        run.finished_at = timezone.now()
-        run.save()
-        node.last_sync_status = "failed"
-        node.last_sync_finished_at = timezone.now()
-        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
-        return run
-
-    token = node.get_token()
-
-    proceed, verify, pin_error = sync_tls.resolve_verify(node)
-    if not proceed:
-        run.status = "failed"
-        run.error_message = pin_error
-        run.finished_at = timezone.now()
-        run.save()
-        node.last_sync_status = "failed"
-        node.last_sync_finished_at = timezone.now()
-        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
-        return run
-
-    ordered_models, deps_map, warnings, deferred_map = get_sync_plan()
-    run.total_models = len(ordered_models)
-    run.save(update_fields=["total_models"])
-
-    # Labels of every model actually in the sync plan — anything a model
-    # points at that ISN'T in here (auth.User, chiefly) is an "external"
-    # FK that must be nulled out before hashing/sending, or it produces a
-    # permanent, non-retriable FK-constraint failure on the remote. See
-    # _external_fk_field_names() for the full explanation.
-    candidate_labels = {model_label(m) for m in ordered_models}
+    Returns (had_failure, failed_signature):
+      * had_failure: True if anything in this pass failed or had rows
+        rejected.
+      * failed_signature: a frozenset of (model_name, error_message)
+        for models that hit a hard failure (chunk POST failed, or an
+        unexpected exception) this pass — NOT models with only rejected
+        rows, since those are expected to change pass-to-pass as
+        dependencies land and aren't the "stuck, stop retrying" signal
+        run_sync checks for.
+    """
+    from core.models import SyncModelLog, SyncRecordState
 
     had_failure = False
+    failed_signature = set()
+
     for index, model in enumerate(ordered_models, start=1):
         label = model_label(model)
         app_label, model_name = label.split(".", 1)
@@ -532,7 +531,8 @@ def run_sync(triggered_by=None, existing_run=None):
 
             if not changed_objs:
                 SyncModelLog.objects.create(
-                    run=run, order=index, app_label=app_label, model_name=model_name,
+                    run=run, order=index, pass_number=pass_number,
+                    app_label=app_label, model_name=model_name,
                     records_changed=0, records_total=total, status="skipped",
                     error_message=(
                         "" if reconcile_checked else
@@ -548,7 +548,7 @@ def run_sync(triggered_by=None, existing_run=None):
                 # request — see SYNC_MAX_ROWS_PER_REQUEST above. Each chunk
                 # is posted and, if accepted, has its hashes recorded
                 # immediately: a failure partway through only leaves the
-                # *remaining* chunks to retry next run, not the whole model.
+                # *remaining* chunks to retry next pass, not the whole model.
                 chunks = list(_chunked(changed_objs, SYNC_MAX_ROWS_PER_REQUEST))
                 sent_count = 0
                 row_reject_count = 0
@@ -608,7 +608,7 @@ def run_sync(triggered_by=None, existing_run=None):
                     # returns success=True. Reading failed_pks here and
                     # excluding exactly those rows from the hash update
                     # is what makes that self-healing: this row is left
-                    # looking "unsynced", so the very next sync run will
+                    # looking "unsynced", so the very next pass will
                     # see its hash as changed/missing and resend it —
                     # automatically, once its dependency actually exists.
                     # Recording success for the *whole chunk* regardless
@@ -643,15 +643,18 @@ def run_sync(triggered_by=None, existing_run=None):
                 if chunk_failure is not None:
                     chunk_num, chunk_exc = chunk_failure
                     had_failure = True
+                    error_message = (
+                        f"Sent {sent_count}/{len(changed_objs)} changed rows in "
+                        f"chunks of {SYNC_MAX_ROWS_PER_REQUEST}, then chunk "
+                        f"{chunk_num}/{len(chunks)} failed: {chunk_exc}"
+                        + nulled_note
+                    )[:2000]
+                    failed_signature.add((model_name, error_message))
                     SyncModelLog.objects.create(
-                        run=run, order=index, app_label=app_label, model_name=model_name,
+                        run=run, order=index, pass_number=pass_number,
+                        app_label=app_label, model_name=model_name,
                         records_changed=sent_count, records_total=total, status="failed",
-                        error_message=(
-                            f"Sent {sent_count}/{len(changed_objs)} changed rows in "
-                            f"chunks of {SYNC_MAX_ROWS_PER_REQUEST}, then chunk "
-                            f"{chunk_num}/{len(chunks)} failed: {chunk_exc}"
-                            + nulled_note
-                        )[:2000],
+                        error_message=error_message,
                     )
                 elif row_reject_count:
                     had_failure = True
@@ -660,21 +663,24 @@ def run_sync(triggered_by=None, existing_run=None):
                     # dependency (Department, Program, ...) that failed
                     # earlier in this same run. Not a hard failure of
                     # this model: those specific rows will simply be
-                    # retried on the next sync once the dependency is in
-                    # place, so this is logged as "partial", not "failed".
+                    # retried on the next pass once the dependency is in
+                    # place, so this is logged as "partial", not "failed",
+                    # and deliberately excluded from failed_signature.
                     SyncModelLog.objects.create(
-                        run=run, order=index, app_label=app_label, model_name=model_name,
+                        run=run, order=index, pass_number=pass_number,
+                        app_label=app_label, model_name=model_name,
                         records_changed=sent_count, records_total=total, status="partial",
                         error_message=(
                             f"{row_reject_count} row(s) rejected by the remote (often because a "
                             f"row they depend on failed earlier in this run) and will be retried "
-                            f"automatically next sync. Example pks: {row_reject_examples}"
+                            f"automatically next pass. Example pks: {row_reject_examples}"
                             + nulled_note
                         )[:2000],
                     )
                 else:
                     SyncModelLog.objects.create(
-                        run=run, order=index, app_label=app_label, model_name=model_name,
+                        run=run, order=index, pass_number=pass_number,
+                        app_label=app_label, model_name=model_name,
                         records_changed=sent_count, records_total=total, status="sent",
                         error_message=nulled_note.strip(" ;")[:2000] if nulled_note else "",
                     )
@@ -684,10 +690,13 @@ def run_sync(triggered_by=None, existing_run=None):
 
         except Exception as e:  # noqa: BLE001 - keep going, log, move to next model
             had_failure = True
+            error_message = str(e)[:2000]
+            failed_signature.add((model_name, error_message))
             SyncModelLog.objects.create(
-                run=run, order=index, app_label=app_label, model_name=model_name,
+                run=run, order=index, pass_number=pass_number,
+                app_label=app_label, model_name=model_name,
                 records_changed=0, records_total=0, status="failed",
-                error_message=str(e)[:2000],
+                error_message=error_message,
             )
             run.models_completed = index
             run.save(update_fields=["models_completed"])
@@ -698,9 +707,126 @@ def run_sync(triggered_by=None, existing_run=None):
         # background thread yields regularly instead of running hot.
         time.sleep(max(0.0, node.sync_batch_delay_seconds))
 
+    return had_failure, frozenset(failed_signature)
+
+
+def run_sync(triggered_by=None, existing_run=None):
+    """Sends every changed model, in dependency order, to the configured
+    remote, throttled between models. Pass `existing_run` (a SyncRun
+    already created with status='running') when calling this from a
+    background thread via start_sync_in_background, so the caller has an
+    id to return/poll immediately instead of waiting for the whole run."""
+    from core.models import SyncNode, SyncRun
+
+    node = SyncNode.get_settings()
+    run = existing_run or SyncRun.objects.create(
+        triggered_by=triggered_by,
+        remote_url=node.remote_url,
+        status="running",
+    )
+    node.last_sync_started_at = timezone.now()
+    node.last_sync_status = "running"
+    node.save(update_fields=["last_sync_started_at", "last_sync_status"])
+
+    if not node.is_host:
+        run.status = "failed"
+        run.error_message = "This installation is not in HOST mode."
+        run.finished_at = timezone.now()
+        run.save()
+        node.last_sync_status = "failed"
+        node.last_sync_finished_at = timezone.now()
+        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
+        return run
+
+    if not node.remote_url or not node.get_token():
+        run.status = "failed"
+        run.error_message = "Remote URL and/or shared token are not configured."
+        run.finished_at = timezone.now()
+        run.save()
+        node.last_sync_status = "failed"
+        node.last_sync_finished_at = timezone.now()
+        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
+        return run
+
+    token = node.get_token()
+
+    proceed, verify, pin_error = sync_tls.resolve_verify(node)
+    if not proceed:
+        run.status = "failed"
+        run.error_message = pin_error
+        run.finished_at = timezone.now()
+        run.save()
+        node.last_sync_status = "failed"
+        node.last_sync_finished_at = timezone.now()
+        node.save(update_fields=["last_sync_status", "last_sync_finished_at"])
+        return run
+
+    ordered_models, deps_map, warnings, deferred_map = get_sync_plan()
+    run.total_models = len(ordered_models)
+    run.save(update_fields=["total_models"])
+
+    # Labels of every model actually in the sync plan — anything a model
+    # points at that ISN'T in here (auth.User, chiefly) is an "external"
+    # FK that must be nulled out before hashing/sending, or it produces a
+    # permanent, non-retriable FK-constraint failure on the remote. See
+    # _external_fk_field_names() for the full explanation.
+    candidate_labels = {model_label(m) for m in ordered_models}
+
+    # See MAX_SYNC_PASSES / AUTO_RETRY_PASS_DELAY_SECONDS above for why
+    # this is a loop of passes rather than a single sweep: a pass that
+    # ends with anything failed is retried automatically, in place, in
+    # this same run, instead of leaving that to a human clicking "Sync
+    # Now" again — but only for as long as it's still making progress.
+    pass_number = 0
+    had_failure = True
+    stop_reason = ""
+    prev_failed_signature = None
+    while True:
+        pass_number += 1
+        had_failure, failed_signature = _run_sync_pass(
+            run, node, token, verify, ordered_models, candidate_labels, pass_number,
+        )
+        run.pass_count = pass_number
+        run.save(update_fields=["pass_count"])
+
+        if not had_failure:
+            break  # a clean pass: every model with anything to send, sent it.
+
+        if failed_signature and failed_signature == prev_failed_signature:
+            # The exact same model(s) failed with the exact same error as
+            # last pass — nothing changed, so nothing will change if it's
+            # tried again immediately. Most often this means the failure
+            # isn't a transient network blip but a deterministic one (the
+            # remote killing its own worker on a slow chunk — see
+            # REQUEST_TIMEOUT_SECONDS above) that needs a config change,
+            # not more attempts. Stop rather than loop uselessly.
+            failing_models = ", ".join(sorted(m for m, _ in failed_signature))
+            stop_reason = (
+                f"Stopped auto-retrying after pass {pass_number}: {failing_models} "
+                f"failed again with the same error as the previous pass, so this "
+                f"isn't a one-off network blip that retrying fixes on its own — "
+                f"see that model's error below for what to fix (often the remote's "
+                f"Gunicorn/Nginx timeout needs raising to match REQUEST_TIMEOUT_SECONDS)."
+            )
+            break
+
+        if pass_number >= MAX_SYNC_PASSES:
+            stop_reason = (
+                f"Stopped after {MAX_SYNC_PASSES} automatic passes with some models "
+                f"still failing (different models were failing on each pass, so this "
+                f"was making progress — it just needed more than {MAX_SYNC_PASSES} "
+                f"passes). Trigger another sync to keep going."
+            )
+            break
+
+        prev_failed_signature = failed_signature
+        time.sleep(AUTO_RETRY_PASS_DELAY_SECONDS)
+
     run.status = "partial" if had_failure else "success"
+    if stop_reason:
+        run.error_message = stop_reason[:2000]
     run.finished_at = timezone.now()
-    run.save(update_fields=["status", "finished_at"])
+    run.save(update_fields=["status", "finished_at", "error_message"])
 
     node.last_sync_status = run.status
     node.last_sync_finished_at = run.finished_at

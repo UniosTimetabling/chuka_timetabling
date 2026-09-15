@@ -222,8 +222,9 @@ def sync_status(request):
         return JsonResponse({"success": False, "error": "No sync run found."}, status=404)
 
     logs = list(
-        run.model_logs.order_by("order").values(
-            "order", "app_label", "model_name", "status", "records_changed", "records_total", "error_message"
+        run.model_logs.order_by("order", "pass_number").values(
+            "order", "pass_number", "app_label", "model_name", "status",
+            "records_changed", "records_total", "error_message",
         )
     )
     return JsonResponse({
@@ -234,6 +235,12 @@ def sync_status(request):
         "models_completed": run.models_completed,
         "records_sent": run.records_sent,
         "error_message": run.error_message,
+        # How many automatic retry passes this run has made so far (see
+        # sync_engine.MAX_SYNC_PASSES) — while status is still "running"
+        # this can keep climbing; a status of "running" for a while
+        # longer than before is expected now that failures are retried
+        # in place instead of needing another click.
+        "pass_count": run.pass_count,
         "logs": logs,
     })
 

@@ -613,6 +613,7 @@ class SchedulerState:
         self.venue_occupants: Dict[Tuple, List[Tuple[int, int]]] = defaultdict(list)
         self._combined_group_venue: Dict[Tuple, int] = {}
         self._family_building: Dict[Tuple, str] = {}
+        self.cross_building_splits: List[dict] = []
         self.lecturer_busy: Dict[int, Set] = defaultdict(set)
         self.lecturer_exam_group: Dict[Tuple, str] = {}
         self.lecturer_blocked: Dict = {}
@@ -1391,6 +1392,35 @@ def _venue_building(venue) -> str:
     code = (getattr(venue, "code", None) or "").strip()
     return re.sub(r'[\d\s]+$', '', code).upper()
 
+def _building_subset_for_split(pool, total_needed, preferred_building=None):
+    """
+    Policy: a split family should stay inside ONE building whenever a
+    single building's free/designated venues can hold it; only a
+    cross-building split is allowed to reach the caller when no single
+    building has enough combined capacity ("unless otherwise").
+
+    pool is a list of [venue, rem, cap] rows. Returns a NEW list of
+    (copied) rows restricted to one building, or None if no single
+    building suffices — callers should fall back to the full pool in
+    that case, which may then legitimately cross buildings.
+    """
+    groups = defaultdict(list)
+    for row in pool:
+        groups[_venue_building(row[0])].append(row)
+    viable = [(b, rows) for b, rows in groups.items() if sum(r[1] for r in rows) >= total_needed]
+    if not viable:
+        return None
+    if preferred_building:
+        for b, rows in viable:
+            if b == preferred_building:
+                return [list(r) for r in rows]
+    # Prefer the building that can satisfy the need with the fewest/largest
+    # rooms (biggest single venue first, then biggest total), so we don't
+    # favor a building that only clears the bar via many tiny rooms when
+    # another building could do it in one or two.
+    viable.sort(key=lambda item: (-max(r[1] for r in item[1]), -sum(r[1] for r in item[1])))
+    return [list(r) for r in viable[0][1]]
+
 def _find_course_by_id(course_id, state) -> Optional[Any]:
     """Look up a course object by id from the analysis index. Shared by
     _can_share_venue and the same-lecturer consolidation check below so the
@@ -1580,6 +1610,33 @@ def place_course_with_minimal_split(course, date, slot_start, slot_end,
         return False
     if not relax_consecutive and state.cohort_in_cooling(course, date, slot_start):
         return False
+    if DEBUG_VERBOSE:
+        # Ground-truth check BEFORE we commit to splitting: is a single
+        # sufficient venue really unavailable, or does state.venue_usage
+        # merely believe it's unavailable? We've already found two separate
+        # drift bugs (family occupant-tracking, duplicate-placement audit)
+        # that made "exhausted" a lie. Print the real picture every time a
+        # course is about to be split, so an over-split can be confirmed as
+        # a genuine capacity shortage or traced back to phantom usage
+        # instead of assumed.
+        single_ok = state.slot_has_combined_venue_space(date, slot_start, 1, course=None)
+        best_single = None
+        for v in state.venues_by_cap_desc:
+            rem = state.venue_remaining(v.id, date, slot_start)
+            if rem >= needed:
+                best_single = (v.code, rem, state.venue_examcap.get(v.id, 0))
+                break
+        if best_single:
+            print(f"  [Split-Check] {course.course_code} needs {needed} — "
+                  f"state says {best_single[0]} alone has {best_single[1]}/{best_single[2]} free "
+                  f"but no-split placement still failed (constraint/compatibility, not capacity)")
+        else:
+            print(f"  [Split-Check] {course.course_code} needs {needed} — "
+                  f"{state.explain_no_venue_space(date, slot_start, needed, course)}")
+            mismatches = state.audit_slot_vs_db(date, slot_start, label=course.course_code)
+            if mismatches:
+                print(f"  [Split-Check] ^ {len(mismatches)} venue(s) disagree with DB at this slot — "
+                      f"phantom occupancy may be forcing this split")
     venues = find_minimal_split_venues(needed, date, slot_start, state, course)
     if not venues:
         return False
@@ -1895,6 +1952,11 @@ def place_merged_family(group_courses, nc, date, ss, se, state, scheduled_ids) -
                 continue
             designated_pool.append([v, rem, state.venue_examcap.get(vid, 0)])
         if designated_pool and sum(row[1] for row in designated_pool) >= total_needed:
+            same_building_pool = _building_subset_for_split(designated_pool, total_needed)
+            if same_building_pool and _commit_distributed_minimal(
+                    group_courses, nc, same_building_pool, total_needed,
+                    date, ss, se, state, scheduled_ids):
+                return True
             if _commit_distributed_minimal(group_courses, nc, designated_pool, total_needed,
                                            date, ss, se, state, scheduled_ids):
                 return True
@@ -1929,6 +1991,12 @@ def place_merged_family(group_courses, nc, date, ss, se, state, scheduled_ids) -
     total_free = sum(row[1] for row in free_with_caps)
     if total_free >= total_needed:
         free_with_caps_for_split = [[v, rem, cap] for v, rem, cap, _occ in free_with_caps]
+        same_building_pool = _building_subset_for_split(
+            free_with_caps_for_split, total_needed, preferred_building=known_building)
+        if same_building_pool and _commit_distributed_minimal(
+                group_courses, nc, same_building_pool, total_needed,
+                date, ss, se, state, scheduled_ids, preferred_building=known_building):
+            return True
         if _commit_distributed_minimal(group_courses, nc, free_with_caps_for_split, total_needed,
                                        date, ss, se, state, scheduled_ids,
                                        preferred_building=known_building):
@@ -2095,6 +2163,17 @@ def _commit_distributed_minimal(group_courses, nc, pool, total_needed,
             return False
         state.record_combined_group_venue(course, date, ss, venue.id)
         state.record_family_building(nc, date, ss, _venue_building(venue))
+    buildings_used = sorted({_venue_building(venue) for _course, venue, _seats in assignments})
+    if len(buildings_used) > 1:
+        detail = {
+            "family": nc, "date": date, "slot": ss,
+            "buildings": buildings_used,
+            "venues": [f"{v.code} ({s} students)" for _c, v, s in assignments],
+        }
+        state.cross_building_splits.append(detail)
+        print(f"  [POLICY-WARN] '{nc}' on {date} {ss} split across buildings "
+              f"{buildings_used}: {detail['venues']} — no single building had "
+              f"enough free capacity ({total_needed} needed).")
     for course in group_courses:
         state.mark_students_busy(course, date, ss)
         lid = state._cached_lecturer_id(course)
@@ -3414,6 +3493,21 @@ def post_placement_swap_optimization(all_courses, state, scheduled_ids):
                 students_b = course_student_count(course_b)
                 cap_a = state.venue_examcap.get(venue_a.id, 0)
                 cap_b = state.venue_examcap.get(venue_b.id, 0)
+                # This pass only reasons about the two courses being swapped —
+                # it has no model of OTHER courses that may already share
+                # venue_a/venue_b at this slot (room-sharing is allowed
+                # everywhere else in this scheduler). Comparing against raw
+                # cap_a/cap_b, as before, silently assumes each venue holds
+                # exactly one course; if either venue is actually shared, a
+                # swap can push real DB usage past capacity without this
+                # function ever knowing. Only allow the swap when each venue's
+                # ENTIRE current usage is accounted for by the one course
+                # being removed — i.e. it's genuinely a single-occupant venue,
+                # which is the only case this pairwise logic is valid for.
+                used_a_total = cap_a - state.venue_remaining(venue_a.id, date_obj, ss)
+                used_b_total = cap_b - state.venue_remaining(venue_b.id, date_obj, ss)
+                if used_a_total != students_a or used_b_total != students_b:
+                    continue
                 current_waste_a = cap_a - students_a
                 current_waste_b = cap_b - students_b
                 current_total_waste = current_waste_a + current_waste_b
@@ -3434,8 +3528,28 @@ def post_placement_swap_optimization(all_courses, state, scheduled_ids):
                         # the move here too.
                         state.release_venue(venue_a.id, date_obj, ss, students_a, course_a)
                         state.release_venue(venue_b.id, date_obj, ss, students_b, course_b)
-                        state.consume_venue(venue_b.id, date_obj, ss, students_a, course_a)
-                        state.consume_venue(venue_a.id, date_obj, ss, students_b, course_b)
+                        ok_b = state.consume_venue(venue_b.id, date_obj, ss, students_a, course_a)
+                        ok_a = state.consume_venue(venue_a.id, date_obj, ss, students_b, course_b)
+                        if not (ok_a and ok_b):
+                            # state refused to record this (would exceed
+                            # capacity) — the DB write already happened, so
+                            # this is not optional cleanup: without undoing
+                            # it here, the DB ends up overbooked while state
+                            # stays clean, which is exactly the drift that
+                            # made the final capacity-violation count read 0
+                            # despite real overcapacity in the DB. Undo both
+                            # the state accounting attempted above and the
+                            # DB move itself.
+                            if ok_b:
+                                state.release_venue(venue_b.id, date_obj, ss, students_a, course_a)
+                            if ok_a:
+                                state.release_venue(venue_a.id, date_obj, ss, students_b, course_b)
+                            state.consume_venue(venue_a.id, date_obj, ss, students_a, course_a)
+                            state.consume_venue(venue_b.id, date_obj, ss, students_b, course_b)
+                            with transaction.atomic():
+                                ExamTempTimetable.objects.filter(id=entry_a["id"]).update(venue=venue_a)
+                                ExamTempTimetable.objects.filter(id=entry_b["id"]).update(venue=venue_b)
+                            continue
                         swaps_performed += 1
                         if DEBUG_VERBOSE:
                             print(f"  [Swap] {course_a.course_code} ({students_a} students): "
@@ -3603,13 +3717,34 @@ def _audit_student_conflicts(state, all_courses):
     return violations
 
 def _audit_venue_capacity_with_sharing(state, all_courses):
+    """Ground-truth capacity check.
+
+    This USED to sum state.venue_occupants and compare against cap — but
+    state.venue_usage is only ever updated through consume_venue(), which
+    already refuses to record anything past capacity. That makes state
+    structurally incapable of ever reflecting an overbooked venue, even
+    when one exists: any code path that writes to ExamTempTimetable
+    directly (or updates state's bookkeeping without checking consume_venue's
+    return value, as post_placement_swap_optimization used to) can leave the
+    DB overbooked while state stays "clean". Checking state here means this
+    audit was reporting 0 violations by construction, regardless of what the
+    DB actually held. Query the DB directly instead — the same ground truth
+    audit_slot_vs_db already uses elsewhere in this file.
+    """
+    course_by_id = {c.id: c for c in all_courses}
+    usage: Dict[Tuple[int, object, object], int] = defaultdict(int)
+    rows = ExamTempTimetable.objects.values("venue_id", "date", "start_time", "course_allocation_id")
+    for r in rows:
+        course = course_by_id.get(r["course_allocation_id"])
+        n = course_student_count(course) if course else 0
+        usage[(r["venue_id"], r["date"], r["start_time"])] += n
     violations = 0
-    for (vid, date, ss), occupants in state.venue_occupants.items():
-        total_assigned = sum(students for _, students in occupants)
+    for (vid, date, ss), total_assigned in usage.items():
         cap = state.venue_examcap.get(vid, 0)
         if total_assigned > cap:
             violations += 1
-            print(f"[Audit-OVERCAP] VIOLATION: venue_id={vid} date={date} slot={ss} | assigned={total_assigned} > cap={cap}")
+            print(f"[Audit-OVERCAP] VIOLATION: venue_id={vid} date={date} slot={ss} | "
+                  f"assigned={total_assigned} > cap={cap} (over by {total_assigned - cap})")
     return violations
 
 def _audit_and_fix_duplicate_placements(state, all_courses):
@@ -3916,6 +4051,13 @@ def run_optimized_autoscheduler_thread(disabled_constraints: Optional[Set[str]] 
         print(f"[AutoScheduler v63] Student violations: {student_violations}")
         print(f"[AutoScheduler v63] Venue capacity violations: {venue_violations}")
         print(f"[AutoScheduler v63] Post-placement swaps: {p9_swaps}")
+        print(f"[AutoScheduler v63] Cross-building family splits: {len(state.cross_building_splits)}")
+        if state.cross_building_splits:
+            print("[AutoScheduler v63] These need manual review — no single building had "
+                  "enough free capacity for the family at that slot:")
+            for entry in state.cross_building_splits:
+                print(f"    - {entry['family']} on {entry['date']} {entry['slot']}: "
+                      f"{entry['buildings']} -> {entry['venues']}")
         result = {
             "status": "completed" if remaining_count == 0 else "partial",
             "message": message,

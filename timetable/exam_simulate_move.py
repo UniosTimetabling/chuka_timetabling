@@ -41,6 +41,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import json
 
+from django.db import transaction
 from django.http import JsonResponse
 from core.rbac import allowed_roles, Role
 
@@ -383,6 +384,7 @@ def exam_simulate_move_api(request):
     venue_input = (request.POST.get('venue') or '').strip()
     start_s = request.POST.get('start')
     end_s = request.POST.get('end')
+    detach = (request.POST.get('detach') or '').lower() == 'true'
 
     if not (et_id and date_str and venue_input and start_s and end_s):
         return JsonResponse({'status': 'error', 'messages': ['All fields are required.']}, status=400)
@@ -398,6 +400,12 @@ def exam_simulate_move_api(request):
         return JsonResponse({'status': 'error', 'messages': ['Exam timetable entry not found.']}, status=404)
 
     allocation = et.course_allocation
+    full_bundle_size = len(bundle)
+    # Override: move ONLY this row, leaving every other section/duplicate
+    # sitting in this same cell exactly where it is (instead of the whole
+    # bundle travelling together, which is the default).
+    if detach and full_bundle_size > 1:
+        bundle = [et]
     exclude_ids = [b.id for b in bundle]
 
     same_slot = (
@@ -408,6 +416,11 @@ def exam_simulate_move_api(request):
     messages_list, error_block = _check_conflicts_excluding(
         allocation, venue_input, date_str, start_t, end_t, exclude_ids
     )
+    if detach and full_bundle_size > 1:
+        messages_list = [
+            f"ℹ️ Moving only this section — {full_bundle_size - 1} other section"
+            f"{'s' if full_bundle_size - 1 != 1 else ''} of {allocation.course_code} at this slot stay put."
+        ] + messages_list
 
     recommendations = []
     if error_block:
@@ -422,6 +435,7 @@ def exam_simulate_move_api(request):
         'course_code': allocation.course_code,
         'lecturer': getattr(allocation.lecturer, 'name', 'Unassigned'),
         'bundle_size': len(bundle),
+        'full_bundle_size': full_bundle_size,
         'recommendations': recommendations,
     })
 
@@ -440,6 +454,7 @@ def exam_execute_move_api(request):
     start_s = request.POST.get('start')
     end_s = request.POST.get('end')
     force = (request.POST.get('force') or '').lower() == 'true'
+    detach = (request.POST.get('detach') or '').lower() == 'true'
 
     if not (et_id and date_str and venue_input and start_s and end_s):
         return JsonResponse({'status': 'error', 'messages': ['All fields are required.']}, status=400)
@@ -456,6 +471,11 @@ def exam_execute_move_api(request):
         return JsonResponse({'status': 'error', 'messages': ['Exam timetable entry not found.']}, status=404)
 
     allocation = et.course_allocation
+    full_bundle_size = len(bundle)
+    # Override: move ONLY this row — every other section/duplicate that
+    # was sharing this cell is left exactly where it is.
+    if detach and full_bundle_size > 1:
+        bundle = [et]
     exclude_ids = [b.id for b in bundle]
 
     messages_list, error_block = _check_conflicts_excluding(
@@ -471,9 +491,14 @@ def exam_execute_move_api(request):
     )
 
     n = len(bundle)
+    detach_note = (
+        [f"ℹ️ Only this section moved — {full_bundle_size - 1} other section"
+         f"{'s' if full_bundle_size - 1 != 1 else ''} of {allocation.course_code} stayed at the original slot."]
+        if detach and full_bundle_size > 1 else []
+    )
     return JsonResponse({
         'status': 'success',
-        'messages': (messages_list or []) + [
+        'messages': (messages_list or []) + detach_note + [
             f"Moved {allocation.course_code} ({n} entr{'y' if n == 1 else 'ies'}) "
             f"to {date_str} {start_s}-{end_s} @ {venue_obj.code}."
         ],
@@ -664,4 +689,198 @@ def exam_bulk_move_execute_api(request):
         'skipped_count': len(skipped),
         'applied': applied,
         'skipped': skipped,
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════
+# SWAP — exchange two exams' date/timeslot/venue with each other.
+#
+# Exam A (right-clicked) ends up exactly where exam B was, and exam B
+# ends up exactly where exam A was — including venue, not just the
+# date/timeslot. Both bundles (split-venue rows / Combined Course Group
+# members) travel together, same as a regular Simulate Move. Each
+# direction of the swap is re-validated with the exact same authoritative
+# `_check_conflicts_excluding` used by Simulate Move, excluding BOTH
+# bundles so the two exams never collide with each other (they're trading
+# places on purpose) — only collisions with everything else are reported,
+# and those can be bypassed with `force`, same as Simulate Move.
+# ═══════════════════════════════════════════════════════════════════
+def _find_exam_bundle_at_slot(date_str, start_t, end_t, venue_input, exclude_ids):
+    """
+    Look for an ExamTimetable row occupying the exact (date, start, end,
+    venue) slot, excluding any row already listed in `exclude_ids` (the
+    bundle being swapped away). If one is found, resolve it to its full
+    move bundle via `_get_move_bundle` (so a Combined Course Group /
+    split-venue set swaps as one unit, exactly like a regular move).
+
+    Returns (representative_row, bundle_list) or (None, []) if the slot
+    is empty.
+    """
+    row = ExamTimetable.objects.filter(
+        date=date_str, start_time=start_t, end_time=end_t,
+        venue__code__iexact=venue_input,
+    ).exclude(id__in=list(exclude_ids or [])).select_related(
+        'course_allocation', 'course_allocation__lecturer', 'venue'
+    ).first()
+    if not row:
+        return None, []
+    return _get_move_bundle(row.id)
+
+
+@allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
+def exam_simulate_swap_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
+
+    et_id = request.POST.get('et_id')
+    date_str = request.POST.get('date')
+    venue_input = (request.POST.get('venue') or '').strip()
+    start_s = request.POST.get('start')
+    end_s = request.POST.get('end')
+
+    if not (et_id and date_str and venue_input and start_s and end_s):
+        return JsonResponse({'status': 'error', 'messages': ['All fields are required.']}, status=400)
+
+    try:
+        start_t = datetime.strptime(start_s, "%H:%M").time()
+        end_t = datetime.strptime(end_s, "%H:%M").time()
+    except ValueError:
+        return JsonResponse({'status': 'error', 'messages': ['Invalid time format.']}, status=400)
+
+    et_a, bundle_a = _get_move_bundle(et_id)
+    if not et_a or not et_a.course_allocation:
+        return JsonResponse({'status': 'error', 'messages': ['Exam timetable entry not found.']}, status=404)
+
+    ids_a = [b.id for b in bundle_a]
+    alloc_a = et_a.course_allocation
+
+    same_slot = (
+        str(et_a.date) == date_str and et_a.start_time == start_t and et_a.end_time == end_t and
+        et_a.venue and et_a.venue.code.lower() == venue_input.lower()
+    )
+    if same_slot:
+        return JsonResponse({
+            'status': 'same_slot',
+            'messages': ["That's this exam's own current slot — pick where another exam sits to swap with it."],
+            'course_code': alloc_a.course_code,
+        })
+
+    et_b, bundle_b = _find_exam_bundle_at_slot(date_str, start_t, end_t, venue_input, exclude_ids=ids_a)
+    if not et_b or not et_b.course_allocation:
+        return JsonResponse({
+            'status': 'empty',
+            'messages': [f"No exam is currently scheduled at {date_str} {start_s}–{end_s} @ {venue_input} — "
+                         f"there's nothing there to swap with. Use Simulate Move instead to move into an empty slot."],
+            'course_code': alloc_a.course_code,
+        })
+
+    ids_b = [b.id for b in bundle_b]
+    alloc_b = et_b.course_allocation
+    exclude_both = ids_a + ids_b
+
+    # A moving into B's current slot (venue included) …
+    messages_a, error_a = _check_conflicts_excluding(
+        alloc_a, et_b.venue.code if et_b.venue else venue_input, str(et_b.date), et_b.start_time, et_b.end_time, exclude_both
+    )
+    # … and B moving into A's current slot (venue included).
+    messages_b, error_b = _check_conflicts_excluding(
+        alloc_b, et_a.venue.code if et_a.venue else '', str(et_a.date), et_a.start_time, et_a.end_time, exclude_both
+    )
+
+    error_block = error_a or error_b
+    messages = (
+        [f"— {alloc_a.course_code} → {et_b.date} {et_b.start_time.strftime('%H:%M')}–{et_b.end_time.strftime('%H:%M')} @ {et_b.venue.code if et_b.venue else '?'} —"]
+        + messages_a
+        + [f"— {alloc_b.course_code} → {et_a.date} {et_a.start_time.strftime('%H:%M')}–{et_a.end_time.strftime('%H:%M')} @ {et_a.venue.code if et_a.venue else '?'} —"]
+        + messages_b
+    )
+
+    return JsonResponse({
+        'status': 'conflict' if error_block else 'ok',
+        'messages': messages,
+        'course_a': {
+            'et_id': et_a.id, 'course_code': alloc_a.course_code,
+            'lecturer': getattr(alloc_a.lecturer, 'name', 'Unassigned'), 'bundle_size': len(bundle_a),
+            'date': str(et_a.date), 'day': et_a.day, 'start': et_a.start_time.strftime('%H:%M'), 'end': et_a.end_time.strftime('%H:%M'),
+            'venue': et_a.venue.code if et_a.venue else '',
+        },
+        'course_b': {
+            'et_id': et_b.id, 'course_code': alloc_b.course_code,
+            'lecturer': getattr(alloc_b.lecturer, 'name', 'Unassigned'), 'bundle_size': len(bundle_b),
+            'date': str(et_b.date), 'day': et_b.day, 'start': et_b.start_time.strftime('%H:%M'), 'end': et_b.end_time.strftime('%H:%M'),
+            'venue': et_b.venue.code if et_b.venue else '',
+        },
+    })
+
+
+@allowed_roles(Role.SUDO, Role.DIRECTOR, Role.TIMETABLE_ADMIN)
+def exam_execute_swap_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'messages': ['POST required.']}, status=405)
+
+    et_id_a = request.POST.get('et_id_a')
+    et_id_b = request.POST.get('et_id_b')
+    force = (request.POST.get('force') or '').lower() == 'true'
+
+    if not (et_id_a and et_id_b):
+        return JsonResponse({'status': 'error', 'messages': ['Both exams to swap are required.']}, status=400)
+
+    with transaction.atomic():
+        # Re-resolve everything fresh at execute time (not trusting anything
+        # cached client-side from the simulate step), all inside this one
+        # atomic block, so a swap never applies against stale positions.
+        et_a, bundle_a = _get_move_bundle(et_id_a)
+        et_b, bundle_b = _get_move_bundle(et_id_b)
+        if not et_a or not et_a.course_allocation:
+            return JsonResponse({'status': 'error', 'messages': ['First exam not found (already moved?).']}, status=404)
+        if not et_b or not et_b.course_allocation:
+            return JsonResponse({'status': 'error', 'messages': ['Second exam not found (already moved?).']}, status=404)
+
+        ids_a = [b.id for b in bundle_a]
+        ids_b = [b.id for b in bundle_b]
+        if set(ids_a) & set(ids_b):
+            return JsonResponse({'status': 'error', 'messages': ['Those two selections overlap — nothing to swap.']}, status=400)
+
+        alloc_a, alloc_b = et_a.course_allocation, et_b.course_allocation
+        exclude_both = ids_a + ids_b
+
+        # Snapshot each exam's ORIGINAL slot before anything is written —
+        # this is exactly what the other exam will be moved into.
+        date_a, start_a, end_a, venue_a = et_a.date, et_a.start_time, et_a.end_time, et_a.venue
+        date_b, start_b, end_b, venue_b = et_b.date, et_b.start_time, et_b.end_time, et_b.venue
+
+        messages_a, error_a = _check_conflicts_excluding(
+            alloc_a, venue_b.code if venue_b else '', str(date_b), start_b, end_b, exclude_both
+        )
+        messages_b, error_b = _check_conflicts_excluding(
+            alloc_b, venue_a.code if venue_a else '', str(date_a), start_a, end_a, exclude_both
+        )
+        error_block = error_a or error_b
+
+        if error_block and not force:
+            messages = (
+                [f"— {alloc_a.course_code} → {date_b} {start_b.strftime('%H:%M')}–{end_b.strftime('%H:%M')} @ {venue_b.code if venue_b else '?'} —"]
+                + messages_a
+                + [f"— {alloc_b.course_code} → {date_a} {start_a.strftime('%H:%M')}–{end_a.strftime('%H:%M')} @ {venue_a.code if venue_a else '?'} —"]
+                + messages_b
+            )
+            return JsonResponse({'status': 'error', 'messages': messages}, status=409)
+
+        if not venue_a or not venue_b:
+            return JsonResponse({'status': 'error', 'messages': ['Both entries must have a venue to swap.']}, status=400)
+
+        day_a_name, day_b_name = date_a.strftime('%A'), date_b.strftime('%A')
+        ExamTimetable.objects.filter(id__in=ids_a).update(date=date_b, day=day_b_name, start_time=start_b, end_time=end_b, venue=venue_b)
+        ExamTimetable.objects.filter(id__in=ids_b).update(date=date_a, day=day_a_name, start_time=start_a, end_time=end_a, venue=venue_a)
+
+    n_a, n_b = len(bundle_a), len(bundle_b)
+    return JsonResponse({
+        'status': 'success',
+        'messages': (messages_a or []) + (messages_b or []) + [
+            f"Swapped {alloc_a.course_code} ({n_a} entr{'y' if n_a == 1 else 'ies'}) with "
+            f"{alloc_b.course_code} ({n_b} entr{'y' if n_b == 1 else 'ies'}): "
+            f"{alloc_a.course_code} is now {date_b} {start_b.strftime('%H:%M')}–{end_b.strftime('%H:%M')} @ {venue_b.code}, "
+            f"{alloc_b.course_code} is now {date_a} {start_a.strftime('%H:%M')}–{end_a.strftime('%H:%M')} @ {venue_a.code}."
+        ],
+        'swapped_count': n_a + n_b,
     })

@@ -637,6 +637,15 @@ class SyncRun(models.Model):
     models_completed = models.PositiveIntegerField(default=0)
     records_sent = models.PositiveIntegerField(default=0)
     error_message = models.TextField(blank=True, default="")
+    pass_count = models.PositiveIntegerField(
+        default=1,
+        help_text="How many automatic passes this run made over the model list. "
+                   "A run that fails to fully send everything on its first pass is "
+                   "automatically retried in place (same SyncRun, no re-click needed) "
+                   "as long as later passes are still making forward progress — this "
+                   "is how many it took, whether that's 1 (fully sent first try) or "
+                   "up to sync_engine.MAX_SYNC_PASSES.",
+    )
 
     class Meta:
         ordering = ["-started_at"]
@@ -671,9 +680,17 @@ class SyncModelLog(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="sent")
     error_message = models.TextField(blank=True, default="")
     timestamp = models.DateTimeField(auto_now_add=True)
+    pass_number = models.PositiveIntegerField(
+        default=1,
+        help_text="Which automatic pass (within the same SyncRun) produced this "
+                   "line. A model that failed on pass 1 and succeeded on an "
+                   "automatic retry pass 2 shows up here as two rows, one per "
+                   "pass, so the history of what actually happened is visible "
+                   "rather than overwritten.",
+    )
 
     class Meta:
-        ordering = ["run", "order"]
+        ordering = ["run", "order", "pass_number"]
         verbose_name = "Sync Model Log"
         verbose_name_plural = "Sync Model Logs"
 

@@ -883,7 +883,7 @@
             <tbody id="tbody-{{ date }}">
               {% for venue in existing_venues %}
                 <tr class="{% if venue.is_blocked or venue.is_specialized %}blocked-venue-row{% endif %}"{% if venue.is_blocked %} title="Venue blocked"{% elif venue.is_specialized %} title="Venue specialization — reserved/preferred venue"{% endif %}>
-                  <td class="venue-header">{% if venue.is_blocked %}<i class="bi bi-slash-circle" title="Venue blocked"></i> {% endif %}<strong>{{ venue.code }}</strong>{% if venue.exam_capacity %}<br><small style="color:#999;font-size:.65rem;">Exam Cap:{{ venue.exam_capacity }}</small>{% elif venue.capacity %}<br><small style="color:#999;font-size:.65rem;">Cap:{{ venue.capacity }}</small>{% endif %}</td>
+                  <td class="venue-header" data-venue-header="1" data-venue-code="{{ venue.code }}" data-venue-capacity="{{ venue.exam_capacity|default:venue.capacity }}" title="Right-click to open this room — move every exam in it elsewhere">{% if venue.is_blocked %}<i class="bi bi-slash-circle" title="Venue blocked"></i> {% endif %}<strong>{{ venue.code }}</strong>{% if venue.exam_capacity %}<br><small style="color:#999;font-size:.65rem;">Exam Cap:{{ venue.exam_capacity }}</small>{% elif venue.capacity %}<br><small style="color:#999;font-size:.65rem;">Cap:{{ venue.capacity }}</small>{% endif %}</td>
                   {% for slot in time_slots %}
                     <td id="slot-{{ date }}-{{ venue.code }}-{{ slot.0 }}"
                         class="timetable-cell empty"
@@ -1132,7 +1132,8 @@ function ensureOverflowDayDOM(effectiveDateRange, venuesData) {
             const blockIcon = v.is_blocked
                 ? '<i class="bi bi-slash-circle" title="Venue blocked"></i> '
                 : '';
-            return `<tr${rowCls}${rowTitle}><td class="venue-header">${blockIcon}<strong>${v.code}</strong>${capLabel}</td>${cells}</tr>`;
+            const rowCap = (v.exam_capacity || v.capacity || '');
+            return `<tr${rowCls}${rowTitle}><td class="venue-header" data-venue-header="1" data-venue-code="${v.code}" data-venue-capacity="${rowCap}" title="Right-click to open this room — move every exam in it elsewhere">${blockIcon}<strong>${v.code}</strong>${capLabel}</td>${cells}</tr>`;
         }).join('');
 
         tblWrapper.innerHTML = `<table><thead><tr><th style="min-width:72px;">Venue</th>${slotHeaders}</tr></thead><tbody id="tbody-${date}">${rows}</tbody></table>`;
@@ -3547,6 +3548,7 @@ function initWorkspace() {
     initSearch();
     initUnscheduledModal();
     initExamSimulateMove();
+    initExamOpenRoom();
     initExamFindCourses();
 }
 </script>
@@ -3634,10 +3636,19 @@ function initWorkspace() {
 <div id="ttContextMenu" class="tt-context-menu">
   <div class="tt-context-menu-header" id="ttContextMenuHeader"></div>
   <button class="tt-context-menu-item" id="ctxSimulateBtn"><i class="bi bi-arrows-move"></i> Simulate Move…</button>
+  <button class="tt-context-menu-item" id="ctxSwapBtn"><i class="bi bi-arrow-left-right"></i> Swap with…</button>
   <button class="tt-context-menu-item" id="ctxBulkLecturerBtn"><i class="bi bi-person-badge"></i> Move for this Lecturer…</button>
   <button class="tt-context-menu-item" id="ctxBulkProgramBtn"><i class="bi bi-mortarboard"></i> Move for these Students…</button>
   <div style="border-top:1px solid #eee;margin:4px 0;"></div>
   <button class="tt-context-menu-item" id="ctxFindCoursesBtn"><i class="bi bi-search"></i> Find Courses…</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ROOM CONTEXT MENU — right-click a venue row header
+     ══════════════════════════════════════════════════════════ -->
+<div id="venueContextMenu" class="tt-context-menu">
+  <div class="tt-context-menu-header" id="venueContextMenuHeader"></div>
+  <button class="tt-context-menu-item" id="ctxEvacuateVenueBtn"><i class="bi bi-box-arrow-right"></i> Open Room — move all exams out…</button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════
@@ -3648,6 +3659,12 @@ function initWorkspace() {
     <button class="modal-close-btn" onclick="closeSimulateModal()">×</button>
     <div class="modal-title" style="color:#3949ab;"><i class="bi bi-arrows-move"></i> Simulate Move</div>
     <div class="sm-current-slot" id="smCurrentSlot"></div>
+    <div class="sm-detach-row" id="smDetachRow" style="display:none;margin:2px 0 10px;">
+      <label style="display:flex;align-items:flex-start;gap:6px;font-size:0.85rem;cursor:pointer;">
+        <input type="checkbox" id="smDetachCheck" style="margin-top:3px;">
+        <span>Move only this section — leave the other section(s) of <span id="smDetachCourseCode"></span> at this slot exactly where they are.</span>
+      </label>
+    </div>
     <div class="sm-picker-row">
       <div class="sm-picker-field">
         <label>Exam Date</label>
@@ -3669,6 +3686,66 @@ function initWorkspace() {
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeSimulateModal()">Cancel</button>
       <button class="btn" id="smMoveBtn" style="background:#3949ab;" disabled><i class="bi bi-check2"></i> Move Here</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     SWAP MODAL — trade this exam's slot with another exam's
+     ══════════════════════════════════════════════════════════ -->
+<div id="swapModal" style="display:none;" class="modal-overlay">
+  <div class="sm-modal-box">
+    <button class="modal-close-btn" onclick="closeSwapModal()">×</button>
+    <div class="modal-title" style="color:#c2185b;"><i class="bi bi-arrow-left-right"></i> Swap With…</div>
+    <div class="sm-current-slot" id="swCurrentSlot"></div>
+    <p class="muted" style="margin:4px 0 10px;font-size:0.82rem;">Pick the date, timeslot and venue of the <strong>other</strong> exam. They'll trade places — each one takes over the other's exact date, timeslot and venue.</p>
+    <div class="sm-picker-row">
+      <div class="sm-picker-field">
+        <label>Exam Date</label>
+        <select id="swDateSelect"></select>
+      </div>
+      <div class="sm-picker-field">
+        <label>Timeslot</label>
+        <select id="swSlotSelect"></select>
+      </div>
+      <div class="sm-picker-field">
+        <label>Venue</label>
+        <select id="swVenueSelect"></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" id="swCheckBtn"><i class="bi bi-search"></i> Find Exam &amp; Check</button>
+    </div>
+    <div class="sm-result-area" id="swResultArea"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeSwapModal()">Cancel</button>
+      <button class="btn" id="swSwapBtn" style="background:#c2185b;" disabled><i class="bi bi-arrow-left-right"></i> Swap</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     OPEN ROOM MODAL — preview + apply the auto-placement plan
+     for every exam currently booked in the right-clicked room
+     ══════════════════════════════════════════════════════════ -->
+<div id="evacuateVenueModal" style="display:none;" class="modal-overlay">
+  <div class="sm-modal-box wide">
+    <button class="modal-close-btn" onclick="closeEvacuateVenueModal()">×</button>
+    <div class="modal-title" style="color:#b71c1c;"><i class="bi bi-box-arrow-right"></i> Open Room — Move All Exams Out of <span id="evVenueName"></span></div>
+    <p class="muted" style="margin:4px 0 12px;font-size:0.82rem;">
+      Every exam currently booked in this room is placed elsewhere automatically:
+      first the same date &amp; timeslot in the closest-capacity free venue; if none is
+      free there, the nearest fully conflict-free date/timeslot/venue; if nothing is
+      fully clean either, the same date in any venue that is at least not
+      double-booked (flagged below for manual review). Blocked and specialized
+      venues are never used as a destination.
+    </p>
+    <div id="evPreviewArea" style="min-height:60px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEvacuateVenueModal()">Cancel</button>
+      <button class="btn" id="evApplyBtn" style="background:#b71c1c;" disabled>
+        <i class="bi bi-check2-all"></i> Apply All Moves
+      </button>
     </div>
   </div>
 </div>
@@ -3796,6 +3873,10 @@ function initExamSimulateMove(){
     document.getElementById('ttContextMenu').style.display='none';
     openSimulateModal();
   });
+  document.getElementById('ctxSwapBtn')?.addEventListener('click', function(){
+    document.getElementById('ttContextMenu').style.display='none';
+    openSwapModal();
+  });
   document.getElementById('ctxBulkLecturerBtn')?.addEventListener('click', function(){
     document.getElementById('ttContextMenu').style.display='none';
     openBulkMoveModal('lecturer');
@@ -3806,11 +3887,19 @@ function initExamSimulateMove(){
   });
 
   document.getElementById('simulateMoveModal')?.addEventListener('click', function(e){ if(e.target===this) closeSimulateModal(); });
+  document.getElementById('swapModal')?.addEventListener('click', function(e){ if(e.target===this) closeSwapModal(); });
   document.getElementById('bulkMoveModal')?.addEventListener('click', function(e){ if(e.target===this) closeBulkMoveModal(); });
+
+  document.getElementById('swDateSelect')?.addEventListener('change', ()=>{ populateSwSlotSelect(); resetSwapResult(); });
+  document.getElementById('swSlotSelect')?.addEventListener('change', resetSwapResult);
+  document.getElementById('swVenueSelect')?.addEventListener('change', resetSwapResult);
+  document.getElementById('swCheckBtn')?.addEventListener('click', runSwapCheck);
+  document.getElementById('swSwapBtn')?.addEventListener('click', ()=>executeSwap(false));
 
   document.getElementById('smDateSelect')?.addEventListener('change', ()=>{ populateSlotSelect(); resetSimulateResult(); });
   document.getElementById('smSlotSelect')?.addEventListener('change', resetSimulateResult);
   document.getElementById('smVenueSelect')?.addEventListener('change', resetSimulateResult);
+  document.getElementById('smDetachCheck')?.addEventListener('change', resetSimulateResult);
   document.getElementById('smCheckBtn')?.addEventListener('click', runSimulateCheck);
   document.getElementById('smMoveBtn')?.addEventListener('click', ()=>executeMove(false));
 
@@ -3832,6 +3921,7 @@ function openTtContextMenu(e, el){
     `${smCtx.course||'Course'}<small>${smCtx.date||''} ${smCtx.start||''}–${smCtx.end||''} @ ${smCtx.venue||''} · ${smCtx.lecturer||'Unassigned'}</small>`;
   const hasEt=!!smCtx.etId;
   document.getElementById('ctxSimulateBtn').disabled=!hasEt;
+  document.getElementById('ctxSwapBtn').disabled=!hasEt;
   document.getElementById('ctxBulkLecturerBtn').disabled=!hasEt||!smCtx.lecturer||smCtx.lecturer==='Unassigned';
   document.getElementById('ctxBulkProgramBtn').disabled=!hasEt;
   menu.style.display='block';
@@ -3858,6 +3948,8 @@ async function openSimulateModal(){
   populateVenueSelect('smVenueSelect', smCtx.venue);
   document.getElementById('smResultArea').innerHTML='';
   document.getElementById('smMoveBtn').disabled=true;
+  document.getElementById('smDetachRow').style.display='none';
+  document.getElementById('smDetachCheck').checked=false;
   document.getElementById('simulateMoveModal').style.display='flex';
 }
 function closeSimulateModal(){ document.getElementById('simulateMoveModal').style.display='none'; }
@@ -3911,14 +4003,22 @@ async function runSimulateCheck(){
   const date=document.getElementById('smDateSelect').value;
   const [start,end]=(document.getElementById('smSlotSelect').value||'').split('|');
   const venue=document.getElementById('smVenueSelect').value;
+  const detach=!!document.getElementById('smDetachCheck')?.checked;
   if(!date||!start||!end||!venue){toast('Pick a date, timeslot and venue first.','warning');return;}
   const area=document.getElementById('smResultArea');
   area.innerHTML='<div style="text-align:center;padding:10px 0;"><span class="spinner"></span></div>';
   document.getElementById('smMoveBtn').disabled=true;
   try{
-    const body=new URLSearchParams({et_id:smCtx.etId, date, start, end, venue, csrfmiddlewaretoken:csrf()});
+    const body=new URLSearchParams({et_id:smCtx.etId, date, start, end, venue, detach:detach?'true':'false', csrfmiddlewaretoken:csrf()});
     const r=await fetch("{% url 'exam_simulate_move_api' %}",{method:'POST',headers:{'X-CSRFToken':csrf()},body}).then(r=>r.json());
     lastSmRecs=r.recommendations||[];
+    const detachRow=document.getElementById('smDetachRow');
+    if(r.full_bundle_size>1){
+      detachRow.style.display='';
+      document.getElementById('smDetachCourseCode').textContent=r.course_code||'this course';
+    } else {
+      detachRow.style.display='none';
+    }
     let html=renderSmMessages(area, r.messages);
     if(r.status==='conflict'){
       html+=`<div class="sm-section-title"><i class="bi bi-lightbulb"></i> Suggested Free Slots</div>`;
@@ -3951,11 +4051,12 @@ async function executeMove(force){
   const date=document.getElementById('smDateSelect').value;
   const [start,end]=(document.getElementById('smSlotSelect').value||'').split('|');
   const venue=document.getElementById('smVenueSelect').value;
+  const detach=!!document.getElementById('smDetachCheck')?.checked;
   const forceOverride=force||!!document.getElementById('smForceCheck')?.checked;
   const btn=document.getElementById('smMoveBtn');
   btn.disabled=true; const origHtml=btn.innerHTML; btn.innerHTML='<span class="spinner"></span> Moving…';
   try{
-    const body=new URLSearchParams({et_id:smCtx.etId, date, start, end, venue, force:forceOverride?'true':'false', csrfmiddlewaretoken:csrf()});
+    const body=new URLSearchParams({et_id:smCtx.etId, date, start, end, venue, force:forceOverride?'true':'false', detach:detach?'true':'false', csrfmiddlewaretoken:csrf()});
     const r=await fetch("{% url 'exam_execute_move_api' %}",{method:'POST',headers:{'X-CSRFToken':csrf()},body}).then(r=>r.json());
     if(r.status==='success'){
       toast(r.messages?.[r.messages.length-1]||'Moved.','success',4500);
@@ -3970,6 +4071,233 @@ async function executeMove(force){
     btn.disabled=false;
   } finally {
     btn.innerHTML=origHtml;
+  }
+}
+
+// ── Swap modal ───────────────────────────────────────────────
+// Right-clicked exam = "A". The date/slot/venue picked here is looked
+// up on the server for whatever exam currently sits there ("B") — if
+// one is found, both directions of the trade are conflict-checked
+// (excluding A and B from each other, since they're swapping on
+// purpose) before the swap can be committed.
+let swTargetB=null; // {et_id, course_code, ...} resolved by the last check
+async function openSwapModal(){
+  if(!smCtx||!smCtx.etId){toast('This entry cannot be swapped.','warning');return;}
+  await ensureSlotCatalog();
+  document.getElementById('swCurrentSlot').innerHTML=
+    `<strong>${smCtx.course}</strong> — currently <strong>${smCtx.date} ${smCtx.start}–${smCtx.end}</strong> @ <strong>${smCtx.venue}</strong> (${smCtx.lecturer||'Unassigned'})`;
+  populateDateSelect('swDateSelect', smCtx.date);
+  populateSwSlotSelect(smCtx.start);
+  populateVenueSelect('swVenueSelect', smCtx.venue);
+  swTargetB=null;
+  document.getElementById('swResultArea').innerHTML='';
+  document.getElementById('swSwapBtn').disabled=true;
+  document.getElementById('swapModal').style.display='flex';
+}
+function closeSwapModal(){ document.getElementById('swapModal').style.display='none'; }
+function resetSwapResult(){
+  swTargetB=null;
+  document.getElementById('swResultArea').innerHTML='';
+  document.getElementById('swSwapBtn').disabled=true;
+}
+function populateSwSlotSelect(preferStart){
+  const dateSel=document.getElementById('swDateSelect');
+  const date=dateSel.value||dateSel.options[0]?.value;
+  const slotSel=document.getElementById('swSlotSelect');
+  const slots=(smCatalog.slots||[]).filter(s=>s.date===date).sort((a,b)=>a.start.localeCompare(b.start));
+  slotSel.innerHTML=slots.map(s=>{
+    const sel=preferStart&&s.start===preferStart?' selected':'';
+    return `<option value="${s.start}|${s.end}"${sel}>${s.label} (${s.start}–${s.end})</option>`;
+  }).join('');
+}
+
+async function runSwapCheck(){
+  const date=document.getElementById('swDateSelect').value;
+  const [start,end]=(document.getElementById('swSlotSelect').value||'').split('|');
+  const venue=document.getElementById('swVenueSelect').value;
+  if(!date||!start||!end||!venue){toast('Pick a date, timeslot and venue first.','warning');return;}
+  const area=document.getElementById('swResultArea');
+  area.innerHTML='<div style="text-align:center;padding:10px 0;"><span class="spinner"></span></div>';
+  document.getElementById('swSwapBtn').disabled=true;
+  swTargetB=null;
+  try{
+    const body=new URLSearchParams({et_id:smCtx.etId, date, start, end, venue, csrfmiddlewaretoken:csrf()});
+    const r=await fetch("{% url 'exam_simulate_swap_api' %}",{method:'POST',headers:{'X-CSRFToken':csrf()},body}).then(r=>r.json());
+
+    if(r.status==='same_slot'){
+      area.innerHTML=`<div class="sm-msg warn">${r.messages?.[0]||"That's this exam's own slot."}</div>`;
+      return;
+    }
+    if(r.status==='empty'){
+      area.innerHTML=`<div class="sm-msg warn">${r.messages?.[0]||'No exam found in that slot.'}</div>`;
+      return;
+    }
+
+    swTargetB=r.course_b;
+    let html=`<div class="sm-msg info"><i class="bi bi-arrow-left-right"></i> Swapping with <strong>${r.course_b.course_code}</strong> (${r.course_b.lecturer||'Unassigned'})${r.course_b.bundle_size>1?` — ${r.course_b.bundle_size} entries move together`:''}.</div>`;
+    if(r.course_a.bundle_size>1){
+      html+=`<div class="sm-msg info"><i class="bi bi-layers"></i> ${r.course_a.course_code} also moves as ${r.course_a.bundle_size} entries (split-venue / combined group).</div>`;
+    }
+    html+=renderSmMessages(area, r.messages);
+
+    if(r.status==='conflict'){
+      html+=`<div class="sm-force-row"><label><input type="checkbox" id="swForceCheck"> Swap anyway (override conflicts)</label></div>`;
+      area.innerHTML=html;
+      document.getElementById('swForceCheck')?.addEventListener('change', function(){
+        document.getElementById('swSwapBtn').disabled=!this.checked;
+      });
+    } else {
+      area.innerHTML=html;
+      document.getElementById('swSwapBtn').disabled=false;
+    }
+  }catch(err){
+    area.innerHTML=`<div class="sm-msg err">Server error: ${err.message}</div>`;
+  }
+}
+
+async function executeSwap(force){
+  if(!swTargetB){toast('Run "Find Exam & Check" first.','warning');return;}
+  const forceOverride=force||!!document.getElementById('swForceCheck')?.checked;
+  const btn=document.getElementById('swSwapBtn');
+  btn.disabled=true; const origHtml=btn.innerHTML; btn.innerHTML='<span class="spinner"></span> Swapping…';
+  try{
+    const body=new URLSearchParams({et_id_a:smCtx.etId, et_id_b:swTargetB.et_id, force:forceOverride?'true':'false', csrfmiddlewaretoken:csrf()});
+    const r=await fetch("{% url 'exam_execute_swap_api' %}",{method:'POST',headers:{'X-CSRFToken':csrf()},body}).then(r=>r.json());
+    if(r.status==='success'){
+      toast(r.messages?.[r.messages.length-1]||'Swapped.','success',5000);
+      closeSwapModal();
+      await refreshExamTimetableDisplay();
+    } else {
+      document.getElementById('swResultArea').innerHTML=renderSmMessages(null, r.messages||['Swap failed.']);
+      btn.disabled=false;
+    }
+  }catch(err){
+    toast('Server error: '+err.message,'error');
+    btn.disabled=false;
+  } finally {
+    btn.innerHTML=origHtml;
+  }
+}
+
+// ============================================================
+// OPEN ROOM — right-click a venue row → auto-place every exam
+// in it elsewhere, tiered cascade computed server-side.
+// ============================================================
+let evVenueCode=null;   // venue right-clicked
+let evPlan=[];          // planned moves from the preview API
+let evUnresolved=[];    // entries the planner couldn't place
+
+function initExamOpenRoom(){
+  document.addEventListener('contextmenu', function(e){
+    const th=e.target.closest('[data-venue-header="1"]');
+    if(!th) return;
+    e.preventDefault();
+    openVenueContextMenu(e, th);
+  });
+  document.addEventListener('click', function(e){
+    const menu=document.getElementById('venueContextMenu');
+    if(menu && menu.style.display==='block' && !menu.contains(e.target)) menu.style.display='none';
+  });
+  document.getElementById('ctxEvacuateVenueBtn')?.addEventListener('click', function(){
+    document.getElementById('venueContextMenu').style.display='none';
+    if(evVenueCode) openEvacuateVenueModal(evVenueCode);
+  });
+  document.getElementById('evacuateVenueModal')?.addEventListener('click', function(e){ if(e.target===this) closeEvacuateVenueModal(); });
+  document.getElementById('evApplyBtn')?.addEventListener('click', applyEvacuateVenueMoves);
+}
+
+function openVenueContextMenu(e, th){
+  evVenueCode=th.dataset.venueCode||'';
+  const cap=th.dataset.venueCapacity;
+  const menu=document.getElementById('venueContextMenu');
+  document.getElementById('venueContextMenuHeader').innerHTML=
+    `${evVenueCode||'Venue'}${cap?` <small>Cap: ${cap}</small>`:''}`;
+  document.getElementById('ctxEvacuateVenueBtn').disabled=!evVenueCode;
+  menu.style.left='0px';
+  menu.style.top='0px';
+  menu.style.display='block';
+  const vw=window.innerWidth,vh=window.innerHeight;
+  const mw=menu.offsetWidth||260, mh=menu.offsetHeight||70;
+  menu.style.left=Math.max(8,Math.min(e.clientX,vw-mw-8))+'px';
+  menu.style.top=Math.max(8,Math.min(e.clientY,vh-mh-8))+'px';
+}
+
+async function openEvacuateVenueModal(venueCode){
+  document.getElementById('evVenueName').textContent=venueCode;
+  document.getElementById('evacuateVenueModal').style.display='flex';
+  document.getElementById('evApplyBtn').disabled=true;
+  evPlan=[]; evUnresolved=[];
+  const area=document.getElementById('evPreviewArea');
+  area.innerHTML=`<div style="text-align:center;padding:16px 0;"><span class="spinner"></span><p style="margin-top:8px;font-size:0.88rem;color:#666;">Working out where every exam goes…</p></div>`;
+  try{
+    const r=await fetch("{% url 'exam_evacuate_venue_preview_api' %}?venue="+encodeURIComponent(venueCode)).then(r=>r.json());
+    if(r.status==='error'){ area.innerHTML=`<div class="sm-msg err">${r.messages?.[0]||'Could not build a plan.'}</div>`; return; }
+    if(r.status==='empty'){ area.innerHTML=`<p class="muted">${r.messages?.[0]||'No exams to move.'}</p>`; return; }
+    evPlan=r.plan||[]; evUnresolved=r.unresolved||[];
+    renderEvacuatePreview();
+  }catch(err){
+    area.innerHTML=`<div class="sm-msg err">Server error: ${err.message}</div>`;
+  }
+}
+
+function closeEvacuateVenueModal(){ document.getElementById('evacuateVenueModal').style.display='none'; }
+
+function evTierBadge(tier){
+  if(tier===1) return '<span class="sm-msg ok" style="display:inline-block;padding:2px 8px;">Same slot</span>';
+  if(tier===2) return '<span class="sm-msg info" style="display:inline-block;padding:2px 8px;">Different slot</span>';
+  return '<span class="sm-msg warn" style="display:inline-block;padding:2px 8px;">⚠️ Relaxed check</span>';
+}
+
+function renderEvacuatePreview(){
+  const area=document.getElementById('evPreviewArea');
+  let html='';
+  if(evPlan.length){
+    const rows=evPlan.map(p=>`<tr>
+      <td><strong>${p.course_code||'—'}</strong><br><small>${p.lecturer||'Unassigned'}${p.students?` · ${p.students} students`:''}</small></td>
+      <td>${p.from.date}<br>${p.from.start}-${p.from.end}<br>${p.from.venue}</td>
+      <td>${p.to.date}<br>${p.to.start}-${p.to.end}<br><strong>${p.to.venue}</strong>${p.to.capacity?` <small>(cap ${p.to.capacity})</small>`:''}</td>
+      <td>${evTierBadge(p.to.tier)}<div class="muted" style="font-size:0.74rem;margin-top:4px;">${p.to.note||''}</div></td>
+    </tr>`).join('');
+    html+=`<div style="overflow-x:auto;"><table class="sm-session-table">
+      <thead><tr><th>Course / Lecturer</th><th>Currently at</th><th>Moving to</th><th>How</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  }
+  if(evUnresolved.length){
+    const items=evUnresolved.map(u=>`<div class="sm-msg err"><strong>${u.course_code||u.et_id}</strong> (${u.date} ${u.start}-${u.end}): ${u.reason}</div>`).join('');
+    html+=`<div class="sm-section-title" style="margin-top:14px;"><i class="bi bi-exclamation-triangle-fill"></i> Could not be placed (${evUnresolved.length}) — left untouched</div><div class="sm-msg-list">${items}</div>`;
+  }
+  area.innerHTML=html||'<p class="muted">Nothing to move.</p>';
+  document.getElementById('evApplyBtn').disabled=evPlan.length===0;
+}
+
+async function applyEvacuateVenueMoves(){
+  if(!evPlan.length) return;
+  const btn=document.getElementById('evApplyBtn');
+  btn.disabled=true; const origHtml=btn.innerHTML; btn.innerHTML='<span class="spinner"></span> Moving…';
+  const moves=evPlan.map(p=>({et_id:p.et_id, date:p.to.date, start:p.to.start, end:p.to.end, venue:p.to.venue, tier:p.to.tier}));
+  try{
+    const resp=await fetch("{% url 'exam_evacuate_venue_execute_api' %}",{
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf()},
+      body:JSON.stringify({moves})
+    });
+    const r=await resp.json();
+    if(r.status==='success'){
+      toast(`✅ ${r.applied_count} exam${r.applied_count!==1?'s':''} moved out of ${evVenueCode}, ${r.skipped_count} skipped.`,'success',5500);
+      if(r.skipped_count){
+        const area=document.getElementById('evPreviewArea');
+        const skipHtml=r.skipped.map(sk=>`<div class="sm-msg err">${sk.course_code||sk.et_id}: ${sk.reason}</div>`).join('');
+        area.insertAdjacentHTML('afterbegin', `<div class="sm-msg-list">${skipHtml}</div>`);
+      } else {
+        closeEvacuateVenueModal();
+      }
+      await refreshExamTimetableDisplay();
+    } else {
+      toast(r.messages?.[0]||'Could not apply the moves.','error');
+    }
+  }catch(err){
+    toast('Server error: '+err.message,'error');
+  } finally {
+    btn.disabled=false; btn.innerHTML=origHtml;
   }
 }
 

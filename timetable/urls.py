@@ -8,6 +8,7 @@ from .algorithms import progress_tracking_autosheduler,lab_allocation_autoshedul
 from . import delete_timetable_entry,exam_timetable_panel,update_exam_scheduler_config,remove_from_merged,add_to_merged,delete_merged_group
 from . import main_timetable_view,timetable_views_crud,history_views,update_exam_config
 from . import exam_simulate_move
+from . import exam_room_ops
 from . import find_courses, exam_find_courses
 from . import analysis_reports
 from . import lab_panel_ops
@@ -133,6 +134,10 @@ urlpatterns += [
     path('exam/timetable/move/bulk-scope-options/', exam_simulate_move.exam_bulk_move_scope_options_api, name='exam_bulk_move_scope_options_api'),
     path('exam/timetable/move/bulk-candidates/', exam_simulate_move.exam_bulk_move_candidates_api, name='exam_bulk_move_candidates_api'),
     path('exam/timetable/move/bulk-execute/', exam_simulate_move.exam_bulk_move_execute_api, name='exam_bulk_move_execute_api'),
+    path('exam/timetable/move/simulate-swap/', exam_simulate_move.exam_simulate_swap_api, name='exam_simulate_swap_api'),
+    path('exam/timetable/move/execute-swap/', exam_simulate_move.exam_execute_swap_api, name='exam_execute_swap_api'),
+    path('exam/timetable/venue/evacuate/preview/', exam_room_ops.exam_evacuate_venue_preview_api, name='exam_evacuate_venue_preview_api'),
+    path('exam/timetable/venue/evacuate/execute/', exam_room_ops.exam_evacuate_venue_execute_api, name='exam_evacuate_venue_execute_api'),
 
     # ── Find Courses ──────────────────────────────────────────────────────────
     path('timetable/find/filter-options/', find_courses.find_filter_options_api, name='find_filter_options_api'),
