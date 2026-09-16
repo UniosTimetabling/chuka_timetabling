@@ -259,3 +259,9 @@ Traceback (most recent call last):
     ...<2 lines>...
     ) from e
 django.core.exceptions.TooManyFieldsSent: The number of GET/POST parameters exceeded settings.DATA_UPLOAD_MAX_NUMBER_FIELDS.
+ERROR 2026-09-16 09:55:45,878 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-16 09:55:45,893 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-16 09:55:56,804 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-16 09:55:56,821 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-16 09:55:56,834 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.
+ERROR 2026-09-16 09:55:56,877 django.server basehttp:192 You're accessing the development server over HTTPS, but it only supports HTTP.

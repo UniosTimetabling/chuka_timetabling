@@ -34,3 +34,7 @@ Traceback (most recent call last):
     ...<2 lines>...
     ) from e
 django.core.exceptions.TooManyFieldsSent: The number of GET/POST parameters exceeded settings.DATA_UPLOAD_MAX_NUMBER_FIELDS.
+INFO 2026-09-16 09:56:40,511 security views:109 Logout | user=physical_sciences | ip=127.0.0.1
+INFO 2026-09-16 09:56:47,137 security views:84 Login success | user=dravis | ip=127.0.0.1
+INFO 2026-09-16 12:01:54,903 security views:109 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-16 12:02:00,258 security views:84 Login success | user=dravis | ip=127.0.0.1
