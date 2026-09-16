@@ -14489,3 +14489,15 @@ INFO 2026-09-16 18:11:31,363 django.server basehttp:212 "GET /api/notifications/
 INFO 2026-09-16 18:13:04,083 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
 INFO 2026-09-16 18:14:25,726 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
 INFO 2026-09-16 18:14:55,225 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:16:42,437 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:17:37,645 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:18:48,349 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:19:20,389 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:20:24,677 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:20:36,334 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:21:28,163 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:22:16,371 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:23:08,507 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:24:14,916 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:25:07,368 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
+INFO 2026-09-16 18:26:04,998 django.server basehttp:212 "GET /api/notifications/ HTTP/1.1" 200 455
