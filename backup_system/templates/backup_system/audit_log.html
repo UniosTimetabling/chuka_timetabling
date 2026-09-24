@@ -1,0 +1,132 @@
+{% extends "backup_system/base.html" %}
+{% block title %}Audit Trail{% endblock %}
+{% block breadcrumb_current %}Audit Trail{% endblock %}
+
+{% block backup_content %}
+
+<div class="bk-header">
+  <h1>Audit Trail &amp; Undo</h1>
+  <p>Review all data changes and selectively reverse actions within a time range.</p>
+</div>
+
+<!-- Quick Undo -->
+<div class="bk-card">
+  <div class="bk-card-head">Quick Undo</div>
+  <div class="bk-card-body">
+    <form method="post" action="{% url 'backup_system:undo_time_range' %}">
+      {% csrf_token %}
+      <div class="bk-grid-2" style="max-width:680px;">
+        <div>
+          <label class="bk-label">Time Range Preset</label>
+          <select name="preset" class="bk-select"
+            onchange="document.getElementById('custom-range').style.display = this.value === 'custom' ? 'grid' : 'none';">
+            <option value="30min">Last 30 minutes</option>
+            <option value="2hours">Last 2 hours</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+        <div>
+          <label class="bk-label">Restrict to Table (optional)</label>
+          <select name="table_filter" class="bk-select">
+            <option value="">All Tables</option>
+            {% for t in tables %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div id="custom-range" class="bk-grid-2" style="display:none; max-width:680px;">
+        <div>
+          <label class="bk-label">Start</label>
+          <input type="datetime-local" name="start_time" class="bk-input">
+        </div>
+        <div>
+          <label class="bk-label">End</label>
+          <input type="datetime-local" name="end_time" class="bk-input">
+        </div>
+      </div>
+      <div class="bk-actions">
+        <button type="submit" class="bk-btn bk-btn-primary">Preview Undo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Audit Log -->
+<div class="bk-card">
+  <div class="bk-card-head">Audit Trail</div>
+  <div class="bk-card-body">
+
+    <!-- Filters -->
+    <form method="get" style="margin-bottom:1.2rem;">
+      <div class="bk-grid-2" style="max-width:560px;">
+        <div>
+          <label class="bk-label">Table</label>
+          <select name="table" class="bk-select" onchange="this.form.submit()">
+            <option value="">All Tables</option>
+            {% for t in tables %}<option value="{{ t }}" {% if request.GET.table == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="bk-label">Action</label>
+          <select name="action" class="bk-select" onchange="this.form.submit()">
+            <option value="">All Actions</option>
+            <option value="create"  {% if request.GET.action == 'create'  %}selected{% endif %}>Create</option>
+            <option value="update"  {% if request.GET.action == 'update'  %}selected{% endif %}>Update</option>
+            <option value="delete"  {% if request.GET.action == 'delete'  %}selected{% endif %}>Delete</option>
+            <option value="restore" {% if request.GET.action == 'restore' %}selected{% endif %}>Restore</option>
+          </select>
+        </div>
+      </div>
+    </form>
+
+    {% if can_undo %}
+    <form method="post" action="{% url 'backup_system:undo_multiple' %}">
+      {% csrf_token %}
+      <div class="bk-table-wrap">
+        <table class="bk-table">
+          <thead>
+            <tr>
+              <th style="width:36px;"><input type="checkbox" onclick="document.querySelectorAll('.undo-cb').forEach(cb => cb.checked = this.checked)" style="accent-color:#fff;"></th>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Table</th>
+              <th>Record</th>
+              <th>User</th>
+              <th>IP</th>
+              <th>Undo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in logs %}
+            <tr>
+              <td><input type="checkbox" name="audit_log_ids" value="{{ log.id }}" class="undo-cb" style="accent-color:#1a56db;"></td>
+              <td style="font-size:.78rem;">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+              <td>{{ log.get_action_display }}</td>
+              <td>{{ log.table_name }}</td>
+              <td>#{{ log.record_id }}</td>
+              <td>{{ log.user|default:"System" }}</td>
+              <td class="muted">{{ log.ip_address|default:"—" }}</td>
+              <td>
+                <form method="post" action="{% url 'backup_system:undo_single' log.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="bk-btn bk-btn-secondary bk-btn-sm">Undo</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="muted" style="padding:1.2rem .9rem;">No audit entries found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="bk-actions" style="margin-top:.8rem;">
+        <button type="submit" class="bk-btn bk-btn-primary">Undo Selected</button>
+      </div>
+    </form>
+    {% else %}
+    <div class="bk-alert bk-alert-warn">
+      You do not have permission to undo actions. Only Super Admin or System Admin may do so.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

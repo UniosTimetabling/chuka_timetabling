@@ -1,0 +1,1714 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resit Timetabling - COD Panel</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100vh; width: 100vw; overflow: hidden;
+      background: #eef2ef; color: #1a1a1a;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; line-height: 1.4;
+    }
+    body { display: flex; flex-direction: column; }
+
+    /* ── Toast notifications ── */
+    #toastContainer {
+      position: fixed; bottom: 22px; right: 22px; z-index: 9999;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+      color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; box-shadow: 0 4px 18px rgba(0,0,0,0.22);
+      max-width: 320px; pointer-events: auto;
+      opacity: 0; transform: translateX(30px);
+      transition: opacity 0.26s, transform 0.26s;
+    }
+    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast-success  { background: #27ae60; }
+    .toast-error    { background: #e74c3c; }
+    .toast-warning  { background: #f39c12; }
+    .toast-offline  { background: #555; }
+    .toast-info     { background: #1565c0; }
+
+    /* ── Offline banner ── */
+    #offlineBanner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 8000;
+      background: #e65100; color: #fff; font-size: 13px; font-weight: 700;
+      text-align: center; padding: 7px 16px;
+      display: none; gap: 12px; align-items: center; justify-content: center;
+    }
+    #offlineBanner.visible { display: flex; }
+    #offlineBanner.syncing { background: #1565c0; }
+    #syncNowBtn {
+      background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.4);
+      color: #fff; border-radius: 4px; padding: 3px 10px; cursor: pointer;
+      font-size: 12px; font-weight: 700; margin-left: 10px;
+    }
+    #syncNowBtn:hover { background: rgba(255,255,255,0.38); }
+    /* Push header down when banner visible */
+    body.has-banner header { margin-top: 34px; }
+
+    /* ── Spinner overlay for row saves ── */
+    .row-saving td { opacity: 0.55; pointer-events: none; }
+    .row-saving td::after { content: ''; }
+
+    /* ========== HEADER ========== */
+    header {
+      background: #004d26; padding: 0 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; border-bottom: 3px solid #007a3d;
+      flex-shrink: 0; height: 56px;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .header-center { flex: 1; min-width: 0; }
+    .header-center h1 {
+      font-size: 1rem; font-weight: 700; color: #fff;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    header .logo { height: 34px; }
+
+    .nav-toggle {
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.32);
+      border-radius: 5px; padding: 5px 12px; cursor: pointer;
+      font-size: 14px; font-weight: 600;
+    }
+
+    .submission-controls { display: flex; gap: 6px; align-items: center; }
+    .sub-ctrl-box {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 6px; padding: 3px 10px; min-width: 90px;
+    }
+    .sub-ctrl-box.active { border-color: #4ef07a; background: rgba(78,240,122,0.16); }
+    .sub-ctrl-box .sub-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.9); text-transform: uppercase; }
+    .sub-ctrl-box input[type="checkbox"] { width: 14px; height: 14px; accent-color: #4ef07a; cursor: pointer; }
+
+    /* ========== SIDE NAV ========== */
+    .side-nav {
+      position: fixed; top: 0; left: -280px; width: 280px; height: 100vh;
+      background: #fff; border-right: 2px solid #c4ddc8;
+      box-shadow: 5px 0 24px rgba(0,50,20,0.14); z-index: 1000;
+      transition: left 0.28s ease; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .side-nav.active { left: 0; }
+    .nav-header { padding: 12px 16px; background: #004d26; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    .nav-header h3 { color: #fff; font-size: 1rem; font-weight: 700; }
+    .nav-close { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: #fff; font-size: 1rem; cursor: pointer; padding: 3px 8px; border-radius: 4px; }
+    .nav-content { flex: 1; overflow-y: auto; padding: 4px 8px 16px; }
+    .nav-cat { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 12px 6px 4px; border-top: 1px solid #eef2ef; color: #666; }
+    .nav-btn {
+      display: block; text-decoration: none; padding: 6px 12px; margin: 2px 0;
+      border-radius: 5px; font-size: 13px; font-weight: 500;
+      color: #1a3a22; background: #f4f9f5; border: 1px solid #d0e8d4;
+    }
+    .nav-btn:hover { background: #004d26; color: #fff; border-color: #004d26; }
+    .nav-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.42); z-index: 999;
+      opacity: 0; visibility: hidden; transition: all 0.28s;
+    }
+    .nav-overlay.active { opacity: 1; visibility: visible; }
+
+    /* ========== MAIN LAYOUT ========== */
+    main { display: grid; grid-template-columns: 480px 1fr; gap: 12px; padding: 12px; flex: 1; min-height: 0; height: calc(100vh - 56px); overflow: hidden; }
+
+    /* ========== FORM PANEL ========== */
+    .form-section { background: #fff; border-radius: 10px; border: 1px solid #ccddd0; display: flex; flex-direction: column; overflow: hidden; }
+    .form-section > h2 { color: #004d26; padding: 10px 16px; border-bottom: 2px solid #e4efe6; font-size: 1rem; font-weight: 700; flex-shrink: 0; background: #f7fbf8; }
+    .form-scroll { flex: 1; overflow-y: auto; padding: 12px 16px; }
+    .form-scroll::-webkit-scrollbar { width: 5px; }
+    .form-scroll::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 4px; }
+
+    /* ========== LIST PANEL ========== */
+    .list-section { background: #fff; border-radius: 10px; border: 1px solid #ccddd0; display: flex; flex-direction: column; overflow: hidden; }
+    .list-section > h2 { color: #004d26; padding: 10px 16px; border-bottom: 2px solid #e4efe6; font-size: 1rem; font-weight: 700; flex-shrink: 0; background: #f7fbf8; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .list-scroll { flex: 1; overflow-y: auto; overflow-x: auto; }
+    .list-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .list-scroll::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 4px; }
+
+    /* ========== FORM FIELDS ========== */
+    form { display: flex; flex-direction: column; gap: 10px; }
+    .fg { display: flex; flex-direction: column; gap: 3px; }
+    .fg label { font-weight: 700; color: #1a3a22; font-size: 13px; }
+    input, select, datalist {
+      width: 100%; padding: 7px 10px; border: 2px solid #c4d8c8; border-radius: 6px;
+      font-size: 13px; font-family: inherit; background: #fff;
+    }
+    input:focus, select:focus { outline: none; border-color: #2e7d32; }
+    input[readonly] { background: #f4f8f5; color: #666; }
+    .btn-save {
+      background: linear-gradient(135deg, #30d175, #1c9448); color: #fff;
+      border: none; padding: 10px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; font-weight: 700; margin-top: 4px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-save:hover { background: linear-gradient(135deg, #27b861, #16783b); }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .submit-row {
+      display: flex; align-items: center; gap: 8px;
+      background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px;
+      padding: 8px 12px; cursor: pointer;
+    }
+    .submit-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #2e7d32; cursor: pointer; flex-shrink: 0; }
+    .submit-row .submit-label { font-weight: 700; font-size: 13px; color: #1a3a22; }
+    .submit-row .submit-desc { font-size: 11px; color: #5a8a66; }
+
+    .auto-fill-hint { font-size: 10px; margin-top: 2px; padding: 3px 6px; border-radius: 4px; }
+    .auto-fill-hint.success { background: #e8f5e9; color: #2e7d32; }
+    .auto-fill-hint.warning { background: #fff3e0; color: #e65100; }
+
+    .info-row {
+      background: #e3f2fd; border: 1px solid #90caf9; border-radius: 6px;
+      padding: 8px 12px; margin: 4px 0;
+    }
+    .info-row .info-label { font-weight: 700; font-size: 11px; color: #1565c0; text-transform: uppercase; margin-bottom: 2px; }
+    .info-row .info-value { font-size: 13px; color: #1a1a1a; }
+
+    /* ========== STUDENT MANAGEMENT SECTION ========== */
+    .student-management-section { margin-top: 12px; border-top: 2px solid #e4efe6; padding-top: 10px; }
+    .student-management-section h3 { font-size: 13px; font-weight: 800; color: #004d26; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 5px; }
+    .student-count-total { background: #e8f5e9; padding: 2px 8px; border-radius: 12px; font-size: 11px; color: #2e7d32; }
+    .student-input-group { display: flex; gap: 6px; margin-bottom: 10px; }
+    .student-input-group input { flex: 1; padding: 6px 8px; font-size: 12px; }
+    .student-input-group button { background: #27ae60; color: #fff; border: none; border-radius: 5px; padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: 12px; white-space: nowrap; }
+    .student-input-group button:hover { background: #219a52; }
+    .student-list-preview { max-height: 200px; overflow-y: auto; border: 1px solid #e4efe6; border-radius: 5px; background: #fafdfa; font-size: 13px; }
+    .student-list-preview .student-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e4efe6; }
+    .student-list-preview .student-item:last-child { border-bottom: none; }
+    .student-list-preview .student-reg { font-family: monospace; font-weight: 700; color: #004d26; font-size: 13px; }
+    .student-list-preview .student-name { color: #666; font-size: 12px; margin-left: 8px; }
+    .remove-student-btn { background: #e74c3c; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .empty-student-list { text-align: center; padding: 20px; color: #aaa; font-size: 12px; }
+    .student-search-suggestions { position: absolute; background: #fff; border: 1px solid #c4d8c8; border-radius: 5px; max-height: 120px; overflow-y: auto; z-index: 100; width: calc(100% - 80px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .suggestion-item { padding: 6px 10px; cursor: pointer; font-size: 12px; border-bottom: 1px solid #e4efe6; }
+    .suggestion-item:hover { background: #e8f5e9; }
+    .suggestion-reg { font-weight: 700; color: #004d26; }
+    .note-sm { font-size: 11px; color: #888; margin-top: 4px; display: block; }
+
+    /* ========== ALLOCATION TABLE ========== */
+    .alloc-wrap table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 700px; }
+    .alloc-wrap table th {
+      background: linear-gradient(to bottom, #eff7f1, #e3eee5);
+      color: #1a3a22; font-weight: 700; padding: 12px 10px;
+      border: 1px solid #c8ddc8; text-align: left;
+      position: sticky; top: 0; z-index: 5; font-size: 14px;
+    }
+    .alloc-wrap table td { padding: 10px 10px; border: 1px solid #d8e8da; vertical-align: middle; font-size: 14px; }
+    .alloc-wrap table tr:hover td { background: #f4fbf5; }
+    .action-buttons { display: flex; flex-direction: column; gap: 6px; }
+    .btn-act { display: inline-block; padding: 6px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; width: 100%; min-width: 70px; transition: opacity 0.2s; }
+    .btn-edit   { background: #f39c12; color: #fff; }
+    .btn-edit:hover   { opacity: 0.85; }
+    .btn-delete { background: #e74c3c; color: #fff; }
+    .btn-delete:hover { opacity: 0.85; }
+    .btn-sr { background: #eceff1; color: #455a64; }
+    .btn-sr:hover { opacity: 0.85; }
+    .btn-sr.has-sr { background: #fff3e0; color: #e65100; }
+    .cross-dept-badge { font-size: 10px; background: #e3f2fd; color: #1565c0; border-radius: 3px; padding: 2px 6px; display: inline-block; margin-top: 4px; }
+    .students-cell { max-width: 250px; min-width: 180px; }
+    .student-admissions-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .student-admission-badge { background: #e8f5e9; color: #2e7d32; border-radius: 12px; padding: 2px 8px; font-size: 11px; font-family: monospace; font-weight: 600; display: inline-block; white-space: nowrap; }
+    .add-student-icon { background: #3498db; color: #fff; border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: background 0.2s; white-space: nowrap; }
+    .add-student-icon:hover { background: #2980b9; }
+    .student-count-badge { background: #e8f5e9; color: #2e7d32; border-radius: 16px; padding: 4px 12px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-block; text-align: center; min-width: 50px; white-space: nowrap; }
+    .student-count-badge:hover { background: #c8e6c9; }
+    .year-group-row td { background: #f0f7f2; font-size: 12px; font-weight: 800; color: #004d26; padding: 6px 12px !important; }
+    .published-header, .draft-header { padding: 10px 16px; font-weight: 700; font-size: 14px; margin-top: 20px; }
+    .published-header { background: #e8f5e9; color: #2e7d32; border-top: 2px solid #27ae60; }
+    .draft-header { background: #fff3e0; color: #e65100; border-top: 2px solid #ff9800; }
+
+    @media (max-width: 1024px) { main { grid-template-columns: 1fr; height: auto; overflow: auto; } html, body { overflow: auto; height: auto; } }
+
+    .btn-enroll-edit { background: linear-gradient(135deg, #f39c12, #d68910); color: #fff; border: none; border-radius: 5px; padding: 6px 14px; cursor: pointer; font-size: 12px; font-weight: 700; }
+
+    /* ── Saving indicator on row ── */
+    @keyframes rowPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .row-saving { animation: rowPulse 0.9s infinite; }
+    .row-new { animation: rowHighlight 1.2s ease forwards; }
+    @keyframes rowHighlight { 0%{background:#d4edda} 100%{background:transparent} }
+
+    /* Modal styles */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.52); z-index: 2100; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.22s, visibility 0.22s; }
+    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .modal-content { background: #fff; border-radius: 12px; width: min(650px, 96vw); max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 12px 48px rgba(0,50,20,0.22); overflow: hidden; }
+    .modal-header { background: linear-gradient(to right, #004d26, #007a3d); color: #fff; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h2 { font-size: 1.05rem; font-weight: 800; }
+    .modal-close { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.32); color: #fff; font-size: 1rem; cursor: pointer; border-radius: 4px; padding: 4px 10px; }
+    .modal-body { flex: 1; overflow-y: auto; padding: 16px 18px; }
+    .modal-body .student-search { width: 100%; padding: 8px 12px; margin-bottom: 12px; border: 1.5px solid #b0cfb7; border-radius: 6px; font-size: 14px; }
+    .student-list { list-style: none; margin: 0; padding: 0; }
+    .student-list li { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid #e4efe6; font-size: 13px; }
+    .student-list li:hover { background: #f4fbf5; }
+    .student-reg-norm { font-family: monospace; font-weight: 700; color: #004d26; font-size: 14px; }
+    .student-full-reg { font-size: 11px; color: #888; margin-left: 10px; }
+    .remove-student-btn-sm { background: #e74c3c; color: #fff; border: none; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .add-student-row { display: flex; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e4efe6; }
+    .add-student-row input { flex: 1; padding: 8px 12px; border: 1.5px solid #b0cfb7; border-radius: 6px; font-size: 13px; }
+    .add-student-btn { background: #27ae60; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .modal-stats { background: #f7fbf8; padding: 10px 16px; font-size: 13px; color: #666; border-top: 1px solid #e4efe6; display: flex; justify-content: space-between; }
+
+    /* Quick enrollment modal */
+    .enroll-prog-block { margin-top: 16px; }
+    .enroll-prog-name { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #004d26; letter-spacing: 0.04em; padding: 8px 12px; background: #eef7f1; border-left: 4px solid #2e7d32; border-radius: 0 6px 6px 0; margin-bottom: 8px; }
+    .enroll-year-group { margin-bottom: 6px; }
+    .enroll-year-label { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 12px 2px; margin-bottom: 4px; }
+    .enroll-row { display: grid; grid-template-columns: 100px 1fr 130px; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 6px; border: 1px solid transparent; }
+    .enroll-row:hover { background: #f4fbf5; border-color: #d0e8d4; }
+    .enroll-row.saving { opacity: 0.55; }
+    .enroll-row.saved  { background: #e8f5e9 !important; border-color: #a5d6a7 !important; }
+    .enroll-row.error  { background: #fff3e0 !important; border-color: #ffcc80 !important; }
+    .enroll-code { font-weight: 700; font-size: 13px; color: #1a3a22; }
+    .enroll-name { font-size: 13px; color: #333; }
+    .enroll-input-wrap { display: flex; align-items: center; gap: 8px; }
+    .enroll-num-input { width: 80px; padding: 6px 10px; text-align: right; border: 1.5px solid #b0cfb7; border-radius: 5px; font-size: 14px; font-weight: 700; }
+    .enroll-status-icon { font-size: 14px; width: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- Offline Banner -->
+<div id="offlineBanner">
+  <span id="offlineBannerText"></span>
+  <button id="syncNowBtn">Sync Now</button>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<header>
+  <div class="header-left">
+    <button class="nav-toggle" id="navToggle">☰ Menu</button>
+    <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="logo">
+  </div>
+  <div class="header-center">
+    <h1>Resit Timetabling — {{ department.name|default:"COD Panel" }}</h1>
+  </div>
+  <div class="header-right">
+    <button class="btn-enroll-edit" id="autoAllocateBtn" style="background:#1b5e20;color:#fff;">&#129302;&nbsp;Auto-Allocate</button>
+    <button class="btn-enroll-edit" id="openEnrollEdit">✎ Quick Enroll Edit</button>
+    <div class="submission-controls">
+      <label class="sub-ctrl-box {% if control and control.allow_submission_to_timetabling %}active{% endif %}" id="ttBox">
+        <span class="sub-label">Resit Submission</span>
+        <input type="checkbox" id="toggle-tt" {% if control and control.allow_submission_to_timetabling %}checked{% endif %}>
+      </label>
+    </div>
+  </div>
+</header>
+
+<!-- Side Navigation -->
+<nav class="side-nav" id="sideNav">
+  <div class="nav-header">
+    <h3>Navigation Menu</h3>
+    <button class="nav-close" id="navClose">✕</button>
+  </div>
+  <div class="nav-content">
+    <a href="/cod/"   class="nav-btn">Home</a>
+     <a href="{% url 'lab_allocations' %}"   class="nav-btn">Lab Allocations panel</a>
+    <a href="/panel/" class="nav-btn">Campus Allocations panel</a>
+    <a href="/odel/allocations/" class="nav-btn">ODEL Allocations panel</a>
+    <a href="{% url 'resit_cod_panel' %}"         class="nav-btn">Resits Allocations panel</a>
+    <a href="{% url 'resit_safe_undo_page' %}"    class="nav-btn">&#128737;&#65039; Resits Safe Undo</a>
+    <a href="{% url 'resit_import_panel' %}" class="nav-btn">Import Resits Allocations</a>
+    <a href="{% url 'resit_import_panel' %}" class="nav-btn">Import Students CSV</a>
+    <a href="{% url 'resit_allocation_manager' %}" class="nav-btn">Clear &amp; Archive Resits</a>
+    <a href="{% url 'logout' %}" class="nav-btn">Logout</a>
+  </div>
+</nav>
+<div class="nav-overlay" id="navOverlay"></div>
+
+<main>
+  <!-- LEFT: Form Panel -->
+  <section class="form-section">
+    <h2 id="formTitle">Add / Edit Resit Course</h2>
+    <div class="form-scroll" id="formScroll">
+      <form id="allocationForm">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="allocationId">
+        <input type="hidden" name="program_course_id" id="hiddenProgramCourseId">
+        <input type="hidden" name="academic_year" id="hiddenAcademicYear">
+        <input type="hidden" name="semester" id="hiddenSemester">
+
+        <div class="fg">
+          <label>Department</label>
+          <input type="text" value="{{ department.name|default:'Not assigned' }}" readonly>
+        </div>
+
+        <div class="fg">
+          <label for="originDeptSel">Origin Department</label>
+          <select id="originDeptSel">
+            <option value="">-- Same as Allocating Dept --</option>
+            {% for dept in departments %}
+              <option value="{{ dept.id }}"{% if dept.id == department.id %} selected{% endif %}>
+                {{ dept.name }}{% if dept.id == department.id %} (Your Dept){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="fg">
+          <label for="programSelect">Program</label>
+          <select id="programSelect">
+            <option value="">-- All Programs --</option>
+            {% for program in programs %}
+              <option value="{{ program.id }}">{{ program.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="fg">
+          <label for="courseCodeInput">Course Code</label>
+          <input list="courseCodesList" type="text" id="courseCodeInput"
+                 name="course_code" placeholder="Type to search course code..."
+                 autocomplete="off" required>
+          <datalist id="courseCodesList">
+            {% for pc in program_courses %}
+              <option value="{{ pc.course_code }}">{{ pc.course_code }} - {{ pc.course_name }} ({{ pc.program.name }})</option>
+            {% endfor %}
+          </datalist>
+          <div id="autoFillHint" class="auto-fill-hint"></div>
+        </div>
+
+        <div class="fg">
+          <label for="courseName">Course Name</label>
+          <input type="text" id="courseName" required placeholder="Course name will auto-fill">
+        </div>
+
+        <div class="info-row" id="yearSemInfo" style="display:none;">
+          <div class="info-label">📅 Academic Info</div>
+          <div class="info-value">
+            Year: <span id="displayAcademicYear">-</span> |
+            Semester: <span id="displaySemester">-</span>
+          </div>
+        </div>
+
+        <div class="fg">
+          <label for="lecturerSelect">Lecturer</label>
+          <select id="lecturerSelect">
+            <option value="">-- Unassigned --</option>
+            {% for l in lecturers %}
+              <option value="{{ l.id }}">{{ l.display_name }}{% if l.department == department %} (Your Dept){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- STUDENT MANAGEMENT SECTION -->
+        <div class="student-management-section" id="studentManagementSection" style="display:none;">
+          <h3>
+            👥 Registered Students
+            <span class="student-count-total" id="studentTotalCount">0 students</span>
+          </h3>
+          <div class="student-input-group" style="position:relative;">
+            <input type="text" id="studentRegNo" placeholder="Reg No (e.g., 66791 or EB1/66791/23)" autocomplete="off">
+            <input type="text" id="studentName" placeholder="Student Name (optional)">
+            <button type="button" id="addStudentBtn">+ Add</button>
+          </div>
+          <div id="studentSuggestions" class="student-search-suggestions" style="display:none;"></div>
+          <div id="studentListPreview" class="student-list-preview">
+            <div class="empty-student-list">No students added yet</div>
+          </div>
+          <small class="note-sm">💡 Registration numbers are normalized (EB1/66791/23 → 66791) to avoid duplicates.</small>
+        </div>
+
+        <label class="submit-row" id="submitRow">
+          <input type="checkbox" id="submittedCheck">
+          <div>
+            <div class="submit-label">✅ Submit to Timetabling</div>
+            <div class="submit-desc">Check when ready for scheduling</div>
+          </div>
+        </label>
+
+        <button type="submit" class="btn-save" id="saveBtn">
+          <span id="saveBtnLabel">Save Allocation</span>
+        </button>
+
+        <button type="button" id="cancelEditBtn" style="display:none;background:#6c757d;color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-top:4px;">
+          ✕ Cancel Edit
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- RIGHT: List Panel -->
+  <section class="list-section">
+    <h2>
+      <span>Resit Course Allocations</span>
+      <a href="{% url 'resit_import_panel' %}" style="background:#1565c0;color:#fff;border-radius:5px;padding:4px 10px;font-size:11px;font-weight:700;text-decoration:none;">📥 Import</a>
+    </h2>
+    <div class="list-scroll" id="listScroll">
+      <div class="alloc-wrap">
+        <table id="allocTable">
+          <thead>
+            <tr>
+              <th style="width:90px">Code</th>
+              <th style="width:200px">Course Name</th>
+              <th style="width:280px">Students (Admission Numbers)</th>
+              <th style="width:120px">Lecturer</th>
+              <th style="width:80px">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="allocationsTable">
+            {% regroup own_dept_allocations by program as program_groups %}
+            {% for pg in program_groups %}
+              {% regroup pg.list by program_course.year as year_groups %}
+              {% for yg in year_groups %}
+                <tr class="year-group-row">
+                  <td colspan="5" style="padding:6px 12px;">
+                    📚 {{ pg.grouper.name|default:"No Program" }}
+                    {% if yg.grouper %}— Year {{ yg.grouper }}{% endif %}
+                  </td>
+                </tr>
+                {% for a in yg.list %}
+                <tr id="alloc-{{ a.id }}" data-id="{{ a.id }}">
+                  <td>
+                    <strong>{{ a.course_code }}</strong>
+                    {% if a.program and a.program.department != department %}
+                      <br><span class="cross-dept-badge">{{ a.program.department.name|truncatechars:20 }}</span>
+                    {% endif %}
+                  </td>
+                  <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ a.course_name }}">{{ a.course_name|truncatechars:35 }}</td>
+                  <td class="students-cell" id="students-cell-{{ a.id }}">
+                    <div class="student-admissions-list" id="student-list-{{ a.id }}">
+                      <span class="student-count-badge" onclick="showStudentListModal({{ a.id }}, '{{ a.course_code|escapejs }}')">{{ a.number_of_students }} student{{ a.number_of_students|pluralize }}</span>
+                      <span class="add-student-icon" onclick="editRow({{ a.id }})" title="Add students">+ Add</span>
+                    </div>
+                  </td>
+                  <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<span style="color:#999;">Unassigned</span>{% endif %}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn-act btn-edit" onclick="editRow({{ a.id }})">✏ Edit</button>
+                      <button class="btn-act btn-delete" onclick="deleteRow({{ a.id }})">🗑 Delete</button>
+                      <button type="button" id="sr-btn-{{ a.id }}" class="btn-act btn-sr" title="Special Request (SR)"
+                              onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.course_code|escapejs }}&quot;)">SR ▾</button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endfor %}
+            {% endfor %}
+
+            {% if cross_dept_allocations %}
+            <tr class="year-group-row">
+              <td colspan="5" style="padding:6px 12px;background:#e3f2fd;">🔀 Courses from Other Departments</td>
+            </tr>
+            {% for a in cross_dept_allocations %}
+            <tr id="alloc-{{ a.id }}" data-id="{{ a.id }}">
+              <td>
+                <strong>{{ a.course_code }}</strong>
+                <br><span class="cross-dept-badge">{{ a.program.department.name|truncatechars:20 }}</span>
+              </td>
+              <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ a.course_name }}">{{ a.course_name|truncatechars:35 }}</td>
+              <td class="students-cell" id="students-cell-{{ a.id }}">
+                <div class="student-admissions-list" id="student-list-{{ a.id }}">
+                  <span class="student-count-badge" onclick="showStudentListModal({{ a.id }}, '{{ a.course_code|escapejs }}')">{{ a.number_of_students }} student{{ a.number_of_students|pluralize }}</span>
+                  <span class="add-student-icon" onclick="editRow({{ a.id }})" title="Add students">+ Add</span>
+                </div>
+              </td>
+              <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<span style="color:#999;">Unassigned</span>{% endif %}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-act btn-edit" onclick="editRow({{ a.id }})">✏ Edit</button>
+                  <button class="btn-act btn-delete" onclick="deleteRow({{ a.id }})">🗑 Delete</button>
+                  <button type="button" id="sr-btn-{{ a.id }}" class="btn-act btn-sr" title="Special Request (SR)"
+                          onclick="openSrMenu(event, {{ a.id }}, &quot;{{ a.course_code|escapejs }}&quot;)">SR ▾</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+
+            {% if not own_dept_allocations and not cross_dept_allocations %}
+            <tr id="emptyRow"><td colspan="5" style="text-align:center;padding:40px;color:#bbb;">No resit allocations yet.{% if department %} Create one using the form.{% endif %}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Published Timetable Section -->
+      <div class="published-header">📅 Published Resit Timetable</div>
+      <div class="alloc-wrap">
+        <table style="min-width:500px;">
+          <thead><tr><th>Course</th><th>Venue</th><th>Date</th><th>Time</th><th>Students</th></tr></thead>
+          <tbody>
+            {% for entry in published_entries %}
+            <tr style="font-size:13px;">
+              <td><strong>{{ entry.resit_course_allocation.course_code }}</strong></td>
+              <td>{{ entry.venue.name }}</td>
+              <td>{{ entry.date|date:"Y-m-d" }}</td>
+              <td>{{ entry.start_time|time:"H:i" }}-{{ entry.end_time|time:"H:i" }}</td>
+              <td>{{ entry.registered_students }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" style="text-align:center;padding:20px;color:#bbb;">No published entries yet</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if draft_entries %}
+      <div class="draft-header">📝 Draft Entries</div>
+      <div class="alloc-wrap">
+        <table style="min-width:500px;">
+          <thead><tr><th>Course</th><th>Venue</th><th>Date</th><th>Time</th><th>Students</th></tr></thead>
+          <tbody>
+            {% for entry in draft_entries %}
+            <tr style="background:#fff8e1;font-size:13px;">
+              <td><strong>{{ entry.resit_course_allocation.course_code }}</strong></td>
+              <td>{{ entry.venue.name }}</td>
+              <td>{{ entry.date|date:"Y-m-d" }}</td>
+              <td>{{ entry.start_time|time:"H:i" }}-{{ entry.end_time|time:"H:i" }}</td>
+              <td>{{ entry.registered_students }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</main>
+
+<!-- Student Modal -->
+<div class="modal-overlay" id="studentModalOverlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="studentModalTitle">Registered Students</h2>
+      <button class="modal-close" onclick="closeStudentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" class="student-search" id="modalStudentSearch" placeholder="Filter students...">
+      <div id="studentListContainer">Loading...</div>
+      <div class="add-student-row">
+        <input type="text" id="modalNewStudentRegNo" placeholder="Reg No (e.g., 66791 or EB1/66791/23)">
+        <input type="text" id="modalNewStudentName" placeholder="Student Name (optional)">
+        <button class="add-student-btn" onclick="addStudentToModal()">+ Add</button>
+      </div>
+    </div>
+    <div class="modal-stats" id="modalStats">
+      <span>Total: 0 students</span>
+      <span>Click Remove to delete</span>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Enrollment Modal -->
+<div class="modal-overlay" id="enrollOverlay">
+  <div class="modal-content" style="width:min(750px,96vw);">
+    <div class="modal-header">
+      <h2>✎ Quick Enrollment Edit</h2>
+      <button class="modal-close" id="enrollModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <input class="student-search" id="enrollSearch" type="search" placeholder="🔍 Filter by course code or name…">
+      <div id="enrollBody"><div style="text-align:center;padding:20px;">Loading...</div></div>
+    </div>
+    <div class="modal-header" style="background:#f7fbf8;color:#1a3a22;justify-content:space-between;">
+      <span id="enrollStats">-</span>
+      <button class="add-student-btn" id="enrollCloseBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+// RESIT COD PANEL — NO-RELOAD + OFFLINE SUPPORT
+// =====================================================
+
+const codUrl    = "{% url 'resit_cod_panel' %}";
+const csrftoken = () => document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+
+// ── Utilities ─────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function normalizeRegNumber(regNo) {
+  if (!regNo) return '';
+  const m = regNo.match(/(\d{4,})/);
+  return m ? m[1] : regNo.replace(/\D/g,'');
+}
+
+// ── Toast notifications ───────────────────────────
+function showToast(msg, type = 'success', duration = 3200) {
+  const container = document.getElementById('toastContainer');
+  const icons = { success:'✓', error:'✗', warning:'⚠', offline:'📶', info:'ℹ' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = `${icons[type]||'●'} ${msg}`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => { requestAnimationFrame(() => toast.classList.add('show')); });
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// ── Offline Queue ─────────────────────────────────
+const QUEUE_KEY = 'resit_cod_offline_queue';
+function queueGet() { try { return JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]'); } catch { return []; } }
+function queueSave(q) { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch(e) { console.warn('localStorage full', e); } }
+function queuePush(item) {
+  const q = queueGet();
+  q.push({ ...item, _qid: Date.now()+'_'+Math.random().toString(36).slice(2), _retries:0 });
+  queueSave(q);
+  refreshBanner();
+}
+function queueRemove(qid) { queueSave(queueGet().filter(i => i._qid !== qid)); refreshBanner(); }
+
+// ── Online / Offline State ────────────────────────
+let _online = navigator.onLine;
+
+function refreshBanner() {
+  const banner = document.getElementById('offlineBanner');
+  const text   = document.getElementById('offlineBannerText');
+  const q      = queueGet();
+  if (!_online) {
+    banner.classList.add('visible'); banner.classList.remove('syncing');
+    banner.style.background = '#e65100';
+    text.textContent = `📶 Offline — ${q.length} change${q.length!==1?'s':''} queued, will sync when connected`;
+    document.body.classList.add('has-banner');
+  } else if (q.length > 0) {
+    banner.classList.add('visible','syncing'); banner.style.background = '#1565c0';
+    text.textContent = `🔄 Back online — ${q.length} pending change${q.length!==1?'s':''}…`;
+    document.body.classList.add('has-banner');
+  } else {
+    banner.classList.remove('visible','syncing');
+    document.body.classList.remove('has-banner');
+  }
+}
+
+async function syncOfflineQueue() {
+  const q = queueGet();
+  if (!q.length || !_online) return;
+  let ok = 0, fail = 0;
+  for (const item of [...q]) {
+    const payload = Object.fromEntries(Object.entries(item).filter(([k])=>!k.startsWith('_')));
+    try {
+      const resp = await fetch(codUrl, {
+        method:'POST',
+        headers:{'X-Requested-With':'XMLHttpRequest','X-CSRFToken':csrftoken()},
+        body: new URLSearchParams(payload)
+      });
+      const json = await resp.json();
+      if (json.status === 'success') { queueRemove(item._qid); ok++; }
+      else {
+        item._retries = (item._retries||0) + 1;
+        if (item._retries >= 3) {
+          queueRemove(item._qid);
+          showToast(`Could not sync ${item.action} after 3 attempts — dropped`, 'error', 6000);
+        } else { fail++; }
+      }
+    } catch { fail++; }
+  }
+  refreshBanner();
+  if (ok > 0) { showToast(`Synced ${ok} change${ok>1?'s':''}`, 'success'); loadAllocationsRefresh(); }
+  if (fail > 0) showToast(`${fail} item${fail>1?'s':''} still couldn't sync`, 'warning', 4000);
+}
+
+window.addEventListener('online',  () => { _online = true;  refreshBanner(); syncOfflineQueue(); showToast('Back online — syncing', 'success'); });
+window.addEventListener('offline', () => { _online = false; refreshBanner(); showToast('You are offline. Changes will be saved locally.', 'offline', 4000); });
+document.getElementById('syncNowBtn').addEventListener('click', syncOfflineQueue);
+refreshBanner(); // init on load
+
+// ── Validation ────────────────────────────────────
+function validateAllocation(data) {
+  const errors = [];
+  if (!data.course_code?.trim()) errors.push('Course code is required');
+  if (!data.course_name?.trim()) errors.push('Course name is required');
+  return errors;
+}
+function validateRegNo(rawRegNo) {
+  const normalized = normalizeRegNumber(rawRegNo || '');
+  if (!normalized || normalized.length < 4)
+    return { valid:false, error:'Must contain at least 4 digits (e.g. 66791 or EB1/66791/23)' };
+  if (normalized.length > 8)
+    return { valid:false, error:'Normalized number seems too long — please check' };
+  return { valid:true, normalized };
+}
+function validateStudentCount(val) {
+  const n = parseInt(val, 10);
+  if (isNaN(n) || n < 0 || n > 10000) return { valid:false, error:'Must be 0–10,000' };
+  return { valid:true, value:n };
+}
+
+// ── postAjax (with offline fallback) ─────────────
+async function postAjax(data, offlineFallback = null) {
+  if (!_online) {
+    if (offlineFallback) {
+      queuePush(offlineFallback);
+      showToast('Saved locally — will sync when online', 'offline');
+      return { status:'queued' };
+    }
+    showToast('Offline — cannot fetch data right now', 'offline');
+    return { status:'error', message:'Offline' };
+  }
+  try {
+    const resp = await fetch(codUrl, {
+      method:'POST',
+      headers:{'X-Requested-With':'XMLHttpRequest','X-CSRFToken':csrftoken()},
+      body: new URLSearchParams(data)
+    });
+    const ct = resp.headers.get('content-type')||'';
+    if (!ct.includes('json')) return { status:'error', message:`Server error ${resp.status}` };
+    return await resp.json();
+  } catch(e) {
+    _online = false; refreshBanner();
+    if (offlineFallback) {
+      queuePush(offlineFallback);
+      showToast('Network error — saved locally, will retry', 'offline');
+      return { status:'queued' };
+    }
+    return { status:'error', message:'Network error' };
+  }
+}
+
+// ── Row DOM builder (for new / updated rows) ──────
+function buildRowHtml(a) {
+  // a = { id, course_code, course_name, lecturer_display, number_of_students, is_cross_dept, dept_name }
+  const crossBadge = a.is_cross_dept
+    ? `<br><span class="cross-dept-badge">${escapeHtml(a.dept_name||'')}</span>` : '';
+  const lecturerCell = a.lecturer_display
+    ? escapeHtml(a.lecturer_display) : '<span style="color:#999;">Unassigned</span>';
+  return `
+    <td><strong>${escapeHtml(a.course_code)}</strong>${crossBadge}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(a.course_name)}">${escapeHtml(a.course_name.substring(0,35))}</td>
+    <td class="students-cell" id="students-cell-${a.id}">
+      <div class="student-admissions-list" id="student-list-${a.id}">
+        <span class="student-count-badge" onclick="showStudentListModal(${a.id}, '${escapeHtml(a.course_code)}')">${a.number_of_students} student${a.number_of_students!==1?'s':''}</span>
+        <span class="add-student-icon" onclick="editRow(${a.id})" title="Add students">+ Add</span>
+      </div>
+    </td>
+    <td>${lecturerCell}</td>
+    <td>
+      <div class="action-buttons">
+        <button class="btn-act btn-edit" onclick="editRow(${a.id})">✏ Edit</button>
+        <button class="btn-act btn-delete" onclick="deleteRow(${a.id})">🗑 Delete</button>
+      </div>
+    </td>`;
+}
+
+function updateRowInTable(a) {
+  const tr = document.getElementById(`alloc-${a.id}`);
+  if (!tr) { appendRowToTable(a); return; }
+  tr.classList.add('row-saving');
+  setTimeout(() => {
+    tr.innerHTML = buildRowHtml(a);
+    tr.classList.remove('row-saving');
+    tr.classList.add('row-new');
+    setTimeout(() => tr.classList.remove('row-new'), 1300);
+    loadAndDisplayStudentsInTable(a.id);
+  }, 80);
+}
+
+function appendRowToTable(a) {
+  const tbody  = document.getElementById('allocationsTable');
+  const empty  = document.getElementById('emptyRow');
+  if (empty) empty.remove();
+  const tr = document.createElement('tr');
+  tr.id = `alloc-${a.id}`; tr.dataset.id = a.id;
+  tr.innerHTML = buildRowHtml(a);
+  tr.classList.add('row-new');
+  tbody.appendChild(tr);
+  setTimeout(() => tr.classList.remove('row-new'), 1300);
+  loadAndDisplayStudentsInTable(a.id);
+}
+
+// ── Soft refresh (fetches list, replaces tbody, no page reload) ──
+async function loadAllocationsRefresh() {
+  const json = await postAjax({ action:'list_allocations_summary' });
+  if (json.status !== 'success' || !json.allocations) return;
+  json.allocations.forEach(a => updateRowInTable(a));
+}
+
+// ── Reset form to "create" state ──────────────────
+function resetForm() {
+  document.getElementById('allocationId').value = '';
+  document.getElementById('courseCodeInput').value = '';
+  document.getElementById('courseName').value = '';
+  document.getElementById('programSelect').value = '';
+  document.getElementById('lecturerSelect').value = '';
+  document.getElementById('originDeptSel').value = '';
+  document.getElementById('hiddenProgramCourseId').value = '';
+  document.getElementById('hiddenAcademicYear').value = '';
+  document.getElementById('hiddenSemester').value = '';
+  document.getElementById('submittedCheck').checked = false;
+  document.getElementById('yearSemInfo').style.display = 'none';
+  document.getElementById('studentManagementSection').style.display = 'none';
+  document.getElementById('formTitle').textContent = 'Add / Edit Resit Course';
+  document.getElementById('saveBtnLabel').textContent = 'Save Allocation';
+  // Undo any field lock left over from editing an origin-only collaboration.
+  ['courseCodeInput', 'courseName', 'programSelect', 'originDeptSel', 'submittedCheck'].forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) el.disabled = false;
+  });
+  document.getElementById('cancelEditBtn').style.display = 'none';
+  currentStudents = [];
+  updateStudentPreview([]);
+}
+
+// ── Program courses data (from Django template) ───
+const programCoursesData = {
+  {% for pc in program_courses %}
+  "{{ pc.course_code|escapejs }}": {
+    "id": {{ pc.id }},
+    "name": "{{ pc.course_name|escapejs }}",
+    "program_id": {{ pc.program_id }},
+    "year": {{ pc.year }},
+    "semester": {{ pc.semester }},
+    "academic_year": "{{ pc.year }}/{{ pc.year|add:1 }}",
+    "semester_display": "S{{ pc.semester }}"
+  },
+  {% endfor %}
+};
+
+// ── Student management state ──────────────────────
+let currentStudents = [];
+let currentAllocationId = null;
+
+async function loadStudentsForAllocation(allocationId) {
+  const json = await postAjax({ action:'get_allocation_students', allocation_id:allocationId });
+  if (json.status === 'success') {
+    currentStudents = json.students || [];
+    updateStudentPreview(currentStudents);
+    const el = document.getElementById('studentTotalCount');
+    if (el) el.textContent = `${currentStudents.length} student${currentStudents.length!==1?'s':''}`;
+  }
+}
+
+async function loadAndDisplayStudentsInTable(allocationId) {
+  const json = await postAjax({ action:'get_allocation_students', allocation_id:allocationId });
+  if (json.status !== 'success') return;
+  const students = json.students || [];
+  const container = document.getElementById(`student-list-${allocationId}`);
+  if (!container) return;
+  if (students.length === 0) {
+    container.innerHTML = `
+      <span class="student-count-badge" onclick="showStudentListModal(${allocationId},'')">0 students</span>
+      <span class="add-student-icon" onclick="editRow(${allocationId})">+ Add</span>`;
+  } else {
+    const badges = students.map(s=>`<span class="student-admission-badge">${escapeHtml(s.student_reg_no_normalized)}</span>`).join(' ');
+    container.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+          <span class="student-count-badge" onclick="showStudentListModal(${allocationId},'')">${students.length} student${students.length!==1?'s':''}</span>
+          <span class="add-student-icon" onclick="editRow(${allocationId})">+ Add</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges}</div>
+      </div>`;
+  }
+}
+
+function updateStudentPreview(students) {
+  const container = document.getElementById('studentListPreview');
+  if (!container) return;
+  if (!students?.length) { container.innerHTML = '<div class="empty-student-list">No students added yet</div>'; return; }
+  container.innerHTML = students.map(s=>`
+    <div class="student-item" data-id="${s.id}">
+      <div>
+        <span class="student-reg">${escapeHtml(s.student_reg_no_normalized)}</span>
+        ${s.student_name?`<span class="student-name">${escapeHtml(s.student_name)}</span>`:''}
+      </div>
+      <button class="remove-student-btn" onclick="removeStudentFromForm(${s.id})">Remove</button>
+    </div>`).join('');
+}
+
+async function removeStudentFromForm(registrationId) {
+  if (!confirm('Remove this student from the course?')) return;
+  const json = await postAjax(
+    { action:'remove_student_from_allocation', registration_id:registrationId },
+    { action:'remove_student_from_allocation', registration_id:registrationId }
+  );
+  if (json.status === 'success' || json.status === 'queued') {
+    const allocId = document.getElementById('allocationId').value;
+    if (allocId) { await loadStudentsForAllocation(allocId); await loadAndDisplayStudentsInTable(allocId); }
+  } else { showToast(json.message||'Error removing student', 'error'); }
+}
+
+async function addStudentToAllocation() {
+  const rawRegNo = document.getElementById('studentRegNo')?.value.trim();
+  const studentName = document.getElementById('studentName')?.value.trim()||'';
+  const allocId = document.getElementById('allocationId')?.value;
+
+  if (!allocId) { showToast('Save the allocation first before adding students', 'warning'); return; }
+  if (!rawRegNo) { showToast('Enter a registration number', 'warning'); return; }
+
+  const v = validateRegNo(rawRegNo);
+  if (!v.valid) { showToast(v.error, 'error'); return; }
+
+  const payload = { action:'add_student_to_allocation', allocation_id:allocId, reg_no:rawRegNo, student_name:studentName };
+  const json = await postAjax(payload, payload);
+
+  if (json.status === 'success' || json.status === 'queued') {
+    document.getElementById('studentRegNo').value = '';
+    document.getElementById('studentName').value = '';
+    if (json.status === 'success') {
+      await loadStudentsForAllocation(allocId);
+      await loadAndDisplayStudentsInTable(allocId);
+    } else {
+      // Optimistic add for offline
+      currentStudents.push({ id: -Date.now(), student_reg_no_normalized: v.normalized, student_name: studentName });
+      updateStudentPreview(currentStudents);
+    }
+  } else { showToast(json.message||'Error adding student', 'error'); }
+}
+
+// ── Student suggestions ───────────────────────────
+let studentSuggestionTimer;
+const studentRegNo   = document.getElementById('studentRegNo');
+const studentSuggestions = document.getElementById('studentSuggestions');
+if (studentRegNo) {
+  studentRegNo.addEventListener('input', function() {
+    clearTimeout(studentSuggestionTimer);
+    const q = this.value.trim();
+    if (q.length < 2) { studentSuggestions.style.display='none'; return; }
+    studentSuggestionTimer = setTimeout(async () => {
+      const json = await postAjax({ action:'search_students', q });
+      if (json.status === 'success' && json.students?.length) {
+        studentSuggestions.innerHTML = json.students.map(s=>`
+          <div class="suggestion-item" onclick="selectSuggestion('${escapeHtml(s.student_reg_no)}','${escapeHtml(s.student_name||'')}')">
+            <span class="suggestion-reg">${escapeHtml(s.student_reg_no_normalized)}</span>
+            ${s.student_name?`<span>${escapeHtml(s.student_name)}</span>`:''}
+          </div>`).join('');
+        studentSuggestions.style.display='block';
+      } else { studentSuggestions.style.display='none'; }
+    }, 300);
+  });
+}
+function selectSuggestion(regNo, name) {
+  if (studentRegNo) studentRegNo.value = regNo;
+  const n = document.getElementById('studentName');
+  if (n) n.value = name;
+  studentSuggestions.style.display='none';
+}
+document.addEventListener('click', e => {
+  if (studentSuggestions && !studentSuggestions.contains(e.target) && e.target !== studentRegNo)
+    studentSuggestions.style.display='none';
+});
+document.getElementById('addStudentBtn')?.addEventListener('click', addStudentToAllocation);
+
+// ── Student List Modal ────────────────────────────
+async function showStudentListModal(allocId, courseCode) {
+  currentAllocationId = allocId;
+  document.getElementById('studentModalTitle').textContent = `Registered Students — ${courseCode||'Course'}`;
+  document.getElementById('studentModalOverlay').classList.add('active');
+  const container = document.getElementById('studentListContainer');
+  container.innerHTML = '<div style="text-align:center;padding:20px;">Loading...</div>';
+  const json = await postAjax({ action:'get_allocation_students', allocation_id:allocId });
+  if (json.status === 'success') {
+    const students = json.students||[];
+    const stats = document.getElementById('modalStats');
+    if (stats) stats.innerHTML = `<span>Total: ${students.length} student${students.length!==1?'s':''}</span><span>Click Remove to delete</span>`;
+    if (!students.length) { container.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">No students registered</div>'; return; }
+    container.innerHTML = `<ul class="student-list" id="modalStudentList">${students.map(s=>`
+      <li data-id="${s.id}">
+        <div>
+          <span class="student-reg-norm">${escapeHtml(s.student_reg_no_normalized)}</span>
+          ${s.student_name?`<span style="color:#666;margin-left:8px;">${escapeHtml(s.student_name)}</span>`:''}
+          <span class="student-full-reg">(${escapeHtml(s.student_reg_no)})</span>
+        </div>
+        <button class="remove-student-btn-sm" onclick="removeStudentFromModal(${s.id})">Remove</button>
+      </li>`).join('')}</ul>`;
+    const searchEl = document.getElementById('modalStudentSearch');
+    searchEl.value = '';
+    searchEl.oninput = function() {
+      const term = this.value.toLowerCase(); let vis = 0;
+      document.querySelectorAll('#modalStudentList li').forEach(li => {
+        const m = li.textContent.toLowerCase().includes(term);
+        li.style.display = m ? '' : 'none'; if(m) vis++;
+      });
+      if(stats) stats.innerHTML = `<span>Showing ${vis} of ${students.length}</span><span>Click Remove to delete</span>`;
+    };
+  } else { container.innerHTML = `<div style="color:#e74c3c;">Error: ${json.message}</div>`; }
+}
+window.showStudentListModal = showStudentListModal;
+
+async function removeStudentFromModal(registrationId) {
+  if (!confirm('Remove this student?')) return;
+  const json = await postAjax(
+    { action:'remove_student_from_allocation', registration_id:registrationId },
+    { action:'remove_student_from_allocation', registration_id:registrationId }
+  );
+  if (json.status==='success' || json.status==='queued') {
+    showStudentListModal(currentAllocationId,'');
+    loadAndDisplayStudentsInTable(currentAllocationId);
+    const formAllocId = document.getElementById('allocationId')?.value;
+    if (formAllocId == currentAllocationId) loadStudentsForAllocation(currentAllocationId);
+  } else { showToast(json.message||'Error', 'error'); }
+}
+window.removeStudentFromModal = removeStudentFromModal;
+
+async function addStudentToModal() {
+  const regNo      = document.getElementById('modalNewStudentRegNo')?.value.trim();
+  const studentName= document.getElementById('modalNewStudentName')?.value.trim()||'';
+  if (!regNo) { showToast('Enter a registration number', 'warning'); return; }
+  const v = validateRegNo(regNo);
+  if (!v.valid) { showToast(v.error, 'error'); return; }
+  const payload = { action:'add_student_to_allocation', allocation_id:currentAllocationId, reg_no:regNo, student_name:studentName };
+  const json = await postAjax(payload, payload);
+  if (json.status==='success' || json.status==='queued') {
+    document.getElementById('modalNewStudentRegNo').value = '';
+    document.getElementById('modalNewStudentName').value  = '';
+    showStudentListModal(currentAllocationId,'');
+    loadAndDisplayStudentsInTable(currentAllocationId);
+    const formAllocId = document.getElementById('allocationId')?.value;
+    if (formAllocId == currentAllocationId) loadStudentsForAllocation(currentAllocationId);
+  } else { showToast(json.message||'Error', 'error'); }
+}
+window.addStudentToModal = addStudentToModal;
+
+function closeStudentModal() { document.getElementById('studentModalOverlay').classList.remove('active'); }
+window.closeStudentModal = closeStudentModal;
+
+// ── Auto-fill course details ──────────────────────
+let debounceTimer;
+const courseCodeInput     = document.getElementById('courseCodeInput');
+const courseNameInput     = document.getElementById('courseName');
+const programSelect       = document.getElementById('programSelect');
+const hiddenProgramCourseId = document.getElementById('hiddenProgramCourseId');
+const hiddenAcademicYear  = document.getElementById('hiddenAcademicYear');
+const hiddenSemester      = document.getElementById('hiddenSemester');
+const yearSemInfo         = document.getElementById('yearSemInfo');
+const displayAcademicYear = document.getElementById('displayAcademicYear');
+const displaySemester     = document.getElementById('displaySemester');
+const autoFillHint        = document.getElementById('autoFillHint');
+
+function autoFillCourseDetails(code) {
+  const d = programCoursesData[code];
+  if (d) {
+    courseNameInput.value = d.name;
+    hiddenProgramCourseId.value = d.id;
+    hiddenAcademicYear.value = d.academic_year;
+    hiddenSemester.value = d.semester_display;
+    displayAcademicYear.textContent = d.academic_year;
+    displaySemester.textContent = d.semester_display;
+    yearSemInfo.style.display = 'block';
+    if (d.program_id && programSelect.value != d.program_id) {
+      programSelect.value = d.program_id;
+      programSelect.dispatchEvent(new Event('change'));
+    }
+    autoFillHint.innerHTML = `✓ Found: ${d.name}`;
+    autoFillHint.className = 'auto-fill-hint success';
+    setTimeout(() => { autoFillHint.innerHTML=''; autoFillHint.className='auto-fill-hint'; }, 2000);
+  } else if (code.length > 2) {
+    autoFillHint.innerHTML = '⚠️ Course not in database';
+    autoFillHint.className = 'auto-fill-hint warning';
+    hiddenProgramCourseId.value = '';
+    yearSemInfo.style.display = 'none';
+  }
+}
+courseCodeInput.addEventListener('input', function() {
+  clearTimeout(debounceTimer);
+  const v = this.value.trim().toUpperCase();
+  if (!v.length) return;
+  debounceTimer = setTimeout(() => autoFillCourseDetails(v), 300);
+});
+programSelect.addEventListener('change', function() {
+  const pid = this.value;
+  const dl  = document.getElementById('courseCodesList');
+  dl.innerHTML = '';
+  {% for pc in program_courses %}
+  if (!pid || pid === "{{ pc.program_id }}") {
+    const opt = document.createElement('option');
+    opt.value = "{{ pc.course_code|escapejs }}";
+    opt.textContent = "{{ pc.course_code|escapejs }} - {{ pc.course_name|escapejs }}";
+    dl.appendChild(opt);
+  }
+  {% endfor %}
+});
+programSelect.dispatchEvent(new Event('change'));
+
+
+  // Read the display text of the currently selected option in a <select>.
+  // Strips any trailing parenthetical suffix like "(Your Dept)".
+  function getSelectedLabel(selectId, fallback) {
+    var sel = document.getElementById(selectId);
+    if (!sel || !sel.value) return fallback || '';
+    var text = (sel.options[sel.selectedIndex] && sel.options[sel.selectedIndex].text) || '';
+    return text.replace(/\s*\([^)]*\)\s*$/, '').trim() || fallback || '';
+  }
+
+// ── Form Submit (Create / Update) ─────────────────
+document.getElementById('allocationForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const allocId = document.getElementById('allocationId').value;
+  const courseCode = courseCodeInput.value.trim();
+  const courseName = courseNameInput.value.trim();
+
+  // Client-side validation
+  const errors = validateAllocation({ course_code:courseCode, course_name:courseName });
+  if (errors.length) { showToast(errors.join(' · '), 'error', 4000); return; }
+
+  const btn = document.getElementById('saveBtn');
+  const lbl = document.getElementById('saveBtnLabel');
+  btn.disabled = true; lbl.textContent = 'Saving…';
+
+  // Read lecturer display name from the select option text RIGHT NOW,
+  // before the async call, so we always have it for the DOM update
+  // regardless of what the server response contains.
+  const lecturerSel    = document.getElementById('lecturerSelect');
+  const lecturerId     = lecturerSel.value;
+  const lecturerDisplay= getSelectedLabel('lecturerSelect', '');
+
+  const payload = {
+    action: allocId ? 'update_allocation' : 'create_allocation',
+    ...(allocId ? { id: allocId } : {}),
+    course_code:    courseCode,
+    course_name:    courseName,
+    program_id:     programSelect.value,
+    lecturer_id:    lecturerId,
+    number_of_students: '0',
+    origin_department_id: document.getElementById('originDeptSel').value,
+    program_course_id: hiddenProgramCourseId.value,
+    academic_year:  hiddenAcademicYear.value,
+    semester:       hiddenSemester.value,
+    submitted_to_timetabling: document.getElementById('submittedCheck').checked ? 'true' : 'false',
+  };
+
+  // Build the local row data from form state — used as fallback when
+  // the server response doesn't include a full allocation object.
+  const localRowData = {
+    id: allocId || null,
+    course_code: courseCode,
+    course_name: courseName,
+    lecturer_display: lecturerDisplay,
+    number_of_students: 0,
+    is_cross_dept: false,
+    dept_name: ''
+  };
+
+  const json = await postAjax(payload, payload);
+
+  if (json.status === 'success') {
+    showToast(allocId ? 'Allocation updated' : 'Allocation created', 'success');
+    // Prefer server allocation data, but fill in lecturer_display from local
+    // if the server didn't return it (the common case with many Django views).
+    const rowData = json.allocation
+      ? { ...json.allocation, lecturer_display: json.allocation.lecturer_display || lecturerDisplay }
+      : { ...localRowData, id: allocId || json.id };
+    updateRowInTable(rowData);
+    resetForm();
+  } else if (json.status === 'queued') {
+    // Offline — optimistic row with correct lecturer name from form
+    const tempId = allocId || ('temp_'+Date.now());
+    if (!allocId) {
+      appendRowToTable({ ...localRowData, id: tempId });
+    } else {
+      updateRowInTable({ ...localRowData, id: allocId });
+    }
+    resetForm();
+  } else {
+    showToast(json.message || 'Error saving allocation', 'error', 5000);
+  }
+
+  btn.disabled = false; lbl.textContent = allocId ? 'Update Allocation' : 'Save Allocation';
+});
+
+// ── Edit Row ──────────────────────────────────────
+window.editRow = async function(id) {
+  const json = await postAjax({ action:'allocation_detail', id });
+  if (json.status !== 'success') { showToast('Could not load allocation', 'error'); return; }
+  const a = json.allocation;
+
+  document.getElementById('allocationId').value = a.id;
+  courseCodeInput.value = a.course_code;
+  courseNameInput.value = a.course_name;
+  programSelect.value   = a.program_id || '';
+  document.getElementById('lecturerSelect').value = a.lecturer_id || '';
+  document.getElementById('originDeptSel').value  = a.origin_department_id || '';
+  document.getElementById('submittedCheck').checked = a.submitted_to_timetabling;
+  hiddenProgramCourseId.value = a.program_course_id || '';
+  hiddenAcademicYear.value    = a.academic_year || '';
+  hiddenSemester.value        = a.semester || '';
+
+  if (a.academic_year || a.semester) {
+    displayAcademicYear.textContent = a.academic_year || '-';
+    displaySemester.textContent     = a.semester || '-';
+    yearSemInfo.style.display = 'block';
+  } else { yearSemInfo.style.display = 'none'; }
+
+  if (a.program_id) programSelect.dispatchEvent(new Event('change'));
+
+  // An origin-department collaborator (a.is_true_owner === false) can only
+  // assign a lecturer here — every other field is owned by the hosting
+  // department and is locked to prevent accidental (or silent) ownership/
+  // authoring changes on save. The server enforces this regardless, but
+  // locking the fields keeps the UI honest about it.
+  const collaboratorOnlyFieldIds = [
+    'courseCodeInput', 'courseName', 'programSelect', 'originDeptSel', 'submittedCheck'
+  ];
+  const isCollaboratorOnly = a.is_true_owner === false;
+  collaboratorOnlyFieldIds.forEach(fid => {
+    const el = document.getElementById(fid);
+    if (el) el.disabled = isCollaboratorOnly;
+  });
+
+  document.getElementById('formTitle').textContent     = isCollaboratorOnly
+    ? `Editing (origin dept — lecturer only): ${a.course_code}`
+    : `Editing: ${a.course_code}`;
+  document.getElementById('saveBtnLabel').textContent  = 'Update Allocation';
+  document.getElementById('cancelEditBtn').style.display = 'block';
+
+  await loadStudentsForAllocation(id);
+  document.getElementById('studentManagementSection').style.display = 'block';
+  document.getElementById('formScroll').scrollTo({ top:0, behavior:'smooth' });
+};
+
+document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+// ── Delete Row ────────────────────────────────────
+window.deleteRow = function(id) {
+  if (!confirm('Delete this resit allocation? This will also remove all student registrations.')) return;
+  const tr = document.getElementById(`alloc-${id}`);
+  if (tr) { tr.classList.add('row-saving'); }
+
+  postAjax(
+    { action:'delete_allocation', id },
+    { action:'delete_allocation', id }
+  ).then(json => {
+    if (json.status === 'success' || json.status === 'queued') {
+      tr?.remove();
+      if (!document.querySelectorAll('#allocationsTable tr[id^="alloc-"]').length) {
+        document.getElementById('allocationsTable').innerHTML =
+          '<tr id="emptyRow"><td colspan="5" style="text-align:center;padding:40px;color:#bbb;">No resit allocations yet. Create one using the form.</td></tr>';
+      }
+      if (json.status === 'success') showToast('Allocation deleted', 'success');
+    } else {
+      tr?.classList.remove('row-saving');
+      showToast(json.message||'Error deleting', 'error');
+    }
+  });
+};
+
+// ── Load all student counts on page load ──────────
+async function loadAllStudentAdmissions() {
+  const rows = document.querySelectorAll('#allocationsTable tr[id^="alloc-"]');
+  for (const row of rows) {
+    const id = row.id.replace('alloc-','');
+    await loadAndDisplayStudentsInTable(id);
+  }
+}
+setTimeout(() => loadAllStudentAdmissions(), 500);
+
+// ── Side Navigation ───────────────────────────────
+const sideNav    = document.getElementById('sideNav');
+const navOverlay = document.getElementById('navOverlay');
+document.getElementById('navToggle')?.addEventListener('click',  () => { sideNav.classList.add('active'); navOverlay.classList.add('active'); });
+document.getElementById('navClose')?.addEventListener('click',   () => { sideNav.classList.remove('active'); navOverlay.classList.remove('active'); });
+navOverlay?.addEventListener('click', () => { sideNav.classList.remove('active'); navOverlay.classList.remove('active'); });
+
+// ── Submission toggle ─────────────────────────────
+const ttCb = document.getElementById('toggle-tt');
+if (ttCb) {
+  ttCb.addEventListener('change', function() {
+    fetch("{% url 'toggle_resit_submission' %}", { headers:{ 'X-Requested-With':'XMLHttpRequest' } })
+    .then(r=>r.json()).then(d => {
+      if (d.status==='success') {
+        ttCb.checked = d.allow_submission_to_timetabling;
+        document.getElementById('ttBox')?.classList.toggle('active', d.allow_submission_to_timetabling);
+        showToast(`Submission ${d.allow_submission_to_timetabling?'enabled':'disabled'}`, 'info');
+      }
+    });
+  });
+}
+
+// ── Quick Enrollment Modal ────────────────────────
+(function() {
+  const overlay  = document.getElementById('enrollOverlay');
+  const openBtn  = document.getElementById('openEnrollEdit');
+  const closeBtn = document.getElementById('enrollModalClose');
+  const doneBtn  = document.getElementById('enrollCloseBtn');
+  const body     = document.getElementById('enrollBody');
+  const stats    = document.getElementById('enrollStats');
+  const searchBox= document.getElementById('enrollSearch');
+
+  function openModal()  { overlay.classList.add('active'); loadAllocationsForEnroll(); }
+  function closeModal() { overlay.classList.remove('active'); }
+  openBtn?.addEventListener('click',  openModal);
+  closeBtn?.addEventListener('click', closeModal);
+  doneBtn?.addEventListener('click',  closeModal);
+  overlay?.addEventListener('click',  e => { if(e.target===overlay) closeModal(); });
+
+  async function loadAllocationsForEnroll() {
+    body.innerHTML = '<div style="text-align:center;padding:20px;">Loading...</div>';
+    const json = await postAjax({ action:'list_allocations_for_enrollment' });
+    if (json.status !== 'success') { body.innerHTML = `<div style="color:#e74c3c;padding:20px;">Error loading data</div>`; return; }
+    renderEnrollAllocations(json.programs||[]);
+  }
+
+  function renderEnrollAllocations(programs) {
+    if (!programs.length) { body.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;">No allocations found</div>'; stats.textContent='0 courses'; return; }
+    let html='', total=0, totalSt=0;
+    programs.forEach(prog => {
+      html += `<div class="enroll-prog-block"><div class="enroll-prog-name">📚 ${escapeHtml(prog.program_name)}</div>`;
+      (prog.years||[]).forEach(yr => {
+        html += `<div class="enroll-year-group"><div class="enroll-year-label">${yr.year?`Year ${yr.year}`:'Year —'}</div>`;
+        (yr.courses||[]).forEach(c => {
+          total++; totalSt += c.number_of_students||0;
+          html += `
+            <div class="enroll-row" data-id="${c.id}">
+              <span class="enroll-code">${escapeHtml(c.course_code)}</span>
+              <span class="enroll-name">${escapeHtml(c.course_name)}</span>
+              <div class="enroll-input-wrap">
+                <input class="enroll-num-input" type="number" min="0" max="10000" value="${c.number_of_students}" data-original="${c.number_of_students}">
+                <span class="enroll-status-icon"></span>
+              </div>
+            </div>`;
+        });
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    body.innerHTML = html;
+    stats.textContent = `${total} courses · ${totalSt} students`;
+
+    document.querySelectorAll('.enroll-row').forEach(row => {
+      const id    = row.dataset.id;
+      const input = row.querySelector('.enroll-num-input');
+      const icon  = row.querySelector('.enroll-status-icon');
+      let timer;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        icon.textContent = '⋯';
+        row.classList.remove('saved','error');
+        timer = setTimeout(async () => {
+          const v = validateStudentCount(input.value);
+          if (!v.valid) { icon.textContent='✗'; row.classList.add('error'); showToast(v.error,'error'); return; }
+          icon.textContent = '⏳';
+          const payload = { action:'update_student_count', id, number_of_students:v.value };
+          const json = await postAjax(payload, payload);
+          if (json.status==='success' || json.status==='queued') {
+            icon.textContent = '✓'; row.classList.add('saved');
+            setTimeout(() => row.classList.remove('saved'), 1600);
+            if (json.status==='success') loadAndDisplayStudentsInTable(id);
+          } else { icon.textContent='✗'; row.classList.add('error'); showToast(json.message||'Error','error'); }
+        }, 600);
+      });
+    });
+  }
+
+  searchBox?.addEventListener('input', function() {
+    const term = this.value.toLowerCase();
+    let vis = 0;
+    document.querySelectorAll('.enroll-row').forEach(row => {
+      const code = row.querySelector('.enroll-code')?.textContent.toLowerCase()||'';
+      const name = row.querySelector('.enroll-name')?.textContent.toLowerCase()||'';
+      const show = !term || code.includes(term) || name.includes(term);
+      row.style.display = show ? '' : 'none';
+      if (show) vis++;
+    });
+    stats.textContent = term ? `${vis} courses matching` : '';
+  });
+})();
+
+// ── Sync any pending items on page load (if online) ─
+if (_online && queueGet().length) {
+  setTimeout(syncOfflineQueue, 1500);
+}
+</script>
+
+<!-- ── Auto-Allocate Modal ─────────────────────────────────────────── -->
+<div id="autoAllocateModal" class="aa-modal-overlay" style="display:none;">
+  <div class="aa-modal">
+    <div class="aa-modal__head">
+      <h2>&#129302; Resit Auto-Allocate</h2>
+      <button type="button" class="aa-close" id="aaCloseBtn">&times;</button>
+    </div>
+
+    <div class="aa-modal__body">
+      <div class="aa-sidebar">
+        <div class="aa-sidebar-title">Filters</div>
+
+        {% if is_resit_admin %}
+        <div class="aa-field">
+          <label class="field-label">Department</label>
+          <select id="aaDeptSelect">
+            <option value="">Select Department</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input type="hidden" id="aaDeptSelect" value="{{ department.id }}">
+        {% endif %}
+
+        <div class="aa-field">
+          <label class="field-label">Academic Year</label>
+          <input type="text" id="aaAcademicYear" placeholder="e.g. 2025/2026">
+        </div>
+
+        <div class="aa-field">
+          <label class="field-label">Semester(s)</label>
+          <div class="aa-sem-checks aa-sem-checks--stacked">
+            <label><input type="checkbox" class="aaSemCheck" value="1" checked> Semester 1</label>
+            <label><input type="checkbox" class="aaSemCheck" value="2" checked> Semester 2</label>
+          </div>
+          <small class="aa-hint">Tick both to allocate Semester 1 and Semester 2 together in one run.</small>
+        </div>
+
+        <button type="button" class="btn-save aa-load-btn" id="aaLoadTreeBtn">
+          &#128260; Load Courses
+        </button>
+
+        <div class="aa-sidebar-divider"></div>
+
+        <label class="aa-overwrite-toggle">
+          <input type="checkbox" id="aaOverwrite"> Re-allocate courses already allocated
+        </label>
+
+        <div class="aa-selected-count" id="aaSelectedCount">0 selected</div>
+      </div>
+
+      <div id="aaTreeContainer" class="aa-table-wrap">
+        <table class="aa-table">
+          <thead>
+            <tr>
+              <th class="aa-col-check"><input type="checkbox" id="aaSelectAllMaster" title="Select all courses shown"></th>
+              <th>Course Code</th>
+              <th>Course Name</th>
+              <th>Program</th>
+              <th>Cohort</th>
+              <th>Sem</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="aaTreeBody">
+            <tr><td colspan="7" class="aa-empty-hint">Pick a department, then click "Load Courses".</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="aa-modal__foot">
+      <button type="button" class="btn-action btn-delete" id="aaCancelBtn">Cancel</button>
+      <button type="button" class="btn-save" id="aaRunBtn" style="width:auto;padding:8px 18px;" disabled>
+        &#129302; Auto-Allocate Selected
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ── Auto-Allocate: full-screen, flat, spreadsheet-style layout ───────── */
+  .aa-modal-overlay { position: fixed; inset: 0; background: #fff; z-index: 9500; display: flex; flex-direction: column; }
+  .aa-modal { background: #fff; border-radius: 0; width: 100%; flex: 1 1 auto; max-width: none; max-height: none; display: flex; flex-direction: column; overflow: hidden; box-shadow: none; }
+  .aa-modal__head { background: #1b5e20; color: #fff; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
+  .aa-modal__head h2 { font-size: 15px; margin: 0; font-weight: 700; }
+  .aa-close { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; }
+  .aa-modal__body { padding: 0; overflow: hidden; flex: 1 1 auto; display: flex; flex-direction: row; min-height: 0; }
+  .aa-modal__foot { padding: 8px 14px; border-top: 1px solid #ccc; display: flex; justify-content: flex-end; gap: 8px; flex: 0 0 auto; background: #fafafa; }
+
+  /* ── Left sidebar: filters / form ─────────────────────────────────── */
+  .aa-sidebar { flex: 0 0 260px; width: 260px; border-right: 1px solid #ccc; background: #fafafa; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+  .aa-sidebar-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1b5e20; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  .aa-sidebar-divider { border-top: 1px solid #ddd; margin: 2px 0; }
+  .aa-field { display: flex; flex-direction: column; gap: 3px; }
+  .aa-field select, .aa-field input[type=text] { width: 100%; height: 30px; padding: 4px 6px; border-radius: 0; border: 1px solid #999; font-size: 12.5px; background: #fff; }
+  .aa-field .field-label { font-size: 11px; font-weight: 700; color: #333; margin-bottom: 1px; text-transform: uppercase; letter-spacing: .3px; }
+  .aa-sem-checks--stacked { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .aa-hint { display: block; color: #666; font-size: 10.5px; margin-top: 4px; }
+  .aa-load-btn { width: 100%; padding: 8px 10px; }
+  .aa-overwrite-toggle { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; font-weight: 600; color: #333; }
+  .aa-selected-count { font-size: 12px; font-weight: 700; color: #1b5e20; border-top: 1px solid #ddd; padding-top: 10px; }
+
+  /* ── Right panel: flat, column-lined data table (scrolls at the outer edge) ── */
+  .aa-table-wrap { flex: 1 1 auto; overflow: auto; min-height: 0; background: #fff; }
+  .aa-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .aa-table thead th { position: sticky; top: 0; z-index: 2; background: #f3f3f3; border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: #333; }
+  .aa-table thead th.aa-col-check { width: 34px; text-align: center; }
+  .aa-table tbody td { border: 1px solid #eee; padding: 4px 8px; vertical-align: middle; }
+  .aa-table tbody td.aa-col-check { text-align: center; }
+  .aa-empty-hint { padding: 24px; text-align: center; color: #777; font-size: 13px; border: none !important; }
+  .aa-group-row td { background: #eaeaea; font-weight: 700; font-size: 12px; color: #1b5e20; border: 1px solid #ccc; padding: 5px 8px; }
+  .aa-cohort-row td { background: #f7f7f7; font-weight: 600; font-size: 11.5px; color: #333; border: 1px solid #eee; padding: 4px 8px 4px 22px; }
+  .aa-cohort-row .cohort-badge { color: #0d47a1; font-size: 10.5px; font-weight: 700; margin-left: 4px; }
+  .aa-course-row:nth-child(even) { background: #fafafa; }
+  .aa-course-row:hover { background: #eef6ff; }
+  .aa-course-row.aa-already td.aa-col-status { color: #2e7d32; font-weight: 600; }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const AA_TREE_URL = "{% url 'api_resit_auto_allocate_tree' %}";
+  const AA_RUN_URL  = "{% url 'api_resit_auto_allocate_run' %}";
+
+  function aaGetCookie(name) {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function aaOpen() {
+    document.getElementById('autoAllocateModal').style.display = 'flex';
+    // Department is already known for regular COD/COD Admin accounts (server
+    // detected it and pre-filled the hidden field) -- auto-load their courses
+    // immediately instead of making them click "Load Courses", same as /cod/.
+    const deptId = $('#aaDeptSelect').val();
+    const isAdminPicker = $('#aaDeptSelect').is('select');
+    if (deptId && !isAdminPicker) {
+      aaLoadTree();
+    }
+  }
+  function aaClose() { document.getElementById('autoAllocateModal').style.display = 'none'; }
+
+  document.getElementById('autoAllocateBtn').addEventListener('click', aaOpen);
+  document.getElementById('aaCloseBtn').addEventListener('click', aaClose);
+  document.getElementById('aaCancelBtn').addEventListener('click', aaClose);
+
+  function aaSelectedIds() {
+    return $('#aaTreeContainer .aa-course-check:checked')
+      .map(function () { return parseInt($(this).val(), 10); }).get();
+  }
+
+  function aaUpdateCount() {
+    const n = aaSelectedIds().length;
+    $('#aaSelectedCount').text(n + ' selected');
+    $('#aaRunBtn').prop('disabled', n === 0);
+  }
+
+  function aaRenderTree(data) {
+    const $tbody = $('#aaTreeBody');
+    if (data.default_academic_year && !$('#aaAcademicYear').val()) {
+      $('#aaAcademicYear').attr('placeholder', data.default_academic_year);
+    }
+    if (!data.programs || !data.programs.length) {
+      $tbody.html('<tr><td colspan="7" class="aa-empty-hint">No courses found for this department/semester selection.</td></tr>');
+      aaUpdateCount();
+      return;
+    }
+    let html = '';
+    data.programs.forEach(function (prog) {
+      html += `<tr class="aa-group-row">
+        <td colspan="7"><label><input type="checkbox" class="aa-select-program" data-program="${prog.program_id}"> ${prog.program_name}</label></td>
+      </tr>`;
+      (prog.cohorts || []).forEach(function (cohort) {
+        html += `<tr class="aa-cohort-row">
+          <td colspan="7"><label><input type="checkbox" class="aa-select-cohort" data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"> Cohort ${cohort.entry_year} — Year ${cohort.year_of_study} <span class="cohort-badge">${cohort.students} students</span></label></td>
+        </tr>`;
+        cohort.courses.forEach(function (c) {
+          const already = c.already_allocated;
+          const status = already
+            ? ('Already: ' + (c.lecturer || 'Unassigned') + (c.resit_period ? ' (' + c.resit_period + ')' : ''))
+            : '—';
+          html += `<tr class="aa-course-row ${already ? 'aa-already' : ''}">
+            <td class="aa-col-check"><input type="checkbox" class="aa-course-check"
+                   value="${c.program_course_id}"
+                   data-program="${prog.program_id}" data-cohort="${cohort.entry_year}"></td>
+            <td>${c.course_code}</td>
+            <td>${c.course_name}</td>
+            <td>${prog.program_name}</td>
+            <td>${cohort.entry_year} (Yr ${cohort.year_of_study})</td>
+            <td>Sem ${c.semester}</td>
+            <td class="aa-col-status">${status}</td>
+          </tr>`;
+        });
+      });
+    });
+    $tbody.html(html);
+    aaUpdateCount();
+  }
+
+  function aaLoadTree() {
+    const deptId = $('#aaDeptSelect').val();
+    if (!deptId) { alert('Select a department first.'); return; }
+    const semesters = $('.aaSemCheck:checked').map(function () { return $(this).val(); }).get();
+    if (!semesters.length) { alert('Select at least one semester.'); return; }
+
+    $('#aaTreeBody').html('<tr><td colspan="7" class="aa-empty-hint">Loading…</td></tr>');
+    $.ajax({
+      url: AA_TREE_URL,
+      type: 'GET',
+      data: { department_id: deptId, semesters: semesters.join(',') },
+      success: function (r) {
+        if (r.success) { aaRenderTree(r); }
+        else { alert(r.error || 'Failed to load courses.'); }
+      },
+      error: function (xhr) {
+        alert((xhr.responseJSON && xhr.responseJSON.error) || 'Failed to load courses.');
+      }
+    });
+  }
+
+  $('#aaLoadTreeBtn').on('click', aaLoadTree);
+
+  $(document).on('change', '#aaSelectAllMaster', function () {
+    const checked = $(this).is(':checked');
+    $('#aaTreeContainer .aa-course-check, #aaTreeContainer .aa-select-cohort, #aaTreeContainer .aa-select-program')
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-select-program', function () {
+    const programId = $(this).data('program');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"], .aa-select-cohort[data-program="${programId}"]`)
+      .prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-select-cohort', function () {
+    const programId = $(this).data('program');
+    const cohort = $(this).data('cohort');
+    const checked = $(this).is(':checked');
+    $(`.aa-course-check[data-program="${programId}"][data-cohort="${cohort}"]`).prop('checked', checked);
+    aaUpdateCount();
+  });
+
+  $(document).on('change', '.aa-course-check', aaUpdateCount);
+
+  $('#aaRunBtn').on('click', function () {
+    const ids = aaSelectedIds();
+    if (!ids.length) return;
+    const deptId = $('#aaDeptSelect').val();
+    const overwrite = $('#aaOverwrite').is(':checked');
+    const msg = overwrite
+      ? `Auto-allocate ${ids.length} course(s)? Any already allocated will be re-picked (existing student registrations for them will be lost).`
+      : `Auto-allocate ${ids.length} course(s)? Courses already allocated will be skipped.`;
+    if (!confirm(msg)) return;
+
+    $('#aaRunBtn').prop('disabled', true).text('Running…');
+    $.ajax({
+      url: AA_RUN_URL,
+      type: 'POST',
+      headers: { 'X-CSRFToken': aaGetCookie('csrftoken') },
+      contentType: 'application/json',
+      data: JSON.stringify({
+        program_course_ids: ids,
+        department_id: deptId,
+        academic_year: $('#aaAcademicYear').val(),
+        overwrite: overwrite,
+      }),
+      success: function (r) {
+        if (r.success) {
+          alert(r.message);
+          aaClose();
+          location.reload();
+        } else {
+          alert(r.error || 'Auto-allocation failed.');
+        }
+      },
+      error: function (xhr) {
+        alert((xhr.responseJSON && xhr.responseJSON.error) || 'Auto-allocation failed.');
+      },
+      complete: function () {
+        $('#aaRunBtn').prop('disabled', false).html('&#129302; Auto-Allocate Selected');
+      }
+    });
+  });
+
+})();
+</script>
+
+{% url 'resit_cod_panel' as sr_action_url %}
+{% include "special_requests/sr_widget.html" with sr_action_url=sr_action_url %}
+</body>
+</html>

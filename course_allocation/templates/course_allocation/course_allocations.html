@@ -1,0 +1,101 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_course_allocations.css' %}">
+<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocations.css' %}">
+{% endblock page_css %}
+
+{% block title %}Course Allocations{% endblock %}
+{% block page_title %}Course Allocations{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+<div class="pg">
+
+ <div class="controls">
+ <div class="controls-group">
+ <label for="dept-select" class="ctrl-label">Filter department</label>
+ <select id="dept-select" class="pg-sel" aria-label="Filter department">
+ <option value="">— All departments —</option>
+ {% for dept in departments %}
+ <option value="{{ dept.id }}">{{ dept.name }}</option>
+ {% endfor %}
+ </select>
+ <button id="filter-btn" class="btn btn-outline" type="button">
+ <i class="fas fa-filter"></i> Filter
+ </button>
+ <button id="reset-btn" class="btn btn-secondary" type="button">
+ <i class="fas fa-undo"></i> Reset
+ </button>
+ </div>
+
+ <div class="controls-group">
+ <input id="search-input" type="text" class="pg-inp" placeholder="Search by course code or name…" aria-label="Search courses">
+ <button id="search-btn" class="btn btn-primary" type="button">
+ <i class="fas fa-search"></i> Search
+ </button>
+ <button id="clear-search-btn" class="btn btn-outline" type="button">
+ <i class="fas fa-times"></i> Clear
+ </button>
+ </div>
+ </div>
+
+ <div class="dept-buttons" aria-hidden="false">
+ {% for dept in departments %}
+ <div class="dept-chip" data-dept-id="{{ dept.id }}" title="Show {{ dept.name }}">{{ dept.name|slice:":22" }}</div>
+ {% endfor %}
+ </div>
+
+ <div class="search-hint">
+ <i class="fas fa-lightbulb" style="margin-right:4px;opacity:.7;"></i>
+ Tip: search partial course codes (e.g. "COSC") or names. Press Search or Enter.
+ </div>
+
+ <div class="table-container">
+ <table id="alloc-table" role="table" aria-label="Course allocations table">
+ <thead>
+ <tr>
+ <th>Course code</th>
+ <th>Course name</th>
+ <th>Department</th>
+ <th>Origin dept</th>
+ <th>Program</th>
+ <th>Lecturer</th>
+ <th>Students</th>
+ <th>Status</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for a in allocations %}
+ <tr class="alloc-row"
+ data-dept-id="{{ a.department_id }}"
+ data-course-code="{{ a.course_code|escape }}"
+ data-course-name="{{ a.course_name|escape }}">
+ <td><strong>{{ a.course_code }}</strong></td>
+ <td>{{ a.course_name }}</td>
+ <td>{{ a.department.name }}</td>
+ <td>{% if a.origin_department %}{{ a.origin_department.name }}{% else %}-{% endif %}</td>
+ <td>{% if a.program %}{{ a.program.name }}{% else %}-{% endif %}</td>
+ <td>{% if a.lecturer %}{{ a.lecturer.display_name }}{% else %}<span class="small-txt">Unassigned</span>{% endif %}</td>
+ <td>{{ a.number_of_students }}</td>
+ <td class="status-cell small-txt">{{ a.status_label }}</td>
+ </tr>
+ {% empty %}
+ <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No allocations found.</td></tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ <div id="no-results" class="no-results" style="display:none;">No matching allocations found.</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'course_allocation/js/course_allocation_course_allocation_course_allocations.js' %}"></script>
+{% endblock extra_js %}

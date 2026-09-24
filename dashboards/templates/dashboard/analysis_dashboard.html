@@ -1,0 +1,327 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Timetable Data Dashboard{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboards_dashboard_analysis_dashboard.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<div class="fullscreen-container">
+ <div class="container">
+ <!-- Header -->
+ <div class="header">
+ <div>
+ <h1> Timetable Data Dashboard</h1>
+ <p style="color: var(--text-light); margin-top: 5px;">See all your timetable data at a glance</p>
+ </div>
+ <div class="header-info">
+ <div>Updated: {{ current_time }}</div>
+ <div>{{ current_date }}</div>
+ </div>
+ </div>
+
+ <!-- Quick Stats -->
+ <div class="stats-grid">
+ <div class="stat-card">
+ <div class="stat-label">Total Data Tables</div>
+ <div class="stat-number">{{ total_models }}</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">Total Records</div>
+ <div class="stat-number">{{ total_records }}</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">Tables with Data</div>
+ <div class="stat-number">{{ models_with_data }}</div>
+ </div>
+ <div class="stat-card">
+ <div class="stat-label">Average per Table</div>
+ <div class="stat-number">{{ avg_records }}</div>
+ </div>
+ </div>
+
+ <!-- Main Layout -->
+ <div class="main-layout">
+ <div class="main-content">
+ <!-- Main Chart -->
+ <div class="main-chart">
+ <h2> Data Distribution Across Tables</h2>
+ <div class="chart-container">
+ <canvas id="mainChart"></canvas>
+ </div>
+ </div>
+
+ <!-- Data Tables -->
+ <h2 style="margin: 25px 0 15px 0; color: var(--text);"> All Data Tables</h2>
+ 
+ {% for model in model_summaries %}
+ <div class="model-card">
+ <div class="model-header">
+ <div class="model-name">{{ model.model }}</div>
+ <div class="model-count">{{ model.count }} records</div>
+ </div>
+ 
+ {% if model.relations %}
+ <div class="relations">
+ <div style="color: var(--text-light); margin-bottom: 10px; font-size: 0.9rem;">
+ Connected to:
+ </div>
+ {% for rel in model.relations %}
+ <div class="relation-item">
+ <span>{{ rel.related_model }}</span>
+ <span style="color: var(--primary); font-weight: bold;">{{ rel.related_count }}</span>
+ </div>
+ {% endfor %}
+ </div>
+ {% else %}
+ <div style="color: var(--text-light); font-style: italic; padding: 10px 0;">
+ No connections found
+ </div>
+ {% endif %}
+ </div>
+ {% endfor %}
+ </div>
+
+ <!-- Sidebar -->
+ <div class="sidebar">
+ <!-- Quick Summary -->
+ <div class="sidebar-section">
+ <h3> What This Shows</h3>
+ <p style="color: var(--text-light); line-height: 1.6; margin-bottom: 15px;">
+ This dashboard shows all the different types of data in your timetable system.
+ </p>
+ <ul style="color: var(--text-light); padding-left: 20px; line-height: 1.6;">
+ <li>Each "Table" is a category of data (like Teachers, Classes, Rooms)</li>
+ <li>"Records" are individual items in each table</li>
+ <li>"Connections" show how tables are linked together</li>
+ </ul>
+ </div>
+
+ <!-- Legend -->
+ <div class="sidebar-section">
+ <h3> Color Guide</h3>
+ <div class="legend">
+ <div class="legend-item">
+ <div class="legend-color" style="background: #3b82f6;"></div>
+ <span>Most Data</span>
+ </div>
+ <div class="legend-item">
+ <div class="legend-color" style="background: #8b5cf6;"></div>
+ <span>Medium Data</span>
+ </div>
+ <div class="legend-item">
+ <div class="legend-color" style="background: #10b981;"></div>
+ <span>Least Data</span>
+ </div>
+ </div>
+ </div>
+
+ <!-- Actions -->
+ <div class="sidebar-section">
+ <h3> Quick Actions</h3>
+ <div style="display: flex; flex-direction: column; gap: 10px;">
+ <button onclick="window.location.reload()" style="
+ padding: 12px;
+ background: var(--primary);
+ color: white;
+ border: none;
+ border-radius: 8px;
+ cursor: pointer;
+ font-weight: bold;
+ ">
+ Refresh Data
+ </button>
+ <button onclick="window.print()" style="
+ padding: 12px;
+ background: white;
+ color: var(--primary);
+ border: 2px solid var(--primary);
+ border-radius: 8px;
+ cursor: pointer;
+ font-weight: bold;
+ ">
+ ️ Print Report
+ </button>
+ </div>
+ </div>
+
+ <!-- Help -->
+ <div class="sidebar-section">
+ <h3> Need Help?</h3>
+ <p style="color: var(--text-light); line-height: 1.6;">
+ If something looks wrong or you have questions:
+ </p>
+ <div class="contact-placeholder">
+ Contact: IT Support Team
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Data Table -->
+ <div class="data-table">
+ <h2 style="margin-bottom: 20px;"> Complete Data Summary</h2>
+ <table>
+ <thead>
+ <tr>
+ <th>Data Table</th>
+ <th>Records</th>
+ <th>Has Data?</th>
+ <th>Connections</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for model in model_summaries %}
+ <tr>
+ <td>{{ model.model }}</td>
+ <td style="font-weight: bold; color: var(--primary);">{{ model.count }}</td>
+ <td>
+ {% if model.has_data %}
+ <span style="color: var(--success); font-weight: bold;"> Yes</span>
+ {% else %}
+ <span style="color: var(--danger);"> No</span>
+ {% endif %}
+ </td>
+ <td>{{ model.relations|length }} links</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+
+ <!-- Footer -->
+ <div class="footer">
+ <p>Timetable Data Dashboard • Updated in real-time • For department use only</p>
+ <p style="margin-top: 5px; font-size: 0.8rem;">
+ Showing data for {{ total_models }} tables with {{ total_records }} total records
+ </p>
+ </div>
+ </div>
+</div>
+{% endblock content %}
+
+{% block footer %}<footer style="background:var(--panel-navy,#0d1b3e);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:1px solid rgba(255,255,255,.08);" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * dashboards_dashboard_analysis_dashboard.js
+ * Extracted inline JS from: dashboards/templates/dashboard/analysis_dashboard.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+// Get data from Django
+  const modelNames = {{ chart_models_json }};
+  const modelCounts = {{ chart_counts_json }};
+
+  // Simple color palette
+  const colors = [
+    '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#6366f1', '#14b8a6', '#84cc16', '#f97316', '#ec4899'
+  ];
+
+  // Create main chart
+  function createMainChart() {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    
+    // Sort by count for better visualization
+    const pairs = modelNames.map((name, i) => ({name, count: modelCounts[i]}));
+    pairs.sort((a, b) => b.count - a.count);
+    
+    const sortedNames = pairs.map(p => p.name);
+    const sortedCounts = pairs.map(p => p.count);
+    
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: sortedNames,
+        datasets: [{
+          label: 'Number of Records',
+          data: sortedCounts,
+          backgroundColor: colors.slice(0, sortedCounts.length),
+          borderColor: colors.slice(0, sortedCounts.length),
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.parsed.y.toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#64748b',
+              maxRotation: 45,
+              minRotation: 45
+            },
+            grid: {
+              display: false
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#64748b',
+              callback: function(value) {
+                return value.toLocaleString();
+              }
+            },
+            grid: {
+              color: '#e2e8f0'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Initialize when page loads
+  document.addEventListener('DOMContentLoaded', function() {
+    createMainChart();
+    
+    // Add simple animations to cards
+    const cards = document.querySelectorAll('.model-card, .stat-card');
+    cards.forEach((card, index) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(20px)';
+      
+      setTimeout(() => {
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, index * 100);
+    });
+
+    // Adjust container height on resize
+    window.addEventListener('resize', function() {
+      const container = document.querySelector('.fullscreen-container');
+      container.style.minHeight = window.innerHeight + 'px';
+    });
+
+    // Set initial height
+    const container = document.querySelector('.fullscreen-container');
+    container.style.minHeight = window.innerHeight + 'px';
+  });
+
+  // Auto-refresh every 5 minutes (optional)
+  setInterval(() => {
+    console.log('Auto-refreshing data...');
+    // You can add auto-refresh logic here if needed
+  }, 5 * 60 * 1000);
+</script>
+{% endblock %}

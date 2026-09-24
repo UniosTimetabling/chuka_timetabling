@@ -1,0 +1,221 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Schedule Visibility · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .sv-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  .sv-hero {
+    padding-bottom:.5rem;
+    margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .sv-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+
+  .sv-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 12px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000; cursor:pointer;
+    text-decoration:none; border-radius:0;
+    transition:background .12s, color .12s;
+  }
+  .sv-btn:hover              { background:#f1f5f9; }
+  .sv-btn.sv-btn-green       { background:#107c41; color:#fff; border-color:#107c41; }
+  .sv-btn.sv-btn-green:hover { background:#0e6b36; }
+  .sv-btn:disabled           { opacity:.5; cursor:not-allowed; }
+
+  .sv-hint { font-size:.7rem; color:#64748b; margin-top:3px; }
+
+  .sv-cards { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:820px) { .sv-cards { grid-template-columns:1fr; } }
+
+  .sv-card {
+    border:1px solid #000; background:#fafafa; padding:14px;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .sv-card-head {
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:2px;
+  }
+  .sv-card-head h3 { margin:0; font-size:1.02rem; font-weight:800; color:#000; }
+
+  .sv-badge {
+    display:inline-block; padding:2px 9px;
+    font-size:.7rem; font-weight:700;
+    border:1px solid #000; white-space:nowrap;
+  }
+  .sv-badge.visible { background:#e8f5e9; color:#107c41; }
+  .sv-badge.blocked { background:#ffebee; color:#b71c1c; }
+
+  .sv-switch-row { display:flex; align-items:center; gap:8px; font-size:.85rem; font-weight:700; }
+  .sv-switch-row input[type="checkbox"] { width:18px; height:18px; }
+
+  .sv-field label {
+    display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+    color:#475569; margin-bottom:3px;
+  }
+  .sv-field input[type="text"],
+  .sv-field input[type="url"],
+  .sv-field textarea {
+    width:100%; border:1px solid #000; padding:6px 8px; font-size:.85rem;
+    border-radius:0; box-sizing:border-box; background:#fff;
+  }
+  .sv-field textarea { min-height:70px; resize:vertical; }
+
+  .sv-link-row { display:grid; grid-template-columns:1fr 1.4fr; gap:8px; }
+  @media (max-width:520px) { .sv-link-row { grid-template-columns:1fr; } }
+
+  .sv-notify-row { display:flex; align-items:flex-start; gap:6px; font-size:.78rem; }
+  .sv-notify-row input { margin-top:2px; }
+
+  .sv-card-actions { display:flex; align-items:center; gap:10px; margin-top:2px; }
+  .sv-updated { font-size:.68rem; color:#64748b; }
+
+  #sv-toast-wrap {
+    position:fixed; bottom:1.2rem; right:1.2rem;
+    z-index:9999; display:flex; flex-direction:column; gap:6px;
+  }
+  .sv-toast {
+    min-width:220px; max-width:360px; padding:9px 13px;
+    font-size:.82rem; font-weight:700; border:1px solid #000;
+    display:flex; align-items:center; gap:8px;
+    animation:svToastIn .2s ease;
+  }
+  @keyframes svToastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .sv-toast.success { background:#e8f5e9; color:#107c41; }
+  .sv-toast.error   { background:#ffebee; color:#b71c1c; }
+  .sv-toast-close   { background:none; border:none; cursor:pointer; margin-left:auto; font-size:1rem; color:inherit; }
+{% endblock %}
+
+{% block content %}
+<div class="sv-page">
+
+  <div class="sv-hero">
+    <h2>Schedule Visibility</h2>
+    <a href="{% url 'timetable_dashboard' %}" class="sv-btn"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <p class="sv-hint" style="margin:-6px 0 14px; font-size:.8rem;">
+    Turn a switch on here and the mobile app hides that schedule's grid for every student and lecturer, showing
+    your message instead — with an optional tappable link (e.g. a PDF you've uploaded) that opens/downloads on
+    the device. Devices pick the change up on their next sync. Turn it back off to restore the normal grid.
+  </p>
+
+  <div class="sv-cards" id="sv-cards">
+    {% for row in rows %}
+    <div class="sv-card" id="sv-card-{{ row.schedule_type }}" data-type="{{ row.schedule_type }}">
+      <div class="sv-card-head">
+        <h3>{{ row.get_schedule_type_display }}</h3>
+        <span class="sv-badge {% if row.is_blocked %}blocked{% else %}visible{% endif %}" id="sv-badge-{{ row.schedule_type }}">
+          {% if row.is_blocked %}Blocked{% else %}Visible{% endif %}
+        </span>
+      </div>
+
+      <label class="sv-switch-row">
+        <input type="checkbox" id="sv-blocked-{{ row.schedule_type }}" {% if row.is_blocked %}checked{% endif %}>
+        Block this schedule on the mobile app
+      </label>
+
+      <div class="sv-field">
+        <label>Message shown in its place</label>
+        <textarea id="sv-message-{{ row.schedule_type }}" placeholder="e.g. The exam timetable is being finalised and will be published shortly.">{{ row.message }}</textarea>
+      </div>
+
+      <div class="sv-link-row">
+        <div class="sv-field">
+          <label>Link label <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <input type="text" id="sv-link-label-{{ row.schedule_type }}" value="{{ row.link_label }}"
+                 placeholder="e.g. Download provisional (PDF)">
+        </div>
+        <div class="sv-field">
+          <label>Link URL <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <input type="url" id="sv-link-url-{{ row.schedule_type }}" value="{{ row.link_url }}"
+                 placeholder="https://... (a PDF link opens/downloads on tap)">
+        </div>
+      </div>
+
+      <label class="sv-notify-row">
+        <input type="checkbox" id="sv-notify-{{ row.schedule_type }}">
+        <span>Also push this message to the app's Events &amp; Memos feed for everyone (only used when blocking)</span>
+      </label>
+
+      <div class="sv-card-actions">
+        <button class="sv-btn sv-btn-green" onclick="svSave('{{ row.schedule_type }}')" id="sv-save-{{ row.schedule_type }}">
+          <i class="bi bi-check2"></i> Save
+        </button>
+        <span class="sv-updated">Last updated {{ row.updated_at|date:"M d, Y H:i" }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<div id="sv-toast-wrap"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function svToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 4000 : ttl;
+  const w = document.getElementById('sv-toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'sv-toast ' + (type || 'info');
+  t.innerHTML = msg + '<button class="sv-toast-close" onclick="this.closest(\'.sv-toast\').remove()">&times;</button>';
+  w.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+}
+
+function svCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+function svSave(scheduleType) {
+  const btn = document.getElementById('sv-save-' + scheduleType);
+  const isBlocked = document.getElementById('sv-blocked-' + scheduleType).checked;
+  const message = document.getElementById('sv-message-' + scheduleType).value.trim();
+
+  if (isBlocked && !message) {
+    svToast('&#10007; Add a message before blocking this schedule.', 'error');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('is_blocked', isBlocked ? 'true' : 'false');
+  fd.append('message', message);
+  fd.append('link_label', document.getElementById('sv-link-label-' + scheduleType).value.trim());
+  fd.append('link_url', document.getElementById('sv-link-url-' + scheduleType).value.trim());
+  fd.append('notify_app', document.getElementById('sv-notify-' + scheduleType).checked ? 'true' : 'false');
+
+  btn.disabled = true;
+  fetch('/api/mobile/admin/schedule-visibility/' + scheduleType + '/save/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': svCsrf() },
+    body: fd
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false;
+    if (d.ok) {
+      const badge = document.getElementById('sv-badge-' + scheduleType);
+      badge.textContent = d.row.isBlocked ? 'Blocked' : 'Visible';
+      badge.className = 'sv-badge ' + (d.row.isBlocked ? 'blocked' : 'visible');
+      let note = d.row.isBlocked ? 'Blocked on the app.' : 'Restored — the app will show the normal grid.';
+      if (d.notifySent) note += ' Notification pushed to everyone.';
+      svToast('&#10003; ' + note, 'success');
+    } else {
+      svToast('&#10007; ' + (d.error || 'Could not save.'), 'error');
+    }
+  })
+  .catch(() => { btn.disabled = false; svToast('&#10007; Network error — try again.', 'error'); });
+}
+</script>
+{% endblock %}

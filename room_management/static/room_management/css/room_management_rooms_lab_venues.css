@@ -1,0 +1,385 @@
+/*
+ * room_management_rooms_lab_venues.css
+ * Extracted from: room_management/templates/rooms/lab_venues.html
+ */
+
+/* ==========================================
+       🌿 CSS VARIABLES
+    ========================================== */
+    :root {
+      --primary-green: #004d26;
+      --secondary-green: #2ecc71;
+      --light-green: #50925b;
+      --warning-yellow: #f1c40f;
+      --danger-red: #e74c3c;
+      --bg-light: #f9f9f9;
+      --bg-white: #fff;
+      --text-dark: #333;
+      --text-light: #fff;
+      --border-color: #ddd;
+      --shadow: 0 2px 6px rgba(0,0,0,0.1);
+      --radius: 8px;
+      --transition: all 0.3s ease;
+    }
+
+    /* ==========================================
+       🔺 GLOBAL STYLES
+    ========================================== */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg-light);
+      color: var(--text-dark);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    /* ==========================================
+       🔺 HEADER
+    ========================================== */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--primary-green);
+      color: var(--text-light);
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .header img {
+      height: 50px;
+      width: auto;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      flex: 1;
+    }
+
+    .home-btn {
+      background: var(--light-green);
+      color: var(--text-light);
+      padding: 8px 12px;
+      border-radius: 6px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: var(--transition);
+    }
+
+    .home-btn:hover {
+      background: var(--secondary-green);
+      transform: scale(1.05);
+    }
+
+    /* ==========================================
+       🧩 FORM STYLES
+    ========================================== */
+    form {
+      background: var(--bg-white);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 6px;
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-green);
+      box-shadow: 0 0 0 2px rgba(0, 77, 38, 0.1);
+    }
+
+    /* ==========================================
+       🔘 BUTTON STYLES
+    ========================================== */
+    .btn {
+      display: inline-block;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .btn-save {
+      background: var(--secondary-green);
+      color: var(--text-light);
+    }
+
+    .btn-save:hover {
+      background: #27ae60;
+      transform: scale(1.05);
+    }
+
+    .btn-cancel {
+      background: #e0e0e0;
+      color: var(--text-dark);
+    }
+
+    .btn-cancel:hover {
+      background: #d0d0d0;
+    }
+
+    .btn-edit {
+      background: var(--warning-yellow);
+      color: var(--text-light);
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .btn-delete {
+      background: var(--danger-red);
+      color: var(--text-light);
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .btn-edit:hover, .btn-delete:hover {
+      transform: scale(1.05);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    /* ==========================================
+       🧾 TABLE STYLES
+    ========================================== */
+    .table-container {
+      overflow-x: auto;
+      background: var(--bg-white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    th {
+      background: #f2f2f2;
+      font-weight: bold;
+      font-size: 14px;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    tr:hover {
+      background: #f0f0f0;
+    }
+
+    .actions {
+      white-space: nowrap;
+    }
+
+    .actions button {
+      margin: 2px;
+    }
+
+    /* ==========================================
+       📱 RESPONSIVE DESIGN
+    ========================================== */
+    @media (max-width: 1024px) {
+      body {
+        padding: 15px;
+      }
+      
+      .header h1 {
+        font-size: 1.6rem;
+      }
+      
+      form {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 12px;
+      }
+      
+      .header {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+        padding: 15px;
+      }
+      
+      .header h1 {
+        font-size: 1.4rem;
+        text-align: center;
+      }
+      
+      .header img {
+        height: 45px;
+      }
+      
+      form {
+        padding: 15px;
+      }
+      
+      .form-actions {
+        flex-direction: column;
+      }
+      
+      .form-actions .btn {
+        width: 100%;
+      }
+      
+      th, td {
+        padding: 10px 8px;
+        font-size: 13px;
+      }
+      
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .actions button {
+        width: 100%;
+        margin: 0;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 12px;
+        gap: 8px;
+      }
+      
+      .header h1 {
+        font-size: 1.2rem;
+      }
+      
+      .header img {
+        height: 40px;
+      }
+      
+      form {
+        padding: 12px;
+      }
+      
+      label {
+        font-size: 13px;
+      }
+      
+      input, textarea {
+        padding: 8px;
+        font-size: 13px;
+      }
+      
+      .btn {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      
+      th, td {
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+      
+      .table-container {
+        border-radius: 6px;
+      }
+    }
+
+    /* ==========================================
+       🖨️ PRINT STYLES
+    ========================================== */
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .header {
+        background: white !important;
+        color: black !important;
+        border: 2px solid black;
+      }
+      
+      form {
+        display: none;
+      }
+      
+      .table-container {
+        box-shadow: none;
+      }
+      
+      .actions {
+        display: none;
+      }
+    }
+
+    /* ==========================================
+       🎨 ACCESSIBILITY
+    ========================================== */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+      }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      :root {
+        --primary-green: #000000;
+        --border-color: #000000;
+      }
+      
+      th {
+        background: #000000;
+        color: white;
+      }
+    }

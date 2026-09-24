@@ -1,0 +1,232 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}Course Allocation Template{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+  {% if department %}<span class="dept-badge">{{ department.name }}</span>{% endif %}
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+<style>
+    .cat-container { padding: 1rem; width: 100%; max-width: 900px; margin: 0 auto; }
+    .cat-card { background: white; border-radius: 0.75rem; margin-bottom: 1.5rem; border: 1px solid #e5e9e0; overflow: hidden; }
+    .cat-card-header { padding: 1rem 1.5rem; background: #fafbf8; border-bottom: 1px solid #e5e9e0; }
+    .cat-card-header h2 { font-size: 1.15rem; font-weight: 600; color: #1e4620; margin: 0; }
+    .cat-card-body { padding: 1.25rem 1.5rem; }
+    .cat-note { font-size: 0.85rem; color: #5b6e53; margin-bottom: 1rem; }
+    .cat-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; max-width: 320px; }
+    .cat-field label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #5b6e53; }
+    .cat-field select, .cat-field input[type="file"] { padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cfdec5; background: white; font-size: 0.9rem; }
+    .cat-check { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.88rem; }
+    .cat-btn { padding: 0.6rem 1.2rem; border-radius: 0.5rem; border: none; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
+    .cat-btn-export { background: #1e4620; color: white; }
+    .cat-btn-export:hover { background: #16340f; }
+    .cat-btn-import { background: #1a4d8f; color: white; }
+    .cat-btn-import:hover { background: #123a6b; }
+    .cat-warning { background: #fff8e1; border: 1px solid #f0dca0; color: #7a5c00; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.85rem; margin-bottom: 1rem; }
+</style>
+
+<div class="cat-container">
+
+  {% if request.GET.error == "no_allocation_set" %}
+  <div class="cat-warning">No allocation set could be found. Create or pick one first.</div>
+  {% endif %}
+
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>📤 Export Course Allocation Template</h2></div>
+    <div class="cat-card-body">
+      <p class="cat-note">
+        Downloads an Excel workbook listing this allocation's course
+        allocations (across whichever semester(s) it covers), grouped by
+        Programme, Year and Semester. Edit lecturer emails, student
+        numbers, elective groups or combination stems in the file, then
+        re-upload it below — the system will understand exactly which row
+        is which.
+      </p>
+      <form method="get" action="{% url 'export_course_allocation_template' %}">
+        {% if active_allocation_set %}
+        <div class="cat-field">
+          <label for="catAllocSet">Allocation Set</label>
+          <select name="allocation_set_id" id="catAllocSet" required>
+            {% for aset in allocation_sets_for_switcher %}
+              <option value="{{ aset.id }}" {% if aset.id == active_allocation_set.id %}selected{% endif %}>
+                {{ aset.name }}{% if aset.is_special %} (Special){% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+        {% if departments %}
+        <div class="cat-field">
+          <label for="catDept">Department</label>
+          <select name="department_id" id="catDept" required>
+            {% for d in departments %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+            {% if can_share_email %}
+              <option value="all">All Departments (one workbook each, zipped)</option>
+            {% endif %}
+          </select>
+        </div>
+        {% endif %}
+        <div class="cat-check">
+          <input type="checkbox" name="include_missing" value="1" id="catInclMissing" checked>
+          <label for="catInclMissing">Also include curriculum courses not yet allocated in this allocation</label>
+        </div>
+        <button type="submit" class="cat-btn cat-btn-export">Export to Excel</button>
+      </form>
+    </div>
+  </div>
+
+  {% if can_share_email %}
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>Share by Email</h2></div>
+    <div class="cat-card-body">
+      <p class="cat-note">
+        Emails the Course Allocation Template Excel for one department — or
+        every department at once (one workbook each, one email each) — to
+        that department's COD and/or COD Admin(s). Type an address below to
+        send it somewhere else instead.
+      </p>
+      <div id="catShareResult"></div>
+      <form id="catShareForm">
+        <div class="cat-field">
+          <label for="catShareDept">Department</label>
+          <select name="department_id" id="catShareDept" required>
+            <option value="">Select a department…</option>
+            {% for d in departments %}
+              <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+            {% if not departments and department %}
+              <option value="{{ department.id }}">{{ department.name }}</option>
+            {% endif %}
+            <option value="all">All Departments</option>
+          </select>
+        </div>
+        <div class="cat-field">
+          <label for="catShareAudience">Send To</label>
+          <select name="audience" id="catShareAudience">
+            <option value="both">COD and COD Admin(s)</option>
+            <option value="cod">COD only</option>
+            <option value="cod_admin">COD Admin(s) only</option>
+          </select>
+        </div>
+        <div id="catShareRecipients" class="cat-note"></div>
+        <div class="cat-field">
+          <label for="catShareCustomEmail">Override Recipient(s) (optional)</label>
+          <input type="text" name="custom_email" id="catShareCustomEmail"
+                 placeholder="e.g. someone@chuka.ac.ke (comma-separated for more than one)">
+        </div>
+        <div class="cat-check">
+          <input type="checkbox" name="include_missing" value="1" id="catShareInclMissing" checked>
+          <label for="catShareInclMissing">Also include curriculum courses not yet allocated</label>
+        </div>
+        <div class="cat-field">
+          <label for="catShareSubject">Subject</label>
+          <input type="text" name="subject" id="catShareSubject" required
+                 value="Course Allocation Template">
+        </div>
+        <div class="cat-field" style="max-width: 100%;">
+          <label for="catShareBody">Message</label>
+          <textarea name="body" id="catShareBody" rows="4" required
+                    style="padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #cfdec5; font-size: 0.9rem; font-family: inherit;"
+          >Please find attached the Course Allocation Template.</textarea>
+        </div>
+        <button type="submit" class="cat-btn cat-btn-import" id="catShareSubmit">Send Email</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="cat-card">
+    <div class="cat-card-header"><h2>📥 Re-import an Edited Template</h2></div>
+    <div class="cat-card-body">
+      <p class="cat-note">
+        Upload the same file back after editing it. Rows for courses with
+        no allocation yet will be created; rows for existing allocations
+        will be updated. Lecturers are matched by <strong>email</strong>,
+        never by name.
+      </p>
+      <form method="post" action="{% url 'import_course_allocation_template' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="cat-field">
+          <label for="catFile">Excel file (.xlsx)</label>
+          <input type="file" name="file" id="catFile" accept=".xlsx" required>
+        </div>
+        <button type="submit" class="cat-btn cat-btn-import">Import</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+{% if can_share_email %}
+<script>
+(function () {
+  function getCookie(name) {
+    const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return match ? decodeURIComponent(match.pop()) : '';
+  }
+
+  const deptSelect = document.getElementById('catShareDept');
+  const audienceSelect = document.getElementById('catShareAudience');
+  const recipientsBox = document.getElementById('catShareRecipients');
+  const resultBox = document.getElementById('catShareResult');
+  const form = document.getElementById('catShareForm');
+  const submitBtn = document.getElementById('catShareSubmit');
+
+  function refreshRecipients() {
+    const deptId = deptSelect.value;
+    if (!deptId || deptId === 'all') {
+      recipientsBox.textContent = deptId === 'all'
+        ? 'Sends one email per department to each department\'s own recipients.'
+        : '';
+      return;
+    }
+    fetch('{% url "department_email_recipients_api" %}?department_id=' + encodeURIComponent(deptId))
+      .then(r => r.json())
+      .then(data => {
+        if (data.status !== 'success') { recipientsBox.textContent = ''; return; }
+        const names = (list) => list.map(r => r.name + ' <' + r.email + '>').join(', ') || 'none on file';
+        recipientsBox.textContent = 'COD: ' + names(data.cod) + '  |  COD Admin(s): ' + names(data.cod_admins);
+      })
+      .catch(() => { recipientsBox.textContent = ''; });
+  }
+
+  deptSelect.addEventListener('change', refreshRecipients);
+  audienceSelect.addEventListener('change', refreshRecipients);
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    resultBox.innerHTML = '';
+
+    const formData = new FormData(form);
+    fetch('{% url "share_course_allocation_template_email" %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: formData,
+    })
+      .then(r => r.json())
+      .then(data => {
+        const ok = data.status === 'success' || data.status === 'partial';
+        resultBox.innerHTML = '<div class="cat-warning" style="' +
+          (ok ? 'background:#eaf5ec;border-color:#bfe3c6;color:#1e4620;' : '') + '">' +
+          (data.message || 'Done.') + '</div>';
+      })
+      .catch(() => {
+        resultBox.innerHTML = '<div class="cat-warning">Something went wrong sending the email.</div>';
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Email';
+      });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

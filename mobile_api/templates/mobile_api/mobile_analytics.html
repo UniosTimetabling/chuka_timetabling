@@ -1,0 +1,281 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Mobile Analytics · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .ma-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  .ma-hero {
+    padding-bottom:.5rem;
+    margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .ma-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+
+  .ma-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 12px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000; cursor:pointer;
+    text-decoration:none; border-radius:0;
+    transition:background .12s, color .12s;
+  }
+  .ma-btn:hover { background:#f1f5f9; }
+
+  .ma-hint { font-size:.8rem; color:#64748b; margin:-6px 0 14px; }
+
+  .excel-section-title {
+    font-size:.9rem; font-weight:700; color:#000;
+    margin:1.4rem 0 .5rem;
+    text-transform:uppercase; letter-spacing:.5px;
+    border-left:4px solid #107c41; padding-left:6px;
+  }
+
+  /* ── stat cards ── */
+  .ma-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
+  @media (max-width:900px) { .ma-stats { grid-template-columns:repeat(2, 1fr); } }
+  .ma-stat {
+    border:1px solid #000; background:#fafafa; padding:12px 14px;
+  }
+  .ma-stat .ma-stat-num { font-size:1.7rem; font-weight:800; color:#107c41; line-height:1.1; }
+  .ma-stat .ma-stat-label { font-size:.72rem; font-weight:700; text-transform:uppercase; color:#475569; margin-top:4px; }
+
+  /* ── platform breakdown ── */
+  .ma-platform-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .ma-platform-name { width:90px; font-size:.8rem; font-weight:700; flex-shrink:0; }
+  .ma-platform-bar-wrap { flex:1; border:1px solid #000; background:#fff; height:16px; }
+  .ma-platform-bar { height:100%; background:#107c41; }
+  .ma-platform-count { width:60px; text-align:right; font-size:.8rem; font-weight:700; flex-shrink:0; }
+
+  /* ── trend bars ── */
+  .ma-trend-wrap {
+    border:1px solid #000; background:#fafafa; padding:14px 10px 6px;
+    display:flex; align-items:flex-end; gap:4px; height:140px;
+  }
+  .ma-trend-col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .ma-trend-bar { width:70%; background:#107c41; min-height:2px; }
+  .ma-trend-count { font-size:.62rem; font-weight:700; margin-bottom:2px; }
+  .ma-trend-day { font-size:.6rem; color:#64748b; margin-top:4px; white-space:nowrap; }
+
+  /* ── excel-style data table ── */
+  .ma-table-wrap { width:100%; overflow-x:auto; margin-bottom:1rem; }
+  .ma-table {
+    width:100%; border-collapse:collapse;
+    font-size:.8rem; background:#fff;
+    border-bottom:2px solid #107c41;
+  }
+  .ma-table th, .ma-table td {
+    border:1px solid #000 !important;
+    padding:5px 7px;
+    vertical-align:top; text-align:left;
+    border-radius:0 !important;
+    background:none !important;
+  }
+  .ma-table th {
+    font-weight:700; font-size:.75rem;
+    text-transform:uppercase; color:#000;
+    border-bottom:2px solid #000 !important;
+    white-space:nowrap;
+  }
+  .ma-table tr:nth-child(even) td { background:#f8fdf9 !important; }
+  .ma-table tr:hover td { background:#e8f5e9 !important; }
+
+  .ma-empty {
+    border:1px solid #000; padding:28px; text-align:center;
+    font-size:.88rem; color:#475569; background:#fafafa;
+  }
+
+  /* ── share-the-app card ── */
+  .ma-share {
+    border:1px solid #000; background:#fafafa;
+    padding:16px; margin-bottom:1.2rem;
+    display:flex; gap:20px; align-items:center; flex-wrap:wrap;
+  }
+  .ma-share-qr {
+    width:132px; height:132px; flex-shrink:0;
+    background:#fff; border:1px solid #000;
+    display:flex; align-items:center; justify-content:center; padding:6px;
+  }
+  .ma-share-qr svg { width:100%; height:100%; display:block; }
+  .ma-share-body { flex:1; min-width:220px; }
+  .ma-share-body h3 { margin:0 0 4px; font-size:1rem; font-weight:800; color:#000; }
+  .ma-share-body p { margin:0 0 10px; font-size:.8rem; color:#475569; }
+  .ma-share-link-row {
+    display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  .ma-share-link {
+    font-family:monospace; font-size:.75rem; color:#000;
+    border:1px solid #000; background:#fff; padding:6px 8px;
+    max-width:100%; overflow-wrap:anywhere; flex:1; min-width:180px;
+  }
+  .ma-share-badge {
+    display:inline-block; font-size:.68rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.4px;
+    border:1px solid #107c41; color:#107c41; padding:2px 6px; margin-bottom:8px;
+  }
+
+
+  .ma-btn-primary { background:#000; color:#fff; }
+  .ma-btn-primary:hover { background:#222; }
+  .ma-share-edit { margin-top:12px; padding-top:12px; border-top:1px dashed #94a3b8; }
+  .ma-share-edit[hidden] { display:none; }
+  .ma-share-edit label { display:block; font-size:.75rem; font-weight:700; margin-bottom:4px; }
+  .ma-share-edit input {
+    width:100%; box-sizing:border-box; border:1px solid #000; background:#fff;
+    padding:7px 8px; font-size:.8rem; font-family:monospace;
+  }
+  .ma-share-edit-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:8px 0; }
+  .ma-share-edit small { display:block; font-size:.72rem; color:#64748b; }
+  .ma-share-msg { font-size:.78rem; font-weight:700; }
+  .ma-share-msg.ok { color:#107c41; }
+  .ma-share-msg.err { color:#b91c1c; }
+
+  @media print {
+    body * { visibility:hidden; }
+    .ma-share, .ma-share * { visibility:visible; }
+    .ma-share {
+      position:absolute; top:0; left:0; width:100%;
+      border:none; justify-content:center; text-align:center;
+    }
+    .ma-share-link-row, #ma-share-copy, #ma-share-print, #ma-share-edit-toggle, .ma-share-edit { display:none !important; }
+    .ma-share-qr { width:260px; height:260px; margin:0 auto 16px; }
+  }
+{% endblock %}
+
+{% block content %}
+<div class="ma-page">
+
+  <div class="ma-hero">
+    <h2>Mobile Analytics</h2>
+    <a href="{% url 'timetable_dashboard' %}" class="ma-btn"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <p class="ma-hint">
+    Counts distinct devices the Chuka Timetable app has reported itself installed on — not logins, since students
+    aren't tracked individually. A device only counts once, the first time it launches after install.
+  </p>
+
+  <div class="ma-share">
+    <div class="ma-share-qr" id="ma-share-qr" data-url="{{ app_download_url }}"></div>
+    <div class="ma-share-body">
+      <span class="ma-share-badge" id="ma-share-badge" data-source="{{ app_download_source }}">
+        {% if app_download_source == 'custom' %}Custom link{% elif app_download_source == 'apk' %}Direct APK{% if app_download_version %} · v{{ app_download_version }}{% endif %}{% else %}Play Store (default){% endif %}
+      </span>
+      <h3>Share the App</h3>
+      <p>
+        Scan the code or send the link below so students and lecturers can install the Chuka Timetable app —
+        handy for orientation talks, class WhatsApp groups, or a poster on the noticeboard.
+      </p>
+      <div class="ma-share-link-row">
+        <span class="ma-share-link" id="ma-share-link">{{ app_download_url }}</span>
+        <button type="button" class="ma-btn" id="ma-share-copy">Copy Link</button>
+        <button type="button" class="ma-btn" id="ma-share-print">Print Poster</button>
+        <button type="button" class="ma-btn" id="ma-share-edit-toggle"><i class="bi bi-pencil"></i> Edit Link</button>
+      </div>
+
+      <div class="ma-share-edit" id="ma-share-edit" hidden>
+        <label for="ma-share-input">Where should people download the app from?</label>
+        <input type="url" id="ma-share-input" maxlength="500" value="{{ app_custom_url }}"
+               placeholder="https://… (Play Store, Google Drive, your own page — anything)">
+        <div class="ma-share-edit-actions">
+          <button type="button" class="ma-btn ma-btn-primary" id="ma-share-save">Save &amp; update app</button>
+          <button type="button" class="ma-btn" id="ma-share-reset">Use default</button>
+          <button type="button" class="ma-btn" id="ma-share-cancel">Cancel</button>
+          <span class="ma-share-msg" id="ma-share-msg" role="status"></span>
+        </div>
+        <small>Saving updates this QR code straight away and the app's “Invite someone” screen the next time it's opened.
+        “Use default” goes back to the uploaded APK, or the Play Store link if none.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="ma-stats">
+    <div class="ma-stat">
+      <div class="ma-stat-num">{{ total_installs }}</div>
+      <div class="ma-stat-label">Total installs</div>
+    </div>
+    <div class="ma-stat">
+      <div class="ma-stat-num">{{ new_last_7 }}</div>
+      <div class="ma-stat-label">New — last 7 days</div>
+    </div>
+    <div class="ma-stat">
+      <div class="ma-stat-num">{{ new_last_30 }}</div>
+      <div class="ma-stat-label">New — last 30 days</div>
+    </div>
+    <div class="ma-stat">
+      <div class="ma-stat-num">{{ active_last_7 }}</div>
+      <div class="ma-stat-label">Seen in last 7 days</div>
+    </div>
+  </div>
+
+  <div class="excel-section-title">By Platform</div>
+  {% if by_platform %}
+    {% for row in by_platform %}
+    <div class="ma-platform-row">
+      <div class="ma-platform-name">{{ row.label }}</div>
+      <div class="ma-platform-bar-wrap"><div class="ma-platform-bar" style="width:{{ row.pct }}%;"></div></div>
+      <div class="ma-platform-count">{{ row.count }}</div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="ma-empty">No devices reported yet.</div>
+  {% endif %}
+
+  <div class="excel-section-title">New Installs — Last {{ trend|length }} Days</div>
+  <div class="ma-trend-wrap">
+    {% for t in trend %}
+    <div class="ma-trend-col">
+      <div class="ma-trend-count">{% if t.count %}{{ t.count }}{% endif %}</div>
+      <div class="ma-trend-bar" style="height:{{ t.pct }}%;"></div>
+      <div class="ma-trend-day">{{ t.day|date:"M d" }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="excel-section-title">Most Recently Seen Devices</div>
+  {% if recent_installs %}
+  <div class="ma-table-wrap">
+    <table class="ma-table">
+      <thead>
+        <tr>
+          <th>Device</th>
+          <th style="width:100px;">Platform</th>
+          <th style="width:100px;">App Version</th>
+          <th style="width:150px;">First Seen</th>
+          <th style="width:150px;">Last Seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in recent_installs %}
+        <tr>
+          <td style="font-family:monospace;">{{ d.device_id|slice:":16" }}…</td>
+          <td>{{ d.get_platform_display }}</td>
+          <td>{{ d.app_version|default:"—" }}</td>
+          <td>{{ d.first_seen_at|date:"M d, Y H:i" }}</td>
+          <td>{{ d.last_seen_at|date:"M d, Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="ma-empty">
+    <i class="bi bi-phone" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+    No devices reported yet.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'mobile_api/js/vendor/qrcode.js' %}"></script>
+<script src="{% static 'mobile_api/js/vendor/qrcode_utf8.js' %}"></script>
+<script src="{% static 'mobile_api/js/mobile_analytics.js' %}"></script>
+{% endblock %}

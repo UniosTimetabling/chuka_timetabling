@@ -1,0 +1,312 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}System Challenge Log · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .sc-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; font-family:Arial,Helvetica,sans-serif; }
+  .sc-hero { padding-bottom:.5rem; margin-bottom:1rem; border-bottom:3px solid #e65100;
+             display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; }
+  .sc-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+  .sc-hero p { margin:.15rem 0 0; font-size:.8rem; color:#444; max-width:640px; }
+
+  .sc-stats-row { display:flex; gap:10px; margin-bottom:1rem; flex-wrap:wrap; }
+  .sc-stat { border:1px solid #000; padding:8px 16px; min-width:120px; }
+  .sc-stat-label { font-size:.7rem; text-transform:uppercase; color:#555; font-weight:700; }
+  .sc-stat-value { font-size:1.3rem; font-weight:800; color:#000; }
+  .sc-stat-value.orange { color:#e65100; }
+  .sc-stat-value.green { color:#107c41; }
+
+  .sc-action-bar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:.8rem; }
+  .sc-btn { display:inline-flex; align-items:center; gap:5px; border:1px solid #000; padding:6px 14px;
+            font-size:.78rem; font-weight:700; background:#fff; color:#000; cursor:pointer; border-radius:0; text-decoration:none; }
+  .sc-btn:hover { background:#f1f5f9; }
+  .sc-btn.green  { background:#107c41; color:#fff; border-color:#107c41; }
+  .sc-btn.green:hover { background:#0e6b36; }
+  .sc-btn.orange { background:#e65100; color:#fff; border-color:#e65100; }
+  .sc-btn.orange:hover { background:#c84600; }
+  .sc-btn.dark   { background:#000; color:#fff; }
+
+  .sc-filter-form { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:.8rem; }
+  .sc-filter-form input[type="text"], .sc-filter-form select {
+    border:1px solid #000; padding:4px 8px; font-size:.8rem; border-radius:0;
+  }
+
+  .sc-section-title { font-size:.9rem; font-weight:700; color:#000; margin:1.2rem 0 .5rem;
+                       text-transform:uppercase; letter-spacing:.5px; border-left:4px solid #e65100; padding-left:6px; }
+
+  .sc-table-wrap { overflow-x:auto; border:1px solid #000; }
+  .sc-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+  .sc-table th { background:#000; color:#fff; padding:6px 8px; text-align:left; white-space:nowrap; }
+  .sc-table td { padding:6px 8px; border-bottom:1px solid #ddd; vertical-align:top; max-width:220px; }
+  .sc-table tr:hover td { background:#fafafa; }
+  .sc-badge { padding:2px 8px; font-size:.7rem; font-weight:700; border:1px solid #000; white-space:nowrap; }
+  .sc-badge.system     { background:#fdecea; color:#c62828; border-color:#c62828; }
+  .sc-badge.not_system { background:#e8f5e9; color:#107c41; border-color:#107c41; }
+  .sc-badge.status     { background:#eef2ff; color:#1565c0; border-color:#1565c0; }
+
+  .sc-row-actions { display:flex; gap:4px; }
+  .sc-row-btn { border:1px solid #000; background:#fff; padding:3px 8px; font-size:.72rem; cursor:pointer; }
+  .sc-row-btn:hover { background:#f1f5f9; }
+  .sc-row-btn.danger { border-color:#c62828; color:#c62828; }
+
+  .sc-unlogged { border:1px dashed #e65100; padding:10px; margin-bottom:1rem; font-size:.8rem; }
+  .sc-unlogged ul { margin:.4rem 0 0; padding-left:1.1rem; }
+  .sc-unlogged a { color:#e65100; font-weight:700; }
+
+  /* modal */
+  .sc-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000;
+                       align-items:flex-start; justify-content:center; padding:2rem 1rem; overflow-y:auto; }
+  .sc-modal-overlay.open { display:flex; }
+  .sc-modal { background:#fff; border:1px solid #000; width:100%; max-width:720px; padding:1.2rem; }
+  .sc-modal h3 { margin-top:0; font-size:1.1rem; border-bottom:2px solid #e65100; padding-bottom:.4rem; }
+  .sc-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sc-form-grid .full { grid-column:1 / -1; }
+  .sc-form-grid label { display:block; font-size:.75rem; font-weight:700; margin-bottom:3px; }
+  .sc-form-grid input, .sc-form-grid select, .sc-form-grid textarea {
+    width:100%; box-sizing:border-box; border:1px solid #000; padding:6px 8px; font-size:.82rem; border-radius:0; font-family:inherit;
+  }
+  .sc-form-grid textarea { min-height:60px; resize:vertical; }
+  .sc-modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:1rem; }
+
+  .sc-msg { padding:8px 12px; margin-bottom:.6rem; font-size:.82rem; border:1px solid; }
+  .sc-msg.success { background:#e8f5e9; border-color:#107c41; color:#107c41; }
+  .sc-msg.error   { background:#fdecea; border-color:#c62828; color:#c62828; }
+  .sc-msg.info    { background:#eef2ff; border-color:#1565c0; color:#1565c0; }
+
+  .sc-reimport-note { font-size:.72rem; color:#555; margin-top:4px; }
+{% endblock %}
+
+{% block content %}
+<div class="sc-page">
+
+  <div class="sc-hero">
+    <div>
+      <h2>System Challenge Log</h2>
+      <p>Record every challenge raised against the timetabling system: whether it was actually a system
+         fault, what caused it, how it was resolved, what now prevents it recurring, and who was involved.
+         This log is the evidence trail used to defend the system.</p>
+    </div>
+    <a href="{% url 'feedback_panel' %}" class="sc-btn"><i class="bi bi-arrow-left"></i> Back to Feedback Panel</a>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="sc-msg {{ m.tags|default:'info' }}">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="sc-stats-row">
+    <div class="sc-stat"><div class="sc-stat-label">Total Logged</div><div class="sc-stat-value">{{ total_count }}</div></div>
+    <div class="sc-stat"><div class="sc-stat-label">System Challenges</div><div class="sc-stat-value orange">{{ system_count }}</div></div>
+    <div class="sc-stat"><div class="sc-stat-label">Not System</div><div class="sc-stat-value green">{{ not_system_count }}</div></div>
+  </div>
+
+  <div class="sc-action-bar">
+    <button class="sc-btn dark" onclick="scOpenModal()"><i class="bi bi-plus-lg"></i> Add Challenge</button>
+    <a class="sc-btn green" href="{% url 'challenge_export_excel' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-excel"></i> Export Excel
+    </a>
+    <a data-export-choice class="sc-btn" href="{% url 'challenge_export_pdf' %}?{{ request.GET.urlencode }}">
+      <i class="bi bi-file-earmark-pdf"></i> Export (PDF / Word)
+    </a>
+    <form action="{% url 'challenge_reimport' %}" method="post" enctype="multipart/form-data" style="display:flex; gap:6px; align-items:center;">
+      {% csrf_token %}
+      <input type="file" name="import_file" accept=".xlsx,.pdf" required>
+      <button type="submit" class="sc-btn orange"><i class="bi bi-upload"></i> Re-import</button>
+    </form>
+  </div>
+  <div class="sc-reimport-note">
+    Re-import accepts a .xlsx or .pdf file previously exported from this page (a Word copy is for reading and editing only — it cannot be re-imported). Rows are matched by
+    <b>Ref. Code</b> — editing an exported file and re-importing it updates the matching record instead
+    of duplicating it; new rows (blank Ref. Code) are added as new challenges.
+  </div>
+
+  {% if unlogged_feedback %}
+  <div class="sc-unlogged">
+    <b>Feedback not yet logged as a challenge</b> — click one to pre-fill the form below:
+    <ul>
+      {% for f in unlogged_feedback %}
+        <li>
+          <a href="#" onclick="scOpenModalFromFeedback({{ f.id }}, '{{ f.full_name|escapejs }}', '{{ f.message|escapejs }}'); return false;">
+            {{ f.full_name }} — {{ f.message|truncatechars:60 }}
+          </a>
+          <span style="color:#777;">({{ f.created_at|date:"M d, Y" }})</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <form method="get" class="sc-filter-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search ref, title, cause…">
+    <select name="classification">
+      <option value="">All types</option>
+      {% for code, label in classification_choices %}
+        <option value="{{ code }}" {% if code == selected_classification %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">All statuses</option>
+      {% for code, label in status_choices %}
+        <option value="{{ code }}" {% if code == selected_status %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="sc-btn"><i class="bi bi-search"></i> Filter</button>
+  </form>
+
+  <div class="sc-section-title">Logged Challenges</div>
+
+  <div class="sc-table-wrap">
+    <table class="sc-table">
+      <thead>
+        <tr>
+          <th>Ref.</th><th>Title</th><th>Type</th><th>Cause</th><th>Resolution</th>
+          <th>Prevention</th><th>Involved Parties</th><th>Status</th><th>Occurred</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in challenges %}
+        <tr>
+          <td>{{ c.reference_code }}</td>
+          <td>{{ c.title }}</td>
+          <td><span class="sc-badge {{ c.classification }}">{{ c.get_classification_display_badge }}</span></td>
+          <td>{{ c.cause|truncatechars:80 }}</td>
+          <td>{{ c.resolution|default:"—"|truncatechars:80 }}</td>
+          <td>{{ c.prevention|default:"—"|truncatechars:80 }}</td>
+          <td>{{ c.involved_parties|default:"—"|truncatechars:60 }}</td>
+          <td><span class="sc-badge status">{{ c.get_status_display }}</span></td>
+          <td style="white-space:nowrap;">{{ c.occurred_at|date:"M d, Y" }}</td>
+          <td>
+            <div class="sc-row-actions">
+              <button class="sc-row-btn" onclick='scOpenModalEdit({{ c.as_json }})' data-challenge-id="{{ c.id }}">Edit</button>
+              <form action="{% url 'challenge_delete' c.id %}" method="post" style="display:inline;"
+                    onsubmit="return confirm('Delete challenge {{ c.reference_code }}?');">
+                {% csrf_token %}
+                <button type="submit" class="sc-row-btn danger">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" style="text-align:center; padding:20px; color:#777;">No challenges logged yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Add / Edit Modal ── -->
+<div class="sc-modal-overlay" id="scModalOverlay">
+  <div class="sc-modal">
+    <h3 id="scModalTitle">Log a Challenge</h3>
+    <form action="{% url 'challenge_save' %}" method="post" id="scForm">
+      {% csrf_token %}
+      <input type="hidden" name="pk" id="sc_pk" value="">
+      <input type="hidden" name="feedback_id" id="sc_feedback_id" value="">
+      <div class="sc-form-grid">
+        <div class="full">
+          <label>Title *</label>
+          <input type="text" name="title" id="sc_title" required maxlength="255">
+        </div>
+
+        <div>
+          <label>Is this a system challenge? *</label>
+          <select name="classification" id="sc_classification" required>
+            {% for code, label in classification_choices %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status" id="sc_status">
+            {% for code, label in status_choices %}
+              <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="full">
+          <label>Description — what happened</label>
+          <textarea name="description" id="sc_description"></textarea>
+        </div>
+        <div class="full">
+          <label>What caused it *</label>
+          <textarea name="cause" id="sc_cause" required></textarea>
+        </div>
+        <div class="full">
+          <label>How it was resolved</label>
+          <textarea name="resolution" id="sc_resolution"></textarea>
+        </div>
+        <div class="full">
+          <label>How future recurrence is prevented</label>
+          <textarea name="prevention" id="sc_prevention"></textarea>
+        </div>
+        <div class="full">
+          <label>Involved users / parties</label>
+          <textarea name="involved_parties" id="sc_involved_parties" placeholder="e.g. Jane Doe (Reporter, Student), IT Support, Timetabling Office"></textarea>
+        </div>
+
+        <div>
+          <label>Date occurred</label>
+          <input type="date" name="occurred_at" id="sc_occurred_at">
+        </div>
+        <div>
+          <label>Date resolved</label>
+          <input type="date" name="resolved_at" id="sc_resolved_at">
+        </div>
+      </div>
+      <div class="sc-modal-footer">
+        <button type="button" class="sc-btn" onclick="scCloseModal()">Cancel</button>
+        <button type="submit" class="sc-btn dark">Save Challenge</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function scOpenModal() {
+  document.getElementById('scForm').reset();
+  document.getElementById('sc_pk').value = '';
+  document.getElementById('sc_feedback_id').value = '';
+  document.getElementById('scModalTitle').textContent = 'Log a Challenge';
+  document.getElementById('scModalOverlay').classList.add('open');
+}
+function scCloseModal() {
+  document.getElementById('scModalOverlay').classList.remove('open');
+}
+function scOpenModalFromFeedback(feedbackId, fullName, message) {
+  scOpenModal();
+  document.getElementById('sc_feedback_id').value = feedbackId;
+  document.getElementById('sc_title').value = 'Feedback from ' + fullName;
+  document.getElementById('sc_description').value = message;
+}
+function scOpenModalEdit(data) {
+  if (!data) return;
+  scOpenModal();
+  document.getElementById('scModalTitle').textContent = 'Edit Challenge — ' + data.reference_code;
+  document.getElementById('sc_pk').value = data.id;
+  document.getElementById('sc_title').value = data.title || '';
+  document.getElementById('sc_classification').value = data.classification || 'system';
+  document.getElementById('sc_status').value = data.status || 'open';
+  document.getElementById('sc_description').value = data.description || '';
+  document.getElementById('sc_cause').value = data.cause || '';
+  document.getElementById('sc_resolution').value = data.resolution || '';
+  document.getElementById('sc_prevention').value = data.prevention || '';
+  document.getElementById('sc_involved_parties').value = data.involved_parties || '';
+  document.getElementById('sc_occurred_at').value = data.occurred_at || '';
+  document.getElementById('sc_resolved_at').value = data.resolved_at || '';
+}
+
+// Auto-open the modal, pre-filled, when arriving via ?open_feedback=<id> from the Feedback Panel.
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var fid = params.get('open_feedback');
+  if (fid) {
+    var link = document.querySelector('.sc-unlogged a[onclick*="scOpenModalFromFeedback(' + fid + ',"]');
+    if (link) { link.click(); } else { scOpenModal(); document.getElementById('sc_feedback_id').value = fid; }
+  }
+})();
+</script>
+{% endblock %}

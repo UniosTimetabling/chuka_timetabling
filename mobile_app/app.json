@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Chuka Timetable",
+    "slug": "chuka-university-timetable",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "chukaapp",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#22B8C7"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ke.ac.chuka.timetable",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Camera access is used to scan shared timetable QR codes."
+      }
+    },
+    "android": {
+      "package": "ke.ac.chuka.timetable",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#22B8C7"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0C6B8C"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Chuka Timetable to access your camera to scan shared timetable QR codes."
+        }
+      ]
+    ]
+  }
+}

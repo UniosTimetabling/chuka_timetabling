@@ -1,0 +1,385 @@
+====================================================================
+ PROGRAM COURSE CSV IMPORT — PRODUCTION REDESIGN
+ chuka_timetabling / program_management
+====================================================================
+
+IMPORTANT NOTE ON SCOPE
+------------------------------------------------------------------
+The brief assumed a plain django-import-export ImportExportModelAdmin
+setup. That assumption was correct: program_management/admin.py already
+defines ProgramResource / ProgramCourseResource / ProgramCodeResource
+with import_id_fields, skip_unchanged and use_transactions=False exactly
+as described, registered via ImportExportModelAdmin. This redesign
+targets ProgramCourse specifically (per the task title), since that is
+the resource with the row-count problem (thousands of curriculum rows
+across programs/cohorts); Program and ProgramCode stay on the existing
+synchronous import — they're small tables (tens of rows) with no
+timeout risk, so moving them to Celery would add complexity without a
+corresponding benefit. The async pattern below is reusable for them
+later if that ever changes (see ImportJob.resource_type).
+
+Note also that program_management/export_import_programs.py implements
+a SEPARATE, hand-rolled preview/apply import for Programs+Courses+Codes
+together (used by the Programs page UI, not django admin). It was read
+for context but intentionally NOT modified — it caps uploads at 5 MB
+and always does a full preview before writing, which is a different
+(and already reasonably safe) design from the admin's CSV-only,
+apply-immediately importer this task is about.
+
+====================================================
+FILES MODIFIED
+====================================================
+
+1. program_management/models.py
+   Purpose:      Added the ImportJob model.
+   Reason:       Track status/progress/counts for a background import so
+                 the admin can watch it after the request that started it
+                 has already returned (requirement #1).
+   Dependencies: django.contrib.auth.models.User (already imported in
+                 this file), used nowhere else in this file previously.
+
+2. program_management/migrations/0005_importjob.py
+   Purpose:      Creates the import_job table + its two indexes.
+   Reason:       Required migration for the new model. Depends on
+                 0004_normalize_unit_type_typos (the latest existing
+                 migration) and the swappable AUTH_USER_MODEL dependency,
+                 matching the style already used in
+                 backup_system/migrations/0001_initial.py.
+   Dependencies: program_management/models.py (ImportJob).
+
+3. program_management/import_helpers.py   (NEW)
+   Purpose:      Single source of truth for (a) row normalization
+                 (mirrors ProgramCourseResource.before_import_row +
+                 ProgramCourse.save()'s year-inference regex) and (b) the
+                 bulk create/update ("upsert") logic keyed on
+                 (program, course_code, student_cohort).
+   Reason:       bulk_create()/bulk_update() bypass ProgramCourse.save(),
+                 which is where unit_type normalization and year
+                 inference currently live — this extracts that logic into
+                 pure, reusable functions so nothing is silently lost
+                 (requirement #4), and so the sync admin path and the
+                 async Celery path can never drift apart.
+   Dependencies: program_management/models.py (Program, ProgramCourse).
+                 Used by program_management/tasks.py; could also replace
+                 ProgramCourseResource.before_import_row's duplicate logic
+                 in a later cleanup (left untouched here to minimize the
+                 diff on the still-used sync path).
+
+4. program_management/tasks.py   (NEW)
+   Purpose:      process_program_course_import — the Celery task that
+                 actually performs the import, in chunks, against an
+                 ImportJob row. queue_program_course_import() is the
+                 public entry point admin.py calls.
+   Reason:       Implements requirement #3 (chunked processing, default
+                 500 rows, configurable via ImportJob.chunk_size,
+                 progress updates after every chunk, retries, continue-
+                 on-chunk-failure logging) and requirement #7 (resumable:
+                 checkpoints ImportJob.processed_rows after every chunk;
+                 the upsert logic in import_helpers.py is idempotent so
+                 even a full restart from row 0 can't duplicate data).
+                 Falls back to a daemon thread if the Celery broker is
+                 unreachable, using the exact same pattern already
+                 established in backup_system/tasks.py, so behavior is
+                 consistent across the codebase and imports still work
+                 on a deployment without Redis configured.
+   Dependencies: program_management/models.py (ImportJob),
+                 program_management/import_helpers.py, Celery (optional
+                 import), Django's default_storage for reading the
+                 uploaded file back off disk/media.
+
+5. program_management/admin.py
+   Purpose:      ProgramCourseAdmin.import_action is overridden: a CSV
+                 upload no longer calls django-import-export's
+                 import_data() inline — it saves the file into a new
+                 ImportJob, calls queue_program_course_import(job.id),
+                 and redirects back to the changelist with "Import
+                 started successfully." (requirement #2, verbatim
+                 message). Non-CSV uploads (if the site ever adds another
+                 format) still go through the original synchronous
+                 SuppressAuditDuringImportMixin -> ImportExportModelAdmin
+                 flow, unchanged. Also registers ImportJobAdmin: a
+                 read-only list/detail view showing status, progress %,
+                 created/updated/skipped/failed counts, duration,
+                 started/completed timestamps, and the error log, plus
+                 "Resume" and "Cancel" bulk actions (requirement:
+                 "Admin ADMIN UX" + resumable imports).
+   Reason:       This is the actual entry point the brief's whole
+                 architecture diagram (Admin -> CSV stored -> ImportJob
+                 created -> Celery task queued -> ...) hangs off of.
+   Dependencies: program_management/models.py (ImportJob),
+                 program_management/tasks.py (queue_program_course_import).
+                 ProgramCourseResource / SuppressAuditDuringImportMixin
+                 (both already in this file) are untouched and still used
+                 for the non-CSV fallback path.
+
+6. program_management/test_program_course_import.py   (NEW)
+   Purpose:      Test suite — see TEST PLAN section below for what each
+                 group covers.
+   Reason:       Requirement: generate tests for 10/100/1000/10000 rows,
+                 interruption+resume, duplicate prevention, performance,
+                 concurrent imports.
+   Dependencies: program_management/{models,tasks,import_helpers}.py,
+                 department_management.models.Department (existing app),
+                 django.contrib.auth.models.User.
+
+7. docker-compose.yml
+   Purpose:      Added `redis`, `celery_worker`, `celery_beat` services;
+                 `web` now depends on redis and gets
+                 CELERY_BROKER_URL/CELERY_RESULT_BACKEND env vars;
+                 GUNICORN_WORKERS default 3 -> 2, GUNICORN_TIMEOUT
+                 default (unset, entrypoint's own 120) -> explicit 900,
+                 both still overridable via .env.
+   Reason:       Requirement: "Reduce Gunicorn workers from 3 to 2",
+                 "Increase Gunicorn timeout to 900s via
+                 GUNICORN_TIMEOUT=900". A worker/beat container is
+                 required for the Celery task to actually run anywhere
+                 other than the thread-fallback — without this file
+                 change, ImportJobs would stay PENDING forever in a
+                 docker-compose deployment (the codebase's existing
+                 Celery config in university_timetable_system/celery.py
+                 was never wired up to a running worker in compose
+                 before this change).
+   Dependencies: Dockerfile (same image reused for web/worker/beat, just
+                 a different `command:`), .env (CELERY_BROKER_URL etc.),
+                 university_timetable_system/celery.py (task discovery +
+                 existing beat_schedule for backup_system/notifications
+                 tasks — untouched, just now actually has somewhere to run).
+
+8. docker-entrypoint.sh
+   Purpose:      Changed the *default* fallback values (used only when
+                 GUNICORN_WORKERS/GUNICORN_TIMEOUT aren't set at all —
+                 e.g. running the image outside docker-compose) from
+                 3/120 to 2/900, matching the new docker-compose.yml
+                 defaults, plus an explanatory comment.
+   Reason:       Keeps the image's own defaults consistent with the
+                 production configuration described in the brief even
+                 when run standalone (`docker run` without compose).
+   Dependencies: None beyond Gunicorn itself.
+
+9. docker/nginx/default.conf
+   Purpose:      proxy_read_timeout 120s -> 900s, added
+                 proxy_send_timeout 900s, proxy_connect_timeout 10s ->
+                 30s, in both the live HTTPS server block and the
+                 commented-out plain-HTTP fallback block (kept in sync
+                 for anyone who un-comments it later). Routing/headers
+                 unchanged.
+   Reason:       Requirement: nginx proxy_read_timeout/proxy_send_timeout
+                 900s, proxy_connect_timeout 30s. Kept generous even
+                 though imports themselves no longer run inline, because
+                 several *other* endpoints in this project (PDF/xlsx
+                 export, auto-allocation) still do run synchronously and
+                 can be slow.
+   Dependencies: None — pure nginx config, no app-side dependency.
+
+====================================================
+FILES USED AS REFERENCE (inspected, not modified)
+====================================================
+
+program_management/models.py (ProgramCourse.save/normalize_unit_type)
+    — source of the normalization logic replicated in import_helpers.py.
+program_management/export_import_programs.py
+    — the separate Programs-page preview/apply importer; confirmed it's
+      a distinct code path from the admin CSV importer and out of scope.
+program_management/programs_page.py, urls.py, views.py
+    — confirmed no other code path calls ProgramCourseResource directly.
+department_management/models.py
+    — Department model, needed as a Program FK dependency in tests.
+backup_system/tasks.py
+    — source of the Celery-optional / thread-fallback pattern reused
+      verbatim in program_management/tasks.py for consistency.
+backup_system/signals.py, core/signals.py
+    — suppress_audit_signals()/suppress_activity_log(), already used by
+      SuppressAuditDuringImportMixin; confirmed the async path doesn't
+      need to touch these (bulk_create/bulk_update don't fire Django
+      model signals the way save()/delete() do, so there's nothing to
+      suppress on the async path — but the sync fallback path still
+      needs and keeps the mixin).
+university_timetable_system/settings.py
+    — CELERY_BROKER_URL / CELERY_RESULT_BACKEND / CACHES / BASE_DIR /
+      INSTALLED_APPS (confirmed django_celery_beat is NOT in
+      INSTALLED_APPS despite being in requirements.txt — this is why
+      docker-compose.yml's celery_beat service uses Celery's default
+      scheduler rather than django_celery_beat's DatabaseScheduler; see
+      the comment in that file).
+university_timetable_system/celery.py
+    — existing Celery app + beat_schedule; untouched, autodiscovers
+      program_management.tasks automatically via app.autodiscover_tasks().
+requirements.txt
+    — confirmed celery, redis, django-celery-beat, django-import-export
+      are already present; no dependency changes needed.
+Dockerfile
+    — confirmed GUNICORN_WORKERS/GUNICORN_TIMEOUT are read from the
+      environment by docker-entrypoint.sh (not hardcoded in the
+      Dockerfile itself), so no Dockerfile change was needed — only the
+      entrypoint's own defaults and docker-compose.yml's env values.
+
+====================================================
+DEPENDENCY GRAPH
+====================================================
+
+  Django Admin (ProgramCourseAdmin.import_action)
+    │  CSV upload (POST)
+    ▼
+  ImportJob.objects.create(uploaded_file=..., status=PENDING)
+    │
+    ▼
+  tasks.queue_program_course_import(job.id)
+    │  .delay() via Celery, or thread fallback if broker unreachable
+    ▼
+  Redis (broker)                       [docker-compose: redis service]
+    │
+    ▼
+  Celery worker                        [docker-compose: celery_worker service]
+    │  runs tasks.process_program_course_import(job_id)
+    ▼
+  import_helpers.py
+    ├── normalize_program_course_row()      (pure, per-row cleaning)
+    ├── ProgramLookupCache                  (Program name -> id, cached)
+    ├── resolve_and_validate_rows()         (normalize + resolve FK + dedupe)
+    └── upsert_program_courses()            (bulk_create / bulk_update)
+    │
+    ▼
+  models.py: ProgramCourse (MySQL)     +     ImportJob (progress/status)
+    │
+    ▼
+  Django Admin (ImportJobAdmin) — polls/displays ImportJob rows,
+  exposes Resume / Cancel actions which call back into
+  tasks.queue_program_course_import() / revoke the Celery task.
+
+  Browser → Nginx → Gunicorn is now ONLY on the critical path for the
+  initial upload (fast: just a file save + one INSERT + task queue) and
+  for viewing ImportJob progress afterward — never for the import itself.
+
+====================================================
+DEPLOYMENT STEPS
+====================================================
+
+1. Pull/merge these files into the project (paths match the repo root).
+
+2. Create the migration is already generated (0005_importjob.py). If you
+   prefer to regenerate it yourself instead of using the one provided:
+     python manage.py makemigrations program_management
+
+3. Apply migrations (also happens automatically via docker-entrypoint.sh
+   on container start, but run manually first if deploying without
+   rebuilding the image, e.g. straight onto a running container):
+     python manage.py migrate program_management
+
+4. Collect static files (only relevant if you're not rebuilding the
+   Docker image, which does this automatically at build time):
+     python manage.py collectstatic --noinput
+
+5. Rebuild the image (web, celery_worker, and celery_beat all share it):
+     docker compose build
+
+6. Bring the stack up. New services (redis, celery_worker, celery_beat)
+   are picked up automatically because they're now in docker-compose.yml:
+     docker compose up -d
+
+7. Verify Redis is healthy:
+     docker compose ps redis
+     docker compose exec redis redis-cli ping        # expect: PONG
+
+8. Verify the Celery worker is connected:
+     docker compose logs -f celery_worker
+     # look for "celery@<hostname> ready."
+     docker compose exec celery_worker \
+       celery -A university_timetable_system inspect ping
+
+9. Verify Celery beat is running (periodic backup/sync tasks depend on it):
+     docker compose logs -f celery_beat
+
+10. Reload nginx to pick up the new timeouts (a plain restart is
+    fine since nginx has no state to preserve here):
+      docker compose restart nginx
+    (If deploying nginx outside this compose file / on the host,
+    `nginx -s reload` after copying in the updated default.conf.)
+
+11. Smoke test the import path end-to-end:
+      a. Log into /admin/, go to Program Management → Program courses.
+      b. Click Import, choose a CSV file, submit.
+      c. Confirm the response is immediate and shows
+         "Import started successfully. Track progress on the Import
+         Jobs page (Job #N)."
+      d. Open Program Management → Import jobs, confirm the job
+         transitions PENDING → RUNNING → COMPLETED and counts match
+         the file.
+      e. Spot-check a few ProgramCourse rows in the admin to confirm
+         the data landed correctly (year inference, unit_type
+         normalization, etc. all still applied).
+
+12. Run the automated test suite (see TEST PLAN below):
+      docker compose exec web python manage.py test \
+        program_management.test_program_course_import
+
+====================================================
+TEST PLAN
+====================================================
+All in program_management/test_program_course_import.py.
+Run: python manage.py test program_management.test_program_course_import
+
+  RowSizeImportTests
+    test_10_rows                        — 10-row import
+    test_100_rows                       — 100-row import, chunk_size=25
+    test_1000_rows_chunked              — 1000-row import, chunk_size=200
+    test_10000_rows_performance         — 10,000 rows; SKIPPED by default,
+                                           set RUN_SLOW_IMPORT_TESTS=1 to
+                                           run it. Asserts completion under
+                                           a generous ceiling as a guard
+                                           against a per-row-query regression
+                                           creeping back in.
+
+  ResumeAndInterruptionTests
+    test_resume_from_checkpoint_does_not_reprocess
+                                         — simulates a job that stopped
+                                           after 1 of 3 chunks, resumes it,
+                                           confirms it finishes correctly
+                                           without reprocessing chunk 1.
+    test_restart_from_scratch_is_idempotent_no_duplicates
+                                         — full re-run of the same file
+                                           from row 0 (not just a
+                                           checkpointed resume): confirms
+                                           zero duplicate rows either way.
+    test_partial_chunk_failure_does_not_lose_earlier_chunks
+                                         — confirms earlier committed
+                                           chunks survive even when later
+                                           processing is interrupted
+                                           (no whole-file rollback).
+
+  UpsertBehaviorTests
+    test_create_then_update_no_duplicates
+    test_unchanged_rows_are_skipped_not_updated   (skip_unchanged parity)
+    test_duplicate_rows_within_same_file_last_wins
+    test_unknown_program_is_reported_and_skipped
+    test_missing_required_fields_reported
+
+  ConcurrentImportTests
+    test_two_jobs_touching_overlapping_keys_do_not_duplicate
+                                         — two jobs writing the same
+                                           (program, course_code, cohort)
+                                           key never produce 2 rows.
+
+  ProgramLookupCacheTests
+    test_cache_warms_once_and_resolves_names
+    test_cache_picks_up_program_created_after_warm
+
+  AdminRoutingTests
+    test_csv_upload_creates_job_and_does_not_import_synchronously
+                                         — confirms the admin view returns
+                                           after creating the ImportJob,
+                                           not after finishing the import.
+    test_importjob_list_is_visible_in_admin
+
+  NormalizationHelperTests
+    test_year_inferred_from_course_code
+    test_unit_type_typo_tolerant
+    test_defaults
+
+Memory usage: not asserted numerically in the suite (Python-level memory
+measurement is brittle across environments/CI), but the design keeps
+memory bounded by construction — each chunk loads at most chunk_size
+rows' worth of ProgramCourse objects into memory at once, and the CSV
+itself is read fully into `rows` up front (a 10k-row CSV is a few MB at
+most; if this ever needs to scale to hundreds of thousands of rows,
+switch the `list(csv.DictReader(...))` in tasks.py to iterate the reader
+directly per chunk instead of materializing the whole file first).

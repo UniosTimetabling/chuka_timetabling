@@ -1,0 +1,423 @@
+{% comment %} ═══════════════════════════════════════════════════════════════════════
+   /cod/ — (1) "Split into sections…" (course row right-click)
+           (2) Stem header right-click: "Map Elective Group(s)…"
+   Included from cod_panel.html. Self-contained: own menu, own modals, own JS.
+   ═══════════════════════════════════════════════════════════════════════ {% endcomment %}
+
+<!-- ========== SPLIT COURSE INTO SECTIONS MODAL ========== -->
+<div class="student-group-modal-overlay" id="secModalOverlay">
+  <div class="student-group-modal" style="width:560px; max-width:95vw;">
+    <div class="student-group-modal-head" style="background:#0d47a1;">
+      <h3 id="secModalTitle">Split into sections</h3>
+      <button class="student-group-modal-close" id="secModalClose">&#x2715;</button>
+    </div>
+    <div class="student-group-modal-body" style="max-height:72vh; overflow-y:auto;">
+      <p style="font-size:12.5px;color:#0d47a1;background:#e3f2fd;border:1px solid #90caf9;border-radius:6px;padding:8px 12px;margin-bottom:10px;">
+        Use this when a course has too many students for one class. The new sections stay in the
+        <strong>same student group / stem / elective group</strong> as this course. Sections share the same
+        students' cohort, so the schedulers may place them <strong>at the same time</strong> (different rooms)
+        — each section still clashes with everything else the course would clash with.
+      </p>
+      <div id="secInfo" style="font-size:12.5px;color:#455a64;margin-bottom:8px;">Loading…</div>
+      <div class="fg">
+        <label for="secCount">Total number of sections</label>
+        <input type="number" id="secCount" min="2" max="20" value="2" style="width:90px;">
+        <span id="secCountHint" style="font-size:11.5px;color:#888;margin-left:6px;"></span>
+      </div>
+      <div class="fg" id="secSizesWrap" style="margin-top:8px;">
+        <label>Students per section <span style="font-weight:400;color:#888;">(defaults to an even split of the current total)</span></label>
+        <div id="secSizes" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+      </div>
+      <label style="display:block;margin-top:10px;font-size:12.5px;">
+        <input type="checkbox" id="secKeepLecturer"> Give every new section the same lecturer as this course
+      </label>
+      <div id="secMsg" style="margin-top:8px;font-size:12.5px;"></div>
+    </div>
+    <div class="student-group-modal-foot" style="display:flex;gap:8px;justify-content:space-between;">
+      <button class="btn-student-group-cancel" id="secUnsplitBtn" style="display:none;color:#c62828;">Merge sections back…</button>
+      <span style="flex:1"></span>
+      <button class="btn-student-group-cancel" id="secCancelBtn">Cancel</button>
+      <button class="btn-student-group-save" id="secSaveBtn" style="background:#0d47a1;">Split</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== MAP UNIT(S) TO STUDENT GROUP(S) MODAL ========== -->
+<div class="student-group-modal-overlay" id="mapSgOverlay">
+  <div class="student-group-modal" style="width:600px; max-width:95vw;">
+    <div class="student-group-modal-head" style="background:#00695c;">
+      <h3 id="mapSgTitle">Map to Student Group(s)</h3>
+      <button class="student-group-modal-close" id="mapSgClose">&#x2715;</button>
+    </div>
+    <div class="student-group-modal-body" style="max-height:72vh; overflow-y:auto;">
+      <p style="font-size:12.5px;color:#004d40;background:#e0f2f1;border:1px solid #80cbc4;border-radius:6px;padding:8px 12px;margin-bottom:10px;">
+        Tick every student group that takes this unit. One unit can serve <strong>several groups</strong> — no
+        Combined Course Group needed. Two units of the same course (e.g. <strong>EDCI 111A</strong> and
+        <strong>EDCI 111B</strong>) can be mapped to the <strong>same</strong> groups: those groups' students are then
+        split between the two units, so one unit may hold just Group 1 while the other holds Group 1 plus others.
+        The units may be scheduled at the same time; each still clashes with the other courses of every group it holds.
+      </p>
+      <div id="mapSgSub" style="font-size:12.5px;color:#455a64;margin-bottom:6px;"></div>
+      <div id="mapSgModeWrap" style="display:none;font-size:12.5px;margin-bottom:8px;">
+        <label style="margin-right:14px;"><input type="radio" name="mapSgMode" value="add" checked> Add to each course's existing groups</label>
+        <label><input type="radio" name="mapSgMode" value="replace"> Replace their groups with the ticked ones</label>
+      </div>
+      <div id="mapSgList"><div style="text-align:center;padding:16px;color:#888;">Loading…</div></div>
+      <div id="mapSgMsg" style="margin-top:8px;font-size:12.5px;"></div>
+    </div>
+    <div class="student-group-modal-foot">
+      <button class="btn-student-group-cancel" id="mapSgCancel">Cancel</button>
+      <button class="btn-student-group-save" id="mapSgSave" style="background:#00695c;">Save mapping</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STEM HEADER RIGHT-CLICK MENU ========== -->
+<div id="stemCtxMenu" class="row-ctx-menu" style="display:none;position:fixed;z-index:10050;">
+  <div class="rcm-title" id="stemCtxTitle"></div>
+  <button type="button" id="stemCtxElectivesBtn">Map Elective Group(s) to this stem…</button>
+</div>
+
+<!-- ========== MAP ELECTIVE (PICK-ONE) GROUPS INTO A STEM MODAL ========== -->
+<div class="student-group-modal-overlay" id="stemElOverlay">
+  <div class="student-group-modal" style="width:640px; max-width:95vw;">
+    <div class="student-group-modal-head" style="background:#4527a0;">
+      <h3 id="stemElTitle">Elective groups in stem</h3>
+      <button class="student-group-modal-close" id="stemElClose">&#x2715;</button>
+    </div>
+    <div class="student-group-modal-body" style="max-height:72vh; overflow-y:auto;">
+      <p style="font-size:12.5px;color:#311b92;background:#ede7f6;border:1px solid #b39ddb;border-radius:6px;padding:8px 12px;margin-bottom:10px;">
+        Tick a <strong>pick-one</strong> group to nest it in this stem. Example: the stem has 12 units,
+        10 are core and the student chooses ONE of the last two — make those two a group and tick it here.
+        The group's courses become members of the stem (they still clash with the 10 core units),
+        but the alternatives may share a time slot with each other.
+      </p>
+      <div id="stemElSummary" style="font-size:12px;color:#5e35b1;margin-bottom:6px;"></div>
+      <div id="stemElList"><div style="text-align:center;padding:16px;color:#888;">Loading…</div></div>
+      <div style="margin-top:14px;border-top:1px dashed #cfd8dc;padding-top:12px;">
+        <button type="button" class="btn-student-group-save" id="stemElShowCreate" style="background:#4527a0;">Create new pick-one group in this stem</button>
+        <div id="stemElCreateForm" style="display:none;margin-top:10px;">
+          <div class="fg">
+            <label for="stemElNewName">Group name</label>
+            <input type="text" id="stemElNewName" placeholder="e.g. Networking Elective (pick 1)">
+          </div>
+          <div class="fg">
+            <label for="stemElNewCourses">Alternatives — pick two or more (Ctrl/Cmd + click)</label>
+            <select id="stemElNewCourses" multiple size="7" style="width:100%;"></select>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+            <button type="button" class="btn-student-group-cancel" id="stemElCreateCancel">Cancel</button>
+            <button type="button" class="btn-student-group-save" id="stemElCreateSave" style="background:#4527a0;">Create &amp; nest</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="student-group-modal-foot">
+      <button class="btn-student-group-cancel" id="stemElClose2">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function csrf() {
+    var m = document.cookie.split('; ').find(function (r) { return r.startsWith('csrftoken='); });
+    return m ? m.split('=')[1] : '';
+  }
+  function postForm(url, data) {
+    var body = new URLSearchParams();
+    Object.keys(data).forEach(function (k) {
+      var v = data[k];
+      if (Array.isArray(v)) { v.forEach(function (i) { body.append(k, i); }); } else { body.append(k, v); }
+    });
+    return fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrf() }, body: body })
+      .then(function (r) { return r.json(); });
+  }
+  function getJson(url) {
+    return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function (r) { return r.json(); });
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function toast(msg, kind) { if (window.showToast) window.showToast(msg, kind || 'success'); }
+  function refresh() {
+    if (typeof window.softRefreshAllocationsTable === 'function') window.softRefreshAllocationsTable();
+    else window.location.reload();
+  }
+  var COD_URL = "{% url 'cod_panel' %}";
+
+
+  /* ───────────── (0) Map unit(s) to student group(s) ───────────── */
+  (function () {
+    var overlay = document.getElementById('mapSgOverlay');
+    var listEl = document.getElementById('mapSgList');
+    var sub = document.getElementById('mapSgSub');
+    var msg = document.getElementById('mapSgMsg');
+    var modeWrap = document.getElementById('mapSgModeWrap');
+    var saveBtn = document.getElementById('mapSgSave');
+    var st = null; // { ids, programId }
+
+    function close() { overlay.classList.remove('open'); st = null; }
+    function setMsg(t, bad) { msg.style.color = bad ? '#c62828' : '#2e7d32'; msg.textContent = t || ''; }
+    function allocId(r) { return r.getAttribute('data-mirror-of') || r.getAttribute('data-alloc-id'); }
+
+    window.openMapStudentGroupsModal = function (rows) {
+      rows = (rows || []).filter(Boolean);
+      if (!rows.length) return;
+      var progIds = {};
+      rows.forEach(function (r) { progIds[r.getAttribute('data-program-id') || ''] = 1; });
+      if (Object.keys(progIds).length > 1) {
+        toast('Select courses from ONE program — student groups belong to a single program.', 'warning');
+        return;
+      }
+      var ids = []; rows.forEach(function (r) { var i = allocId(r); if (i && ids.indexOf(i) < 0) ids.push(i); });
+      st = { ids: ids, programId: rows[0].getAttribute('data-program-id') || '', year: rows[0].getAttribute('data-year') || '' };
+      overlay.classList.add('open');
+      setMsg('');
+      listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#888;">Loading…</div>';
+      var multi = ids.length > 1;
+      modeWrap.style.display = multi ? 'block' : 'none';
+      document.getElementById('mapSgTitle').textContent = multi ? 'Map ' + ids.length + ' courses to Student Group(s)' : 'Map to Student Group(s) — ' + (rows[0].getAttribute('data-course-code') || '');
+      sub.textContent = multi ? ids.length + ' courses selected.' : (rows[0].getAttribute('data-course-name') || '');
+
+      var current = multi ? Promise.resolve({ student_group_ids: [] })
+                          : postForm(COD_URL, { action: 'get_allocation_group_mapping', id: ids[0] });
+      Promise.all([postForm(COD_URL, { action: 'list_student_groups' }), current]).then(function (res) {
+        var gj = res[0], cj = res[1];
+        if (gj.status !== 'success') { listEl.innerHTML = '<p style="color:#c00;">' + esc(gj.message || 'Could not load student groups.') + '</p>'; return; }
+        var have = {}; (cj.student_group_ids || []).forEach(function (i) { have[i] = 1; });
+        var groups = (gj.groups || []).filter(function (g) { return String(g.program_id) === String(st.programId); });
+        if (!groups.length) { listEl.innerHTML = '<p style="color:#888;font-size:12.5px;">This program has no student groups yet. Create them from the Student Groups panel first.</p>'; return; }
+        listEl.innerHTML = groups.map(function (g) {
+          return '<label style="display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;">' +
+            '<input type="checkbox" class="map-sg-cb" value="' + g.id + '" ' + (have[g.id] ? 'checked' : '') + '>' +
+            '<span>' + esc(g.name) + ' <span style="color:#888;font-size:11.5px;">(Y' + esc(g.year) + ' S' + esc(g.semester) + ')</span></span></label>';
+        }).join('');
+      }).catch(function () { listEl.innerHTML = '<p style="color:#c00;">Network error.</p>'; });
+    };
+
+    document.getElementById('mapSgClose').addEventListener('click', close);
+    document.getElementById('mapSgCancel').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    saveBtn.addEventListener('click', function () {
+      if (!st) return;
+      var sel = Array.prototype.map.call(listEl.querySelectorAll('.map-sg-cb:checked'), function (c) { return parseInt(c.value, 10); });
+      var multi = st.ids.length > 1;
+      var mode = multi ? (document.querySelector('input[name=mapSgMode]:checked') || {}).value || 'add' : 'replace';
+      if (multi && mode === 'add' && !sel.length) { setMsg('Tick at least one group to add.', true); return; }
+      saveBtn.disabled = true;
+      postForm(COD_URL, {
+        action: 'map_allocation_groups_and_stems', ids: JSON.stringify(st.ids),
+        student_group_ids: JSON.stringify(sel), groups_only: '1', mode: mode,
+      }).then(function (json) {
+        saveBtn.disabled = false;
+        if (json.status !== 'success') { setMsg(json.message || 'Could not save mapping.', true); return; }
+        toast(json.message);
+        close();
+        if (typeof window.exitAllocSelectMode === 'function' && multi) window.exitAllocSelectMode();
+        refresh();
+      }).catch(function () { saveBtn.disabled = false; setMsg('Network error.', true); });
+    });
+  })();
+
+  /* ───────────── (1) Split into sections ───────────── */
+  (function () {
+    var overlay = document.getElementById('secModalOverlay');
+    var info = document.getElementById('secInfo');
+    var countIn = document.getElementById('secCount');
+    var hint = document.getElementById('secCountHint');
+    var sizesEl = document.getElementById('secSizes');
+    var msg = document.getElementById('secMsg');
+    var saveBtn = document.getElementById('secSaveBtn');
+    var unsplitBtn = document.getElementById('secUnsplitBtn');
+    var state = null; // { id, total, current, max }
+
+    function close() { overlay.classList.remove('open'); state = null; }
+    function setMsg(t, bad) { msg.style.color = bad ? '#c62828' : '#2e7d32'; msg.textContent = t || ''; }
+
+    function evenSplit(total, n) {
+      var base = Math.floor(total / n), extra = total % n, out = [];
+      for (var i = 0; i < n; i++) out.push(base + (i < extra ? 1 : 0));
+      return out;
+    }
+    function renderSizes() {
+      if (!state) return;
+      var n = parseInt(countIn.value, 10) || 0;
+      if (n < 2) { sizesEl.innerHTML = ''; return; }
+      var shares = evenSplit(state.total, n);
+      sizesEl.innerHTML = shares.map(function (v, i) {
+        return '<label style="font-size:12px;">Sec ' + (i + 1) + '<br><input type="number" min="0" class="sec-size" value="' + v + '" style="width:76px;"></label>';
+      }).join('');
+    }
+
+    window.openSplitSectionsModal = function (rowEl) {
+      if (!rowEl) return;
+      var id = rowEl.getAttribute('data-mirror-of') || rowEl.getAttribute('data-alloc-id') || '';
+      if (!id) { toast('Could not identify this course row.', 'warning'); return; }
+      state = { id: id, total: 0, current: 1, max: 20 };
+      overlay.classList.add('open');
+      info.textContent = 'Loading…';
+      setMsg('');
+      unsplitBtn.style.display = 'none';
+      document.getElementById('secModalTitle').textContent = 'Split into sections — ' + (rowEl.getAttribute('data-course-code') || '');
+      postForm(COD_URL, { action: 'get_section_info', id: id }).then(function (json) {
+        if (json.status !== 'success') { info.textContent = json.message || 'Error.'; return; }
+        state.total = json.total_students || 0;
+        state.current = json.current_sections;
+        state.max = json.max_sections;
+        info.innerHTML = '<strong>' + esc(json.course_code) + '</strong> — ' + state.total + ' student(s) in total, currently ' +
+          (state.current > 1 ? state.current + ' sections (' + json.sections.map(function (s) { return esc(s.course_code) + ': ' + s.number_of_students; }).join(', ') + ')' : 'one class') + '.';
+        countIn.min = state.current + 1;
+        countIn.max = state.max;
+        countIn.value = Math.max(2, state.current + 1);
+        hint.textContent = '(' + (state.current + 1) + '–' + state.max + ')';
+        unsplitBtn.style.display = state.current > 1 ? '' : 'none';
+        renderSizes();
+      }).catch(function () { info.textContent = 'Network error.'; });
+    };
+
+    countIn.addEventListener('input', renderSizes);
+    document.getElementById('secModalClose').addEventListener('click', close);
+    document.getElementById('secCancelBtn').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    saveBtn.addEventListener('click', function () {
+      if (!state) return;
+      var n = parseInt(countIn.value, 10);
+      if (!(n >= 2) || n > state.max) { setMsg('Choose between 2 and ' + state.max + ' sections.', true); return; }
+      if (n <= state.current) { setMsg('Already split into ' + state.current + ' section(s) — choose a larger number.', true); return; }
+      var sizes = Array.prototype.map.call(sizesEl.querySelectorAll('.sec-size'), function (i) { return parseInt(i.value, 10) || 0; });
+      saveBtn.disabled = true;
+      postForm(COD_URL, {
+        action: 'split_allocation_sections', id: state.id, num_sections: n,
+        counts: sizes.join(','),
+        keep_lecturer: document.getElementById('secKeepLecturer').checked ? '1' : '',
+      }).then(function (json) {
+        saveBtn.disabled = false;
+        if (json.status !== 'success') { setMsg(json.message || 'Could not split.', true); return; }
+        toast(json.message);
+        close();
+        refresh();
+      }).catch(function () { saveBtn.disabled = false; setMsg('Network error.', true); });
+    });
+
+    unsplitBtn.addEventListener('click', function () {
+      if (!state) return;
+      if (!confirm('Merge all sections back into one class? The extra section rows (and any timetable slots or lecturers assigned to them) are deleted, and their students are added to section 1.')) return;
+      postForm(COD_URL, { action: 'unsplit_allocation_sections', id: state.id }).then(function (json) {
+        if (json.status !== 'success') { setMsg(json.message || 'Could not merge.', true); return; }
+        toast(json.message);
+        close();
+        refresh();
+      }).catch(function () { setMsg('Network error.', true); });
+    });
+  })();
+
+  /* ───────────── (2) Stem header right-click → map elective groups ───────────── */
+  (function () {
+    var menu = document.getElementById('stemCtxMenu');
+    var overlay = document.getElementById('stemElOverlay');
+    var listEl = document.getElementById('stemElList');
+    var summary = document.getElementById('stemElSummary');
+    var createForm = document.getElementById('stemElCreateForm');
+    var showCreate = document.getElementById('stemElShowCreate');
+    var nameIn = document.getElementById('stemElNewName');
+    var coursesSel = document.getElementById('stemElNewCourses');
+    var createSave = document.getElementById('stemElCreateSave');
+    var ctx = null, cur = null;
+
+    window.showStemContextMenu = function (evt, rowEl) {
+      evt.preventDefault();
+      ctx = { stemId: rowEl.getAttribute('data-stem-id'), stemName: rowEl.getAttribute('data-stem-name') || 'Stem' };
+      if (!ctx.stemId) return false;
+      document.getElementById('stemCtxTitle').textContent = ctx.stemName + ' stem';
+      menu.style.display = 'block';
+      var w = menu.offsetWidth || 240, h = menu.offsetHeight || 70;
+      menu.style.left = Math.max(8, Math.min(evt.clientX, window.innerWidth - w - 8)) + 'px';
+      menu.style.top = Math.max(8, Math.min(evt.clientY, window.innerHeight - h - 8)) + 'px';
+      return false;
+    };
+    function closeMenu() { menu.style.display = 'none'; }
+    document.addEventListener('click', function (e) { if (menu.style.display === 'block' && !menu.contains(e.target)) closeMenu(); });
+    document.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+
+    function close() { overlay.classList.remove('open'); createForm.style.display = 'none'; showCreate.style.display = ''; cur = null; }
+
+    function rowHtml(g) {
+      var extra = g.restricted ? ' · restricted to ' + esc(g.mapped_group_names.join(', ')) : '';
+      var nested = (g.mapped_stem_names && g.mapped_stem_names.length) ? ' · nested in: ' + esc(g.mapped_stem_names.join(', ')) : ' · program-level pool';
+      return '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;">' +
+        '<input type="checkbox" data-sg="' + g.id + '" ' + (g.mapped ? 'checked' : '') + ' style="margin-top:3px;">' +
+        '<span style="flex:1;"><strong>' + esc(g.name) + '</strong> <span style="color:#888;font-size:11.5px;">(' + g.course_count + ' alternative' + (g.course_count === 1 ? '' : 's') + ')</span>' +
+        '<div style="font-size:11px;color:#5e35b1;">' + nested + extra + '</div></span></label>';
+    }
+    function renderList(json) {
+      var st = json.stem;
+      summary.textContent = st.course_count + ' unit(s) in this stem: ' + st.core_count + ' core, ' + (st.course_count - st.core_count) + ' pick-one alternative(s).';
+      var groups = json.selection_groups || [];
+      if (!groups.length) { listEl.innerHTML = '<p style="color:#888;font-size:12.5px;">No elective groups exist yet for this program. Create one below.</p>'; return; }
+      listEl.innerHTML = groups.map(rowHtml).join('');
+      listEl.querySelectorAll('input[data-sg]').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+          if (!cur) return;
+          cb.disabled = true;
+          postForm('/selection-group/toggle-stem/' + cb.getAttribute('data-sg') + '/', { stem_id: cur.stemId, action: cb.checked ? 'add' : 'remove' })
+            .then(function (j) {
+              cb.disabled = false;
+              if (j.status !== 'success') { alert(j.message || 'Error'); cb.checked = !cb.checked; return; }
+              toast(j.message);
+              load();
+              refresh();
+            }).catch(function () { cb.disabled = false; cb.checked = !cb.checked; alert('Network error.'); });
+        });
+      });
+    }
+    function load() {
+      getJson('/ajax/selection-groups-for-stem/?stem_id=' + cur.stemId).then(function (json) {
+        if (json.status !== 'success') { listEl.innerHTML = '<p style="color:#c00;">' + esc(json.message || 'Error') + '</p>'; return; }
+        cur.programId = json.stem.program_id; cur.year = json.stem.year;
+        renderList(json);
+      }).catch(function () { listEl.innerHTML = '<p style="color:#c00;">Network error.</p>'; });
+    }
+
+    document.getElementById('stemCtxElectivesBtn').addEventListener('click', function () {
+      closeMenu();
+      if (!ctx) return;
+      cur = { stemId: ctx.stemId, stemName: ctx.stemName };
+      document.getElementById('stemElTitle').textContent = 'Elective groups — ' + ctx.stemName + ' stem';
+      overlay.classList.add('open');
+      listEl.innerHTML = '<div style="text-align:center;padding:16px;color:#888;">Loading…</div>';
+      load();
+    });
+    document.getElementById('stemElClose').addEventListener('click', close);
+    document.getElementById('stemElClose2').addEventListener('click', close);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+
+    showCreate.addEventListener('click', function () {
+      createForm.style.display = 'block'; showCreate.style.display = 'none'; nameIn.value = '';
+      coursesSel.innerHTML = '<option disabled>Loading…</option>';
+      getJson('/ajax/get-program-courses/?program_id=' + cur.programId + (cur.year ? '&year=' + cur.year : '')).then(function (cs) {
+        if (!cs.length) { coursesSel.innerHTML = '<option disabled>No courses found</option>'; return; }
+        coursesSel.innerHTML = cs.map(function (c) { return '<option value="' + c.id + '">' + esc(c.course_code) + ' — ' + esc(c.course_name) + ' (S' + c.semester + ')</option>'; }).join('');
+      }).catch(function () { coursesSel.innerHTML = '<option disabled>Error loading courses</option>'; });
+    });
+    document.getElementById('stemElCreateCancel').addEventListener('click', function () { createForm.style.display = 'none'; showCreate.style.display = ''; });
+    createSave.addEventListener('click', function () {
+      var name = nameIn.value.trim();
+      var ids = Array.from(coursesSel.selectedOptions).map(function (o) { return o.value; });
+      if (!name) { alert('Enter a group name.'); return; }
+      if (ids.length < 2) { alert('Pick at least two alternative courses.'); return; }
+      createSave.disabled = true;
+      postForm('/stem/quick-create-selection-group/', { stem_id: cur.stemId, group_name: name, program_course_ids: ids }).then(function (j) {
+        createSave.disabled = false;
+        if (j.status !== 'success') { alert(j.message || 'Error'); return; }
+        toast(j.message);
+        createForm.style.display = 'none'; showCreate.style.display = '';
+        load();
+        refresh();
+      }).catch(function () { createSave.disabled = false; alert('Network error.'); });
+    });
+  })();
+})();
+</script>

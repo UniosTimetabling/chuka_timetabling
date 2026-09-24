@@ -1,0 +1,52 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+
+{% block title %}Sync Run #{{ run.id }}{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+  <h1>Sync Run #{{ run.id }}</h1>
+  <p>{{ run.started_at|date:"Y-m-d H:i:s" }} — {{ run.get_status_display }}</p>
+  <div class="header-bar"></div>
+</div>
+
+<p><a href="{% url 'sync_settings' %}">&larr; Back to Sync Settings</a></p>
+
+{% if run.error_message %}
+<div style="background:#fde8e8; border:1px solid #f5b5b5; color:#c0392b; padding:10px 15px; border-radius:6px; margin-bottom:15px;">
+  {{ run.error_message }}
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header">Models sent, in order</div>
+  <div class="card-body">
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; min-width:700px;">
+        <thead>
+          <tr style="background:#0b1f4a; color:white;">
+            <th style="padding:8px;">#</th>
+            <th style="padding:8px; text-align:left;">Model</th>
+            <th style="padding:8px; text-align:left;">Status</th>
+            <th style="padding:8px; text-align:left;">Changed / Total</th>
+            <th style="padding:8px; text-align:left;">Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in run.model_logs.all %}
+          <tr style="border-bottom:1px solid #ddd;">
+            <td style="padding:8px;">{{ log.order }}</td>
+            <td style="padding:8px;">{{ log.app_label }}.{{ log.model_name }}</td>
+            <td style="padding:8px;">{{ log.get_status_display }}</td>
+            <td style="padding:8px;">{{ log.records_changed }} / {{ log.records_total }}</td>
+            <td style="padding:8px; color:#c0392b;">{{ log.error_message|truncatechars:150 }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" style="padding:20px; text-align:center;">No model logs recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock sudo_content %}

@@ -1,0 +1,113 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Chuka University — Admin Portal{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboards_dashboard_admin_homepage.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<div class="hp-wrap">
+
+  <div class="hp-head">
+    <h1>Admin Portal</h1>
+    <p>Timetabling &amp; Examinations — Office Workflow</p>
+  </div>
+
+  <div class="hp-grid">
+
+    <!-- LEFT: Sudo + Dept Users (many connections) -->
+    <div class="hp-col hp-col-left">
+      <div class="hp-spacer"></div>
+
+      <a href="{% url 'sudo_homepage' %}" class="hp-node ">
+        <span class="node-name">Sudo Access</span>
+        <span class="node-desc">Full system control</span>
+        <span class="node-tag">All roles</span>
+      </a>
+
+      <div class="hp-spacer"></div>
+      <div class="hp-spacer-sm"></div>
+
+      <a href="{% url 'user_dashboard' %}" class="hp-node ">
+        <span class="node-name">Department Users</span>
+        <span class="node-desc">Final timetable access</span>
+        <span class="node-tag">DVC · COD · Timetabling</span>
+      </a>
+    </div>
+
+    <!-- CENTRE: Main vertical chain -->
+    <div class="hp-col hp-col-centre">
+
+      <a href="{% url 'dvc_panel' %}" class="hp-node ">
+        <span class="node-name">Office of the DVC</span>
+        <span class="node-desc">Vetting &amp; final approval</span>
+      </a>
+
+      <div class="hp-connector"></div>
+
+      <a href="{% url 'cod_panel' %}" class="hp-node">
+        <span class="node-name">Office of the CODs</span>
+        <span class="node-desc">Course creation &amp; staffing</span>
+      </a>
+
+      <div class="hp-connector"></div>
+
+      <a href="{% url 'timetable_dashboard' %}" class="hp-node  ">
+        <span class="node-name">Director of Timetabling</span>
+        <span class="node-desc">Master schedule generation</span>
+      </a>
+
+      <div class="hp-connector"></div>
+
+      <a href="{% url 'cot_exam_timetable' %}" class="hp-node ">
+        <span class="node-name">Dept. Exam Chair</span>
+        <span class="node-desc">Exam verification &amp; coordination</span>
+      </a>
+
+      <div class="hp-connector"></div>
+
+      <a href="{% url 'venues_panel' %}" class="hp-node ">
+        <span class="node-name">Utility Office</span>
+        <span class="node-desc">Venue &amp; room provision</span>
+      </a>
+
+    </div>
+
+    <!-- RIGHT: Aside/secondary offices -->
+    <div class="hp-col hp-col-right">
+      <div class="hp-spacer"></div>
+
+      <a href="{% url 'deans_panel' %}" class="hp-node ">
+        <span class="node-name">Office of the Dean</span>
+        <span class="node-desc">Review faculty allocations</span>
+        <span class="node-tag">COD · Timetabling</span>
+      </a>
+
+      <div class="hp-spacer"></div>
+      <div class="hp-spacer-sm"></div>
+
+      <a href="{% url 'course_allocations_page' %}" class="hp-node ">
+        <span class="node-name">Academic Affairs</span>
+        <span class="node-desc">Academic standards overview</span>
+        <span class="node-tag">COD · Timetabling</span>
+      </a>
+    </div>
+
+  </div>
+
+  <div class="hp-footer-links">
+    <a href="{% url 'sudo_homepage' %}">Sudo Panel</a>
+    <a href="{% url 'logout' %}" class="lnk-logout">Logout</a>
+  </div>
+
+</div>
+{% endblock content %}
+
+{% block footer %}
+<footer style="background:#1a3260;color:rgba(255,255,255,.4);font-size:.72rem;text-align:center;padding:.6rem;" role="contentinfo">
+  &copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations
+</footer>
+{% endblock footer %}

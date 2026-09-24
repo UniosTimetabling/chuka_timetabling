@@ -1,0 +1,50 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Django ────────────────────────────────────────────────────
+*.log
+db.sqlite3
+/staticfiles/
+/media/
+django_cache/
+
+# ── Virtualenv ────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Secrets ────────────────────────────────────────────────────
+.env
+*.env
+
+# ── Git ───────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── IDEs ──────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Tests / CI ────────────────────────────────────────────────
+.coverage
+htmlcov/
+.pytest_cache/
+
+# ── Documentation sources (large) ────────────────────────────
+documentation_data_scripts/

@@ -1,0 +1,730 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_export_view_allocations.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_view_alloc.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_view_allocations.css' %}">
+{% endblock page_css %}
+
+{% block title %}View & Export Course Allocations{% endblock %}
+{% block page_title %}Course Allocations Management{% endblock %}
+
+{% block header_controls %}
+<button onclick="togglePrintMode()" class="hdr-btn hdr-btn--accent">
+ <i class="fas fa-print"></i> <span class="d-none d-md-inline">Print</span>
+</button>
+<button onclick="exportToCSV()" class="hdr-btn">
+ <i class="fas fa-download"></i> <span class="d-none d-md-inline">Export CSV</span>
+</button>
+{% endblock %}
+
+{% block extra_head %}
+{% endblock %}
+
+{% block allocation_content %}
+<div class="pg">
+
+ <!-- Controls -->
+ <div class="controls">
+
+ <div class="type-toggle">
+ <button class="{% if allocation_type == 'normal' %}active{% endif %}"
+ onclick="switchType('normal')">
+ <i class="fas fa-book"></i> Normal Allocations
+ </button>
+ <button class="{% if allocation_type == 'lab' %}active{% endif %}"
+ onclick="switchType('lab')">
+ <i class="fas fa-flask"></i> Lab Allocations
+ </button>
+ </div>
+
+ <div class="control-row">
+ <div>
+ <label><i class="fas fa-building" style="margin-right:4px;opacity:.7;"></i>Department</label>
+ <select id="department" class="pg-sel" onchange="applyFilters()">
+ <option value="">All Departments</option>
+ {% for dept in departments %}
+ <option value="{{ dept.id }}" {% if dept.id|stringformat:"s" == selected_department %}selected{% endif %}>
+ {{ dept.name }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div>
+ <label><i class="fas fa-graduation-cap" style="margin-right:4px;opacity:.7;"></i>Program</label>
+ <select id="program" class="pg-sel" onchange="applyFilters()">
+ <option value="">All Programs</option>
+ {% for prog in programs %}
+ <option value="{{ prog.id }}" {% if prog.id|stringformat:"s" == selected_program %}selected{% endif %}>
+ {{ prog.name }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div>
+ <label><i class="fas fa-user-tie" style="margin-right:4px;opacity:.7;"></i>Lecturer</label>
+ <select id="lecturer" class="pg-sel" onchange="applyFilters()">
+ <option value="">All Lecturers</option>
+ {% for lecturer in lecturers %}
+ <option value="{{ lecturer.id }}" {% if lecturer.id|stringformat:"s" == selected_lecturer %}selected{% endif %}>
+ {{ lecturer.display_name }}
+ </option>
+ {% endfor %}
+ </select>
+ </div>
+
+ <div>
+ <label><i class="fas fa-sort" style="margin-right:4px;opacity:.7;"></i>Sort By</label>
+ <select id="sort" class="pg-sel" onchange="applyFilters()">
+ <option value="department" {% if sort_by == 'department' %}selected{% endif %}>Department</option>
+ <option value="program" {% if sort_by == 'program' %}selected{% endif %}>Program</option>
+ <option value="course" {% if sort_by == 'course' %}selected{% endif %}>Course Code</option>
+ <option value="lecturer" {% if sort_by == 'lecturer' %}selected{% endif %}>Lecturer</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="search-box">
+ <input type="text" id="search" class="pg-inp"
+ placeholder="Search by course code, name, lecturer…"
+ value="{{ search_query }}" onkeyup="handleSearch(event)">
+ <button onclick="applyFilters()" class="btn btn-primary">
+ <i class="fas fa-search"></i> Search
+ </button>
+ <button onclick="clearFilters()" class="btn btn-secondary">
+ <i class="fas fa-eraser"></i> Clear
+ </button>
+ </div>
+
+ <div id="printControls" class="print-controls">
+ <h4><i class="fas fa-print" style="margin-right:6px;"></i>Print Options</h4>
+ <div class="checkbox-group">
+ <label>
+ <input type="radio" name="printOption" value="all" checked>
+ Print All {{ total_allocations }} Allocations
+ </label>
+ <label>
+ <input type="radio" name="printOption" value="selected">
+ Print Selected (<span id="selectedCount">0</span> selected)
+ </label>
+ </div>
+ <div class="btn-group">
+ <button onclick="prepareAndPrint()" class="btn btn-primary">
+ <i class="fas fa-check"></i> Confirm &amp; Print
+ </button>
+ <button onclick="togglePrintMode()" class="btn btn-secondary">
+ <i class="fas fa-times"></i> Cancel
+ </button>
+ </div>
+ </div>
+ </div>
+
+ <!-- Content -->
+ <div class="content">
+ {% if grouped_data %}
+ <div class="select-all-checkbox" style="display:none;" id="selectAllContainer">
+ <input type="checkbox" id="selectAll" onchange="selectAllAllocations(this.checked)">
+ <label for="selectAll"><strong>Select All Allocations</strong></label>
+ </div>
+
+ {% for dept_name, programs in grouped_data.items %}
+ <div class="department-section">
+ <div class="department-header">
+ <h2>
+ <i class="fas fa-university"></i>
+ {{ dept_name }}
+ <span class="total-count">{{ programs.values|length }} Program(s)</span>
+ </h2>
+ </div>
+
+ {% for prog_name, allocations in programs.items %}
+ <div class="program-section" data-dept="{{ dept_name }}" data-program="{{ prog_name }}">
+ <div class="program-header">
+ <h3>
+ <i class="fas fa-graduation-cap"></i>
+ {{ prog_name }}
+ <span class="total-count" style="background:var(--navy-600);border-color:var(--navy-500);">
+ {{ allocations|length }} Allocation(s)
+ </span>
+ </h3>
+ </div>
+
+ <table class="allocation-table">
+ <thead>
+ <tr>
+ <th style="width:46px;display:none;" class="print-select-col">
+ <input type="checkbox" class="select-all-program"
+ onchange="selectProgramAllocations(this, '{{ dept_name }}_{{ prog_name }}')">
+ </th>
+ {% if allocation_type == 'lab' %}
+ <th>Program</th>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Venue</th>
+ <th>Lecturer</th>
+ <th>Students</th>
+ <th>Date</th>
+ {% else %}
+ <th>Program</th>
+ <th>Course Code</th>
+ <th>Course Name</th>
+ <th>Origin Dept</th>
+ <th>Lecturer</th>
+ <th>Students</th>
+ <th>Status</th>
+ {% endif %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for allocation in allocations %}
+ <tr data-id="{{ allocation.id }}"
+ data-type="{{ allocation_type }}"
+ data-dept="{{ dept_name }}"
+ data-prog="{{ prog_name }}"
+ data-program-name="{{ prog_name }}">
+ <td style="display:none;" class="print-select-col">
+ <input type="checkbox" class="allocation-checkbox"
+ onchange="updateSelectedCount()">
+ </td>
+ {% if allocation_type == 'lab' %}
+ <td class="program-cell">{{ prog_name }}</td>
+ <td><strong>{{ allocation.program_course.course_code }}</strong></td>
+ <td>{{ allocation.program_course.course_name }}</td>
+ <td>{{ allocation.venue.code }}</td>
+ <td>
+ {% if allocation.lecturer %}{{ allocation.lecturer.display_name }}
+ {% else %}<span style="color:var(--text-muted);">Unassigned</span>{% endif %}
+ </td>
+ <td>{{ allocation.number_of_students }}</td>
+ <td>{{ allocation.created_at|date:"Y-m-d" }}</td>
+ {% else %}
+ <td class="program-cell">{{ prog_name }}</td>
+ <td><strong>{{ allocation.course_code }}</strong></td>
+ <td>{{ allocation.course_name }}</td>
+ <td>
+ {% if allocation.origin_department %}{{ allocation.origin_department.name }}
+ {% else %}{{ dept_name }}{% endif %}
+ </td>
+ <td>
+ {% if allocation.lecturer %}{{ allocation.lecturer.display_name }}
+ {% else %}<span style="color:var(--text-muted);">Unassigned</span>{% endif %}
+ </td>
+ <td>{{ allocation.number_of_students }}</td>
+ <td>
+ <span class="status-badge
+ {% if allocation.submitted_to_tt %}status-approved
+ {% elif allocation.approved_by_dvc %}status-approved
+ {% elif allocation.rejected_by_dvc %}status-rejected
+ {% else %}status-pending{% endif %}">
+ {{ allocation.status_label }}
+ </span>
+ </td>
+ {% endif %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% endfor %}
+ </div>
+ {% endfor %}
+
+ {% else %}
+ <div class="empty-state">
+ <i class="fas fa-clipboard-list"></i>
+ <h3>No Allocations Found</h3>
+ <p>No course allocations match your current filters. Try adjusting your search criteria.</p>
+ <button onclick="clearFilters()" class="btn btn-primary" style="margin-top:16px;">
+ <i class="fas fa-eraser"></i> Clear Filters
+ </button>
+ </div>
+ {% endif %}
+ </div>
+
+ {% if page_obj.paginator.num_pages > 1 %}
+ <div class="pagination">
+ {% if page_obj.has_previous %}
+ <button onclick="goToPage({{ page_obj.previous_page_number }})">
+ <i class="fas fa-chevron-left"></i> Previous
+ </button>
+ {% else %}
+ <button disabled><i class="fas fa-chevron-left"></i> Previous</button>
+ {% endif %}
+
+ <div class="page-info">
+ Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+ <span class="total-count" style="background:var(--navy-600);border-color:var(--navy-500);">
+ {{ total_allocations }} Total
+ </span>
+ </div>
+
+ {% if page_obj.has_next %}
+ <button onclick="goToPage({{ page_obj.next_page_number }})">
+ Next <i class="fas fa-chevron-right"></i>
+ </button>
+ {% else %}
+ <button disabled>Next <i class="fas fa-chevron-right"></i></button>
+ {% endif %}
+ </div>
+ {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * export_import_export_view_allocations.js
+ * Extracted inline JS from: export_import/templates/export/view_allocations.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+let searchTimeout;
+  let printMode = false;
+  let selectedAllocations = new Set();
+
+  function switchType(type) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('type', type);
+    params.delete('page');
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function handleSearch(event) {
+    if (event.key === 'Enter') { applyFilters(); }
+    else { clearTimeout(searchTimeout); searchTimeout = setTimeout(applyFilters, 500); }
+  }
+
+  function applyFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const department = document.getElementById('department').value;
+    const program    = document.getElementById('program').value;
+    const lecturer   = document.getElementById('lecturer').value;
+    const search     = document.getElementById('search').value;
+    const sort       = document.getElementById('sort').value;
+    if (department) params.set('department', department); else params.delete('department');
+    if (program)    params.set('program',    program);    else params.delete('program');
+    if (lecturer)   params.set('lecturer',   lecturer);   else params.delete('lecturer');
+    if (search)     params.set('search',     search);     else params.delete('search');
+    if (sort)       params.set('sort',       sort);       else params.delete('sort');
+    params.delete('page');
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function clearFilters() { window.location.href = window.location.pathname; }
+
+  function goToPage(page) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', page);
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function togglePrintMode() {
+    printMode = !printMode;
+    const printControls      = document.getElementById('printControls');
+    const selectAllContainer = document.getElementById('selectAllContainer');
+    const selectCols         = document.querySelectorAll('.print-select-col');
+    if (printMode) {
+      printControls.classList.add('show');
+      selectAllContainer.style.display = 'flex';
+      selectCols.forEach(col => col.style.display = 'table-cell');
+      document.body.style.overflow = 'hidden';
+    } else {
+      printControls.classList.remove('show');
+      selectAllContainer.style.display = 'none';
+      selectCols.forEach(col => col.style.display = 'none');
+      document.body.style.overflow = 'auto';
+      clearAllSelections();
+    }
+  }
+
+  function selectAllAllocations(checked) {
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => {
+      cb.checked = checked; updateSelectionSet(cb, checked);
+    });
+    updateSelectedCount();
+  }
+
+  function selectProgramAllocations(checkbox, programId) {
+    document.querySelectorAll(`tr[data-prog="${programId.split('_')[1]}"]`).forEach(row => {
+      const cb = row.querySelector('.allocation-checkbox');
+      if (cb) { cb.checked = checkbox.checked; updateSelectionSet(cb, checkbox.checked); }
+    });
+    updateSelectedCount();
+  }
+
+  function updateSelectionSet(checkbox, isSelected) {
+    const row  = checkbox.closest('tr');
+    const id   = row.getAttribute('data-id');
+    const type = row.getAttribute('data-type');
+    if (isSelected) { selectedAllocations.add(`${type}_${id}`); row.classList.add('selected'); }
+    else            { selectedAllocations.delete(`${type}_${id}`); row.classList.remove('selected'); }
+  }
+
+  function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedAllocations.size;
+  }
+
+  function clearAllSelections() {
+    selectedAllocations.clear();
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.allocation-table tr').forEach(tr => tr.classList.remove('selected'));
+    updateSelectedCount();
+  }
+
+  function prepareAndPrint() {
+    const printOption = document.querySelector('input[name="printOption"]:checked').value;
+    if (printOption === 'selected' && selectedAllocations.size === 0) {
+      alert('Please select at least one allocation to print.');
+      return;
+    }
+    prepareTableForPrinting(printOption);
+    const now = new Date();
+    document.body.setAttribute('data-print-date', now.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }));
+    window.print();
+    restoreTableAfterPrinting();
+    togglePrintMode();
+  }
+
+  function prepareTableForPrinting(printOption) {
+    document.querySelectorAll('.department-section').forEach(departmentSection => {
+      const programSections = departmentSection.querySelectorAll('.program-section');
+      let allRows = [];
+      programSections.forEach(ps => {
+        const table = ps.querySelector('.allocation-table');
+        if (!table) return;
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+        allRows = allRows.concat(
+          printOption === 'selected'
+            ? rows.filter(r => r.querySelector('.allocation-checkbox')?.checked)
+            : rows
+        );
+      });
+      if (allRows.length > 0) {
+        const newTable = document.createElement('table');
+        newTable.className = 'allocation-table';
+        const firstTable = programSections[0]?.querySelector('.allocation-table');
+        if (firstTable) {
+          const hRow = firstTable.querySelector('thead tr');
+          if (hRow) {
+            const newHead = document.createElement('thead');
+            const clonedHRow = hRow.cloneNode(true);
+            clonedHRow.querySelector('.print-select-col')?.remove();
+            newHead.appendChild(clonedHRow);
+            newTable.appendChild(newHead);
+          }
+        }
+        const tbody = document.createElement('tbody');
+        const rowsByProgram = {};
+        allRows.forEach(r => {
+          const pn = r.getAttribute('data-program-name');
+          if (!rowsByProgram[pn]) rowsByProgram[pn] = [];
+          rowsByProgram[pn].push(r);
+        });
+        Object.keys(rowsByProgram).forEach(pn => {
+          rowsByProgram[pn].forEach((row, i) => {
+            const newRow = row.cloneNode(true);
+            newRow.querySelector('.print-select-col')?.remove();
+            const pc = newRow.querySelector('.program-cell');
+            if (pc) {
+              if (i === 0) { pc.textContent = pn; pc.className = 'program-column'; pc.rowSpan = rowsByProgram[pn].length; }
+              else { pc.style.display = 'none'; pc.textContent = ''; }
+            }
+            tbody.appendChild(newRow);
+          });
+        });
+        newTable.appendChild(tbody);
+        programSections.forEach(s => s.remove());
+        departmentSection.appendChild(newTable);
+      } else {
+        departmentSection.style.display = 'none';
+      }
+    });
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+  }
+
+  function restoreTableAfterPrinting() { window.location.reload(); }
+
+  function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    if ("{{ allocation_type }}" === 'lab') {
+      csvContent += "Department,Program,Course Code,Course Name,Venue,Lecturer,Students,Date\n";
+      {% for dept_name, programs in grouped_data.items %}
+        {% for prog_name, allocations in programs.items %}
+          {% for allocation in allocations %}
+            csvContent += "{{ dept_name|escapejs }},"
+              + "{{ prog_name|escapejs }},"
+              + "{{ allocation.program_course.course_code|escapejs }},"
+              + "{{ allocation.program_course.course_name|escapejs }},"
+              + "{{ allocation.venue.code|escapejs }},"
+              + "{{ allocation.lecturer.display_name|default:'Unassigned'|escapejs }},"
+              + "{{ allocation.number_of_students }},"
+              + "{{ allocation.created_at|date:'Y-m-d'|escapejs }}\n";
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    } else {
+      csvContent += "Department,Program,Course Code,Course Name,Origin Department,Lecturer,Students,Status\n";
+      {% for dept_name, programs in grouped_data.items %}
+        {% for prog_name, allocations in programs.items %}
+          {% for allocation in allocations %}
+            csvContent += "{{ dept_name|escapejs }},"
+              + "{{ prog_name|escapejs }},"
+              + "{{ allocation.course_code|escapejs }},"
+              + "{{ allocation.course_name|escapejs }},"
+              + "{{ allocation.origin_department.name|default:dept_name|escapejs }},"
+              + "{{ allocation.lecturer.display_name|default:'Unassigned'|escapejs }},"
+              + "{{ allocation.number_of_students }},"
+              + "{{ allocation.status_label|escapejs }}\n";
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    }
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", "course_allocations_{{ allocation_type }}.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => {
+      cb.addEventListener('change', function() {
+        updateSelectionSet(this, this.checked);
+        updateSelectedCount();
+      });
+    });
+  });
+</script>
+<script>
+/* export_view_alloc.js — extracted from view_allocations.html */
+let searchTimeout;
+  let printMode = false;
+  let selectedAllocations = new Set();
+
+  function switchType(type) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('type', type);
+    params.delete('page');
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function handleSearch(event) {
+    if (event.key === 'Enter') { applyFilters(); }
+    else { clearTimeout(searchTimeout); searchTimeout = setTimeout(applyFilters, 500); }
+  }
+
+  function applyFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const department = document.getElementById('department').value;
+    const program    = document.getElementById('program').value;
+    const lecturer   = document.getElementById('lecturer').value;
+    const search     = document.getElementById('search').value;
+    const sort       = document.getElementById('sort').value;
+    if (department) params.set('department', department); else params.delete('department');
+    if (program)    params.set('program',    program);    else params.delete('program');
+    if (lecturer)   params.set('lecturer',   lecturer);   else params.delete('lecturer');
+    if (search)     params.set('search',     search);     else params.delete('search');
+    if (sort)       params.set('sort',       sort);       else params.delete('sort');
+    params.delete('page');
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function clearFilters() { window.location.href = window.location.pathname; }
+
+  function goToPage(page) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', page);
+    window.location.href = `${window.location.pathname}?${params.toString()}`;
+  }
+
+  function togglePrintMode() {
+    printMode = !printMode;
+    const printControls      = document.getElementById('printControls');
+    const selectAllContainer = document.getElementById('selectAllContainer');
+    const selectCols         = document.querySelectorAll('.print-select-col');
+    if (printMode) {
+      printControls.classList.add('show');
+      selectAllContainer.style.display = 'flex';
+      selectCols.forEach(col => col.style.display = 'table-cell');
+      document.body.style.overflow = 'hidden';
+    } else {
+      printControls.classList.remove('show');
+      selectAllContainer.style.display = 'none';
+      selectCols.forEach(col => col.style.display = 'none');
+      document.body.style.overflow = 'auto';
+      clearAllSelections();
+    }
+  }
+
+  function selectAllAllocations(checked) {
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => {
+      cb.checked = checked; updateSelectionSet(cb, checked);
+    });
+    updateSelectedCount();
+  }
+
+  function selectProgramAllocations(checkbox, programId) {
+    document.querySelectorAll(`tr[data-prog="${programId.split('_')[1]}"]`).forEach(row => {
+      const cb = row.querySelector('.allocation-checkbox');
+      if (cb) { cb.checked = checkbox.checked; updateSelectionSet(cb, checkbox.checked); }
+    });
+    updateSelectedCount();
+  }
+
+  function updateSelectionSet(checkbox, isSelected) {
+    const row  = checkbox.closest('tr');
+    const id   = row.getAttribute('data-id');
+    const type = row.getAttribute('data-type');
+    if (isSelected) { selectedAllocations.add(`${type}_${id}`); row.classList.add('selected'); }
+    else            { selectedAllocations.delete(`${type}_${id}`); row.classList.remove('selected'); }
+  }
+
+  function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedAllocations.size;
+  }
+
+  function clearAllSelections() {
+    selectedAllocations.clear();
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => cb.checked = false);
+    document.querySelectorAll('.allocation-table tr').forEach(tr => tr.classList.remove('selected'));
+    updateSelectedCount();
+  }
+
+  function prepareAndPrint() {
+    const printOption = document.querySelector('input[name="printOption"]:checked').value;
+    if (printOption === 'selected' && selectedAllocations.size === 0) {
+      alert('Please select at least one allocation to print.');
+      return;
+    }
+    prepareTableForPrinting(printOption);
+    const now = new Date();
+    document.body.setAttribute('data-print-date', now.toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    }));
+    window.print();
+    restoreTableAfterPrinting();
+    togglePrintMode();
+  }
+
+  function prepareTableForPrinting(printOption) {
+    document.querySelectorAll('.department-section').forEach(departmentSection => {
+      const programSections = departmentSection.querySelectorAll('.program-section');
+      let allRows = [];
+      programSections.forEach(ps => {
+        const table = ps.querySelector('.allocation-table');
+        if (!table) return;
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+        allRows = allRows.concat(
+          printOption === 'selected'
+            ? rows.filter(r => r.querySelector('.allocation-checkbox')?.checked)
+            : rows
+        );
+      });
+      if (allRows.length > 0) {
+        const newTable = document.createElement('table');
+        newTable.className = 'allocation-table';
+        const firstTable = programSections[0]?.querySelector('.allocation-table');
+        if (firstTable) {
+          const hRow = firstTable.querySelector('thead tr');
+          if (hRow) {
+            const newHead = document.createElement('thead');
+            const clonedHRow = hRow.cloneNode(true);
+            clonedHRow.querySelector('.print-select-col')?.remove();
+            newHead.appendChild(clonedHRow);
+            newTable.appendChild(newHead);
+          }
+        }
+        const tbody = document.createElement('tbody');
+        const rowsByProgram = {};
+        allRows.forEach(r => {
+          const pn = r.getAttribute('data-program-name');
+          if (!rowsByProgram[pn]) rowsByProgram[pn] = [];
+          rowsByProgram[pn].push(r);
+        });
+        Object.keys(rowsByProgram).forEach(pn => {
+          rowsByProgram[pn].forEach((row, i) => {
+            const newRow = row.cloneNode(true);
+            newRow.querySelector('.print-select-col')?.remove();
+            const pc = newRow.querySelector('.program-cell');
+            if (pc) {
+              if (i === 0) { pc.textContent = pn; pc.className = 'program-column'; pc.rowSpan = rowsByProgram[pn].length; }
+              else { pc.style.display = 'none'; pc.textContent = ''; }
+            }
+            tbody.appendChild(newRow);
+          });
+        });
+        newTable.appendChild(tbody);
+        programSections.forEach(s => s.remove());
+        departmentSection.appendChild(newTable);
+      } else {
+        departmentSection.style.display = 'none';
+      }
+    });
+    const emptyState = document.querySelector('.empty-state');
+    if (emptyState) emptyState.style.display = 'none';
+  }
+
+  function restoreTableAfterPrinting() { window.location.reload(); }
+
+  function exportToCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    if ("{{ allocation_type }}" === 'lab') {
+      csvContent += "Department,Program,Course Code,Course Name,Venue,Lecturer,Students,Date\n";
+      {% for dept_name, programs in grouped_data.items %}
+        {% for prog_name, allocations in programs.items %}
+          {% for allocation in allocations %}
+            csvContent += "{{ dept_name|escapejs }},"
+              + "{{ prog_name|escapejs }},"
+              + "{{ allocation.program_course.course_code|escapejs }},"
+              + "{{ allocation.program_course.course_name|escapejs }},"
+              + "{{ allocation.venue.code|escapejs }},"
+              + "{{ allocation.lecturer.display_name|default:'Unassigned'|escapejs }},"
+              + "{{ allocation.number_of_students }},"
+              + "{{ allocation.created_at|date:'Y-m-d'|escapejs }}\n";
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    } else {
+      csvContent += "Department,Program,Course Code,Course Name,Origin Department,Lecturer,Students,Status\n";
+      {% for dept_name, programs in grouped_data.items %}
+        {% for prog_name, allocations in programs.items %}
+          {% for allocation in allocations %}
+            csvContent += "{{ dept_name|escapejs }},"
+              + "{{ prog_name|escapejs }},"
+              + "{{ allocation.course_code|escapejs }},"
+              + "{{ allocation.course_name|escapejs }},"
+              + "{{ allocation.origin_department.name|default:dept_name|escapejs }},"
+              + "{{ allocation.lecturer.display_name|default:'Unassigned'|escapejs }},"
+              + "{{ allocation.number_of_students }},"
+              + "{{ allocation.status_label|escapejs }}\n";
+          {% endfor %}
+        {% endfor %}
+      {% endfor %}
+    }
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", "course_allocations_{{ allocation_type }}.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.allocation-checkbox').forEach(cb => {
+      cb.addEventListener('change', function() {
+        updateSelectionSet(this, this.checked);
+        updateSelectedCount();
+      });
+    });
+  });
+</script>
+{% endblock extra_js %}

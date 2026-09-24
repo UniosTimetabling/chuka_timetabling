@@ -1,0 +1,31 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_delete_exam_timetable_confirm.css' %}">
+{% endblock page_css %}
+
+{% block title %}Confirm Exam Timetable Deletion{% endblock title %}
+
+{% block panel_content %}
+<div class="delete-box text-center">
+ <h3 class="text-danger">️ Confirm Exam Timetable Deletion</h3>
+ <p class="text-muted">This action will <strong>archive</strong> and then <strong>permanently delete</strong> all exam timetable entries.</p>
+
+ <form method="POST">
+ {% csrf_token %}
+ <div class="mb-3 text-start">
+ <label for="academic_year" class="form-label fw-bold">Academic Year</label>
+ <input type="text" name="academic_year" id="academic_year" class="form-control"
+ placeholder="e.g. 2024/2025" required>
+ </div>
+ <div class="mb-3 text-start">
+ <label for="semester" class="form-label fw-bold">Semester</label>
+ <input type="text" name="semester" id="semester" class="form-control"
+ placeholder="e.g. Semester 1" required>
+ </div>
+ <button type="submit" class="btn btn-danger w-100 mt-2">Yes, Archive & Delete All</button>
+ <a href="{% url 'exam_timetable_panel' %}" class="btn btn-secondary w-100 mt-3">Cancel</a>
+ </form>
+</div>
+{% endblock panel_content %}

@@ -1,0 +1,1370 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<style>
+/* ============================================================
+   PROGRAMS & COURSES — one form+list layout (clone of /cod/)
+   Left: form-section with a 3-way tab (Program | Course | Code)
+   Right: list-section that swaps with the tab.
+   Everything is scoped under .dg-page so nothing leaks into the
+   base layout.
+   ============================================================ */
+
+.dg-page, .dg-page *, .dg-page *::before, .dg-page *::after { box-sizing: border-box; }
+
+.dg-page {
+  margin: 0;
+  padding: 0;
+  height: var(--pm-h, 100vh);   /* JS (fitPage) sets this to the exact space left on screen */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #eef3ef;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+/* ── Shared small controls ── */
+.dg-btn {
+  padding: 0 11px;
+  border: 1px solid #c4d8c8;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1a3a22;
+  white-space: nowrap;
+  text-decoration: none;
+  font-family: inherit;
+}
+.dg-btn:hover { background: #e8f5e9; }
+.dg-btn-primary { background: #2E7D32; color: #fff; border-color: #2E7D32; }
+.dg-btn-primary:hover { background: #1B5E20; }
+.dg-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.dg-select, .dg-search {
+  padding: 0 9px;
+  border: 1px solid #c4d8c8;
+  border-radius: 6px;
+  font-size: 12.5px;
+  background: #fff;
+  height: 30px;
+  font-family: inherit;
+  color: #1a1a1a;
+}
+.dg-search { width: 170px; }
+.dg-select:focus, .dg-search:focus { outline: none; border-color: #2E7D32; }
+.dg-select[hidden] { display: none; }
+
+.dg-icon-btn { background: none; border: none; cursor: pointer; padding: 2px 6px; font-size: 13px; color: #666; }
+.dg-icon-btn:hover { color: #000; }
+.dg-count { background: #a5d6a7; color: #0d3818; border-radius: 10px; padding: 0 8px; font-size: 11px; font-weight: 700; }
+
+/* ── Import results banner ── */
+.dg-import-panel {
+  padding: 6px 12px;
+  background: #e8f5e9;
+  border-bottom: 1px solid #c8e6c9;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+.dg-import-panel-error { background: #ffebee; border-color: #ffcdd2; }
+.dg-import-panel[hidden] { display: none; }
+.dg-import-panel-head { display: flex; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 4px; }
+.dg-import-panel-head ul { margin: 2px 0 0 0; padding-left: 16px; font-size: 12px; color: #555; }
+.dg-import-panel-head ul li { margin: 1px 0; }
+
+/* ── Modals ── */
+.dg-modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dg-modal-backdrop[hidden] { display: none; }
+.dg-modal {
+  background: #fff;
+  max-width: 900px;
+  width: 95%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d0d0d0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.dg-modal-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f7fbf8;
+}
+.dg-modal-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.dg-modal-body { padding: 12px 16px; overflow-y: auto; flex: 1; font-size: 12px; }
+.dg-modal-foot {
+  padding: 8px 16px;
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #f7fbf8;
+}
+
+.dg-diff-section { margin-bottom: 10px; }
+.dg-diff-section h4 { margin: 0 0 3px 0; font-size: 13px; font-weight: 600; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+.dg-diff-list { list-style: none; padding: 0; margin: 3px 0 0 0; }
+.dg-diff-item { padding: 2px 6px; margin: 1px 0; font-size: 12px; background: #f8f9fa; border-left: 3px solid #ccc; }
+.dg-diff-item.create { border-left-color: #2E7D32; }
+.dg-diff-item.update { border-left-color: #F57C00; }
+.dg-diff-item.delete { border-left-color: #D32F2F; }
+.dg-diff-tag {
+  display: inline-block;
+  padding: 0 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 2px;
+  margin-right: 4px;
+  color: #fff;
+}
+.create .dg-diff-tag { background: #2E7D32; }
+.update .dg-diff-tag { background: #F57C00; }
+.delete .dg-diff-tag { background: #D32F2F; }
+.dg-diff-changes { font-size: 11px; color: #666; margin-top: 1px; }
+.dg-diff-chip { display: inline-block; padding: 1px 8px; margin: 1px 3px 1px 0; font-size: 11px; border-radius: 2px; background: #e0e0e0; }
+.dg-diff-chip.create { background: #a5d6a7; }
+.dg-diff-chip.update { background: #ffcc80; }
+.dg-diff-chip.delete { background: #ef9a9a; }
+.dg-diff-warn { padding: 6px 10px; background: #fff3e0; border-left: 3px solid #F57C00; margin: 8px 0; font-size: 12px; }
+.dg-diff-summary { margin-bottom: 8px; }
+
+.dg-password-field { margin-bottom: 12px; }
+.dg-password-field label { display: block; font-size: 12px; font-weight: 600; color: #333; margin-bottom: 3px; }
+.dg-password-field input[type="password"] { width: 100%; padding: 6px 8px; border: 1px solid #d0d0d0; border-radius: 4px; font-size: 13px; }
+.dg-password-field input[type="password"]:focus { outline: none; border-color: #2E7D32; }
+.dg-checkbox { display: flex; align-items: center; gap: 6px; font-weight: 400 !important; cursor: pointer; }
+.dg-checkbox input { margin: 0; }
+
+/* ── Toast ── */
+.dg-toast {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #333; color: #fff; padding: 6px 16px; font-size: 13px;
+  z-index: 9999; opacity: 0; transition: all 0.3s ease; pointer-events: none;
+  border-radius: 6px;
+}
+.dg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.dg-toast-error { background: #D32F2F; }
+
+/* ============================================================
+   MAIN LAYOUT — edge to edge, 6px gutters, nothing else
+   ============================================================ */
+.pm-manage {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 6px;
+  padding: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pm-manage .form-section,
+.pm-manage .list-section {
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ccddd0;
+  box-shadow: 0 2px 10px rgba(0,50,20,0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── LEFT: tab selector + form ── */
+.pm-manage .form-state-selector {
+  display: flex; gap: 6px; padding: 8px 10px;
+  background: #f7fbf8; border-bottom: 2px solid #e4efe6; flex-shrink: 0;
+}
+.pm-manage .form-state-btn {
+  flex: 1; padding: 7px 4px; border: 2px solid #2e7d32; border-radius: 6px; background: #fff;
+  color: #2e7d32; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 12.5px;
+  white-space: nowrap; font-family: inherit;
+}
+.pm-manage .form-state-btn.active { background: #2e7d32; color: #fff; }
+.pm-manage .form-state-btn:hover:not(.active) { background: #e8f5e9; }
+
+.pm-manage .form-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; border-left: 4px solid transparent; }
+.pm-manage .form-scroll.editing { border-left-color: #f39c12; }
+.pm-manage .form-scroll::-webkit-scrollbar,
+.pm-manage .list-section::-webkit-scrollbar { width: 6px; height: 6px; }
+.pm-manage .form-scroll::-webkit-scrollbar-thumb,
+.pm-manage .list-section::-webkit-scrollbar-thumb { background: #a0cca8; border-radius: 4px; }
+
+.pm-manage .pm-form-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; min-height: 26px; }
+.pm-manage .pm-form-title h3 { margin: 0; color: #004d26; font-size: 1rem; font-weight: 700; }
+.pm-manage .pm-cancel {
+  border: 1px solid #a8d4b0; background: #fff; color: #1a5e2a; border-radius: 5px;
+  padding: 3px 10px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit;
+}
+.pm-manage .pm-cancel:hover { background: #004d26; color: #fff; }
+.pm-manage .pm-cancel[hidden] { display: none; }
+
+.pm-manage form { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.pm-manage .fg { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pm-manage .fg label { font-weight: 700; color: #1a3a22; font-size: 12.5px; }
+.pm-manage .fg-row { display: grid; gap: 10px; }
+.pm-manage .fg-row.two { grid-template-columns: 1fr 1fr; }
+.pm-manage .fg-row.code-name { grid-template-columns: 120px minmax(0, 1fr); }
+.pm-manage input[type="text"], .pm-manage select {
+  width: 100%; padding: 8px 10px; border: 2px solid #c4d8c8; border-radius: 7px;
+  font-size: 14px; font-family: inherit; background: #fff; color: #1a1a1a;
+  transition: border-color 0.18s;
+}
+.pm-manage input:focus, .pm-manage select:focus { outline: none; border-color: #2e7d32; box-shadow: 0 0 0 3px rgba(46,125,50,0.1); }
+.pm-manage .btn-save {
+  background: linear-gradient(135deg, #30d175, #1c9448); color: #fff; border: none;
+  padding: 10px; border-radius: 7px; cursor: pointer; font-size: 14.5px; font-weight: 700;
+  transition: all 0.2s; width: 100%; font-family: inherit;
+}
+.pm-manage .btn-save:hover { background: linear-gradient(135deg, #27b861, #16783b); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(20,110,50,0.28); }
+.pm-manage .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
+.pm-manage .form-panel[hidden], .pm-manage .list-panel[hidden] { display: none; }
+
+/* Course-list filter box (lives under the course form on the left) */
+.pm-manage .pm-filter-box { margin-top: 14px; padding-top: 10px; border-top: 2px dashed #dce8de; display: flex; flex-direction: column; gap: 8px; }
+.pm-manage .pm-filter-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; }
+.pm-manage .pm-filter-head h4 { margin: 0; color: #004d26; font-size: 0.9rem; font-weight: 700; }
+.pm-manage .pm-filter-box select { padding: 5px 8px; font-size: 13px; border-width: 1px; border-radius: 6px; }
+.pm-manage .pm-filter-box select.is-set { border-color: #2E7D32; background: #e8f5e9; font-weight: 700; }
+.pm-manage .pm-filter-box .pm-cancel[hidden] { display: none; }
+
+/* ── RIGHT: header (title + tools) + scrolling list ── */
+.pm-manage .list-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  padding: 8px 12px; border-bottom: 2px solid #e4efe6; background: #f7fbf8; flex-shrink: 0;
+}
+.pm-manage .list-head h2 { margin: 0; color: #004d26; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.pm-manage .list-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pm-manage .list-section { display: block; overflow: auto; }   /* the WHOLE right panel scrolls: header scrolls away, column headers stay */
+.pm-manage .list-panel { overflow: visible; }                   /* must stay visible so the sticky <thead> pins to .list-section */
+
+.pm-manage table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pm-manage thead th {
+  background: #004d26; color: #fff; text-align: left; padding: 7px 10px; font-size: 12px;
+  font-weight: 700; position: sticky; top: 0; z-index: 2; white-space: nowrap;
+}
+.pm-manage tbody td { padding: 5px 10px; border-bottom: 1px solid #edf3ee; vertical-align: middle; }
+.pm-manage tbody tr:hover td { background: #f7fbf8; }
+.pm-manage tbody tr.pm-row-active td { background: #fff3d6; }
+.pm-manage tbody tr[hidden] { display: none; }
+.pm-manage .pm-empty-row td { text-align: center; color: #999; font-style: italic; padding: 16px; }
+.pm-manage td.pm-actions, .pm-manage th.pm-actions { width: 1%; white-space: nowrap; text-align: right; }
+
+.pm-manage .btn-act {
+  display: inline-block; padding: 4px 11px; border-radius: 5px; border: none; cursor: pointer;
+  margin-left: 4px; font-size: 12px; font-weight: 700; font-family: inherit;
+  transition: opacity 0.16s, transform 0.12s; background: #eef3ef; color: #1a3a22;
+}
+.pm-manage .btn-act:hover { opacity: 0.84; transform: translateY(-1px); }
+.pm-manage .btn-edit { background: #f39c12; color: #fff; }
+.pm-manage .btn-delete { background: #e74c3c; color: #fff; }
+.pm-manage .btn-add { background: #2e7d32; color: #fff; }
+
+/* Courses list headers: Program, then "Year N · Semester N" */
+.pm-manage .pm-prog-header td { background: #e8f5e9; color: #004d26; padding: 6px 10px; border-bottom: 2px solid #c8e6c9; }
+.pm-manage .pm-prog-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pm-manage .pm-prog-name { font-weight: 800; font-size: 13.5px; }
+.pm-manage .pm-prog-name small { font-weight: 600; color: #5a8a66; margin-left: 6px; font-size: 11.5px; }
+.pm-manage .pm-ys-header td { background: #f0f7f2; color: #1a3a22; font-weight: 700; padding: 3px 10px 3px 18px; border-bottom: 1px solid #deeee2; font-size: 12px; }
+.pm-manage .pm-ys-count { background: #dcedde; color: #2c5d35; border-radius: 9px; padding: 0 7px; font-size: 11px; font-weight: 700; margin-left: 6px; }
+
+/* Program-page pager */
+.pm-manage .pm-pager {
+  display: flex; gap: 8px; align-items: center; padding: 5px 12px; font-size: 12px; color: #5a8a66;
+  border-top: 2px solid #e4efe6; background: #f7fbf8; flex-shrink: 0;
+  position: sticky; bottom: 0; z-index: 3;   /* stays visible while the list scrolls */
+}
+.pm-manage .pm-pager .dg-btn { height: 26px; }
+
+/* ── Small screens: stack, let the page scroll normally ── */
+@media (max-width: 900px) {
+  .dg-page { height: auto; overflow: visible; }
+  .pm-manage { grid-template-columns: 1fr; grid-template-rows: auto; overflow: visible; }
+  .pm-manage .list-section { max-height: 75vh; }
+  .dg-search { width: 130px; }
+}
+</style>
+{% endblock page_css %}
+
+{% block title %}Programs & Courses{% endblock %}
+{% block page_title %}Programs &amp; Courses{% endblock %}
+
+{% block allocation_content %}
+<div class="dg-page">
+
+  <!-- IMPORT RESULTS -->
+  <div class="dg-import-panel" id="importResultsPanel" hidden>
+    <div class="dg-import-panel-head">
+      <div><strong id="importResultsMessage"></strong><ul id="importResultsErrors"></ul></div>
+      <button type="button" class="dg-icon-btn" id="importResultsClose">✕</button>
+    </div>
+  </div>
+
+  <!-- DIFF MODAL -->
+  <div class="dg-modal-backdrop" id="importDiffModal" hidden>
+    <div class="dg-modal">
+      <div class="dg-modal-head"><h3>Review changes</h3><button type="button" class="dg-icon-btn" id="importDiffClose">✕</button></div>
+      <div class="dg-modal-body" id="importDiffBody"></div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="importDiffCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="importDiffApply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPORT PASSWORD MODAL -->
+  <div class="dg-modal-backdrop" id="exportPasswordModal" hidden>
+    <div class="dg-modal" style="max-width:440px;">
+      <div class="dg-modal-head"><h3>Export with Password</h3><button type="button" class="dg-icon-btn" id="exportPasswordClose">✕</button></div>
+      <div class="dg-modal-body">
+        <div class="dg-password-field">
+          <label for="exportPassword">Password</label>
+          <input type="password" id="exportPassword" placeholder="Enter a password to protect the file" autocomplete="new-password">
+        </div>
+        <div class="dg-password-field">
+          <label for="exportPasswordConfirm">Confirm Password</label>
+          <input type="password" id="exportPasswordConfirm" placeholder="Confirm password" autocomplete="new-password">
+        </div>
+        <div class="dg-password-field">
+          <label class="dg-checkbox"><input type="checkbox" id="exportEmailCopy" checked> Email this password to me{% if departments %} and my department admin/COD{% endif %}</label>
+        </div>
+        <div style="font-size:11px;color:#777;margin-top:6px;line-height:1.5;">
+          The file gets Excel's own "Encrypt with Password" protection — Excel will
+          ask for this password when opening the file, on this computer or the server.
+          Keep the password safe — you'll need it again to re-upload your edits.
+        </div>
+        <div class="dg-terms-box" style="margin-top:14px;border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;background:#fafafa;">
+          <div style="font-size:11.5px;color:#444;line-height:1.6;max-height:130px;overflow-y:auto;">
+            This Excel file is to be used for this system only. It must not be shared
+            with any third-party system, or moved to a different device. This Excel
+            file's sole purpose is to update the course master and should not be
+            shared. Sharing this file is done at the sharer's own responsibility for
+            any resulting harm. After you are done using this file, delete it from
+            your device.
+          </div>
+          <div class="dg-password-field" style="margin-top:10px;margin-bottom:0;">
+            <label class="dg-checkbox"><input type="checkbox" id="exportAgreeTerms"> I have read and agree to these terms</label>
+          </div>
+        </div>
+      </div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="exportPasswordCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="exportPasswordSubmit">Export</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORT PASSWORD MODAL -->
+  <div class="dg-modal-backdrop" id="importPasswordModal" hidden>
+    <div class="dg-modal" style="max-width:420px;">
+      <div class="dg-modal-head"><h3>Password Required</h3><button type="button" class="dg-icon-btn" id="importPasswordClose">✕</button></div>
+      <div class="dg-modal-body">
+        <p id="importPasswordMessage" style="margin-top:0;font-size:12px;color:#555;">This file is password-protected. Enter the password to continue.</p>
+        <div class="dg-password-field">
+          <label for="importPasswordInput">Password</label>
+          <input type="password" id="importPasswordInput" placeholder="Enter password" autocomplete="current-password">
+        </div>
+      </div>
+      <div class="dg-modal-foot">
+        <button type="button" class="dg-btn" id="importPasswordCancel">Cancel</button>
+        <button type="button" class="dg-btn dg-btn-primary" id="importPasswordSubmit">Unlock &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MAIN: form-section + list-section ===================== -->
+  <div class="pm-manage">
+
+    <!-- LEFT -->
+    <section class="form-section">
+      <!-- The ONE tab control: switches the form here AND the list on the right -->
+      <div class="form-state-selector">
+        <button type="button" class="form-state-btn active" data-pm-tab="program">Program</button>
+        <button type="button" class="form-state-btn" data-pm-tab="course">Course</button>
+        <button type="button" class="form-state-btn" data-pm-tab="code">Code</button>
+      </div>
+
+      <div class="form-scroll" id="pmFormScroll">
+        <div class="pm-form-title">
+          <h3 id="pmFormTitle">New Program</h3>
+          <button type="button" class="pm-cancel" id="pmCancelEdit" hidden>Cancel edit</button>
+        </div>
+
+        <!-- PROGRAM FORM -->
+        <div class="form-panel" id="formPanel_program">
+          <form id="programForm">
+            <input type="hidden" id="pf_id" value="">
+            <div class="fg">
+              <label for="pf_name">Program Name</label>
+              <input type="text" id="pf_name" placeholder="e.g. Bachelor of Commerce" required>
+            </div>
+            <div class="fg">
+              <label for="pf_department">Department</label>
+              <select id="pf_department">
+                {% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="fg">
+              <label for="pf_cohort">Default Cohort</label>
+              <input type="text" id="pf_cohort" placeholder="e.g. 2024" value="0">
+            </div>
+            <button type="submit" class="btn-save" id="pf_submit">Add Program</button>
+          </form>
+        </div>
+
+        <!-- COURSE FORM — a filled cf_id means Save = edit_course (in-place update,
+             year/semester included). Blank cf_id = add_course. -->
+        <div class="form-panel" id="formPanel_course" hidden>
+          <form id="courseForm">
+            <input type="hidden" id="cf_id" value="">
+            <div class="fg">
+              <label for="cf_program">Program</label>
+              <select id="cf_program" required>
+                <option value="">Select…</option>
+                {% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="fg-row code-name">
+              <div class="fg">
+                <label for="cf_code">Code</label>
+                <input type="text" id="cf_code" placeholder="BCOM 112">
+              </div>
+              <div class="fg">
+                <label for="cf_name">Course Name</label>
+                <input type="text" id="cf_name" placeholder="Course name">
+              </div>
+            </div>
+            <div class="fg-row two">
+              <div class="fg">
+                <label for="cf_year">Year</label>
+                <select id="cf_year">{% for y in years_range %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select>
+              </div>
+              <div class="fg">
+                <label for="cf_semester">Semester</label>
+                <select id="cf_semester"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+              </div>
+            </div>
+            <div class="fg-row two">
+              <div class="fg">
+                <label for="cf_unit_type">Unit Type</label>
+                <select id="cf_unit_type">
+                  <option value="CORE">Core</option>
+                  <option value="ELECTIVE">Elective</option>
+                  <option value="UNIVERSITY_WIDE">University Wide</option>
+                  <option value="REQUIRED_ELECTIVE">Required Elective</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label for="cf_cohort">Student Cohort</label>
+                <input type="text" id="cf_cohort" placeholder="e.g. 2024" value="0">
+              </div>
+            </div>
+            <button type="submit" class="btn-save" id="cf_submit">Add Course</button>
+          </form>
+
+          <!-- Filters for the course list on the right -->
+          <div class="pm-filter-box">
+            <div class="pm-filter-head">
+              <h4>Filter course list</h4>
+              <button type="button" class="pm-cancel" id="fltClear" hidden>Clear</button>
+            </div>
+            <select id="flt_program" title="Filter by program">
+              <option value="">All programs</option>
+              {% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}
+            </select>
+            <div class="fg-row two">
+              <select id="flt_year" title="Filter by year">
+                <option value="">All years</option>
+                {% for y in years_range %}<option value="{{ y }}">Year {{ y }}</option>{% endfor %}
+              </select>
+              <select id="flt_sem" title="Filter by semester">
+                <option value="">All semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- PROGRAM CODE FORM — filled cd_id = edit_program_code, blank = add_program_code -->
+        <div class="form-panel" id="formPanel_code" hidden>
+          <form id="codeForm">
+            <input type="hidden" id="cd_id" value="">
+            <div class="fg">
+              <label for="cd_program">Program</label>
+              <select id="cd_program" required>
+                <option value="">Select…</option>
+                {% for program in programs %}<option value="{{ program.id }}">{{ program.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="fg">
+              <label for="cd_code">Program Code</label>
+              <input type="text" id="cd_code" placeholder="e.g. BCS" autocomplete="off">
+            </div>
+            <button type="submit" class="btn-save" id="cd_submit">Add Code</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="list-section">
+      <div class="list-head">
+        <h2 id="pmListTitle">Programs</h2>
+        <div class="list-tools">
+          {% if departments|length > 1 %}
+          <!-- With more than one department the server only sends the selected
+               department's page, so this navigates (?department_id=) instead of
+               filtering client-side. -->
+          <select class="dg-select" id="deptFilter" onchange="window.location.href = updateQueryParam('department_id', this.value, true)">
+            <option value="">Select a department…</option>
+            {% for dept in departments %}<option value="{{ dept.id }}" {% if dept.id == active_department_id %}selected{% endif %}>{{ dept.name }}</option>{% endfor %}
+          </select>
+          {% else %}
+          <select class="dg-select" id="deptFilter" hidden><option value="">All Depts</option>{% for dept in departments %}<option value="{{ dept.id }}" selected>{{ dept.name }}</option>{% endfor %}</select>
+          {% endif %}
+          <input type="text" class="dg-search" id="quickSearch" placeholder="Search…" autocomplete="off">
+          <button type="button" class="dg-btn dg-btn-primary" id="pmNewBtn">+ New</button>
+          <button type="button" class="dg-btn" id="importBtn">Import</button>
+          <!-- Export: Excel (.xlsx) only, always password-protected -->
+          <button type="button" class="dg-btn export-option-protected" data-fmt="xlsx" id="exportBtn" title="Export (Excel, password-protected)">Export</button>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv,.zip" hidden>
+        </div>
+      </div>
+
+      <!-- PROGRAMS LIST -->
+      <div class="list-panel" id="listPanel_program">
+        <table>
+          <thead>
+            <tr><th>Program</th><th>Department</th><th>Cohort</th><th>Courses</th><th class="pm-actions">Actions</th></tr>
+          </thead>
+          <tbody id="pmProgramsBody">
+            {% for program in programs %}
+            <tr data-id="{{ program.id }}" data-name="{{ program.name }}" data-department="{{ program.department_id }}" data-cohort="{{ program.default_cohort|default:'0' }}">
+              <td>{{ program.name }}</td>
+              <td>{{ program.department.name }}</td>
+              <td>{{ program.default_cohort|default:'0' }}</td>
+              <td>{{ program.courses.all|length }}</td>
+              <td class="pm-actions">
+                <button type="button" class="btn-act btn-edit pm-edit-program-btn">Edit</button>
+                <button type="button" class="btn-act btn-delete pm-delete-program-btn">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="pm-empty-row"><td colspan="5">No programs found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- COURSES LIST: Program → "Year N · Semester N" → courses, A→Z by code -->
+      <div class="list-panel" id="listPanel_course" hidden>
+        <table>
+          <thead>
+            <tr><th>Code</th><th>Course Name</th><th>Type</th><th>Cohort</th><th class="pm-actions">Actions</th></tr>
+          </thead>
+          <tbody id="pmCoursesBody">
+            {% for program in programs %}
+            <tr class="pm-prog-header" data-program="{{ program.id }}">
+              <td colspan="5">
+                <div class="pm-prog-line">
+                  <span class="pm-prog-name">{{ program.name }}<small>{{ program.department.name }}</small></span>
+                  <span>
+                    <button type="button" class="btn-act btn-add pm-add-course-btn" data-program="{{ program.id }}">+ Course</button>
+                    <button type="button" class="btn-act btn-edit pm-edit-program-btn"
+                            data-id="{{ program.id }}" data-name="{{ program.name }}"
+                            data-department="{{ program.department_id }}" data-cohort="{{ program.default_cohort|default:'0' }}">Edit Program</button>
+                  </span>
+                </div>
+              </td>
+            </tr>
+            {% regroup program.courses.all|dictsort:"course_code"|dictsort:"semester"|dictsort:"year" by year as year_groups %}
+            {% for year_group in year_groups %}
+              {% regroup year_group.list by semester as sem_groups %}
+              {% for sem_group in sem_groups %}
+                <tr class="pm-ys-header" data-year="{{ year_group.grouper }}" data-semester="{{ sem_group.grouper }}"><td colspan="5">Year {{ year_group.grouper }} · Semester {{ sem_group.grouper }}<span class="pm-ys-count">{{ sem_group.list|length }}</span></td></tr>
+                {% for course in sem_group.list %}
+                <tr data-id="{{ course.id }}" data-program="{{ program.id }}" data-prog-name="{{ program.name }}"
+                    data-code="{{ course.course_code }}" data-name="{{ course.course_name }}"
+                    data-year="{{ course.year }}" data-semester="{{ course.semester }}"
+                    data-unit-type="{{ course.unit_type }}" data-cohort="{{ course.student_cohort|default:'0' }}">
+                  <td>{{ course.course_code }}</td>
+                  <td>{{ course.course_name }}</td>
+                  <td>{{ course.get_unit_type_display|default:course.unit_type }}</td>
+                  <td>{{ course.student_cohort|default:'0' }}</td>
+                  <td class="pm-actions">
+                    <button type="button" class="btn-act btn-edit pm-edit-course-btn">Edit</button>
+                    <button type="button" class="btn-act btn-delete pm-delete-course-btn">Delete</button>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% endfor %}
+            {% empty %}
+            <tr class="pm-empty-row" data-program="{{ program.id }}" data-prog-name="{{ program.name }}"><td colspan="5">No courses yet for {{ program.name }}.</td></tr>
+            {% endfor %}
+            {% empty %}
+            <tr class="pm-empty-row"><td colspan="5">No programs found.</td></tr>
+            {% endfor %}
+            <tr class="pm-nomatch-row pm-empty-row" id="pmCoursesNoMatch" hidden><td colspan="5">No courses match the current filters.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PROGRAM CODES LIST (sorted Program → Code, A→Z) -->
+      <div class="list-panel" id="listPanel_code" hidden>
+        <table>
+          <thead>
+            <tr><th>Program</th><th>Code</th><th class="pm-actions">Actions</th></tr>
+          </thead>
+          <tbody id="pmCodesBody">
+            {% for code in program_codes %}
+            <tr data-id="{{ code.id }}" data-program="{{ code.program_id }}" data-program-name="{{ code.program.name }}"
+                data-code="{{ code.code }}" data-dept-id="{{ code.program.department_id }}">
+              <td>{{ code.program.name }}</td>
+              <td><strong>{{ code.code }}</strong></td>
+              <td class="pm-actions">
+                <button type="button" class="btn-act btn-edit pm-edit-code-btn">Edit</button>
+                <button type="button" class="btn-act btn-delete pm-delete-code-btn">Delete</button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="pm-empty-row"><td colspan="3">No program codes yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if programs_paginator.num_pages > 1 %}
+      <div class="pm-pager">
+        {% if programs.has_previous %}<a class="dg-btn" href="?page={{ programs.previous_page_number }}{% if active_department_id %}&amp;department_id={{ active_department_id }}{% endif %}">&larr; Prev</a>{% endif %}
+        <span>Programs page {{ programs.number }} of {{ programs_paginator.num_pages }} ({{ programs_paginator.count }} programs)</span>
+        {% if programs.has_next %}<a class="dg-btn" href="?page={{ programs.next_page_number }}{% if active_department_id %}&amp;department_id={{ active_department_id }}{% endif %}">Next &rarr;</a>{% endif %}
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock allocation_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+// Builds a URL with one query param set/cleared (department picker, etc.)
+function updateQueryParam(key, value, dropPage) {
+  var params = new URLSearchParams(window.location.search);
+  if (value) { params.set(key, value); } else { params.delete(key); }
+  if (dropPage) { params.delete('page'); }
+  var qs = params.toString();
+  return window.location.pathname + (qs ? ('?' + qs) : '');
+}
+
+(function() {
+"use strict";
+
+const AJAX_URL = "{% url 'ajax_program_courses' %}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+const IMPORT_PREVIEW_URL = "{% url 'import_programs' %}";
+const IMPORT_APPLY_URL = "{% url 'import_programs_apply' %}";
+const EXPORT_URL = "{% url 'export_programs' %}";
+
+function $(id) { return document.getElementById(id); }
+
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = $('dgToast');
+  if (!el) { el = document.createElement('div'); el.id = 'dgToast'; el.className = 'dg-toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.toggle('dg-toast-error', !!isErr);
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2600);
+}
+
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function sendAjax(fields) {
+  var fd = new FormData();
+  Object.keys(fields).forEach(function(k) { fd.append(k, fields[k] == null ? '' : fields[k]); });
+  return fetch(AJAX_URL, { method: 'POST', headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' }, body: fd }).then(function(r) { return r.json(); });
+}
+
+/* ========================================================================
+   Fit to screen: use 100% of the width/height left on the screen.
+   Wrapper padding in the base layout (small, cosmetic ones only) is pulled
+   back with negative margins on .dg-page; any max-width on the wrappers is
+   lifted; the page height becomes exactly the space left below its top edge.
+   ======================================================================== */
+function fitPage() {
+  var page = document.querySelector('.dg-page');
+  if (!page) return;
+  if (window.innerWidth <= 900) {
+    page.style.removeProperty('--pm-h');
+    page.style.margin = '0';
+    return;
+  }
+  var ml = 0, mr = 0, mb = 0;
+  var el = page.parentElement;
+  while (el && el !== document.body && el !== document.documentElement) {
+    var cs = window.getComputedStyle(el);
+    var pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+    if (pl > 0 && pl <= 48) ml += pl;
+    if (pr > 0 && pr <= 48) mr += pr;
+    if (pb > 0 && pb <= 48) mb += pb;
+    if (cs.maxWidth !== 'none') el.style.setProperty('max-width', 'none', 'important');
+    el = el.parentElement;
+  }
+  page.style.marginLeft = (-ml) + 'px';
+  page.style.marginRight = (-mr) + 'px';
+  page.style.marginBottom = (-mb) + 'px';
+  var top = page.getBoundingClientRect().top + window.pageYOffset;
+  page.style.setProperty('--pm-h', Math.max(360, window.innerHeight - top + mb) + 'px');
+}
+
+/* ========================================================================
+   Export (Excel only, always password-protected)
+   ======================================================================== */
+var exportPasswordModal = $('exportPasswordModal');
+var exportPasswordInput = $('exportPassword');
+var exportPasswordConfirmInput = $('exportPasswordConfirm');
+var exportEmailCopy = $('exportEmailCopy');
+var exportAgreeTerms = $('exportAgreeTerms');
+var pendingExportFmt = 'xlsx';
+
+document.querySelectorAll('.export-option-protected').forEach(function(item) {
+  item.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    pendingExportFmt = this.dataset.fmt || 'xlsx';
+    exportPasswordInput.value = '';
+    exportPasswordConfirmInput.value = '';
+    exportEmailCopy.checked = true;
+    exportAgreeTerms.checked = false;
+    exportPasswordModal.hidden = false;
+    exportPasswordInput.focus();
+  });
+});
+
+function closeExportPasswordModal() { exportPasswordModal.hidden = true; }
+$('exportPasswordClose').addEventListener('click', closeExportPasswordModal);
+$('exportPasswordCancel').addEventListener('click', closeExportPasswordModal);
+
+$('exportPasswordSubmit').addEventListener('click', function() {
+  var pwd = exportPasswordInput.value;
+  var confirmPwd = exportPasswordConfirmInput.value;
+  if (!pwd || pwd.length < 4) { toast('Password must be at least 4 characters.', true); return; }
+  if (pwd !== confirmPwd) { toast('Passwords do not match.', true); return; }
+  if (!exportAgreeTerms.checked) { toast('You must agree to the usage terms before exporting.', true); return; }
+
+  var btn = this;
+  btn.disabled = true;
+  toast('Preparing protected export…');
+
+  var fd = new FormData();
+  fd.append('fmt', pendingExportFmt);
+  fd.append('password', pwd);
+  fd.append('email_copy', exportEmailCopy.checked ? 'true' : 'false');
+  fd.append('agree_terms', 'true');
+
+  fetch(EXPORT_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd
+  }).then(function(r) {
+    if (!r.ok) { return r.text().then(function(t) { throw new Error(t || ('Export failed (' + r.status + ')')); }); }
+    var disposition = r.headers.get('Content-Disposition') || '';
+    var match = disposition.match(/filename="?([^"]+)"?/);
+    var filename = match ? match[1] : 'programs_and_courses_protected.xlsx';
+    return r.blob().then(function(blob) { return { blob: blob, filename: filename }; });
+  }).then(function(result) {
+    var link = document.createElement('a');
+    var url = URL.createObjectURL(result.blob);
+    link.href = url;
+    link.download = result.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast('Protected file downloaded.' + (exportEmailCopy.checked ? ' Password emailed.' : ''));
+    closeExportPasswordModal();
+  }).catch(function(err) {
+    toast(err.message || 'Export failed.', true);
+  }).finally(function() { btn.disabled = false; });
+});
+
+/* ========================================================================
+   Import
+   ======================================================================== */
+var importBtn = $('importBtn');
+var importFileInput = $('importFileInput');
+importBtn.addEventListener('click', function() { importFileInput.click(); });
+
+var importResultsPanel = $('importResultsPanel');
+var importResultsMessage = $('importResultsMessage');
+var importResultsErrors = $('importResultsErrors');
+$('importResultsClose').addEventListener('click', function() { importResultsPanel.hidden = true; fitPage(); });
+
+function showImportResults(data, isErr) {
+  importResultsMessage.textContent = data.message || (isErr ? 'Import failed.' : 'Import complete.');
+  importResultsErrors.innerHTML = '';
+  (data.errors || []).forEach(function(err) { var li = document.createElement('li'); li.textContent = err; importResultsErrors.appendChild(li); });
+  if (data.rollback_hint) { var li = document.createElement('li'); li.textContent = data.rollback_hint; li.style.fontStyle = 'italic'; importResultsErrors.appendChild(li); }
+  importResultsPanel.classList.toggle('dg-import-panel-error', !!isErr);
+  importResultsPanel.hidden = false;
+}
+
+var importDiffModal = $('importDiffModal');
+var importDiffBody = $('importDiffBody');
+var importDiffApplyBtn = $('importDiffApply');
+var pendingToken = null;
+
+function diffItemHtml(kindLabel, action, title, changesObj) {
+  var changesHtml = '';
+  if (changesObj && Object.keys(changesObj).length) {
+    var parts = Object.keys(changesObj).map(function(f) { var pair = changesObj[f]; return escHtml(f) + ': "' + escHtml(pair[0]) + '" → "' + escHtml(pair[1]) + '"'; });
+    changesHtml = '<div class="dg-diff-changes">' + parts.join(' · ') + '</div>';
+  }
+  return '<li class="dg-diff-item ' + action + '"><span class="dg-diff-tag">' + action + '</span>' + escHtml(kindLabel) + ': <strong>' + escHtml(title) + '</strong>' + changesHtml + '</li>';
+}
+
+function renderDiffSection(heading, items, action, titleFn) {
+  if (!items || !items.length) return '';
+  return '<div class="dg-diff-section"><h4>' + escHtml(heading) + ' (' + items.length + ')</h4><ul class="dg-diff-list">' + items.map(function(it) { return diffItemHtml(heading.split(' ')[0], action, titleFn(it), it.changes); }).join('') + '</ul></div>';
+}
+
+function showDiffModal(data) {
+  pendingToken = data.token;
+  var s = data.summary || {};
+  var chips = [
+    ['programs_created', 'create', s.programs_created + ' program(s) to create'],
+    ['programs_updated', 'update', s.programs_updated + ' program(s) to update'],
+    ['programs_deleted', 'delete', s.programs_deleted + ' program(s) to DELETE'],
+    ['courses_created', 'create', s.courses_created + ' course(s) to create'],
+    ['courses_updated', 'update', s.courses_updated + ' course(s) to update'],
+    ['courses_deleted', 'delete', s.courses_deleted + ' course(s) to DELETE'],
+    ['codes_created', 'create', s.codes_created + ' code(s) to create'],
+    ['codes_updated', 'update', s.codes_updated + ' code(s) to update'],
+    ['codes_deleted', 'delete', s.codes_deleted + ' code(s) to DELETE']
+  ].filter(function(c) { return parseInt(c[2], 10) > 0; }).map(function(c) { return '<span class="dg-diff-chip ' + c[1] + '">' + escHtml(c[2]) + '</span>'; }).join('');
+
+  var anyDeletes = (s.programs_deleted || 0) + (s.courses_deleted || 0) + (s.codes_deleted || 0) > 0;
+  var warn = anyDeletes ? '<div class="dg-diff-warn">⚠ This will permanently delete rows removed from your file.</div>' : '';
+
+  var d = data.diff || { programs: {}, courses: {}, codes: {} };
+  var body = '<div class="dg-diff-summary">' + (chips || '<span class="dg-diff-chip">No changes</span>') + '</div>' + warn;
+  body += renderDiffSection('Programs to create', d.programs.create, 'create', function(it) { return it.name + ' (' + it.department + ')'; });
+  body += renderDiffSection('Programs to update', d.programs.update, 'update', function(it) { return it.name; });
+  body += renderDiffSection('Programs to delete', d.programs.delete, 'delete', function(it) { return it.name + ' (' + it.department + ', ' + it.course_count + ' courses)'; });
+  body += renderDiffSection('Courses to create', d.courses.create, 'create', function(it) { return it.course_code + ' — ' + it.course_name + ' (' + it.program + ')'; });
+  body += renderDiffSection('Courses to update', d.courses.update, 'update', function(it) { return it.course_code + ' — ' + it.course_name; });
+  body += renderDiffSection('Courses to delete', d.courses.delete, 'delete', function(it) { return it.course_code + ' — ' + it.course_name + ' (' + it.program + ')'; });
+  if (d.codes) {
+    body += renderDiffSection('Codes to create', d.codes.create, 'create', function(it) { return it.code + ' (' + it.program + ')'; });
+    body += renderDiffSection('Codes to update', d.codes.update, 'update', function(it) { return it.code + ' (' + it.program + ')'; });
+    body += renderDiffSection('Codes to delete', d.codes.delete, 'delete', function(it) { return it.code + ' (' + it.program + ')'; });
+  }
+
+  if ((data.errors || []).length) {
+    body += '<div class="dg-diff-section"><h4>Skipped (' + data.errors.length + ')</h4><ul class="dg-diff-list">' + data.errors.map(function(e) { return '<li class="dg-diff-item">' + escHtml(e) + '</li>'; }).join('') + '</ul></div>';
+  }
+
+  if (!chips) body = '<div class="dg-diff-empty">No changes found.</div>' + body;
+  importDiffBody.innerHTML = body;
+  importDiffApplyBtn.disabled = !pendingToken;
+  importDiffModal.hidden = false;
+}
+
+function closeDiffModal() { importDiffModal.hidden = true; pendingToken = null; }
+$('importDiffClose').addEventListener('click', closeDiffModal);
+$('importDiffCancel').addEventListener('click', closeDiffModal);
+
+importDiffApplyBtn.addEventListener('click', function() {
+  if (!pendingToken) { closeDiffModal(); return; }
+  importDiffApplyBtn.disabled = true;
+  toast('Applying…');
+  fetch(IMPORT_APPLY_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ token: pendingToken })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    var failed = data.status === 'error';
+    toast(data.message || (failed ? 'Import failed.' : 'Done.'), failed);
+    showImportResults(data, failed || data.status === 'partial');
+    closeDiffModal();
+    if (!failed) { setTimeout(function() { window.location.reload(); }, 1400); }
+  }).catch(function() { toast('Network error.', true); importDiffApplyBtn.disabled = false; });
+});
+
+var importPasswordModal = $('importPasswordModal');
+var importPasswordMessage = $('importPasswordMessage');
+var importPasswordInput = $('importPasswordInput');
+var pendingImportFile = null;
+
+function closeImportPasswordModal() {
+  importPasswordModal.hidden = true;
+  importPasswordInput.value = '';
+  pendingImportFile = null;
+}
+$('importPasswordClose').addEventListener('click', function() { closeImportPasswordModal(); importFileInput.value = ''; });
+$('importPasswordCancel').addEventListener('click', function() { closeImportPasswordModal(); importFileInput.value = ''; });
+
+function submitImportPreview(file, password) {
+  var fd = new FormData();
+  fd.append('file', file);
+  if (password) fd.append('password', password);
+  toast('Reading ' + file.name + '…');
+  return fetch(IMPORT_PREVIEW_URL, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF_TOKEN, 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.status === 'need_password') {
+      pendingImportFile = file;
+      importPasswordMessage.textContent = data.message || 'This file is password-protected. Enter the password to continue.';
+      importPasswordModal.hidden = false;
+      importPasswordInput.value = '';
+      importPasswordInput.focus();
+      return;
+    }
+    if (data.status === 'error') { toast(data.message || 'Import failed.', true); showImportResults(data, true); importFileInput.value = ''; return; }
+    if (!data.token) { toast(data.message || 'Nothing to import.'); showImportResults(data, false); importFileInput.value = ''; return; }
+    showDiffModal(data);
+    importFileInput.value = '';
+  }).catch(function() { toast('Network error.', true); importFileInput.value = ''; });
+}
+
+$('importPasswordSubmit').addEventListener('click', function() {
+  var pwd = importPasswordInput.value;
+  if (!pwd) { toast('Enter a password.', true); return; }
+  if (!pendingImportFile) { closeImportPasswordModal(); return; }
+  var file = pendingImportFile;
+  importPasswordModal.hidden = true;
+  submitImportPreview(file, pwd).then(function() { pendingImportFile = null; });
+});
+
+importFileInput.addEventListener('change', function() {
+  var file = importFileInput.files[0];
+  if (!file) return;
+  submitImportPreview(file, null);
+});
+
+/* ========================================================================
+   Program | Course | Code — one tab control drives the form AND the list
+   ======================================================================== */
+var TABS = ['program', 'course', 'code'];
+var LIST_TITLE = { program: 'Programs', course: 'Courses', code: 'Program Codes' };
+var FORM_TITLE = {
+  program: ['New Program', 'Edit Program'],
+  course:  ['New Course', 'Edit Course'],
+  code:    ['New Program Code', 'Edit Program Code']
+};
+var BODY_ID = { program: 'pmProgramsBody', course: 'pmCoursesBody', code: 'pmCodesBody' };
+
+var F = {
+  program: { id: $('pf_id'), name: $('pf_name'), dept: $('pf_department'), cohort: $('pf_cohort'), submit: $('pf_submit'), form: $('programForm') },
+  course:  { id: $('cf_id'), program: $('cf_program'), code: $('cf_code'), name: $('cf_name'), year: $('cf_year'), sem: $('cf_semester'), type: $('cf_unit_type'), cohort: $('cf_cohort'), submit: $('cf_submit'), form: $('courseForm') },
+  code:    { id: $('cd_id'), program: $('cd_program'), code: $('cd_code'), submit: $('cd_submit'), form: $('codeForm') }
+};
+var ADD_LABEL = { program: 'Add Program', course: 'Add Course', code: 'Add Code' };
+var UPD_LABEL = { program: 'Update Program', course: 'Update Course', code: 'Update Code' };
+
+var currentTab = 'program';
+
+function countRows(tab) {
+  return document.querySelectorAll('#' + BODY_ID[tab] + ' tr[data-id]:not([hidden])').length;
+}
+
+function refreshChrome() {
+  var editing = !!F[currentTab].id.value;
+  $('pmFormTitle').textContent = FORM_TITLE[currentTab][editing ? 1 : 0];
+  $('pmCancelEdit').hidden = !editing;
+  $('pmFormScroll').classList.toggle('editing', editing);
+  $('pmListTitle').innerHTML = escHtml(LIST_TITLE[currentTab]) + ' <span class="dg-count">' + countRows(currentTab) + '</span>';
+}
+
+function setTab(tab) {
+  if (TABS.indexOf(tab) < 0) tab = 'program';
+  currentTab = tab;
+  document.querySelectorAll('.form-state-btn[data-pm-tab]').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.pmTab === tab);
+  });
+  TABS.forEach(function(t) {
+    $('formPanel_' + t).hidden = t !== tab;
+    $('listPanel_' + t).hidden = t !== tab;
+  });
+  refreshChrome();
+  try { sessionStorage.setItem('pmTab', tab); } catch (e) {}
+}
+
+document.querySelectorAll('.form-state-btn[data-pm-tab]').forEach(function(btn) {
+  btn.addEventListener('click', function() { setTab(this.dataset.pmTab); });
+});
+
+function markActive(tab, id) {
+  document.querySelectorAll('#' + BODY_ID[tab] + ' tr.pm-row-active').forEach(function(r) { r.classList.remove('pm-row-active'); });
+  if (id) {
+    var r = document.querySelector('#' + BODY_ID[tab] + ' tr[data-id="' + id + '"]');
+    if (r) r.classList.add('pm-row-active');
+  }
+}
+
+function setSelect(sel, value, label) {
+  if (value === '' || value == null) { sel.selectedIndex = 0; return; }
+  value = String(value);
+  var found = false;
+  for (var i = 0; i < sel.options.length; i++) { if (sel.options[i].value === value) { found = true; break; } }
+  if (!found && label) { var o = document.createElement('option'); o.value = value; o.textContent = label; sel.appendChild(o); found = true; }
+  if (found) sel.value = value;
+}
+
+function resetForm(tab, focusIt) {
+  var f = F[tab];
+  f.id.value = '';
+  if (tab === 'program') {
+    f.name.value = '';
+    if (f.dept.options.length) f.dept.selectedIndex = 0;
+    var d = $('deptFilter').value;
+    if (d) setSelect(f.dept, d);
+    f.cohort.value = '0';
+  } else if (tab === 'course') {
+    f.program.selectedIndex = 0;
+    f.code.value = '';
+    f.name.value = '';
+    if (f.year.options.length) f.year.selectedIndex = 0;
+    f.sem.value = '1';
+    f.type.value = 'CORE';
+    f.cohort.value = '0';
+  } else {
+    f.program.selectedIndex = 0;
+    f.code.value = '';
+  }
+  f.submit.textContent = ADD_LABEL[tab];
+  markActive(tab, null);
+  refreshChrome();
+  if (focusIt) { (tab === 'program' ? f.name : tab === 'course' ? f.program : f.program).focus(); }
+}
+
+/* Loaders: filling the hidden id is what turns Save into an UPDATE. */
+function loadProgramIntoForm(src) {
+  var f = F.program;
+  f.id.value = src.dataset.id;
+  f.name.value = src.dataset.name;
+  setSelect(f.dept, src.dataset.department);
+  f.cohort.value = src.dataset.cohort || '0';
+  f.submit.textContent = UPD_LABEL.program;
+  setTab('program');
+  markActive('program', src.dataset.id);
+  refreshChrome();
+  f.name.focus();
+}
+
+function loadCourseIntoForm(row) {
+  var f = F.course;
+  f.id.value = row.dataset.id;
+  setSelect(f.program, row.dataset.program, row.dataset.progName);
+  f.code.value = row.dataset.code;
+  f.name.value = row.dataset.name;
+  setSelect(f.year, row.dataset.year, row.dataset.year);
+  f.sem.value = row.dataset.semester;
+  f.type.value = row.dataset.unitType || 'CORE';
+  f.cohort.value = row.dataset.cohort || '0';
+  f.submit.textContent = UPD_LABEL.course;
+  setTab('course');
+  markActive('course', row.dataset.id);
+  refreshChrome();
+  f.code.focus();
+}
+
+function loadCodeIntoForm(row) {
+  var f = F.code;
+  f.id.value = row.dataset.id;
+  setSelect(f.program, row.dataset.program, row.dataset.programName);
+  f.code.value = row.dataset.code;
+  f.submit.textContent = UPD_LABEL.code;
+  setTab('code');
+  markActive('code', row.dataset.id);
+  refreshChrome();
+  f.code.focus();
+}
+
+$('pmCancelEdit').addEventListener('click', function() { resetForm(currentTab, true); });
+$('pmNewBtn').addEventListener('click', function() { resetForm(currentTab, true); });
+
+/* ── Submit handlers: id present → edit_*, id blank → add_* ── */
+F.program.form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  var f = F.program;
+  var name = f.name.value.trim();
+  var dept = f.dept.value;
+  var cohort = f.cohort.value.trim() || '0';
+  var id = f.id.value;
+  if (!name) { toast('Program name is required.', true); return; }
+  if (!dept) { toast('Select a department.', true); return; }
+
+  var payload = { action: id ? 'edit_program' : 'add_program', name: name, department: dept, default_cohort: cohort };
+  if (id) payload.id = id;
+
+  f.submit.disabled = true;
+  sendAjax(payload).then(function(d) {
+    f.submit.disabled = false;
+    if (d.status === 'success') { toast(id ? 'Program updated.' : 'Program added.'); location.reload(); }
+    else { toast(d.message || 'Error.', true); }
+  }).catch(function() { f.submit.disabled = false; toast('Network error.', true); });
+});
+
+F.course.form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  var f = F.course;
+  var program = f.program.value;
+  var code = f.code.value.trim();
+  var name = f.name.value.trim();
+  var id = f.id.value;
+  if (!program) { toast('Select a program.', true); return; }
+  if (!code || !name) { toast('Course code and name are required.', true); return; }
+
+  var payload = {
+    action: id ? 'edit_course' : 'add_course',
+    course_code: code, course_name: name, program: program,
+    year: f.year.value, semester: f.sem.value, unit_type: f.type.value,
+    student_cohort: f.cohort.value.trim() || '0'
+  };
+  if (id) payload.id = id;
+
+  f.submit.disabled = true;
+  sendAjax(payload).then(function(d) {
+    f.submit.disabled = false;
+    if (d.status === 'success') { toast(id ? 'Course updated.' : 'Course added.'); location.reload(); }
+    else { toast(d.message || 'Error.', true); }
+  }).catch(function() { f.submit.disabled = false; toast('Network error.', true); });
+});
+
+F.code.form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  var f = F.code;
+  var program = f.program.value;
+  var code = f.code.value.trim().toUpperCase();
+  var id = f.id.value;
+  if (!program) { toast('Select a program.', true); return; }
+  if (!code) { toast('Code is required.', true); return; }
+
+  var payload = { action: id ? 'edit_program_code' : 'add_program_code', program: program, code: code };
+  if (id) payload.id = id;
+
+  f.submit.disabled = true;
+  sendAjax(payload).then(function(d) {
+    f.submit.disabled = false;
+    if (d.status === 'success') { toast(id ? 'Code updated.' : 'Code added.'); location.reload(); }
+    else { toast(d.message || 'Error.', true); }
+  }).catch(function() { f.submit.disabled = false; toast('Network error.', true); });
+});
+
+/* ── Delete helper ── */
+function doDelete(action, id, confirmMsg, okMsg) {
+  if (!confirm(confirmMsg)) return;
+  sendAjax({ action: action, id: id }).then(function(d) {
+    if (d.status === 'success') { toast(okMsg); location.reload(); }
+    else { toast(d.message || 'Error.', true); }
+  }).catch(function() { toast('Network error.', true); });
+}
+
+/* ── List click handlers ── */
+$('pmProgramsBody').addEventListener('click', function(e) {
+  var edit = e.target.closest('.pm-edit-program-btn');
+  if (edit) { loadProgramIntoForm(edit.closest('tr')); return; }
+  var del = e.target.closest('.pm-delete-program-btn');
+  if (del) {
+    var row = del.closest('tr');
+    doDelete('delete_program', row.dataset.id, 'Delete "' + row.dataset.name + '" and all its courses? This cannot be undone.', 'Program deleted.');
+  }
+});
+
+$('pmCoursesBody').addEventListener('click', function(e) {
+  var editProg = e.target.closest('.pm-edit-program-btn');
+  if (editProg) { loadProgramIntoForm(editProg); return; }
+
+  var addCourse = e.target.closest('.pm-add-course-btn');
+  if (addCourse) {
+    resetForm('course', false);
+    setSelect(F.course.program, addCourse.dataset.program);
+    setTab('course');
+    F.course.code.focus();
+    return;
+  }
+
+  var edit = e.target.closest('.pm-edit-course-btn');
+  if (edit) { loadCourseIntoForm(edit.closest('tr')); return; }
+
+  var del = e.target.closest('.pm-delete-course-btn');
+  if (del) {
+    var row = del.closest('tr');
+    doDelete('delete_course', row.dataset.id, 'Delete ' + (row.dataset.code || 'this course') + '?', 'Course deleted.');
+  }
+});
+
+$('pmCodesBody').addEventListener('click', function(e) {
+  var edit = e.target.closest('.pm-edit-code-btn');
+  if (edit) { loadCodeIntoForm(edit.closest('tr')); return; }
+  var del = e.target.closest('.pm-delete-code-btn');
+  if (del) {
+    var row = del.closest('tr');
+    doDelete('delete_program_code', row.dataset.id, 'Delete program code ' + (row.dataset.code || '') + '?', 'Code deleted.');
+  }
+});
+
+/* ========================================================================
+   Alphabetical order: within every "Year · Semester" group the courses are
+   sorted by course code (case-insensitive, natural: BCOM 20 before BCOM 112),
+   then by name. Program codes are sorted Program → Code.
+   ======================================================================== */
+var collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+function sortCourseRows() {
+  var body = $('pmCoursesBody');
+  var rows = Array.prototype.slice.call(body.children);
+  var i = 0;
+  while (i < rows.length) {
+    if (rows[i].classList.contains('pm-ys-header')) {
+      var j = i + 1, group = [];
+      while (j < rows.length && rows[j].hasAttribute('data-id')) { group.push(rows[j]); j++; }
+      group.sort(function(a, b) {
+        return collator.compare(a.dataset.code || '', b.dataset.code || '') || collator.compare(a.dataset.name || '', b.dataset.name || '');
+      });
+      var ref = rows[j] || null;
+      group.forEach(function(r) { body.insertBefore(r, ref); });
+      i = j;
+    } else { i++; }
+  }
+}
+
+function sortCodeRows() {
+  var body = $('pmCodesBody');
+  var rows = Array.prototype.slice.call(body.querySelectorAll('tr[data-id]'));
+  rows.sort(function(a, b) {
+    return collator.compare(a.dataset.programName || '', b.dataset.programName || '') || collator.compare(a.dataset.code || '', b.dataset.code || '');
+  });
+  rows.forEach(function(r) { body.appendChild(r); });
+}
+
+/* ========================================================================
+   Search (all three lists) + department filter (codes)
+   ======================================================================== */
+function rowText(r) {
+  var cells = Array.prototype.slice.call(r.cells || []);
+  var text = cells.slice(0, -1).map(function(c) { return c.textContent; }).join(' ');
+  if (r.dataset.progName) text += ' ' + r.dataset.progName;
+  return text.toLowerCase();
+}
+
+function applyFilters() {
+  var q = ($('quickSearch').value || '').trim().toLowerCase();
+  var dept = $('deptFilter').value;
+
+  document.querySelectorAll('#pmProgramsBody tr[data-id]').forEach(function(r) {
+    r.hidden = !!q && rowText(r).indexOf(q) === -1;
+  });
+
+  // Courses: search + Program / Year / Semester filters, then hide headers
+  // that have nothing visible under them.
+  var fp = $('flt_program').value, fy = $('flt_year').value, fs = $('flt_sem').value;
+  var anyFilter = !!(fp || fy || fs);
+  ['flt_program', 'flt_year', 'flt_sem'].forEach(function(id) { $(id).classList.toggle('is-set', !!$(id).value); });
+  $('fltClear').hidden = !anyFilter;
+  try { sessionStorage.setItem('pmCourseFilters', JSON.stringify({ p: fp, y: fy, s: fs })); } catch (e) {}
+
+  var rows = Array.prototype.slice.call($('pmCoursesBody').children);
+  var hasYS = false, hasProg = false, anyCourseShown = false;
+  for (var i = rows.length - 1; i >= 0; i--) {
+    var r = rows[i];
+    if (r.id === 'pmCoursesNoMatch') continue;
+    if (r.hasAttribute('data-id')) {
+      var showC = (!q || rowText(r).indexOf(q) !== -1) &&
+                  (!fp || r.dataset.program === fp) &&
+                  (!fy || r.dataset.year === fy) &&
+                  (!fs || r.dataset.semester === fs);
+      r.hidden = !showC;
+      if (showC) { hasYS = true; hasProg = true; anyCourseShown = true; }
+    } else if (r.classList.contains('pm-empty-row')) {
+      // A program with no courses: only relevant when no year/semester filter is set.
+      var showE = !fy && !fs && (!fp || r.dataset.program === fp) && (!q || rowText(r).indexOf(q) !== -1);
+      r.hidden = !showE;
+      if (showE) { hasProg = true; anyCourseShown = true; }
+    } else if (r.classList.contains('pm-ys-header')) {
+      r.hidden = !hasYS; hasYS = false;
+    } else if (r.classList.contains('pm-prog-header')) {
+      r.hidden = !hasProg; hasProg = false;
+    }
+  }
+  $('pmCoursesNoMatch').hidden = anyCourseShown || !(anyFilter || q);
+
+  document.querySelectorAll('#pmCodesBody tr[data-id]').forEach(function(r) {
+    var show = true;
+    if (dept && r.dataset.deptId !== dept) show = false;
+    if (q && rowText(r).indexOf(q) === -1) show = false;
+    r.hidden = !show;
+  });
+
+  refreshChrome();
+}
+
+$('quickSearch').addEventListener('input', applyFilters);
+['flt_program', 'flt_year', 'flt_sem'].forEach(function(id) { $(id).addEventListener('change', applyFilters); });
+$('fltClear').addEventListener('click', function() {
+  ['flt_program', 'flt_year', 'flt_sem'].forEach(function(id) { $(id).value = ''; });
+  applyFilters();
+});
+$('deptFilter').addEventListener('change', applyFilters);
+
+/* ── Init ── */
+sortCourseRows();
+sortCodeRows();
+resetForm('program', false);
+resetForm('course', false);
+resetForm('code', false);
+try {
+  var savedF = JSON.parse(sessionStorage.getItem('pmCourseFilters') || '{}');
+  $('flt_program').value = savedF.p || '';
+  $('flt_year').value = savedF.y || '';
+  $('flt_sem').value = savedF.s || '';
+} catch (e) {}
+applyFilters();
+
+var savedTab = 'program';
+try { savedTab = sessionStorage.getItem('pmTab') || 'program'; } catch (e) {}
+setTab(savedTab);
+
+fitPage();
+window.addEventListener('resize', fitPage);
+window.addEventListener('load', fitPage);
+
+})();
+</script>
+{% endblock extra_js %}

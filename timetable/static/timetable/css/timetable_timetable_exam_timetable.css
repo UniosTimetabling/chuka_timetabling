@@ -1,0 +1,10 @@
+/*
+ * timetable_timetable_exam_timetable.css
+ * Extracted from: timetable/templates/timetable/exam_timetable.html
+ */
+
+table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+    th, td { border: 1px solid #ccc; text-align: center; padding: 8px; }
+    th { background: #f1f1a1; }
+    td[contenteditable="true"] { background: #eef; cursor: pointer; }
+    .collision { background-color: #fbb !important; }

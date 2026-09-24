@@ -1,0 +1,224 @@
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_export_official_timetable_pdf.css' %}">
+{% endblock page_css %}
+<link rel="stylesheet" href="{% static 'export_import/css/official_tt_pdf.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_official_timetable_pdf.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>{{ title }}</title>
+</head>
+<body>
+
+ <!-- OFFICIAL MEMO HEADER -->
+ <div class="memo-header">
+ <!-- Logo with fallback handling -->
+ {% if logo_url %}
+ <div>
+ <img src="{{ logo_url }}" alt="{{ university_name }} Logo" class="university-logo">
+ </div>
+ {% endif %}
+ 
+ <!-- University Name -->
+ <div class="university-brand">
+ <div class="university-name-part">{{ university_name|upper }}</div>
+ </div>
+ 
+ <!-- University Motto -->
+ <div class="university-motto">
+ <span>{{ motto_latin }}</span>
+ <span class="motto-separator">|</span>
+ <span>{{ motto_swahili }}</span>
+ </div>
+ 
+ <!-- Reference and Date -->
+ <div class="reference-line">
+ <span class="reference-number">{{ reference_number }}</span>
+ <span class="document-date">{{ current_date }}</span>
+ </div>
+ 
+ <!-- Directorate Name -->
+ <div class="directorate-line">
+ {{ directorate_name }}
+ </div>
+ 
+ <!-- Contact Information -->
+ <div class="contact-info">
+ <span class="contact-item">Telephone: {{ telephone }}</span>
+ <span class="contact-separator">•</span>
+ <span class="contact-item">Email: {{ email }}</span>
+ <span class="contact-separator">•</span>
+ <span class="contact-item">Address: {{ address }}</span>
+ <span class="contact-separator">•</span>
+ <span class="contact-item">Website: {{ website }}</span>
+ </div>
+ 
+ <!-- Document Title with blue line -->
+ <div class="document-title">
+ {{ title }}
+ </div>
+ </div>
+
+ <!-- MAIN TIMETABLE with controlled page breaks -->
+ {% for day, rows in day_grids.items %}
+ <div class="day-section avoid-page-break">
+ <div class="day-header">
+ {{ day }}
+ </div>
+ 
+ <div class="timetable-container">
+ <table class="timetable">
+ <thead>
+ <tr>
+ <th class="venue-col">VENUE</th>
+ {% for slot in time_slots %}
+ <th class="time-col">{{ slot }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in rows %}
+ <tr>
+ <td class="venue-cell">{{ row.venue_key }}</td>
+ {% for cell in row.cells %}
+ <td>
+ {% if cell.entries %}
+ {% if cell.entries|length == 1 %}
+ <!-- Single course -->
+ <div class="course-code">
+ {{ cell.entries.0.course_code }}
+ </div>
+ {% else %}
+ <!-- Multiple courses with blue dividers -->
+ <div class="multiple-courses">
+ {% for entry in cell.entries %}
+ <div class="course-code">
+ {{ entry.course_code }}
+ </div>
+ {% if not forloop.last %}
+ <div class="course-divider"></div>
+ {% endif %}
+ {% endfor %}
+ </div>
+ {% endif %}
+ {% else %}
+ <div class="empty-slot">–</div>
+ {% endif %}
+ </td>
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ 
+ {% if not forloop.last %}
+ <div class="spacer-medium"></div>
+ <!-- FIX: More controlled page breaking - only after 2 day sections -->
+ {% if forloop.counter|divisibleby:2 %}
+ <div class="page-break"></div>
+ {% endif %}
+ {% endif %}
+ {% endfor %}
+
+ <!-- MERGED COURSES SECTION -->
+ {% if merged_table %}
+ <div class="supplementary-section avoid-page-break">
+ <div class="section-title">Merged Course Sessions</div>
+ <div class="timetable-container">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th style="width: 15%; text-align: center">Merged Code</th>
+ <th style="width: 25%; text-align: left">Courses</th>
+ <th style="width: 12%; text-align: center">Venue</th>
+ <th style="width: 12%; text-align: center">Date</th>
+ <th style="width: 15%; text-align: center">Time</th>
+ <th style="width: 10%; text-align: center">Students</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in merged_table %}
+ <tr>
+ <td class="highlight-text" style="text-align: center">{{ row.merged_code }}</td>
+ <td>{{ row.courses }}</td>
+ <td style="text-align: center">{{ row.venue }}</td>
+ <td style="text-align: center">{{ row.date|date:"d M Y" }}</td>
+ <td style="text-align: center">{{ row.start }} – {{ row.end }}</td>
+ <td class="highlight-text" style="text-align: center">{{ row.total_students }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ <div class="spacer-medium"></div>
+ {% endif %}
+
+ <!-- LABORATORY TIMETABLE -->
+ {% if lab_table %}
+ <div class="supplementary-section avoid-page-break">
+ <div class="section-title">Laboratory Timetable</div>
+ <div class="timetable-container">
+ <table class="data-table">
+ <thead>
+ <tr>
+ <th style="width: 22%; text-align: center">Course Code</th>
+ <th style="width: 20%; text-align: left">Laboratory Venue</th>
+ <th style="width: 18%; text-align: center">Day</th>
+ <th style="width: 40%; text-align: center">Time Slot</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for l in lab_table %}
+ <tr>
+ <td class="highlight-text" style="text-align: center">{{ l.course_code }}</td>
+ <td>{{ l.lab }}</td>
+ <td style="text-align: center">{{ l.day }}</td>
+ <td style="text-align: center">{{ l.start }} – {{ l.end }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ </div>
+ {% endif %}
+
+ <!-- OFFICIAL FOOTER with blue lines -->
+ <div class="official-footer avoid-page-break">
+ <!-- Important Notes with blue border -->
+ <div class="important-notes">
+ {{ notes }}
+ </div>
+ 
+ <!-- Legend Section with blue border -->
+ <div class="legend-section">
+ {{ key_section|linebreaks }}
+ </div>
+ 
+ <!-- Signature Area with blue line -->
+ <div class="signature-area">
+ <div class="prepared-by">
+ <span class="prepared-label">{{ prepared_by_label }}:</span>
+ <span class="prepared-name">{{ prepared_by_name }}</span><br>
+ <span class="director-label">{{ director_label }}</span>
+ </div>
+ 
+
+ </div>
+ 
+ <!-- Document Footer with blue line -->
+ <div class="document-footer">
+ <span class="semester-info">{{ semester }} {{ current_year }} Teaching Timetable</span> • 
+ Generated: {{ now|date:"d M Y, H:i" }} • 
+ Document Management System v2.0
+ </div>
+ </div>
+
+</body>
+</html>

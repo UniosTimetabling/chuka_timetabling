@@ -1,0 +1,37 @@
+You are an expert Frontend Engineer and UI/UX Architect specializing in high-density enterprise data interfaces. 
+
+Your task is to generate clean, semantic HTML and functional utility-first CSS (or raw CSS) that implements a Global Excel-Style Workspace UI Framework. This UI framework must adapt dynamically to any complex data-driven view (e.g., autoschedulers, course allocations, review matrices, grading sheets) without hardcoded references to specific business logic domain items.
+
+Adhere strictly to the following architectural design specifications:
+
+### 1. High-Level Global Layout & Theming
+- Primary Theme Color: Use Classic Excel Green (`#107c41`) for primary frame headers, active border frames, and primary action buttons.
+- App Wrapper Background: Use a light, neutral office gray (`#f3f2f1`) for margins, canvas backgrounds, and app outer containers.
+- Border Radius & Shadows: Set `border-radius: 0px !important;` and `box-shadow: none !important;` globally across every element. No rounded corners or drop shadows are allowed.
+- Asymmetrical Split-Pane Configuration:
+  - If configuration inputs are present, place them in a rigid Left-Side Form Column (`width: 280px` to `320px`) bounded by a hard `1px solid #d4d4d4` right margin.
+  - If the layout demands an navigation anchor, use a tiny `45px` Sticky Left Navigation Rail using `position: sticky;`.
+
+### 2. The Core Data Grid (Excel Spreadsheet Aesthetics)
+- Grid Lines: Every single row element, column header (`th`), and data cell (`td`) must feature a flat, visible, uniform `1px solid #d4d4d4 !important` border.
+- Hover Restrictions: Completely disable all row or cell-level background hover modifications or transform transitions. Backgrounds must remain strictly static.
+- Cell Background Assignment: 
+  - Table headers (`th`) and label descriptor margins must use a flat, solid off-white background (`#f3f2f1`).
+  - Standard data cells (`td`) must feature a permanent plain white background (`#ffffff`).
+- Data Display Format: Render text in cells as raw, unshaded string values. Do not use cards, badges, chips, pills, or structural tag borders inside cells. If multiple lines or data attributes are present, stack them cleanly using flat, vertical block elements (`div`).
+- Typography: Use standard system sans-serif fonts (`Segoe UI, Arial, sans-serif`) optimized to a high-density sizing metric (`font-size: 0.82rem; line-height: 1.2;`).
+
+### 3. Action Bars & Top-Right Controls
+- Top Action Alignment: Place all primary execution hooks, system dropdown configurations, or processing engines (e.g., "Run Autoscheduler", "Save Matrix") strictly in the top right-hand corner of the workspace context.
+- Input Group Integration: For combined parameters (e.g., selecting a processor type and running it), merge the flat HTML `<select>` input and the execution button directly into a single unified border element (`border: 1px solid #107c41; display: flex;`).
+- Button Styling: All action buttons must be styled in solid Excel Green (`background-color: #107c41; color: #fff; font-weight: 600; border: none; border-radius: 0;`).
+
+### 4. Dynamic Data Processing Modal
+- Structural Wrapper: Build a completely flat overlay window featuring a plain white background and a thick outer border layer (`border: 2px solid #107c41;`).
+- Progressive Progress Bar: Incorporate a linear progress indicator wrapper that transitions dynamically across three operational phases to convey algorithmic depth:
+  - Phase 1 (< 35%): Warning Yellow (`#ffc107`) for analysis and setup operations.
+  - Phase 2 (35% to 85%): Processing Blue (`#0d6efd`) for bulk data allocations/computations.
+  - Phase 3 (> 85%): Success Green (`#198754`) for optimization passes and confirmation.
+- Output Logs: Feature an unstyled text box at the base of the modal window rendering the last 10 log strings using simple, raw text formatting.
+
+Do not write markdown introductory paragraphs or boilerplate pleasantries. Output only the requested code framework conforming to these rigid spreadsheet-design parameters.

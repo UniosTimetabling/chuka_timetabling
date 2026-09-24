@@ -1,0 +1,239 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+{% block body_class %}page-public page-feedback{% endblock %}
+
+{% block page_css %}
+
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'feedback/css/feedback_feedback_feedback.css' %}">
+<link rel="stylesheet" href="{% static 'feedback/css/feedback_feedback.css' %}">
+
+<link rel="stylesheet" href="{% static 'css/website.css' %}">
+<style>
+/* ══════════════════════════════════════════════════════════
+   YELLOW/INK PALETTE — brought over from the homepage/portal
+   redesign so the feedback page matches the rest of the public
+   site. Structure/content below is untouched; this only recolors
+   the existing markup, same approach as .page-home / .page-staff /
+   .page-student.
+   ══════════════════════════════════════════════════════════ */
+.page-feedback{
+  --hy-yellow: #f4e04d;
+  --hy-yellow-deep: #e6cf2e;
+  --hy-ink: #15130f;
+  --hy-paper: #f3f2ec;
+  --hy-line: #e6e3d8;
+  --hy-muted: #6f6a5e;
+}
+.page-feedback .feedback-page-wrap{ background:var(--hy-paper); }
+.page-feedback .fp-badge{ background:rgba(244,224,77,.22); color:var(--hy-ink); }
+.page-feedback .pdot.done{ background:var(--hy-ink); }
+.page-feedback .pdot.active{ background:var(--hy-yellow-deep); box-shadow:0 0 0 3px rgba(230,207,46,.25); }
+.page-feedback .pline.done{ background:var(--hy-ink); }
+.page-feedback .bot-speech{ background:var(--hy-paper); border-color:var(--hy-line); }
+.page-feedback .bot-speech strong{ color:var(--hy-ink); }
+.page-feedback .bot-speech em{ color:var(--hy-yellow-deep); }
+/* FIXED: Replaced black circle with Chuka logo for the main chat bubble */
+.page-feedback .bot-face{ background:transparent !important; border:2px solid #f4e04d; border-radius:50%; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,0.15); width:52px; height:52px; display:block; }
+/* FIXED: Replaced black circle with Chuka logo for the floating widget */
+.page-feedback .bot-fab{ background:transparent !important; border:2px solid #f4e04d; border-radius:50%; object-fit:cover; box-shadow:0 4px 12px rgba(0,0,0,0.2); width:56px; height:56px; cursor:pointer; z-index:1000; }
+
+.page-feedback .fp-label i{ color:var(--hy-yellow-deep); }
+.page-feedback .fp-input:focus,.page-feedback .fp-textarea:focus{ border-color:var(--hy-ink); box-shadow:0 0 0 3px rgba(21,19,15,.1); }
+.page-feedback .btn-fp-main{ background:var(--hy-ink); }
+.page-feedback .btn-fp-main:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+.page-feedback .chip{ border-color:var(--hy-ink); color:var(--hy-ink); }
+.page-feedback .chip:hover,.page-feedback .chip.selected{ background:var(--hy-ink); color:#fff; box-shadow:none; }
+.page-feedback .chip.secondary{ border-color:var(--hy-muted); color:var(--hy-muted); }
+.page-feedback .chip.secondary:hover{ background:var(--hy-muted); color:#fff; }
+.page-feedback .yc.selected{ background:var(--hy-ink); }
+.page-feedback .answered-chip{ background:var(--hy-paper); border-color:var(--hy-line); color:var(--hy-ink); }
+.page-feedback .answered-chip i{ color:var(--hy-yellow-deep); }
+.page-feedback .fp-msg.success{ background:var(--hy-paper); color:var(--hy-ink); border-color:var(--hy-line); }
+.page-feedback .fp-back a:hover{ color:var(--hy-yellow-deep); }
+
+/* Floating "Timetabling Assistant" bot fab + panel on this page */
+.page-feedback .bot-panel-header{ background:var(--hy-ink); }
+.page-feedback .bp-msg.bot strong{ color:var(--hy-ink); }
+.page-feedback .bp-msg.bot{ background:var(--hy-paper); border-color:var(--hy-line); }
+.page-feedback .bp-msg.user{ background:var(--hy-ink); }
+.page-feedback .bp-chip{ border-color:var(--hy-ink); color:var(--hy-ink); }
+.page-feedback .bp-chip:hover{ background:var(--hy-ink); color:#fff; }
+.page-feedback .bot-panel-input input:focus{ border-color:var(--hy-ink); }
+.page-feedback .bot-panel-input button{ background:var(--hy-ink); }
+.page-feedback .bot-panel-input button:hover{ background:var(--hy-yellow-deep); color:var(--hy-ink); }
+</style>
+{% endblock page_css %}
+
+{% block title %}Feedback · Timetabling &amp; Examinations · {{ site_settings.university_name|default:"Chuka University" }}{% endblock %}
+
+{% block nav_links %}
+ <a href="{% url 'view_timetable' %}">Timetables</a>
+ <a href="{% url 'view_timetable' %}">Examinations</a>
+ <a href="{% url 'student_portal' %}">Student Portal</a>
+ <a href="{% url 'staff_portal' %}" class="nav-badge">Staff</a>
+{% endblock %}
+
+{% block content %}
+<div class="feedback-page-wrap">
+ <div class="feedback-page-inner">
+
+ <div class="fp-header">
+ <div class="fp-badge">Timetabling &amp; Examinations</div>
+ <h1>Feedback &amp; Clash Reports</h1>
+ <p>Help us improve your academic experience. Report clashes or share suggestions — our assistant will guide you through.</p>
+ </div>
+
+ <div class="fp-card">
+
+ <!-- Progress -->
+ <div class="prog-row" id="progRow">
+ <div class="pdot active" id="d0"></div>
+ <div class="pline" id="l01"></div>
+ <div class="pdot" id="d1"></div>
+ <div class="pline" id="l12"></div>
+ <div class="pdot" id="d2"></div>
+ <div class="pline" id="l23"></div>
+ <div class="pdot" id="d3"></div>
+ <div class="pline" id="l34"></div>
+ <div class="pdot" id="d4"></div>
+ <div class="pline" id="l45"></div>
+ <div class="pdot" id="d5"></div>
+ </div>
+
+ <!-- Bot bubble (FIXED ICON) -->
+ <div class="bot-row">
+ <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="bot-face" id="mainBotFace">
+ <div class="bot-speech" id="botSpeech">
+ <div class="tdots"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div>
+ </div>
+ </div>
+
+ <!-- STEP 0: Name -->
+ <div class="step on" id="s0">
+ <label class="fp-label"><i class="fas fa-user-graduate"></i> Full Name *</label>
+ <input class="fp-input" type="text" id="fName" autocomplete="name" placeholder="e.g. Jane Mwangi"
+ onkeydown="if(event.key==='Enter'){event.preventDefault();go0()}">
+ <span class="hint" id="h0">Please enter your full name.</span>
+ <button class="btn-fp-main" onclick="go0()"><i class="fas fa-arrow-right"></i> Continue</button>
+ </div>
+
+ <!-- STEP 1: Email -->
+ <div class="step" id="s1">
+ <label class="fp-label"><i class="fas fa-envelope"></i> Email *</label>
+ <input class="fp-input" type="email" id="fEmail" autocomplete="email" placeholder="you@student.chuka.ac.ke"
+ onkeydown="if(event.key==='Enter'){event.preventDefault();go1()}">
+ <span class="hint" id="h1">Please enter a valid email address.</span>
+ <button class="btn-fp-main" onclick="go1()"><i class="fas fa-arrow-right"></i> Continue</button>
+ </div>
+
+ <!-- STEP 2: Admission -->
+ <div class="step" id="s2">
+ <label class="fp-label"><i class="fas fa-id-card"></i> Admission Number <span style="font-weight:400;color:var(--cu-muted);font-size:.82rem;">(optional)</span></label>
+ <input class="fp-input" type="text" id="fAdm" placeholder="e.g. CHU/12345/2021"
+ onkeydown="if(event.key==='Enter'){event.preventDefault();go2()}">
+ <div class="chip-row">
+ <button class="chip" onclick="go2()"><i class="fas fa-arrow-right"></i> Continue</button>
+ <button class="chip secondary" onclick="skip2()">Skip</button>
+ </div>
+ </div>
+
+ <!-- STEP 3: Type -->
+ <div class="step" id="s3">
+ <label class="fp-label"><i class="fas fa-comment-dots"></i> What would you like to do?</label>
+ <div class="chip-row" style="margin-top:.5rem;">
+ <button class="chip" onclick="chooseType('general')"><i class="fas fa-comment-alt"></i> Share feedback or suggestion</button>
+ <button class="chip" onclick="chooseType('regular')"><i class="fas fa-calendar-times"></i> Report a lecture clash</button>
+ <button class="chip" onclick="chooseType('exam')"><i class="fas fa-scroll"></i> Report an exam clash</button>
+ </div>
+ </div>
+
+ <!-- STEP 4A: General -->
+ <div class="step" id="s4a">
+ <label class="fp-label"><i class="fas fa-comment-dots"></i> Your Message *</label>
+ <textarea class="fp-textarea" id="fMsg" placeholder="Share your thoughts, suggestion, or any concern about the timetable..."></textarea>
+ <span class="hint" id="h4a">Please write at least 10 characters.</span>
+ <button class="btn-fp-main" onclick="submitGeneral()"><i class="fas fa-paper-plane"></i> Send Feedback</button>
+ </div>
+
+ <!-- STEP 4B: Clash -->
+ <div class="step" id="s4b">
+ <label class="fp-label"><i class="fas fa-graduation-cap"></i> Your Program *</label>
+ <input class="fp-input" type="text" id="fProg" placeholder="e.g. Bachelor of Computer Science">
+ <span class="hint" id="hProg">Please enter your program name.</span>
+
+ <label class="fp-label" style="margin-top:1.2rem;"><i class="fas fa-layer-group"></i> Year of Study *</label>
+ <div class="chip-row" style="margin-top:.5rem;" id="yearRow">
+ <button class="chip yc" onclick="pickYear(this,1)">Year 1</button>
+ <button class="chip yc" onclick="pickYear(this,2)">Year 2</button>
+ <button class="chip yc" onclick="pickYear(this,3)">Year 3</button>
+ <button class="chip yc" onclick="pickYear(this,4)">Year 4</button>
+ <button class="chip yc" onclick="pickYear(this,5)">Year 5</button>
+ <button class="chip yc" onclick="pickYear(this,6)">Year 6</button>
+ </div>
+ <span class="hint" id="hYear">Please select your year of study.</span>
+
+ <label class="fp-label" style="margin-top:1.2rem;"><i class="fas fa-book"></i> Course Code(s) <span style="font-weight:400;color:var(--cu-muted);font-size:.82rem;">(optional)</span></label>
+ <input class="fp-input" type="text" id="fCourses" placeholder="e.g. COSC 312, COSC 315">
+
+ <label class="fp-label" style="margin-top:1.2rem;"><i class="fas fa-align-left"></i> Brief description of the clash</label>
+ <textarea class="fp-textarea" id="fDesc" style="min-height:90px;" placeholder="e.g. Both COSC 312 and COSC 315 are scheduled on Monday 8–11am in the same venue..."></textarea>
+
+ <button class="btn-fp-main" id="btnCheck" onclick="doClash()"><i class="fas fa-search"></i> Check &amp; Submit Report</button>
+ <div id="clashResult"></div>
+ </div>
+
+ <!-- STEP 5: Done -->
+ <div class="step" id="s5">
+ <div id="doneMsg" class="fp-msg success" style="border-radius:var(--r-lg);text-align:left;padding:1.2rem 1.4rem;line-height:1.7;"></div>
+ <button class="btn-fp-main" style="margin-top:1.2rem;" onclick="restart()"><i class="fas fa-redo"></i> Submit Another</button>
+ </div>
+
+ <div class="fp-back">
+ <a href="/portal/"><i class="fas fa-arrow-left"></i> Back to Portal</a>
+ </div>
+
+ </div><!-- /fp-card -->
+ </div>
+</div>
+
+<!-- FLOATING BOT WIDGET (FIXED ICON) -->
+<img src="{% static 'images/chuka.png' %}" alt="Chuka University" 
+     class="bot-fab" onclick="toggleBot()" 
+     id="botFab">
+
+<div class="bot-fab-label" id="botFabLabel">Timetabling Assistant</div>
+
+<div class="bot-panel" id="botPanel">
+ <div class="bot-panel-header">
+ <img src="{% static 'images/chuka.png' %}" alt="Chuka University" class="bph-face" style="width:32px; height:32px; border-radius:50%; border:2px solid #f4e04d; object-fit:cover;">
+ <div class="bph-info">
+ <strong>Timetabling Assistant</strong>
+ <small>Ask me anything about timetables</small>
+ </div>
+ <button class="bot-panel-close" onclick="toggleBot()"></button>
+ </div>
+ <div class="bot-panel-body" id="botPanelBody">
+ <div class="bp-msg bot">Hi! I'm your <strong>Timetabling Assistant</strong>. I can help with clashes, timetable queries, exam schedules, and more. What do you need?</div>
+ <div class="bp-chip-row">
+ <button class="bp-chip" onclick="botQuick('Report a timetable clash')">Report a clash</button>
+ <button class="bp-chip" onclick="botQuick('When are exams?')">Exam schedule</button>
+ <button class="bp-chip" onclick="botQuick('How do I download my timetable?')">Download timetable</button>
+ <button class="bp-chip" onclick="botQuick('Contact the timetabling office')">Contact office</button>
+ </div>
+ </div>
+ <div class="bot-panel-input">
+ <input type="text" id="botInput" placeholder="Type a question…" onkeydown="if(event.key==='Enter')sendBot()">
+ <button onclick="sendBot()">&#10148;</button>
+ </div>
+</div>
+
+
+{% block footer %}<footer style="background:#15130f;color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:3px solid #f4e04d;" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'feedback/js/feedback_feedback_feedback.js' %}"></script>
+<script src="{% static 'feedback/js/feedback_feedback.js' %}"></script>
+{% endblock extra_js %}

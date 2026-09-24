@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block body_class %}dashboard-body{% endblock %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'dashboards/css/dashboard.css' %}">
+{% block admin_css %}{% endblock %}
+<link rel="stylesheet" href="{% static 'css/workspace_unified.css' %}">
+{% endblock page_css %}
+
+{% block navbar %}{% endblock navbar %}
+
+{% block content %}
+<div class="dash-shell">
+
+ 
+ <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+ 
+ <aside class="dash-sidebar" id="dashSidebar" role="navigation" aria-label="Dashboard navigation">
+
+ 
+ <a href="{% url 'homepage' %}" class="sidebar-brand" aria-label="{{ site_settings.university_name|default:'Chuka University' }} home">
+ <img src="{% url 'site_logo' %}"
+ alt="{{ site_settings.university_name|default:'CU' }} logo"
+ class="sidebar-brand-logo"
+ onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+ <span class="sidebar-brand-fallback" style="display:none" aria-hidden="true">{{ site_settings.university_name|default:"CU"|slice:":2"|upper }}</span>
+ <span class="sidebar-brand-text">
+ <strong>{{ site_settings.university_name|default:"Chuka University" }}</strong>
+ <span>{{ site_settings.tagline|default:"Timetabling &amp; Examinations" }}</span>
+ </span>
+ </a>
+
+ 
+ <nav class="sidebar-nav" role="menubar">
+ {% block sidebar_links %}
+ 
+ <span class="sidebar-section-label">Navigation</span>
+ <a href="{% url 'homepage' %}" class="sidebar-item" role="menuitem">
+ <i class="fas fa-home" aria-hidden="true"></i> Home
+ </a>
+ {% if user.is_authenticated %}
+ <a href="{% url 'logout' %}" class="sidebar-item" role="menuitem">
+ <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout
+ </a>
+ {% endif %}
+ {% endblock sidebar_links %}
+ </nav>
+
+ 
+ <div class="sidebar-footer">
+ {% if user.is_authenticated %}
+ <a href="{% url 'logout' %}" title="Logout">
+ <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+ Logout
+ </a>
+ {% endif %}
+ <a href="{% url 'homepage' %}" title="Public homepage">
+ <i class="fas fa-globe" aria-hidden="true"></i>
+ Public Site
+ </a>
+ </div>
+
+ </aside>
+
+ 
+ <div class="dash-main">
+
+ 
+ <header class="dash-topbar" role="banner">
+ <button class="topbar-toggle" id="topbarToggle" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="dashSidebar">
+ <i class="fas fa-bars" aria-hidden="true"></i>
+ </button>
+
+ <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
+ {% block breadcrumb %}
+ <a href="{% url 'homepage' %}">Home</a>
+ <span class="sep" aria-hidden="true">›</span>
+ <span>Dashboard</span>
+ {% endblock breadcrumb %}
+ </nav>
+
+ <div class="topbar-actions" role="toolbar" aria-label="Topbar actions">
+ {% block topbar_actions %}{% endblock %}
+
+ {% if user.is_authenticated %}
+ <div class="topbar-avatar" title="{{ user.get_full_name|default:user.username }}" aria-label="User: {{ user.username }}">
+ {{ user.get_full_name|default:user.username|slice:":2"|upper }}
+ </div>
+ {% endif %}
+ </div>
+ </header>
+
+ 
+ <div class="dash-content">
+ {% block dash_content %}{% endblock dash_content %}
+ </div>
+
+ 
+
+
+ </div>
+</div>
+{% endblock content %}
+
+{% block footer %}{% endblock footer %}
+
+{% block extra_js %}
+<script src="{% static 'dashboards/js/dashboard.js' %}"></script>
+{% block admin_js %}{% endblock %}
+{% endblock extra_js %}

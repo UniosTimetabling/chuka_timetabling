@@ -1,0 +1,103 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %} Exam Timetable{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_exam_timetable.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+<h2> Exam Timetable</h2>
+
+ {% for date in dates %}
+ <h4>{{ date }}</h4>
+ <table>
+ <thead>
+ <tr>
+ <th>Venue</th>
+ {% for slot in timeslots %}
+ <th style="background:#ffd;">{{ slot }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for group in merged_groups %}
+ <tr>
+ <td><strong>{{ group.venue.code }}</strong></td>
+ {% for slot in timeslots %}
+ {% with match=None %}
+ {% for exam in exam_timetable %}
+ {% if exam.date|stringformat:"Y-m-d" == date|stringformat:"Y-m-d" and exam.venue == group.venue.code and exam.start_time|stringformat:"H:i" in slot %}
+ {% with match=exam %}{% endwith %}
+ {% endif %}
+ {% endfor %}
+ <td contenteditable="true"
+ data-date="{{ date }}"
+ data-slot="{{ slot }}"
+ data-venue="{{ group.venue.code }}"
+ data-id="{{ match.id|default:'' }}">
+ {% if match %}
+ {{ match.course_allocation.course_code }}
+ {% endif %}
+ </td>
+ {% endwith %}
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ {% endfor %}
+
+ <h3> Lab Exam Timetable</h3>
+ <table>
+ <thead><tr><th>Lab</th><th>Date</th><th>Start</th><th>End</th><th>Course</th></tr></thead>
+ <tbody>
+ {% for lab in lab_exams %}
+ <tr>
+ <td>{{ lab.lab_venue.code }}</td>
+ <td>{{ lab.date }}</td>
+ <td>{{ lab.start_time }}</td>
+ <td>{{ lab.end_time }}</td>
+ <td>{{ lab.lab_allocation.program_course.course_code }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * timetable_timetable_exam_timetable.js
+ * Extracted inline JS from: timetable/templates/timetable/exam_timetable.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+$("td[contenteditable=true]").on("blur", function() {
+      const td = $(this);
+      const data = {
+        id: td.data("id"),
+        date: td.data("date"),
+        slot: td.data("slot"),
+        venue: td.data("venue"),
+        course: td.text().trim()
+      };
+      const url = data.id ? "{% url 'update_exam_timetable' %}" : "{% url 'create_exam_timetable' %}";
+      $.ajax({
+        url: url,
+        method: "POST",
+        data: JSON.stringify(data),
+        contentType: "application/json",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        success: (resp) => {
+          if (resp.status === "error") td.addClass("collision");
+          else td.removeClass("collision");
+        },
+        error: () => td.addClass("collision")
+      });
+    });
+</script>
+{% endblock %}

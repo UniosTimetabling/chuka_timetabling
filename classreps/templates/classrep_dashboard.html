@@ -1,0 +1,169 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block title %}Class Rep Dashboard{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'classreps/css/classrep_dashboard.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<header>
+ <h3>Welcome, {{ rep.full_name }}</h3>
+ <a href="{% url 'publish_minimal_timetable' %}" class="btn">Publish to Minimal Timetable</a>
+ </header>
+
+ <div class="container">
+ <!-- LEFT PANEL -->
+ <div class="panel">
+ <div class="panel-header">
+ <h3 class="panel-title">Official Timetable</h3>
+ </div>
+ {% if timetable %}
+ <div class="table-responsive">
+ <table>
+ <thead>
+ <tr>
+ <th>Course</th>
+ <th>Day</th>
+ <th>Time</th>
+ <th>Venue</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for t in timetable %}
+ <tr>
+ <td>{{ t.course_allocation.course_code }}</td>
+ <td>{{ t.day }}</td>
+ <td>{{ t.start_time }} - {{ t.end_time }}</td>
+ <td>{{ t.venue }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">No timetable data available.</div>
+ {% endif %}
+ </div>
+
+ <!-- RIGHT PANEL -->
+ <div class="panel">
+ <div class="panel-header">
+ <h3 class="panel-title">Editable Minimal Timetable</h3>
+ </div>
+ {% if minimal %}
+ <div class="table-responsive">
+ <table>
+ <thead>
+ <tr>
+ <th>Course</th>
+ <th>Day</th>
+ <th>Time</th>
+ <th>Venue</th>
+ <th>Action</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for m in minimal %}
+ <tr>
+ <td>{{ m.course_code }}</td>
+ <td>{{ m.day }}</td>
+ <td>{{ m.start_time }} - {{ m.end_time }}</td>
+ <td>{{ m.venue }}</td>
+ <td><a href="{% url 'edit_minimal_entry' m.id %}" class="btn btn-small">Edit</a></td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">No minimal timetable published yet.</div>
+ {% endif %}
+
+ <div class="notifications">
+ <h3 class="panel-title">Notifications</h3>
+ {% if notifications %}
+ <ul>
+ {% for note in notifications %}
+ <li>
+ {{ note.message }}
+ <span class="notification-time">({{ note.created_at|date:"Y-m-d H:i" }})</span>
+ </li>
+ {% endfor %}
+ </ul>
+ {% else %}
+ <div class="empty-state">No notifications.</div>
+ {% endif %}
+ </div>
+ </div>
+ </div>
+
+ <!-- PROGRAM CODE MANAGEMENT -->
+ <div class="container">
+ <div class="panel full-width">
+ <div class="panel-header">
+ <h3 class="panel-title">Program Code Management</h3>
+ </div>
+ 
+ <div class="form-section">
+ <h4>Assign or Add Program Code</h4>
+ <form id="programCodeForm">
+ {% csrf_token %}
+ <div class="form-group">
+ <label for="program_id">Select Program</label>
+ <select name="program_id" id="program_id" required>
+ <option value="">-- Choose Program --</option>
+ {% for prog in programs %}
+ <option value="{{ prog.id }}">{{ prog.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ 
+ <div class="form-group">
+ <label for="program_code">Program Code</label>
+ <input type="text" name="program_code" id="program_code" placeholder="e.g. EB1" required>
+ </div>
+ 
+ <button type="submit" class="btn">Save Code</button>
+ </form>
+ 
+ <div id="result" class="alert"></div>
+ </div>
+ 
+ <div class="existing-codes">
+ <h4>Existing Program Codes</h4>
+ {% if programs_codes %}
+ <div class="table-responsive">
+ <table>
+ <thead>
+ <tr>
+ <th>Program</th>
+ <th>Code</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for code in programs_codes %}
+ <tr>
+ <td>{{ code.program.name }}</td>
+ <td>{{ code.code }}</td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ </div>
+ {% else %}
+ <div class="empty-state">No program codes added yet.</div>
+ {% endif %}
+ </div>
+ </div>
+ </div>
+{% endblock content %}
+
+{% block footer %}<footer style="background:var(--panel-navy,#0d1b3e);color:rgba(255,255,255,.4);font-size:.74rem;text-align:center;padding:.6rem;border-top:1px solid rgba(255,255,255,.08);" role="contentinfo">&copy; {% now "Y" %} {{ site_settings.university_name|default:"Chuka University" }} — Timetabling &amp; Examinations</footer>{% endblock footer %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'classreps/js/classreps_classrep_dashboard.js' %}"></script>
+{% endblock extra_js %}

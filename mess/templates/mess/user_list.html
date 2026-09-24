@@ -1,0 +1,347 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+
+{% block title %} Chuka University Mess{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'mess/css/mess_mess_user_list.css' %}">
+<link rel="stylesheet" href="{% static 'mess/css/mess_user_list.css' %}">
+{% endblock page_css %}
+
+{% block dash_content %}
+<header> Welcome to University Mess</header>
+
+ <!-- Cart Icon -->
+ <div class="cart-icon-container">
+ <div class="cart-icon" id="cart-icon">
+ 
+ <div class="cart-count" id="cart-count">0</div>
+ </div>
+ </div>
+
+ <!-- Cart Modal -->
+ <div class="cart-modal" id="cart-modal">
+ <div class="cart-content">
+ <div class="cart-header">
+ <div class="cart-title">Your Order</div>
+ <button class="close-cart" id="close-cart">×</button>
+ </div>
+ 
+ <div class="cart-items" id="cart-items">
+ <div class="empty-cart">Your cart is empty. Add some delicious items!</div>
+ </div>
+ 
+ <div class="cart-total">
+ <span>Total:</span>
+ <span id="cart-total">Ksh 0</span>
+ </div>
+ 
+ <div class="cart-actions">
+ <button class="cart-action-btn cart-clear-btn" id="clear-cart">Clear Cart</button>
+ <button class="cart-action-btn cart-checkout-btn" id="checkout">Checkout</button>
+ </div>
+ </div>
+ </div>
+
+ <section class="intro">
+ <h2>Fresh • Affordable • Delicious</h2>
+ <p>
+ At UniOS University Mess, we pride ourselves on offering a wide variety of 
+ nutritious meals and refreshing drinks to fuel your academic journey. 
+ From hearty breakfasts to wholesome lunches and delightful dinners, 
+ every meal is prepared with care, quality, and student satisfaction in mind. 
+ </p>
+ <p>
+ Explore our menu below and discover meals made to keep you energized 
+ throughout the day. Bon appétit! 
+ </p>
+ </section>
+
+ <div class="grid">
+ {% for food in foods %}
+ <div class="card">
+ {% if food.first_image %}
+ <img src="{{ food.first_image }}" alt="{{ food.name }}">
+ {% else %}
+ <img src="https://via.placeholder.com/300x200/4CAF50/FFFFFF?text={{ food.name|urlencode }}" alt="{{ food.name }}">
+ {% endif %}
+ <div class="card-content">
+ <h3>{{ food.name }}</h3>
+ <div class="description">{{ food.description }}</div>
+ <p class="price">Ksh {{ food.price }}</p>
+ {% if food.options.all %}
+ <ul class="options-list">
+ {% for option in food.options.all %}
+ <li>{{ option.option }}</li>
+ {% endfor %}
+ </ul>
+ {% endif %}
+ <!-- Order button - add your dynamic data attributes here -->
+ <button class="order-btn" 
+ data-id="{{ food.id }}" 
+ data-name="{{ food.name }}" 
+ data-price="{{ food.price }}">
+ Add to Order
+ </button>
+ </div>
+ </div>
+ {% endfor %}
+ </div>
+
+ <!-- Dynamic Offers Section -->
+ <section class="offers">
+ <h2> Latest Offers & Updates</h2>
+ <div class="grid" id="offers-container">
+ <p style="text-align:center; color:#777;">Loading offers...</p>
+ </div>
+ </section>
+{% endblock dash_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * mess_mess_user_list.js
+ * Extracted inline JS from: mess/templates/mess/user_list.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+// Cart functionality - this integrates with your existing dynamic data
+  document.addEventListener("DOMContentLoaded", function() {
+    const cart = {
+      items: [],
+      total: 0,
+      count: 0
+    };
+    
+    // DOM Elements
+    const cartIcon = document.getElementById('cart-icon');
+    const cartModal = document.getElementById('cart-modal');
+    const closeCart = document.getElementById('close-cart');
+    const cartCount = document.getElementById('cart-count');
+    const cartItems = document.getElementById('cart-items');
+    const cartTotal = document.getElementById('cart-total');
+    const clearCartBtn = document.getElementById('clear-cart');
+    const checkoutBtn = document.getElementById('checkout');
+    
+    // Load cart from localStorage if available
+    const savedCart = localStorage.getItem('messCart');
+    if (savedCart) {
+      const parsed = JSON.parse(savedCart);
+      cart.items = parsed.items || [];
+      updateCart();
+    }
+    
+    // Cart icon click handler
+    cartIcon.addEventListener('click', function() {
+      cartModal.classList.add('active');
+    });
+    
+    // Close cart modal
+    closeCart.addEventListener('click', function() {
+      cartModal.classList.remove('active');
+    });
+    
+    // Close modal when clicking outside
+    cartModal.addEventListener('click', function(e) {
+      if (e.target === cartModal) {
+        cartModal.classList.remove('active');
+      }
+    });
+    
+    // Add to cart buttons - these will work with your dynamic food items
+    document.querySelectorAll('.order-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const name = this.dataset.name;
+        const price = parseInt(this.dataset.price);
+        
+        addToCart(id, name, price);
+      });
+    });
+    
+    // Clear cart button
+    clearCartBtn.addEventListener('click', clearCart);
+    
+    // Checkout button
+    checkoutBtn.addEventListener('click', function() {
+      if (cart.items.length === 0) {
+        alert('Your cart is empty. Add some items before checking out.');
+        return;
+      }
+      
+      alert(`Thank you for your order! Total: Ksh ${cart.total}\n\nYour order has been placed and will be ready shortly.`);
+      clearCart();
+      cartModal.classList.remove('active');
+    });
+    
+    // Add item to cart
+    function addToCart(id, name, price) {
+      const existingItem = cart.items.find(item => item.id === id);
+      
+      if (existingItem) {
+        existingItem.quantity++;
+      } else {
+        cart.items.push({
+          id,
+          name,
+          price,
+          quantity: 1
+        });
+      }
+      
+      updateCart();
+      saveCart();
+      
+      // Visual feedback
+      const button = document.querySelector(`.order-btn[data-id="${id}"]`);
+      const originalText = button.textContent;
+      button.textContent = 'Added!';
+      button.style.background = '#43a047';
+      
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.style.background = '#2e7d32';
+      }, 1000);
+      
+      // Show cart modal if it's the first item
+      if (cart.items.length === 1) {
+        cartModal.classList.add('active');
+      }
+    }
+    
+    // Remove item from cart
+    function removeFromCart(id) {
+      cart.items = cart.items.filter(item => item.id !== id);
+      updateCart();
+      saveCart();
+    }
+    
+    // Update item quantity
+    function updateQuantity(id, change) {
+      const item = cart.items.find(item => item.id === id);
+      
+      if (item) {
+        item.quantity += change;
+        
+        if (item.quantity <= 0) {
+          removeFromCart(id);
+        } else {
+          updateCart();
+          saveCart();
+        }
+      }
+    }
+    
+    // Update cart display
+    function updateCart() {
+      // Calculate totals
+      cart.count = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+      cart.total = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      // Update cart count
+      cartCount.textContent = cart.count;
+      
+      // Update cart total
+      cartTotal.textContent = `Ksh ${cart.total}`;
+      
+      // Update items list
+      if (cart.items.length === 0) {
+        cartItems.innerHTML = '<div class="empty-cart">Your cart is empty. Add some delicious items!</div>';
+        return;
+      }
+      
+      cartItems.innerHTML = '';
+      
+      cart.items.forEach(item => {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'cart-item';
+        itemElement.innerHTML = `
+          <div class="cart-item-info">
+            <div class="cart-item-name">${item.name}</div>
+            <div class="cart-item-price">Ksh ${item.price}</div>
+          </div>
+          <div class="cart-item-quantity">
+            <button class="cart-quantity-btn minus" data-id="${item.id}">-</button>
+            <span class="cart-quantity-value">${item.quantity}</span>
+            <button class="cart-quantity-btn plus" data-id="${item.id}">+</button>
+          </div>
+          <button class="cart-remove-btn" data-id="${item.id}">Remove</button>
+        `;
+        
+        cartItems.appendChild(itemElement);
+      });
+      
+      // Add event listeners to quantity buttons
+      document.querySelectorAll('.cart-quantity-btn.minus').forEach(btn => {
+        btn.addEventListener('click', function() {
+          updateQuantity(this.dataset.id, -1);
+        });
+      });
+      
+      document.querySelectorAll('.cart-quantity-btn.plus').forEach(btn => {
+        btn.addEventListener('click', function() {
+          updateQuantity(this.dataset.id, 1);
+        });
+      });
+      
+      // Add event listeners to remove buttons
+      document.querySelectorAll('.cart-remove-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          removeFromCart(this.dataset.id);
+        });
+      });
+    }
+    
+    // Clear entire cart
+    function clearCart() {
+      if (cart.items.length === 0) return;
+      
+      if (confirm('Are you sure you want to clear your cart?')) {
+        cart.items = [];
+        updateCart();
+        saveCart();
+      }
+    }
+    
+    // Save cart to localStorage
+    function saveCart() {
+      localStorage.setItem('messCart', JSON.stringify(cart));
+    }
+    
+    // Your existing offers API call
+    fetch("{% url 'offers_api' %}")
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById("offers-container");
+        container.innerHTML = "";
+
+        if (!data.offers || data.offers.length === 0) {
+          container.innerHTML = "<p style='text-align:center; color:#777;'>No offers today 🎉</p>";
+          return;
+        }
+
+        data.offers.forEach(offer => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            ${offer.image ? `<img src="${offer.image}" alt="${offer.title}">` : 
+              `<img src="https://via.placeholder.com/300x200/FFC107/000000?text=Special+Offer" alt="Special Offer">`}
+            <div class="card-content">
+              <h3>${offer.title}</h3>
+              <div class="description">${offer.description}</div>
+              ${offer.discount ? `<p class="price">Discount: ${offer.discount}%</p>` : ""}
+              ${offer.end_date ? `<small>Valid until ${offer.end_date}</small>` : ""}
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      })
+      .catch(() => {
+        document.getElementById("offers-container").innerHTML =
+          "<p style='text-align:center; color:#777;'>No offers today 🎉</p>";
+      });
+  });
+</script>
+{% endblock %}

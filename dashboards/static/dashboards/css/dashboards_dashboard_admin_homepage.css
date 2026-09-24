@@ -1,0 +1,208 @@
+/*
+ * dashboards_dashboard_admin_homepage.css
+ * Theme: white cards · clean borders · no background shading · full-width layout
+ */
+
+/* ── PAGE ── */
+.hp-wrap {
+  min-height: calc(100vh - 56px);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.4rem 2rem 3.5rem;
+  box-sizing: border-box;
+}
+
+/* ── HEADER ── */
+.hp-head {
+  text-align: center;
+  margin-bottom: 2.4rem;
+}
+.hp-head h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0d1b3e;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.3rem;
+}
+.hp-head p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 400;
+}
+
+/* ── 3-COLUMN GRID — full-width responsive ── */
+.hp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  column-gap: 40px;
+  align-items: start;
+  width: 100%;
+  max-width: 960px;
+}
+
+.hp-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* vertical spacers to align side nodes with centre chain */
+.hp-spacer    { height: 90px; flex-shrink: 0; }
+.hp-spacer-sm { height: 28px; flex-shrink: 0; }
+
+/* ── CONNECTOR LINE — dark and clearly visible ── */
+.hp-connector {
+  width: 2px;
+  height: 22px;
+  background: #1e3a8a;
+  opacity: 0.55;
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+/* ── BASE NODE — white card, clean border ── */
+.hp-node {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px 20px 16px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  text-decoration: none;
+  transition: border-color 0.15s ease;
+  flex-shrink: 0;
+  color: #0d1b3e;
+}
+.hp-node:hover {
+  border-color: #1e3a8a;
+}
+
+.node-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0d1b3e;
+  white-space: normal;
+}
+.node-desc {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #4b5563;
+  white-space: normal;
+}
+.node-tag {
+  margin-top: 8px;
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  white-space: normal;
+  line-height: 1.5;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  background: #f9fafb;
+}
+
+/* ── PRIMARY nodes — white, navy left-border accent ── */
+.node-primary {
+  border-left: 3px solid #1e3a8a;
+}
+.node-primary .node-name { color: #0d1b3e; }
+.node-primary:hover { border-color: #1e3a8a; }
+
+/* ── Timetabling — orange left-border accent ── */
+.node-accent {
+  border-left: 3px solid #f97316;
+}
+.node-accent .node-name { color: #7c2d12; }
+.node-accent:hover { border-color: #f97316; }
+
+/* ── ASIDE nodes — white, teal left-border ── */
+.node-aside {
+  border-left: 3px solid #0891b2;
+}
+.node-aside .node-name { color: #0d1b3e; }
+.node-aside:hover { border-color: #0891b2; }
+
+/* ── DEPT USERS ── */
+.node-users {
+  border-left: 3px solid #0891b2;
+}
+.node-users .node-name { color: #0d1b3e; }
+.node-users:hover { border-color: #0891b2; }
+.node-users .node-tag {
+  border-color: #0891b2;
+  color: #0891b2;
+  background: #f0f9ff;
+}
+
+/* ── SUDO — white, dark navy left-border + orange tag ── */
+.node-sudo {
+  border-left: 3px solid #0d1b3e;
+}
+.node-sudo .node-name { color: #0d1b3e; }
+.node-sudo:hover { border-color: #0d1b3e; }
+.node-sudo .node-tag {
+  border-color: #f97316;
+  color: #c2410c;
+  background: #fff7ed;
+}
+
+/* ── FOOTER LINKS ── */
+.hp-footer-links {
+  margin-top: 3rem;
+  display: flex;
+  gap: 2.5rem;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.4rem;
+  width: 100%;
+  max-width: 500px;
+}
+.hp-footer-links a {
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e3a8a;
+  transition: opacity 0.15s;
+}
+.hp-footer-links a:hover { opacity: 0.65; }
+.hp-footer-links .lnk-logout { color: #dc2626; }
+
+/* ── RESPONSIVE: tablet ── */
+@media (max-width: 768px) {
+  .hp-grid {
+    grid-template-columns: 1fr 1.1fr 1fr;
+    column-gap: 20px;
+    max-width: 100%;
+  }
+  .hp-node { padding: 14px 14px 12px; }
+  .node-name { font-size: 0.82rem; }
+  .node-desc { font-size: 0.7rem; }
+}
+
+/* ── RESPONSIVE: mobile ── */
+@media (max-width: 560px) {
+  .hp-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .hp-col-left,
+  .hp-col-right {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .hp-col-left .hp-node,
+  .hp-col-right .hp-node { flex: 1 1 140px; }
+  .hp-spacer, .hp-spacer-sm { display: none; }
+  .hp-col-centre { order: -1; margin-bottom: 16px; }
+  .hp-connector { height: 14px; }
+}

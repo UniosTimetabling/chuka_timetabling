@@ -1,0 +1,4 @@
+ERROR 2026-09-24 19:24:19,829 django.request log:246 Internal Server Error: /publish-regular-pdf/
+ERROR 2026-09-24 19:24:19,832 django.server basehttp:212 "GET /publish-regular-pdf/ HTTP/1.1" 500 366
+ERROR 2026-09-24 19:25:15,297 django.request log:246 Internal Server Error: /publish-regular-pdf/
+ERROR 2026-09-24 19:25:15,297 django.server basehttp:212 "GET /publish-regular-pdf/ HTTP/1.1" 500 366

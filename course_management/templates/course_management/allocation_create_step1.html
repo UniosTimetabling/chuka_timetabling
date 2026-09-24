@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>New allocation — {{ department.name }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background:#eef2ef; margin:0; padding:32px; color:#1a1a1a; }
+    .wrap { max-width: 560px; margin: 0 auto; background:#fff; border:1px solid #d8dfd9; border-radius:10px; padding:28px; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color:#555; margin-bottom: 24px; }
+    label { display:block; font-weight:600; margin: 16px 0 6px; font-size: 14px; }
+    input[type=text], select {
+      width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:14px;
+    }
+    .radio-row { display:flex; gap:16px; }
+    .radio-opt { flex:1; border:1px solid #ccc; border-radius:8px; padding:12px; cursor:pointer; }
+    .radio-opt input { margin-right:8px; }
+    .radio-opt .desc { color:#666; font-size:12px; margin-top:4px; margin-left:22px; }
+    .checkbox-row { margin-top:16px; display:flex; align-items:center; gap:8px; }
+    .btn {
+      display:inline-block; padding:10px 22px; border-radius:6px; border:none;
+      background:#2e7d4f; color:#fff; font-size:14px; cursor:pointer; margin-top:24px;
+    }
+    .back { display:inline-block; margin-top:12px; color:#666; font-size:13px; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Create a new allocation</h1>
+    <div class="sub">{{ department.name }} — step 1 of 2</div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+
+      <label>Name</label>
+      <input type="text" name="name" placeholder="e.g. Semester 1 2026/2027" required>
+
+      <label>Academic year</label>
+      <input type="text" name="academic_year" placeholder="e.g. 2026/2027">
+
+      <label>Allocation type</label>
+      <div class="radio-row">
+        <label class="radio-opt">
+          <input type="radio" name="allocation_type" value="auto_full" checked>
+          Auto-allocate a full semester
+          <div class="desc">Pull in every course for the semester(s) you choose next.</div>
+        </label>
+        <label class="radio-opt">
+          <input type="radio" name="allocation_type" value="selective">
+          Select specific courses
+          <div class="desc">Hand-pick only certain courses/programs, no full auto-allocate.</div>
+        </label>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" name="is_special" id="is_special">
+        <label for="is_special" style="margin:0;">This is a Special allocation (special intake / shifted semester)</label>
+      </div>
+
+      <button type="submit" class="btn">Continue →</button>
+    </form>
+    <a class="back" href="{% url 'allocation_picker' %}">← back to allocations</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+# EAS Build zips up this whole folder and uploads it before building.
+# Without this file it has no way to know what to skip (this project isn't
+# a git repo, so .gitignore doesn't apply here) — it was including
+# node_modules, which is hundreds of MB and can exhaust local disk space
+# while EAS compresses the upload tarball. EAS reinstalls dependencies
+# fresh on its own build machine anyway, so none of this needs to be sent.
+node_modules
+.expo
+.git
+android
+ios
+dist
+web-build
+*.log
+*.tsbuildinfo
+.DS_Store
+google-play-service-account.json

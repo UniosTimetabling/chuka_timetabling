@@ -1,0 +1,290 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Shared Files · Chuka University{% endblock %}
+
+{% block extra_css %}
+  .sf-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  .sf-hero {
+    padding-bottom:.5rem;
+    margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .sf-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+
+  .sf-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 12px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000; cursor:pointer;
+    text-decoration:none; border-radius:0;
+    transition:background .12s, color .12s;
+  }
+  .sf-btn:hover              { background:#f1f5f9; }
+  .sf-btn.sf-btn-green       { background:#107c41; color:#fff; border-color:#107c41; }
+  .sf-btn.sf-btn-green:hover { background:#0e6b36; }
+  .sf-btn.sf-btn-red         { color:#b71c1c; border-color:#b71c1c; }
+  .sf-btn.sf-btn-red:hover   { background:#ffebee; }
+  .sf-btn:disabled           { opacity:.5; cursor:not-allowed; }
+
+  .sf-hint { font-size:.8rem; color:#64748b; margin:-6px 0 14px; }
+
+  .sf-upload-card {
+    border:1px solid #000; background:#fafafa; padding:14px;
+    display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px;
+    margin-bottom:20px;
+  }
+  .sf-field { flex:1; min-width:200px; }
+  .sf-field label {
+    display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+    color:#475569; margin-bottom:3px;
+  }
+  .sf-field input[type="text"] {
+    width:100%; border:1px solid #000; padding:6px 8px; font-size:.85rem;
+    border-radius:0; box-sizing:border-box; background:#fff;
+  }
+  .sf-file-input-wrap {
+    flex:1.4; min-width:240px;
+  }
+  .sf-file-input-wrap input[type="file"] {
+    width:100%; border:1px solid #000; padding:5px; font-size:.8rem; background:#fff;
+    box-sizing:border-box;
+  }
+
+  .sf-section-title {
+    font-size:.9rem; font-weight:700; color:#000;
+    margin:0 0 .6rem;
+    text-transform:uppercase; letter-spacing:.5px;
+    border-left:4px solid #107c41; padding-left:6px;
+  }
+
+  .sf-table-wrap { overflow-x:auto; border:1px solid #000; }
+  .sf-table { width:100%; border-collapse:collapse; font-size:.83rem; }
+  .sf-table th, .sf-table td { border:1px solid #000; padding:7px 9px; text-align:left; }
+  .sf-table th { background:#f1f5f9; font-weight:700; font-size:.72rem; text-transform:uppercase; }
+  .sf-table td.sf-empty { text-align:center; color:#64748b; padding:20px; }
+  .sf-name { font-weight:700; }
+  .sf-meta { font-size:.72rem; color:#64748b; }
+  .sf-link-row { display:flex; align-items:center; gap:6px; }
+  .sf-link-input {
+    flex:1; border:1px solid #cbd5e1; padding:4px 6px; font-size:.76rem;
+    background:#fff; color:#334155; box-sizing:border-box;
+  }
+  .sf-actions-cell { display:flex; gap:6px; white-space:nowrap; }
+
+  #sf-toast-wrap {
+    position:fixed; bottom:1.2rem; right:1.2rem;
+    z-index:9999; display:flex; flex-direction:column; gap:6px;
+  }
+  .sf-toast {
+    min-width:220px; max-width:360px; padding:9px 13px;
+    font-size:.82rem; font-weight:700; border:1px solid #000;
+    display:flex; align-items:center; gap:8px;
+    animation:sfToastIn .2s ease;
+  }
+  @keyframes sfToastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .sf-toast.success { background:#e8f5e9; color:#107c41; }
+  .sf-toast.error   { background:#ffebee; color:#b71c1c; }
+  .sf-toast-close   { background:none; border:none; cursor:pointer; margin-left:auto; font-size:1rem; color:inherit; }
+{% endblock %}
+
+{% block content %}
+<div class="sf-page">
+
+  <div class="sf-hero">
+    <h2>Shared Files</h2>
+    <a href="{% url 'timetable_dashboard' %}" class="sf-btn"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <p class="sf-hint">
+    Upload a timetable PDF or any other file here to get a stable link — copy it into a mobile Notification,
+    into Schedule Visibility's link field, or hand it out anywhere else.
+  </p>
+
+  <div class="sf-upload-card">
+    <div class="sf-field">
+      <label>Title <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+      <input type="text" id="sf-title" placeholder="e.g. Provisional Exam Timetable — Nov 2026">
+    </div>
+    <div class="sf-file-input-wrap">
+      <label style="display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;color:#475569;margin-bottom:3px;">File</label>
+      <input type="file" id="sf-file">
+    </div>
+    <button class="sf-btn sf-btn-green" onclick="sfUpload()" id="sf-upload-btn">
+      <i class="bi bi-cloud-upload"></i> Upload
+    </button>
+  </div>
+
+  <div class="sf-section-title">Uploaded Files</div>
+  <div class="sf-table-wrap">
+    <table class="sf-table" id="sf-table">
+      <thead>
+        <tr>
+          <th style="width:26%;">File</th>
+          <th style="width:34%;">Link</th>
+          <th style="width:16%;">Uploaded</th>
+          <th style="width:14%;">By</th>
+          <th style="width:10%;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="sf-tbody">
+        {% for row in rows %}
+        <tr id="sf-row-{{ row.id }}">
+          <td>
+            <div class="sf-name">{{ row.display_name }}</div>
+            <div class="sf-meta">{{ row.mime_type }}{% if row.file_size %} · {{ row.file_size|filesizeformat }}{% endif %}</div>
+          </td>
+          <td>
+            <div class="sf-link-row">
+              <input type="text" class="sf-link-input" readonly value="{{ row.file.url }}" id="sf-link-{{ row.id }}"
+                     onclick="this.select()">
+              <button class="sf-btn" onclick="sfCopyLink('{{ row.id }}')"><i class="bi bi-clipboard"></i></button>
+            </div>
+          </td>
+          <td class="sf-meta">{{ row.uploaded_at|date:"M d, Y H:i" }}</td>
+          <td class="sf-meta">{{ row.uploaded_by.username|default:"—" }}</td>
+          <td class="sf-actions-cell">
+            <button class="sf-btn sf-btn-red" onclick="sfDelete('{{ row.id }}')" title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr id="sf-empty-row"><td class="sf-empty" colspan="5">No files uploaded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div id="sf-toast-wrap"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sfToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 4000 : ttl;
+  const w = document.getElementById('sf-toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'sf-toast ' + (type || 'info');
+  t.innerHTML = msg + '<button class="sf-toast-close" onclick="this.closest(\'.sf-toast\').remove()">&times;</button>';
+  w.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+}
+
+function sfCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+function sfCopyLink(id) {
+  const input = document.getElementById('sf-link-' + id);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard && navigator.clipboard.writeText(input.value).then(function() {
+    sfToast('<i class="bi bi-check-circle-fill"></i> Link copied.', 'success', 2500);
+  }, function() {
+    try { document.execCommand('copy'); sfToast('<i class="bi bi-check-circle-fill"></i> Link copied.', 'success', 2500); }
+    catch (e) { sfToast('Could not copy — select and copy manually.', 'error'); }
+  });
+}
+
+function sfRowHtml(row) {
+  const sizeStr = row.size ? ' · ' + sfFormatSize(row.size) : '';
+  return (
+    '<td><div class="sf-name">' + sfEsc(row.name) + '</div>' +
+    '<div class="sf-meta">' + sfEsc(row.mimeType || '') + sizeStr + '</div></td>' +
+    '<td><div class="sf-link-row">' +
+      '<input type="text" class="sf-link-input" readonly value="' + sfEsc(row.url) + '" id="sf-link-' + row.id + '" onclick="this.select()">' +
+      '<button class="sf-btn" onclick="sfCopyLink(\'' + row.id + '\')"><i class="bi bi-clipboard"></i></button>' +
+    '</div></td>' +
+    '<td class="sf-meta">' + sfEsc(new Date(row.uploadedAt).toLocaleString()) + '</td>' +
+    '<td class="sf-meta">' + sfEsc(row.uploadedBy || '—') + '</td>' +
+    '<td class="sf-actions-cell"><button class="sf-btn sf-btn-red" onclick="sfDelete(\'' + row.id + '\')" title="Delete"><i class="bi bi-trash"></i></button></td>'
+  );
+}
+
+function sfEsc(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+  });
+}
+
+function sfFormatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/(1024*1024)).toFixed(1) + ' MB';
+}
+
+function sfUpload() {
+  const fileInput = document.getElementById('sf-file');
+  const titleInput = document.getElementById('sf-title');
+  const btn = document.getElementById('sf-upload-btn');
+
+  if (!fileInput.files || !fileInput.files[0]) {
+    sfToast('Choose a file to upload first.', 'error');
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  fd.append('title', titleInput.value.trim());
+
+  btn.disabled = true;
+  fetch('/api/mobile/admin/shared-files/upload/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': sfCsrf() },
+    body: fd
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false;
+    if (d.ok) {
+      const emptyRow = document.getElementById('sf-empty-row');
+      if (emptyRow) emptyRow.remove();
+      const tbody = document.getElementById('sf-tbody');
+      const tr = document.createElement('tr');
+      tr.id = 'sf-row-' + d.row.id;
+      tr.innerHTML = sfRowHtml(d.row);
+      tbody.insertBefore(tr, tbody.firstChild);
+      fileInput.value = '';
+      titleInput.value = '';
+      sfToast('<i class="bi bi-check-circle-fill"></i> Uploaded — link ready to copy.', 'success');
+    } else {
+      sfToast('&#10007; ' + (d.error || 'Upload failed.'), 'error');
+    }
+  })
+  .catch(() => { btn.disabled = false; sfToast('&#10007; Network error — try again.', 'error'); });
+}
+
+function sfDelete(id) {
+  if (!confirm('Delete this file? Any link to it will stop working.')) return;
+  fetch('/api/mobile/admin/shared-files/' + id + '/delete/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': sfCsrf() }
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      const row = document.getElementById('sf-row-' + id);
+      if (row) row.remove();
+      const tbody = document.getElementById('sf-tbody');
+      if (!tbody.querySelector('tr')) {
+        tbody.innerHTML = '<tr id="sf-empty-row"><td class="sf-empty" colspan="5">No files uploaded yet.</td></tr>';
+      }
+      sfToast('Deleted.', 'success', 2500);
+    } else {
+      sfToast('Could not delete.', 'error');
+    }
+  })
+  .catch(() => sfToast('Network error — try again.', 'error'));
+}
+</script>
+{% endblock %}

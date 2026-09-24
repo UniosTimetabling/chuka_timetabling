@@ -1,0 +1,325 @@
+{% extends "admins/sudo_base.html" %}
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admins/css/admins_admins_timetable_manage.css' %}">
+<link rel="stylesheet" href="{% static 'admins/css/admins_timetable_manage2.css' %}">
+<link rel="stylesheet" href="{% static 'admins/css/admins_timetable_manage.css' %}">
+{% endblock page_css %}
+
+{% block title %}Timetable Management{% endblock %}
+{% block nav_timetable %}active{% endblock %}
+
+{% block sudo_content %}
+<div class="page-header">
+ <h1>Timetable Management</h1>
+ <p>Director &amp; Admin Management Portal</p>
+ <div class="header-bar"></div>
+</div>
+
+<!-- DIRECTOR MANAGEMENT -->
+<div class="card mb-3">
+ <div class="card-header">Director Management</div>
+ <div class="card-body">
+ <!-- Current director display -->
+ <div id="director-block">
+ {% if director %}
+ <div class="director-info">
+ <div class="director-info-grid">
+ <div>
+ <div class="di-label">Username</div>
+ <div class="di-value">{{ director.username }}</div>
+ </div>
+ <div>
+ <div class="di-label">Full Name</div>
+ <div class="di-value">{{ director.first_name }} {{ director.last_name }}</div>
+ </div>
+ <div>
+ <div class="di-label">Email</div>
+ <div class="di-value">{{ director.email }}</div>
+ </div>
+ <div>
+ <div class="di-label">Status</div>
+ <div class="di-value {% if director.is_active %}status-active{% else %}status-inactive{% endif %}">
+ {{ director.is_active|yesno:"Active,Inactive" }}
+ </div>
+ </div>
+ </div>
+ <div style="display:flex; gap:8px;">
+ <button onclick="resetPassword({{ director.id }}, 'director')" class="btn btn-sm" style="background:#6c757d; color:white;">Reset Password</button>
+ <button onclick="deleteDirector({{ director.id }})" class="btn btn-danger btn-sm">Delete Director</button>
+ </div>
+ </div>
+ {% else %}
+ <p class="muted-center">No Director exists. Create one below.</p>
+ {% endif %}
+ </div>
+
+ <div class="form-section-title">Create New Director</div>
+ <form id="director-form">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:15px;">
+ <div class="form-group">
+ <label for="dir-fullname">Full Name</label>
+ <input type="text" id="dir-fullname" name="full_name" class="form-control" required placeholder="Enter full name">
+ </div>
+ <div class="form-group">
+ <label for="dir-email">Email</label>
+ <input type="email" id="dir-email" name="email" class="form-control" placeholder="Enter email address">
+ </div>
+ <div class="form-group">
+ <label for="dir-username">Username (optional)</label>
+ <input type="text" id="dir-username" name="username" class="form-control" placeholder="Enter username">
+ </div>
+ <div class="form-group">
+ <label for="dir-password">Password</label>
+ <input type="password" id="dir-password" name="password" class="form-control" required placeholder="Enter password">
+ </div>
+ </div>
+ <div style="margin-top:20px;">
+ <button type="submit" class="btn btn-primary" id="dir-submit-btn">Create Director</button>
+ </div>
+ </form>
+ </div>
+</div>
+
+<!-- TIMETABLE ADMINS -->
+<div class="card">
+ <div class="card-header">Timetable Admins</div>
+ <div class="card-body">
+ <div class="form-section-title">Create New Admin</div>
+ <form id="admin-create-form">
+ {% csrf_token %}
+ <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:15px;">
+ <div class="form-group">
+ <label for="admin-fullname">Full Name</label>
+ <input type="text" id="admin-fullname" name="full_name" class="form-control" placeholder="Enter full name">
+ </div>
+ <div class="form-group">
+ <label for="admin-email">Email</label>
+ <input type="email" id="admin-email" name="email" class="form-control" placeholder="Enter email address">
+ </div>
+ <div class="form-group">
+ <label for="admin-username">Username (optional)</label>
+ <input type="text" id="admin-username" name="username" class="form-control" placeholder="Enter username">
+ </div>
+ <div class="form-group">
+ <label for="admin-password">Password</label>
+ <input type="password" id="admin-password" name="password" class="form-control" placeholder="Enter password">
+ </div>
+ </div>
+ <div style="margin-top:20px;">
+ <button type="submit" class="btn btn-primary" id="admin-submit-btn">Add Admin</button>
+ </div>
+ </form>
+
+ <hr style="border:0; border-top:1px solid #ddd; margin:25px 0;">
+
+ <div style="overflow-x:auto;">
+ <table id="admins-table" style="width:100%; border-collapse:collapse; min-width:700px;">
+ <thead>
+ <tr style="background:#0b1f4a; color:white;">
+ <th style="padding:12px;">Username</th>
+ <th style="padding:12px;">Full Name</th>
+ <th style="padding:12px;">Email</th>
+ <th style="padding:12px;">Status</th>
+ <th style="padding:12px;">Actions</th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr><td colspan="5" class="muted-center">Loading admins...</td></tr>
+ </tbody>
+ </table>
+ </div>
+ </div>
+</div>
+
+{% endblock sudo_content %}
+{% block extra_js %}
+{{ block.super }}
+<script>
+/*
+ * admins_admins_timetable_manage.js
+ * Extracted inline JS from: admins/templates/admins/timetable_manage.html
+ * NOTE: May contain Django template vars - render through Django
+ */
+
+const ajaxUrl = "{% url 'ajax_manage_timetable' %}";
+
+function getCSRF() {
+  const el = document.querySelector('[name=csrfmiddlewaretoken]');
+  return el ? el.value : '';
+}
+
+async function postJSON(payload) {
+  const body = new URLSearchParams();
+  for (const k in payload) body.append(k, payload[k]);
+  const resp = await fetch(ajaxUrl, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCSRF(), 'Accept': 'application/json' },
+    body
+  });
+  return resp.json();
+}
+
+// Director
+document.getElementById('director-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const full_name = document.getElementById('dir-fullname').value.trim();
+  const email = document.getElementById('dir-email').value.trim();
+  const username = document.getElementById('dir-username').value.trim();
+  const password = document.getElementById('dir-password').value.trim();
+
+  const submitBtn = document.getElementById('dir-submit-btn');
+  const origText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating...';
+
+  try {
+    const res = await postJSON({ action: 'create_director', full_name, email, username, password });
+
+    if (res.status === 'success') {
+      alert('Success: ' + res.message);
+      e.target.reset();
+      loadDirector();
+    } else {
+      alert('Error: ' + res.message);
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = origText;
+  }
+});
+
+async function loadDirector() {
+  const res = await postJSON({ action: 'list_director' });
+  const block = document.getElementById('director-block');
+
+  if (!res.director) {
+    block.innerHTML = '<p class="muted-center">No Director exists. Create one below.</p>';
+    return;
+  }
+
+  const d = res.director;
+  block.innerHTML = `
+    <div class="director-info">
+      <div class="director-info-grid">
+        <div>
+          <div class="di-label">Username</div>
+          <div class="di-value">${d.username}</div>
+        </div>
+        <div>
+          <div class="di-label">Full Name</div>
+          <div class="di-value">${d.full_name}</div>
+        </div>
+        <div>
+          <div class="di-label">Email</div>
+          <div class="di-value">${d.email}</div>
+        </div>
+        <div>
+          <div class="di-label">Status</div>
+          <div class="di-value ${d.is_active ? 'status-active' : 'status-inactive'}">
+            ${d.is_active ? 'Active' : 'Inactive'}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button onclick="resetPassword(${d.id}, 'director')" class="btn btn-sm" style="background:#6c757d; color:white;">Reset Password</button>
+        <button onclick="deleteDirector(${d.id})" class="btn btn-danger btn-sm">Delete Director</button>
+      </div>
+    </div>`;
+}
+
+async function deleteDirector(id) {
+  if (!confirm('Are you sure you want to delete the Director? This action cannot be undone.')) return;
+  const res = await postJSON({ action: 'delete_director', user_id: id });
+  alert(res.message);
+  loadDirector();
+}
+
+// Admins
+document.getElementById('admin-create-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const full_name = document.getElementById('admin-fullname').value.trim();
+  const email = document.getElementById('admin-email').value.trim();
+  const username = document.getElementById('admin-username').value.trim();
+  const password = document.getElementById('admin-password').value.trim();
+
+  const submitBtn = document.getElementById('admin-submit-btn');
+  const origText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Adding...';
+
+  try {
+    const res = await postJSON({ action: 'create_admin', full_name, email, username, password });
+
+    if (res.status === 'success') {
+      alert('Success: ' + res.message);
+      e.target.reset();
+      loadAdmins();
+    } else {
+      alert('Error: ' + res.message);
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = origText;
+  }
+});
+
+async function loadAdmins() {
+  const res = await postJSON({ action: 'list_admins' });
+  const tbody = document.querySelector('#admins-table tbody');
+  tbody.innerHTML = '';
+
+  if (res.status !== 'success') {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted-center">Failed to load admins.</td></tr>';
+    return;
+  }
+
+  if (!res.admins || res.admins.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="muted-center">No admins found. Create the first one above.</td></tr>';
+    return;
+  }
+
+  res.admins.forEach(function(a) {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #ddd';
+    tr.innerHTML = `
+      <td style="padding:12px;"><strong>${a.username}</strong></td>
+      <td style="padding:12px;">${a.full_name}</td>
+      <td style="padding:12px;">${a.email}</td>
+      <td style="padding:12px;" class="${a.is_active ? 'status-active' : 'status-inactive'}">${a.is_active ? 'Active' : 'Inactive'}</td>
+      <td style="padding:12px;">
+        <div style="display:flex; gap:5px;">
+          <button onclick="resetPassword(${a.id}, 'admin')" class="btn btn-sm" style="background:#6c757d; color:white;">Reset PW</button>
+          <button onclick="deleteAdmin(${a.id})" class="btn btn-danger btn-sm">Delete</button>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function deleteAdmin(id) {
+  if (!confirm('Are you sure you want to delete this admin?')) return;
+  const res = await postJSON({ action: 'delete_admin', user_id: id });
+  alert(res.message);
+  loadAdmins();
+}
+
+async function resetPassword(id, type) {
+  const newPwd = prompt('Enter new password for ' + type + ':');
+  if (!newPwd) return;
+  const res = await postJSON({ action: 'reset_password', user_id: id, password: newPwd });
+  alert(res.message);
+}
+
+loadDirector();
+loadAdmins();
+</script>
+{% endblock extra_js %}

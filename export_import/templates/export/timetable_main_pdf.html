@@ -1,0 +1,164 @@
+{% load static %}
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_export_timetable_main_pdf.css' %}">
+{% endblock page_css %}
+<link rel="stylesheet" href="{% static 'export_import/css/tt_main_pdf.css' %}">
+<link rel="stylesheet" href="{% static 'export_import/css/export_import_timetable_main_pdf.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <title>{{ title }}</title>
+ <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+ <!-- HEADER SECTION -->
+ <header>
+ <img src="{{ logo_url }}" alt="Chuka University Logo">
+ <h1>CHUKA UNIVERSITY</h1>
+ <h2>Knowledge is Wealth (Sapientia divitia est) — Akili ni Mali</h2>
+ <p><strong>DIRECTORATE OF EXAMINATIONS AND TIMETABLING</strong><br>
+ Telephones: 020-2310512/18 | Email: <b>extt@chuka.ac.ke</b><br>
+ P.O. Box 109-60400, Chuka | Website: www.chuka.ac.ke
+ </p>
+ <p><b>Ref:</b> CU/EXTT/REGU/{{ now|date:"d M Y" }}<br>
+ <b>Date:</b> {{ now|date:"d M Y" }}</p>
+ <h2>{{ title }} ({{semester}}-{{ now|date:" Y" }})</h2>
+ </header>
+
+ {% if not day_grids %}
+ <div style="text-align: center; padding: 20px; color: #7f8c8d; font-style: italic;">
+ No timetable data available.
+ </div>
+ {% else %}
+ {% for day, rows in day_grids.items %}
+ <h2 class="day-title"> {{ day }}</h2>
+ <table class="grid">
+ <thead>
+ <tr>
+ <th> Venue</th>
+ {% for slot in time_slots %}
+ <th>{{ slot }}</th>
+ {% endfor %}
+ </tr>
+ </thead>
+ <tbody>
+ {% for row in rows %}
+ <tr>
+ <td class="venue-col">{{ row.venue_key }}</td>
+ {% for cell in row.cells %}
+ <td>
+ {% for ent in cell.entries %}
+ <div class="entry">
+ <span class="course">{{ ent.course_code }}</span>
+ <!--<span class="lecturer">{{ ent.lecturer }}</span>-->
+ </div>
+ {% empty %}
+ <span class="empty-cell">— Available —</span>
+ {% endfor %}
+ </td>
+ {% endfor %}
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+ {% endfor %}
+ {% endif %}
+
+ <!-- MERGED TIMETABLE GROUPS SECTION -->
+ <h2 class="day-title"> Merged Timetable Groups</h2>
+ <table class="grid">
+ <thead>
+ <tr>
+ <th>Merged Code</th>
+ <th> Total Students</th>
+ <th> Venue</th>
+ <th> Day</th>
+ <th> Start</th>
+ <th> End</th>
+ <th> Courses</th>
+ <th>‍ Lecturer</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for m in merged_table %}
+ <tr>
+ <td><strong>{{ m.merged_code }}</strong></td>
+ <td>{{ m.total_students }}</td>
+ <td>{{ m.venue }}</td>
+ <td>{{ m.date }}</td>
+ <td>{{ m.start }}</td>
+ <td>{{ m.end }}</td>
+ <td class="merged-courses">{{ m.courses }}</td>
+ <td>{{ m.lecturer }}</td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="8" style="text-align: center; color: #7f8c8d; font-style: italic;">
+ No merged timetable records available.
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+
+ <!-- LAB TIMETABLE SECTION -->
+ <h2 class="day-title"> Laboratory Timetable</h2>
+ <table class="grid">
+ <thead>
+ <tr>
+ <th>Course Code</th>
+ <th> Lab Venue</th>
+ <th> Day</th>
+ <th> Start</th>
+ <th> End</th>
+ </tr>
+ </thead>
+ <tbody>
+ {% for l in lab_table %}
+ <tr>
+ <td><strong>{{ l.course_code }}</strong></td>
+ <td>{{ l.lab }}</td>
+ <td>{{ l.day }}</td>
+ <td>{{ l.start }}</td>
+ <td>{{ l.end }}</td>
+ </tr>
+ {% empty %}
+ <tr>
+ <td colspan="5" style="text-align: center; color: #7f8c8d; font-style: italic;">
+ No lab timetable records available.
+ </td>
+ </tr>
+ {% endfor %}
+ </tbody>
+ </table>
+
+ <div class="footer">
+ <!-- FOOTER SECTION -->
+ <div class="footer-section">
+ <p><b> NB:</b> All queries to be channeled via <b>extt@chuka.ac.ke</b> or visit the office at Science Complex (S102).</p>
+ </div>
+
+ <div class="footer-section">
+ <p><b>️ KEY:</b></p>
+ <p>• <b>PAV H:</b> Pavilion Hall Upstairs<br>
+ • <b>MSH 03–10:</b> Male Students' Hostel Common Rooms<br>
+ • <b>MS (01–34):</b> Media School Complex<br>
+ • <b>S (SGT1–S602):</b> Science Complex<br>
+ • <b>BSL/BSR:</b> Business School Left & Right Wings<br>
+ • <b>LLB 1–3:</b> Faculty of Law (BSRC Complex)<br>
+ • <b>L1–L4:</b> Area near Egerton House<br>
+ • <b>FTC B01–605:</b> Food Technology Centre<br>
+ • <b>SRP B01–305:</b> Science Research Park Complex<br>
+ • <b>RPLAB1–8:</b> University Laboratories (CHEM, ANIMAL SCIENCE, BIOCHEM/BIOMED, BIOTECH, MICROBIO, ZOOLOGY, NURSING)</p>
+ </div>
+
+ <div class="signature">
+ Prepared by: <b>J.K. KATHURU</b><br>
+ Director (Examinations and Timetabling)<br>
+ <small>Generated on {{ now|date:"d M Y, H:i" }} — JKK/gmk</small>
+ </div>
+ </div>
+</body>
+</html>

@@ -1,0 +1,263 @@
+{% comment %}
+Shared "Excel flat" theme override for AutoScheduler-based pages.
+Matches the flat, no-shadow / no-border-radius, spreadsheet-grid look
+established in dashboard/exam_autosheduler.html:
+  - flat green (#107c41) accent, no gradients
+  - 1px solid grid borders everywhere, no box-shadow, no border-radius
+  - courses render as compact "chips" inside table cells, not raw text
+Include this at the top of {% block extra_head %} on any autoscheduler
+page that should match this design language.
+{% endcomment %}
+<style>
+  /* --- EXCEL CORE THEME RESET & FLAT BOUNDARIES --- */
+  :root {
+    --excel-green: #107c41;
+    --excel-green-dark: #0a4e29;
+    --excel-green-light: #e6f4ec;
+    --excel-border: #107c41;
+    --excel-grid: #ccc;
+    --excel-bg-gray: #f3f2f1;
+    --excel-header-bg: #f8f9fa;
+    --excel-red: #c00000;
+    --excel-amber: #b8860b;
+    --text-main: #000000;
+  }
+
+  body { background-color: var(--excel-bg-gray) !important; }
+
+  /* Kill every rounded corner / shadow / gradient / lift-on-hover the base
+     template applies to cards, panels, buttons & badges on this page. */
+  .topbar-badge, .stat-card, .panel, .day-block, .course-chip, .pill,
+  .btn, .box-info, .box-warn, .box-ok, .box-error, .prog-modal,
+  .prog-modal-head, .prog-wrap, .modal-stats, .ms-card, .action-strip,
+  .console-wrap, .custom-modal, .custom-modal-head, .tab-btn, .tag,
+  .cross-card, .unsched-item, .pub-card {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background-image: none !important;
+  }
+  .stat-card:hover, .panel:hover, .day-block:hover, .btn:hover,
+  .tab-btn:hover { transform: none !important; }
+
+  /* --- CONFIG / ACTIONS STRIPS --- */
+  .config-strip, .actions-bar {
+    background: #fff !important;
+    border: 1px solid var(--excel-border) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .config-strip input, .config-strip select {
+    border: 1px solid var(--excel-grid) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .config-strip input:focus, .config-strip select:focus {
+    border-color: var(--excel-green) !important;
+    box-shadow: none !important;
+  }
+
+  /* --- BUTTONS: FLAT EXCEL BUTTONS --- */
+  .btn-navy, .btn-green, .btn-orange {
+    background: var(--excel-green) !important;
+    border: 1px solid var(--excel-green-dark) !important;
+    color: #fff !important;
+  }
+  .btn-navy:hover, .btn-green:hover, .btn-orange:hover {
+    background: var(--excel-green-dark) !important;
+  }
+  .btn-danger { background: var(--excel-red) !important; border: 1px solid #7a0000 !important; }
+  .btn-ghost {
+    background: #fff !important;
+    border: 1px solid var(--excel-grid) !important;
+    color: var(--text-main) !important;
+  }
+  .btn-ghost:hover { background: var(--excel-bg-gray) !important; }
+
+  /* --- BADGES --- */
+  .topbar-badge, .excel-badge {
+    background: var(--excel-green) !important;
+    color: #fff !important;
+    border-radius: 0 !important;
+  }
+
+  /* --- STAT CARDS: FLAT, NO SHADING, THIN TOP ACCENT ONLY --- */
+  .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; border: 1px solid var(--excel-grid) !important; }
+  .stat-card {
+    background: #fff !important;
+    border: none !important;
+    border-right: 1px solid var(--excel-grid) !important;
+    border-top: 3px solid var(--excel-green) !important;
+    padding: 12px 14px !important;
+  }
+  .stat-card:last-child { border-right: none !important; }
+  .stat-card .stat-val { color: var(--text-main) !important; }
+  .stat-card .stat-lbl { color: #444 !important; }
+  .stat-card.orange, .stat-card.cyan { border-top-color: var(--excel-green-dark) !important; }
+  .stat-card.orange .stat-val, .stat-card.cyan .stat-val { color: var(--text-main) !important; }
+  .stat-card.green .stat-val { color: var(--excel-green) !important; }
+
+  /* --- PANELS --- */
+  .panel {
+    background: #fff !important;
+    border: 1px solid var(--excel-grid) !important;
+  }
+  .panel-head {
+    background: var(--excel-header-bg) !important;
+    color: var(--text-main) !important;
+    border-bottom: 1px solid var(--excel-grid) !important;
+    border-left: none !important;
+  }
+  .panel-head[style*="border-color"] { border-bottom: 1px solid var(--excel-grid) !important; }
+  .panel-head .panel-badge { background: var(--excel-green) !important; border-radius: 0 !important; }
+
+  /* --- TABS --- */
+  .tab-nav { border-bottom: 1px solid var(--excel-grid) !important; }
+  .tab-btn {
+    background: #e1dfdd !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--excel-grid) !important;
+    border-bottom: none !important;
+  }
+  .tab-btn.active {
+    background: #fff !important;
+    color: var(--excel-green) !important;
+    border-top: 2px solid var(--excel-green) !important;
+    border-bottom-color: transparent !important;
+  }
+  .tab-content { background: #fff !important; border: 1px solid var(--excel-grid) !important; padding: 12px !important; }
+
+  /* --- EXCEL-STYLE TIMETABLE GRID --- */
+  .tt-wrap, .data-table-wrap { overflow-x: auto; background: #fff !important; border: 1px solid var(--excel-grid) !important; }
+  .tt-grid, .data-table { border-collapse: collapse !important; border: none !important; }
+  .tt-grid th, .data-table th {
+    background: var(--excel-header-bg) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--excel-grid) !important;
+    font-weight: 600;
+  }
+  .tt-grid td, .data-table td {
+    background: #fff !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--excel-grid) !important;
+    vertical-align: top;
+  }
+  .tt-grid tr:nth-child(even) td, .data-table tr:nth-child(even) td { background: #fff !important; }
+  .tt-grid tr:hover td, .data-table tr:hover td { background: #fff !important; transition: none !important; }
+  .venue-col, .venue-th, .slot-th {
+    background: var(--excel-header-bg) !important;
+    border-right: 1px solid var(--excel-grid) !important;
+  }
+  .venue-name { color: var(--text-main) !important; }
+
+  .day-block { background: #fff !important; border: 1px solid var(--excel-grid) !important; }
+  .day-header {
+    background: var(--excel-green) !important;
+    color: #fff !important;
+    border-radius: 0 !important;
+  }
+  .day-header .day-pill { background: rgba(255,255,255,0.2) !important; border-radius: 0 !important; }
+
+  /* --- COURSE ENTRIES: PLAIN TEXT IN CELL, NOT A CARD --- */
+  .course-chip {
+    display: block;
+    padding: 2px 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-left: none !important;
+    background: transparent !important;
+  }
+  .course-chip .cc-code { display: inline; color: var(--text-main) !important; font-weight: 700; }
+  .course-chip .cc-meta { display: inline; color: #333 !important; font-size: 0.82rem; margin-left: 4px; }
+  .course-chip.cross,
+  .course-chip.campus { border: none !important; background: transparent !important; }
+  .cell-empty { color: #bfbfbf !important; }
+
+  .pill {
+    border-radius: 0 !important;
+    color: #fff !important;
+  }
+  .pill-orange { background: var(--excel-amber) !important; }
+  .pill-navy   { background: #444 !important; }
+  .pill-green  { background: var(--excel-green) !important; }
+  .pill-red    { background: var(--excel-red) !important; }
+
+  /* --- STATUS BOXES --- */
+  .box-info  { background: #fff !important; border: 1px solid var(--excel-grid) !important; border-left: 3px solid #333 !important; color: var(--text-main) !important; }
+  .box-warn  { background: #fff !important; border: 1px solid var(--excel-grid) !important; border-left: 3px solid var(--excel-amber) !important; color: var(--text-main) !important; }
+  .box-ok    { background: #fff !important; border: 1px solid var(--excel-grid) !important; border-left: 3px solid var(--excel-green) !important; color: var(--text-main) !important; }
+  .box-error { background: #fff !important; border: 1px solid var(--excel-grid) !important; border-left: 3px solid var(--excel-red) !important; color: var(--text-main) !important; }
+
+  /* --- PROGRESS / PUBLISH OVERLAYS --- */
+  .prog-modal, .pub-card, .custom-modal {
+    background: #fff !important;
+    border: 2px solid var(--excel-green) !important;
+    animation: none !important;
+  }
+  .prog-modal-head, .custom-modal-head {
+    background: var(--excel-green) !important;
+    border-bottom: none !important;
+  }
+  .prog-modal-head.success { background: var(--excel-green) !important; border-color: var(--excel-green) !important; }
+  .prog-modal-head.error   { background: var(--excel-red) !important; border-color: var(--excel-red) !important; }
+  .prog-modal-head.cancelled { background: #555 !important; border-color: #555 !important; }
+  .prog-wrap { height: 24px !important; background: var(--excel-bg-gray) !important; border: 1px solid var(--excel-grid) !important; }
+  .prog-fill { background: var(--excel-green) !important; transition: width 0.1s linear !important; }
+
+  .modal-stats { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; border: 1px solid var(--excel-grid) !important; background: #fff !important; gap: 0 !important; }
+  .ms-card { border: none !important; border-right: 1px solid var(--excel-grid) !important; background: #fff !important; }
+  .ms-card:last-child { border-right: none !important; }
+  .ms-val { color: var(--text-main) !important; }
+  .ms-card.green .ms-val, .ms-card.orange .ms-val, .ms-card.cyan .ms-val { color: var(--excel-green) !important; }
+
+  .action-strip { background: #fff !important; border: 1px solid var(--excel-grid) !important; color: var(--text-main) !important; }
+  .action-strip i { color: var(--excel-green) !important; }
+
+  .console-wrap { background: #000 !important; border: 1px solid var(--excel-grid) !important; }
+  .console-bar { background: #1a1a1a !important; }
+  .cl-badge { border-radius: 0 !important; }
+
+  /* --- FILTER ROW / CROSS-CAMPUS / TAG / UNSCHEDULED --- */
+  .filter-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .filter-row select {
+    border: 1px solid var(--excel-grid) !important;
+    border-radius: 0 !important;
+    padding: 4px 6px;
+    background: #fff !important;
+  }
+  .cross-card {
+    background: #fff !important;
+    border: 1px solid var(--excel-grid) !important;
+    border-left: 3px solid var(--excel-green) !important;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+  .tag {
+    display: inline-block;
+    border-radius: 0 !important;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff !important;
+  }
+  .tag-navy   { background: var(--excel-green-dark) !important; }
+  .tag-orange { background: var(--excel-amber) !important; }
+  .tag-grey   { background: #666 !important; }
+  .unsched-item {
+    background: #fff !important;
+    border: 1px solid var(--excel-grid) !important;
+    border-left: 3px solid var(--excel-red) !important;
+    padding: 6px 10px;
+    margin-bottom: 4px;
+    color: var(--text-main) !important;
+  }
+
+  .pub-overlay .pub-card { border: 2px solid var(--excel-green) !important; border-radius: 0 !important; box-shadow: none !important; animation: none !important; }
+  .pub-spinner { border-color: var(--excel-grid) !important; border-top-color: var(--excel-green) !important; border-radius: 50% !important; }
+  .pub-check { border-radius: 50% !important; animation: none !important; }
+  .pub-check.ok  { background: var(--excel-green) !important; }
+  .pub-check.err { background: var(--excel-red) !important; }
+  .pub-title { color: var(--text-main) !important; }
+  .pub-prog { background: var(--excel-bg-gray) !important; border: 1px solid var(--excel-grid) !important; border-radius: 0 !important; }
+  .pub-prog-fill { background: var(--excel-green) !important; border-radius: 0 !important; transition: width 0.15s linear !important; }
+</style>

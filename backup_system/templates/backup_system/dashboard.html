@@ -1,0 +1,263 @@
+{% extends "backup_system/base.html" %}
+{% block title %}Backup Management{% endblock %}
+{% block breadcrumb_current %}Backup Management{% endblock %}
+
+{% block backup_content %}
+
+<div class="bk-header">
+  <h1>Backup Management</h1>
+  <p>Configure automated backups, set destinations, and monitor recent activity.</p>
+</div>
+
+<!-- Backup Configurations -->
+<div class="bk-card">
+  <div class="bk-card-head">
+    Backup Configurations
+    <button class="bk-btn bk-btn-primary bk-btn-sm" onclick="document.getElementById('new-config-form').style.display='block'; this.style.display='none'">New Configuration</button>
+  </div>
+  <div class="bk-card-body">
+
+    <div id="new-config-form" style="display:none; border:1px solid #e2e8f0; border-radius:8px; padding:1.2rem; margin-bottom:1.4rem; background:#f9fafb;">
+      <form method="post" action="{% url 'backup_system:save_config' %}">
+        {% csrf_token %}
+        <div class="bk-grid-2">
+          <div>
+            <label class="bk-label">Backup Type</label>
+            <select name="backup_type" class="bk-select">
+              <option value="database">Database Backup</option>
+              <option value="files">File Backup</option>
+              <option value="full">Full System Backup</option>
+              <option value="config">Configuration Backup</option>
+            </select>
+          </div>
+          <div>
+            <label class="bk-label">Frequency</label>
+            <select name="frequency" class="bk-select">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="manual">Manual Only</option>
+            </select>
+          </div>
+          <div>
+            <label class="bk-label">Retention (days)</label>
+            <input type="number" name="retention_days" value="30" min="1" class="bk-input">
+          </div>
+          <div>
+            <label class="bk-label">Compression</label>
+            <select name="compression" class="bk-select">
+              <option value="gzip">GZIP</option>
+              <option value="zip">ZIP</option>
+              <option value="bzip2">BZIP2</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <div>
+            <label class="bk-label">Notification Email</label>
+            <input type="email" name="notification_email" placeholder="admin@chuka.ac.ke" class="bk-input">
+          </div>
+        </div>
+        <label class="bk-checkbox-row"><input type="checkbox" name="enabled" checked> Enable this configuration</label>
+        <label class="bk-checkbox-row"><input type="checkbox" name="encryption_enabled" checked> Encrypt backups (AES-256)</label>
+        <label class="bk-checkbox-row"><input type="checkbox" name="notify_on_success" checked> Notify on success</label>
+        <label class="bk-checkbox-row"><input type="checkbox" name="notify_on_failure" checked> Notify on failure</label>
+        <div class="bk-actions">
+          <button type="submit" class="bk-btn bk-btn-primary">Save Configuration</button>
+          <button type="button" class="bk-btn bk-btn-secondary" onclick="this.closest('#new-config-form').style.display='none'">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="bk-table-wrap">
+      <table class="bk-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Frequency</th>
+            <th>Retention</th>
+            <th>Encryption</th>
+            <th>Status</th>
+            <th>Last Run</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for config in configs %}
+          <tr>
+            <td>{{ config.get_backup_type_display }}</td>
+            <td>{{ config.get_frequency_display }}</td>
+            <td>{{ config.retention_days }} days</td>
+            <td>{% if config.encryption_enabled %}AES-256{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td>
+              {% if config.last_backup_status == 'success' %}<span class="bk-badge bk-badge-success">Success</span>
+              {% elif config.last_backup_status == 'failed' %}<span class="bk-badge bk-badge-failed">Failed</span>
+              {% else %}<span class="bk-badge bk-badge-pending">Pending</span>{% endif %}
+            </td>
+            <td>{{ config.last_backup_time|default:"Never" }}</td>
+            <td>
+              <form method="post" action="{% url 'backup_system:run_backup_now' config.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button class="bk-btn bk-btn-secondary bk-btn-sm">Run Now</button>
+              </form>
+              {% if config.destination %}
+                <span class="muted" style="font-size:.78rem; margin-left:.4rem;">{{ config.destination.get_destination_type_display }}</span>
+              {% else %}
+                <span class="muted" style="font-size:.78rem; color:#e67e22; margin-left:.4rem;">No destination</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="muted" style="padding:1.2rem .9rem;">No backup configurations yet. Click "New Configuration" above.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Backup Destinations -->
+<div class="bk-card">
+  <div class="bk-card-head">Backup Destinations</div>
+  <div class="bk-card-body">
+    {% for config in configs %}
+    <div style="{% if not forloop.last %}border-bottom:1px solid #e2e8f0; margin-bottom:1.2rem; padding-bottom:1.2rem;{% endif %}">
+      <div style="font-weight:600; color:#0b1f4a; font-size:.85rem; margin-bottom:.8rem;">{{ config.get_backup_type_display }}</div>
+      <form method="post" action="{% url 'backup_system:configure_destination' config.id %}">
+        {% csrf_token %}
+        <div class="bk-grid-2">
+          <div>
+            <label class="bk-label">Destination Type</label>
+            <select name="destination_type" class="bk-select"
+              onchange="this.form.querySelectorAll('[data-group]').forEach(el => el.style.display='none'); this.form.querySelectorAll('[data-group=&quot;'+this.value+'&quot;]').forEach(el => el.style.display='grid');">
+              <option value="local">Local Storage</option>
+              <option value="s3">AWS S3</option>
+              <option value="azure">Azure Blob Storage</option>
+              <option value="gcs">Google Cloud Storage</option>
+              <option value="ftp">FTP / SFTP</option>
+              <option value="webhook">Webhook / HTTP</option>
+            </select>
+          </div>
+        </div>
+
+        <div data-group="local">
+          <label class="bk-label">Local Path</label>
+          <input type="text" name="local_path" placeholder="/backups/automated" value="{{ config.destination.local_path }}" class="bk-input">
+        </div>
+
+        <div data-group="s3" style="display:none;">
+          <div class="bk-grid-2">
+            <div><label class="bk-label">Bucket</label><input type="text" name="s3_bucket" value="{{ config.destination.s3_bucket }}" class="bk-input"></div>
+            <div><label class="bk-label">Region</label><input type="text" name="s3_region" value="{{ config.destination.s3_region|default:'us-east-1' }}" class="bk-input"></div>
+            <div><label class="bk-label">Access Key</label><input type="text" name="s3_access_key" value="{{ config.destination.s3_access_key }}" class="bk-input"></div>
+            <div><label class="bk-label">Secret Key</label><input type="password" name="s3_secret_key" value="{{ config.destination.s3_secret_key }}" class="bk-input"></div>
+          </div>
+          <label class="bk-label">Prefix</label>
+          <input type="text" name="s3_prefix" value="{{ config.destination.s3_prefix|default:'backups/' }}" class="bk-input">
+        </div>
+
+        <div data-group="azure" style="display:none;">
+          <div class="bk-grid-2">
+            <div><label class="bk-label">Account Name</label><input type="text" name="azure_account_name" value="{{ config.destination.azure_account_name }}" class="bk-input"></div>
+            <div><label class="bk-label">Account Key</label><input type="password" name="azure_account_key" value="{{ config.destination.azure_account_key }}" class="bk-input"></div>
+          </div>
+          <label class="bk-label">Container</label>
+          <input type="text" name="azure_container" value="{{ config.destination.azure_container }}" class="bk-input">
+        </div>
+
+        <div data-group="gcs" style="display:none;">
+          <div class="bk-grid-2">
+            <div><label class="bk-label">Bucket</label><input type="text" name="gcs_bucket" value="{{ config.destination.gcs_bucket }}" class="bk-input"></div>
+            <div><label class="bk-label">Project ID</label><input type="text" name="gcs_project_id" value="{{ config.destination.gcs_project_id }}" class="bk-input"></div>
+          </div>
+          <label class="bk-label">Service Account JSON</label>
+          <textarea name="gcs_service_account_json" rows="3" class="bk-textarea" placeholder='{"type": "service_account", ...}'></textarea>
+        </div>
+
+        <div data-group="ftp" style="display:none;">
+          <div class="bk-grid-2">
+            <div><label class="bk-label">Host</label><input type="text" name="ftp_host" value="{{ config.destination.ftp_host }}" class="bk-input"></div>
+            <div><label class="bk-label">Port</label><input type="number" name="ftp_port" value="{{ config.destination.ftp_port|default:22 }}" class="bk-input"></div>
+            <div><label class="bk-label">Username</label><input type="text" name="ftp_username" value="{{ config.destination.ftp_username }}" class="bk-input"></div>
+            <div><label class="bk-label">Password</label><input type="password" name="ftp_password" value="{{ config.destination.ftp_password }}" class="bk-input"></div>
+          </div>
+          <label class="bk-label">Remote Path</label>
+          <input type="text" name="ftp_path" value="{{ config.destination.ftp_path }}" class="bk-input">
+          <label class="bk-checkbox-row"><input type="checkbox" name="ftp_use_sftp" checked> Use SFTP (recommended)</label>
+        </div>
+
+        <div data-group="webhook" style="display:none;">
+          <label class="bk-label">Webhook URL</label>
+          <input type="url" name="webhook_url" placeholder="https://backup.company.com/api/upload" value="{{ config.destination.webhook_url }}" class="bk-input">
+          <label class="bk-label">Authorization Header</label>
+          <input type="text" name="webhook_auth_header" placeholder="Bearer xxx" value="{{ config.destination.webhook_auth_header }}" class="bk-input">
+          <label class="bk-checkbox-row"><input type="checkbox" name="webhook_verify_ssl" checked> Verify SSL</label>
+        </div>
+
+        <div class="bk-actions">
+          <button type="submit" class="bk-btn bk-btn-primary bk-btn-sm">Save Destination</button>
+          {% if config.destination %}
+          <button type="button" class="bk-btn bk-btn-secondary bk-btn-sm" onclick="testDestination({{ config.destination.id }}, this)">Test Connection</button>
+          <span id="test-result-{{ config.destination.id }}" style="font-size:.78rem; color:#5a6a82;"></span>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+    {% empty %}
+    <p style="color:#9aabb8; font-size:.84rem;">No configurations yet — add one above first.</p>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="bk-card">
+  <div class="bk-card-head">
+    Recent Activity
+    <a href="{% url 'backup_system:history' %}" class="bk-btn bk-btn-secondary bk-btn-sm">View Full History</a>
+  </div>
+  <div class="bk-card-body">
+    <div class="bk-table-wrap">
+      <table class="bk-table">
+        <thead>
+          <tr><th>Date</th><th>Type</th><th>Status</th><th>Size</th></tr>
+        </thead>
+        <tbody>
+          {% for job in recent_jobs %}
+          <tr>
+            <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ job.backup_type }}</td>
+            <td>
+              {% if job.status == 'success' %}<span class="bk-badge bk-badge-success">Success</span>
+              {% elif job.status == 'failed' %}<span class="bk-badge bk-badge-failed">Failed</span>
+              {% elif job.status == 'running' %}<span class="bk-badge bk-badge-running">Running</span>
+              {% else %}<span class="bk-badge bk-badge-pending">{{ job.status }}</span>{% endif %}
+            </td>
+            <td>{{ job.compressed_size|filesizeformat }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="muted" style="padding:1.2rem .9rem;">No backups have run yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function testDestination(id, btn) {
+  const resultEl = document.getElementById('test-result-' + id);
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  fetch(`/backup/destination/${id}/test/`, {
+    method: 'POST',
+    headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+  })
+  .then(r => r.json())
+  .then(data => {
+    resultEl.textContent = data.message;
+    resultEl.style.color = data.success ? '#065f46' : '#991b1b';
+    btn.disabled = false;
+    btn.textContent = 'Test Connection';
+  });
+}
+</script>
+{% endblock %}

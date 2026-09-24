@@ -1,0 +1,120 @@
+{% comment %} ------------------------------------------------------------------
+   PDF-or-Word chooser shared by every export button in the system.
+   Include once per page:   (include tag for this file, see below)
+
+   JavaScript API (window.*):
+     chooseExportFormat()          -> Promise<'pdf'|'docx'|null>  (null = cancelled)
+     exportWithFormat(url, {newTab}) asks, then opens/downloads in the chosen format
+     openExport(url, fmt, {newTab, page}) opens/downloads without asking
+                                    (page:true = the URL is an HTML progress page → always open in a tab)
+     withExportFormat(url, fmt)    -> url with ?export_format=fmt
+
+   Declarative use — a link is enough:
+     <a href="…pdf-url…" data-export-choice>Download</a>
+       optional: data-word-url="…"  (a different URL that returns the Word file)
+   ------------------------------------------------------------------ {% endcomment %}
+<style>
+.xfc-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:100000;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.xfc-overlay.xfc-open{display:flex}
+.xfc-box{background:#fff;color:#0f172a;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.35);width:min(92vw,380px);padding:22px 22px 18px}
+.xfc-box h3{margin:0 0 4px;font-size:1.05rem;font-weight:700}
+.xfc-box p{margin:0 0 16px;font-size:.85rem;color:#475569}
+.xfc-row{display:flex;gap:10px}
+.xfc-btn{flex:1;border:1.5px solid #cbd5e1;background:#f8fafc;border-radius:10px;padding:12px 8px;cursor:pointer;font-size:.9rem;font-weight:600;color:#0f172a;display:flex;flex-direction:column;align-items:center;gap:4px}
+.xfc-btn small{font-weight:400;color:#64748b;font-size:.72rem}
+.xfc-btn:hover,.xfc-btn:focus{border-color:#2563eb;background:#eff6ff;outline:none}
+.xfc-btn .xfc-ico{font-size:1.4rem;line-height:1}
+.xfc-cancel{display:block;margin:14px auto 0;background:none;border:none;color:#64748b;font-size:.82rem;cursor:pointer;text-decoration:underline}
+</style>
+<div class="xfc-overlay" id="xfcOverlay" role="dialog" aria-modal="true" aria-labelledby="xfcTitle">
+  <div class="xfc-box">
+    <h3 id="xfcTitle">Export as…</h3>
+    <p>Choose the file format for this export.</p>
+    <div class="xfc-row">
+      <button type="button" class="xfc-btn" data-xfc="pdf"><span class="xfc-ico">📄</span>PDF<small>Print-ready</small></button>
+      <button type="button" class="xfc-btn" data-xfc="docx"><span class="xfc-ico">📝</span>Word<small>Editable .docx</small></button>
+    </div>
+    <button type="button" class="xfc-cancel" data-xfc="">Cancel</button>
+  </div>
+</div>
+<script>
+(function(){
+  if (window.__exportChooserLoaded) return;
+  window.__exportChooserLoaded = true;
+  var overlay = document.getElementById('xfcOverlay');
+  var resolver = null;
+
+  function close(val){
+    overlay.classList.remove('xfc-open');
+    document.removeEventListener('keydown', onKey, true);
+    var r = resolver; resolver = null;
+    if (r) r(val || null);
+  }
+  function onKey(e){ if (e.key === 'Escape'){ e.preventDefault(); close(null); } }
+
+  overlay.addEventListener('click', function(e){
+    if (e.target === overlay) return close(null);
+    var b = e.target.closest('[data-xfc]');
+    if (b) close(b.getAttribute('data-xfc'));
+  });
+
+  window.chooseExportFormat = function(){
+    return new Promise(function(resolve){
+      if (resolver) resolver(null);
+      resolver = resolve;
+      overlay.classList.add('xfc-open');
+      document.addEventListener('keydown', onKey, true);
+      var first = overlay.querySelector('[data-xfc="pdf"]');
+      if (first) first.focus();
+    });
+  };
+
+  window.withExportFormat = function(url, fmt){
+    var hash = '', i = url.indexOf('#');
+    if (i >= 0){ hash = url.slice(i); url = url.slice(0, i); }
+    url = url.replace(/([?&])export_format=[^&]*&?/, '$1').replace(/[?&]$/, '');
+    return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'export_format=' + encodeURIComponent(fmt) + hash;
+  };
+
+  window.openExport = function(url, fmt, opts){
+    opts = opts || {};
+    var finalUrl = window.withExportFormat(url, fmt);
+    if (fmt === 'docx' && !opts.page){
+      // The server answers with an attachment, so this downloads without leaving the page.
+      var a = document.createElement('a');
+      a.href = finalUrl; a.download = ''; a.style.display = 'none';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ a.remove(); }, 1000);
+      return true;
+    }
+    if (opts.newTab === false){ window.location.href = finalUrl; return true; }
+    var w = window.open(finalUrl, '_blank');
+    if (!w) alert('Your browser blocked the new tab. Please allow pop-ups for this site and try again.');
+    return !!w;
+  };
+
+  window.exportWithFormat = function(url, opts){
+    return window.chooseExportFormat().then(function(fmt){
+      if (!fmt) return null;
+      window.openExport(url, fmt, opts);
+      return fmt;
+    });
+  };
+
+  // <a data-export-choice href="…"> — no per-page JavaScript needed.
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[data-export-choice]');
+    if (!a) return;
+    e.preventDefault();
+    var pdfUrl = a.getAttribute('href');
+    var wordUrl = a.getAttribute('data-word-url');
+    var newTab = (a.getAttribute('target') === '_blank');
+    var isPage = a.hasAttribute('data-export-page');   // link opens a progress/preview PAGE, not a file
+    window.chooseExportFormat().then(function(fmt){
+      if (!fmt) return;
+      if (fmt === 'docx') window.openExport(wordUrl || pdfUrl, 'docx', {page: isPage});
+      else window.openExport(pdfUrl, 'pdf', {newTab: newTab});
+    });
+  });
+})();
+</script>

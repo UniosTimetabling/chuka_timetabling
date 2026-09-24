@@ -1,0 +1,431 @@
+{% extends "dashboard/legacy_base.html" %}
+{% load static %}
+
+{% block title %}Send Notification · Chuka University{% endblock %}
+
+{% block extra_css %}
+  /* ── page wrapper ── */
+  .na-page { width:100%; max-width:100%; padding:1rem; box-sizing:border-box; }
+
+  /* ── hero header ── */
+  .na-hero {
+    padding-bottom:.5rem;
+    margin-bottom:1rem;
+    border-bottom:3px solid #107c41;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .na-hero h2 { font-size:1.4rem; font-weight:800; color:#000; margin:0; }
+
+  .excel-section-title {
+    font-size:.9rem; font-weight:700; color:#000;
+    margin:1.4rem 0 .5rem;
+    text-transform:uppercase; letter-spacing:.5px;
+    border-left:4px solid #107c41; padding-left:6px;
+  }
+
+  .na-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid #000; padding:5px 12px;
+    font-size:.78rem; font-weight:700;
+    background:transparent; color:#000; cursor:pointer;
+    text-decoration:none; border-radius:0;
+    transition:background .12s, color .12s;
+  }
+  .na-btn:hover              { background:#f1f5f9; }
+  .na-btn.na-btn-green       { background:#107c41; color:#fff; border-color:#107c41; }
+  .na-btn.na-btn-green:hover { background:#0e6b36; }
+  .na-btn.na-btn-red         { color:#b71c1c; border-color:#b71c1c; }
+  .na-btn.na-btn-red:hover   { background:#ffebee; }
+  .na-btn:disabled           { opacity:.5; cursor:not-allowed; }
+
+  /* ── compose form ── */
+  .na-form-wrap {
+    border:1px solid #000; padding:14px; margin-bottom:1.4rem; background:#fafafa;
+  }
+  .na-form-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px 16px;
+  }
+  .na-form-grid .na-full { grid-column:1 / -1; }
+  .na-field label {
+    display:block; font-size:.72rem; font-weight:700; text-transform:uppercase;
+    color:#475569; margin-bottom:3px;
+  }
+  .na-field input[type="text"],
+  .na-field input[type="number"],
+  .na-field input[type="datetime-local"],
+  .na-field select,
+  .na-field textarea {
+    width:100%; border:1px solid #000; padding:6px 8px; font-size:.85rem;
+    border-radius:0; box-sizing:border-box; background:#fff;
+  }
+  .na-field textarea { min-height:80px; resize:vertical; }
+  .na-audience-row { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+  .na-audience-row label { display:flex; align-items:center; gap:5px; font-weight:600; font-size:.82rem; text-transform:none; }
+  .na-hint { font-size:.7rem; color:#64748b; margin-top:3px; }
+  .na-form-actions { margin-top:12px; display:flex; gap:8px; align-items:center; }
+
+  /* ── excel-style data table ── */
+  .na-table-wrap { width:100%; overflow-x:auto; margin-bottom:1rem; }
+  .na-table {
+    width:100%; border-collapse:collapse;
+    font-size:.8rem; background:#fff;
+    border-bottom:2px solid #107c41;
+  }
+  .na-table th, .na-table td {
+    border:1px solid #000 !important;
+    padding:5px 7px;
+    vertical-align:top; text-align:left;
+    border-radius:0 !important;
+    background:none !important;
+  }
+  .na-table th {
+    font-weight:700; font-size:.75rem;
+    text-transform:uppercase; color:#000;
+    border-bottom:2px solid #000 !important;
+    white-space:nowrap;
+  }
+  .na-table tr:nth-child(even) td { background:#f8fdf9 !important; }
+  .na-table tr:hover td { background:#e8f5e9 !important; }
+
+  .na-badge {
+    display:inline-block; padding:1px 7px;
+    font-size:.68rem; font-weight:700;
+    border:1px solid #000; white-space:nowrap;
+  }
+  .na-badge.published   { background:#e8f5e9; color:#107c41; }
+  .na-badge.unpublished { background:#fff3e0; color:#e65100; }
+
+  .na-attach-list { display:flex; flex-direction:column; gap:2px; }
+  .na-attach-list a { font-size:.72rem; color:#1565c0; text-decoration:none; }
+  .na-attach-list a:hover { text-decoration:underline; }
+
+  .na-row-actions { display:flex; gap:4px; flex-wrap:wrap; }
+  .na-row-btn {
+    border:1px solid #000; background:transparent;
+    padding:2px 8px; font-size:.7rem; font-weight:700;
+    cursor:pointer; border-radius:0; white-space:nowrap;
+  }
+  .na-row-btn:hover { background:#f1f5f9; }
+  .na-row-btn.toggle { border-color:#1565c0; color:#1565c0; }
+  .na-row-btn.del     { border-color:#b71c1c; color:#b71c1c; }
+
+  .na-empty {
+    border:1px solid #000; padding:28px; text-align:center;
+    font-size:.88rem; color:#475569; background:#fafafa;
+  }
+
+  #na-toast-wrap {
+    position:fixed; bottom:1.2rem; right:1.2rem;
+    z-index:9999; display:flex; flex-direction:column; gap:6px;
+  }
+  .na-toast {
+    min-width:220px; max-width:360px; padding:9px 13px;
+    font-size:.82rem; font-weight:700; border:1px solid #000;
+    display:flex; align-items:center; gap:8px;
+    animation:naToastIn .2s ease;
+  }
+  @keyframes naToastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  .na-toast.success { background:#e8f5e9; color:#107c41; }
+  .na-toast.error   { background:#ffebee; color:#b71c1c; }
+  .na-toast.info    { background:#e3f2fd; color:#1565c0; }
+  .na-toast-close   { background:none; border:none; cursor:pointer; margin-left:auto; font-size:1rem; color:inherit; }
+{% endblock %}
+
+{% block content %}
+<div class="na-page">
+
+  <!-- ── Hero ── -->
+  <div class="na-hero">
+    <h2>Send Notification</h2>
+    <a href="{% url 'timetable_dashboard' %}" class="na-btn"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+  </div>
+
+  <p class="na-hint" style="margin:-6px 0 12px;">
+    Sends straight to the mobile app's Events &amp; Memos feed — the app picks it up next time it checks for
+    updates. Reaches everyone, students only, or lecturers only, and you can attach PDFs, images, or other
+    documents.
+  </p>
+
+  <!-- ── Compose form ── -->
+  <div class="na-form-wrap">
+    <form id="na-form" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="na-form-grid">
+        <div class="na-field na-full">
+          <label>Title</label>
+          <input type="text" name="title" id="na-title" required maxlength="200" placeholder="e.g. CAT 1 postponed to Friday">
+        </div>
+
+        <div class="na-field na-full">
+          <label>Message</label>
+          <textarea name="description" id="na-description" placeholder="Details students/lecturers will see..."></textarea>
+        </div>
+
+        <div class="na-field">
+          <label>Type</label>
+          <select name="announcement_type" id="na-type">
+            {% for value, label in type_choices %}
+              <option value="{{ value }}" {% if value == "memo" %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="na-field">
+          <label>Date shown to reader</label>
+          <input type="datetime-local" name="date" id="na-date">
+          <div class="na-hint">Leave blank to use right now.</div>
+        </div>
+
+        <div class="na-field na-full">
+          <label>Send to</label>
+          <div class="na-audience-row">
+            {% for value, label in audience_choices %}
+              <label><input type="radio" name="audience" value="{{ value }}" {% if value == "all" %}checked{% endif %} onchange="naToggleScopeFields()"> {{ label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="na-field" id="na-program-field" style="display:none;">
+          <label>Program <span style="font-weight:400;text-transform:none;">(optional — narrow to one program)</span></label>
+          <select name="program_id" id="na-program">
+            <option value="">— Every program —</option>
+            {% for p in programs %}
+              <option value="{{ p.id }}">{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="na-field" id="na-year-field" style="display:none;">
+          <label>Year of study <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <input type="number" name="year" id="na-year" min="1" max="8" placeholder="e.g. 2">
+        </div>
+
+        <div class="na-field na-full">
+          <label>Attachments <span style="font-weight:400;text-transform:none;">(PDF, image, or document — up to 8 files, 25MB each)</span></label>
+          <input type="file" name="attachments" id="na-attachments" multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx">
+        </div>
+      </div>
+
+      <div class="na-form-actions">
+        <button type="submit" class="na-btn na-btn-green" id="na-submit-btn"><i class="bi bi-send"></i> Send</button>
+        <label style="font-size:.8rem;"><input type="checkbox" id="na-published" checked> Publish immediately</label>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Section title ── -->
+  <div class="excel-section-title">Recently Sent</div>
+
+  <!-- ── Table ── -->
+  <div id="na-list-wrap">
+    {% if announcements %}
+    <div class="na-table-wrap">
+      <table class="na-table">
+        <thead>
+          <tr>
+            <th style="width:110px;">Date</th>
+            <th>Title</th>
+            <th style="width:90px;">Type</th>
+            <th style="width:110px;">Audience</th>
+            <th style="width:140px;">Scope</th>
+            <th>Attachments</th>
+            <th style="width:90px;">Status</th>
+            <th style="width:140px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="na-table-body">
+          {% for a in announcements %}
+          <tr id="na-row-{{ a.id }}">
+            <td style="white-space:nowrap; font-size:.75rem;">{{ a.date|date:"M d, Y H:i" }}</td>
+            <td>{{ a.title }}</td>
+            <td>{{ a.get_announcement_type_display }}</td>
+            <td>{{ a.get_audience_display }}</td>
+            <td>{{ a.program.name|default:"—" }}{% if a.year %} · Yr {{ a.year }}{% endif %}</td>
+            <td>
+              {% if a.attachments.all %}
+              <div class="na-attach-list">
+                {% for att in a.attachments.all %}
+                  <a href="{{ att.file.url }}" target="_blank"><i class="bi bi-paperclip"></i> {{ att.name }}</a>
+                {% endfor %}
+              </div>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <span class="na-badge {% if a.is_published %}published{% else %}unpublished{% endif %}" id="na-status-{{ a.id }}">
+                {% if a.is_published %}Published{% else %}Hidden{% endif %}
+              </span>
+            </td>
+            <td>
+              <div class="na-row-actions">
+                <button class="na-row-btn toggle" onclick="naToggle({{ a.id }})">Toggle</button>
+                <button class="na-row-btn del" onclick="naDelete({{ a.id }})">Delete</button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="na-empty" id="na-empty-state">
+      <i class="bi bi-megaphone" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+      Nothing sent yet.
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<div id="na-toast-wrap"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function naToast(msg, type, ttl) {
+  ttl = ttl === undefined ? 4000 : ttl;
+  const w = document.getElementById('na-toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'na-toast ' + (type || 'info');
+  t.innerHTML = msg + '<button class="na-toast-close" onclick="this.closest(\'.na-toast\').remove()">&times;</button>';
+  w.appendChild(t);
+  if (ttl > 0) setTimeout(() => t.remove(), ttl);
+}
+
+function naCsrf() {
+  const m = document.cookie.match(/csrftoken=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+function naToggleScopeFields() {
+  const audience = document.querySelector('input[name="audience"]:checked').value;
+  const showScope = audience === 'students';
+  document.getElementById('na-program-field').style.display = showScope ? '' : 'none';
+  document.getElementById('na-year-field').style.display = showScope ? '' : 'none';
+}
+
+function naEscape(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+function naPrependRow(a) {
+  document.getElementById('na-empty-state')?.remove();
+  let wrap = document.querySelector('.na-table-wrap');
+  if (!wrap) {
+    document.getElementById('na-list-wrap').innerHTML =
+      '<div class="na-table-wrap"><table class="na-table"><thead><tr>' +
+      '<th style="width:110px;">Date</th><th>Title</th><th style="width:90px;">Type</th>' +
+      '<th style="width:110px;">Audience</th><th style="width:140px;">Scope</th><th>Attachments</th>' +
+      '<th style="width:90px;">Status</th><th style="width:140px;">Actions</th>' +
+      '</tr></thead><tbody id="na-table-body"></tbody></table></div>';
+  }
+  const body = document.getElementById('na-table-body');
+  const tr = document.createElement('tr');
+  tr.id = 'na-row-' + a.id;
+  const attachHtml = a.attachments.length
+    ? '<div class="na-attach-list">' + a.attachments.map(att =>
+        '<a href="' + att.url + '" target="_blank"><i class="bi bi-paperclip"></i> ' + naEscape(att.name) + '</a>').join('') + '</div>'
+    : '—';
+  const scope = (a.program ? naEscape(a.program) : '—') + (a.year ? ' · Yr ' + a.year : '');
+  tr.innerHTML =
+    '<td style="white-space:nowrap; font-size:.75rem;">' + new Date(a.date).toLocaleString() + '</td>' +
+    '<td>' + naEscape(a.title) + '</td>' +
+    '<td>' + naEscape(a.typeDisplay) + '</td>' +
+    '<td>' + naEscape(a.audienceDisplay) + '</td>' +
+    '<td>' + scope + '</td>' +
+    '<td>' + attachHtml + '</td>' +
+    '<td><span class="na-badge ' + (a.isPublished ? 'published' : 'unpublished') + '" id="na-status-' + a.id + '">' +
+      (a.isPublished ? 'Published' : 'Hidden') + '</span></td>' +
+    '<td><div class="na-row-actions">' +
+      '<button class="na-row-btn toggle" onclick="naToggle(' + a.id + ')">Toggle</button>' +
+      '<button class="na-row-btn del" onclick="naDelete(' + a.id + ')">Delete</button>' +
+    '</div></td>';
+  body.prepend(tr);
+}
+
+document.getElementById('na-form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const btn = document.getElementById('na-submit-btn');
+  const title = document.getElementById('na-title').value.trim();
+  if (!title) { naToast('&#10007; Title is required.', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('description', document.getElementById('na-description').value.trim());
+  fd.append('announcement_type', document.getElementById('na-type').value);
+  fd.append('audience', document.querySelector('input[name="audience"]:checked').value);
+  fd.append('date', document.getElementById('na-date').value);
+  fd.append('is_published', document.getElementById('na-published').checked ? 'true' : 'false');
+  const programVal = document.getElementById('na-program').value;
+  if (programVal) fd.append('program_id', programVal);
+  const yearVal = document.getElementById('na-year').value;
+  if (yearVal) fd.append('year', yearVal);
+  const files = document.getElementById('na-attachments').files;
+  for (let i = 0; i < files.length; i++) fd.append('attachments', files[i]);
+
+  btn.disabled = true;
+  fetch("{% url 'mobile_announcement_send' %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': naCsrf() },
+    body: fd
+  })
+  .then(r => r.json())
+  .then(d => {
+    btn.disabled = false;
+    if (d.ok) {
+      naToast('&#10003; Sent — the mobile app will pick it up next check.', 'success');
+      naPrependRow(d.announcement);
+      document.getElementById('na-form').reset();
+      naToggleScopeFields();
+    } else {
+      naToast('&#10007; ' + (d.error || 'Could not send.'), 'error');
+    }
+  })
+  .catch(() => { btn.disabled = false; naToast('&#10007; Network error — try again.', 'error'); });
+});
+
+function naToggle(id) {
+  fetch('/api/mobile/admin/announcements/' + id + '/toggle/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': naCsrf() }
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      const el = document.getElementById('na-status-' + id);
+      el.textContent = d.isPublished ? 'Published' : 'Hidden';
+      el.className = 'na-badge ' + (d.isPublished ? 'published' : 'unpublished');
+      naToast('&#10003; Updated.', 'success');
+    } else {
+      naToast('&#10007; Could not update.', 'error');
+    }
+  })
+  .catch(() => naToast('&#10007; Network error — try again.', 'error'));
+}
+
+function naDelete(id) {
+  if (!confirm('Delete this notification? This cannot be undone.')) return;
+  fetch('/api/mobile/admin/announcements/' + id + '/delete/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': naCsrf() }
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.ok) {
+      document.getElementById('na-row-' + id)?.remove();
+      naToast('&#10003; Deleted.', 'success');
+    } else {
+      naToast('&#10007; Could not delete.', 'error');
+    }
+  })
+  .catch(() => naToast('&#10007; Network error — try again.', 'error'));
+}
+
+naToggleScopeFields();
+</script>
+{% endblock %}

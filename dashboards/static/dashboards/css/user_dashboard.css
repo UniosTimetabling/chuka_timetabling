@@ -1,0 +1,608 @@
+/*
+ * user_dashboard.css — Page-specific styles for user_dashboard
+ * Requires: base.css (always), panel.css or dashboard.css depending on page.
+ * Extracted from inline <style> blocks.
+ */
+
+:root {
+            --primary-dark: #2f4f2f;
+            --primary-light: #6fa86f;
+            --accent: #a3c9a3;
+            --background: #f0f7f0;
+            --card-bg: #ffffff;
+            --text-dark: #2f3e2f;
+            --text-light: #ffffff;
+            --border: #cfe2cf;
+            --shadow: rgba(0, 0, 0, 0.05);
+            --hover-transition: all 0.3s ease;
+            --exam-accent: #8a2be2;
+            --exam-light: #e6d4ff;
+            --merged-accent: #ff6b6b;
+            --merged-light: #ffe6e6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--background);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header Styles */
+        .dashboard-header {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            padding: 1.25rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .dashboard-header .logo {
+            width: 70px;
+            height: auto;
+            max-width: 100%;
+        }
+
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+            margin: 0 1rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.25rem;
+            word-break: break-word;
+        }
+
+        .dashboard-header .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-bt, .logout-btn, .toggle-btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--hover-transition);
+            text-align: center;
+            white-space: nowrap;
+            border: none;
+            cursor: pointer;
+        }
+
+        .nav-bt {
+            background-color: var(--accent);
+            color: var(--text-dark);
+            border: 1px solid var(--primary-light);
+        }
+
+        .nav-bt:hover, .nav-bt:focus {
+            background-color: var(--primary-light);
+            color: var(--text-light);
+            outline: none;
+        }
+
+        .logout-btn {
+            background-color: var(--accent);
+            color: var(--text-dark);
+        }
+
+        .logout-btn:hover, .logout-btn:focus {
+            background-color: var(--primary-light);
+            color: var(--text-light);
+            outline: none;
+        }
+
+        .toggle-btn {
+            background-color: var(--exam-accent);
+            color: white;
+            border: 1px solid var(--exam-accent);
+        }
+
+        .toggle-btn:hover, .toggle-btn:focus {
+            background-color: #7a1bc8;
+            outline: none;
+        }
+
+        .toggle-btn.active {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        /* View Toggle */
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .view-toggle .toggle-btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+        }
+
+        .view-indicator {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+            font-weight: 600;
+        }
+
+        .view-indicator.regular {
+            background-color: var(--accent);
+            color: var(--text-dark);
+        }
+
+        .view-indicator.exam {
+            background-color: var(--exam-accent);
+            color: white;
+        }
+
+        /* Main Content */
+        .dashboard-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 10px var(--shadow);
+            transition: var(--hover-transition);
+            display: flex;
+            flex-direction: column;
+            height: fit-content;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card ul {
+            margin: 0;
+            padding-left: 1.25rem;
+            flex-grow: 1;
+        }
+
+        .card ul li {
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+
+        .card ul li:before {
+            content: "•";
+            color: var(--primary-light);
+            font-weight: bold;
+            position: absolute;
+            left: -1rem;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            background: var(--accent);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Timetable Section */
+        .timetable-card {
+            grid-column: 1 / -1;
+            margin-top: 1rem;
+        }
+
+        .timetable-search {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .timetable-search input {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            min-width: 220px;
+            flex-grow: 1;
+            font-size: 1rem;
+        }
+
+        .timetable-search button {
+            background: var(--primary-dark);
+            color: var(--text-light);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--hover-transition);
+            white-space: nowrap;
+        }
+
+        .timetable-search button:hover {
+            background: var(--primary-light);
+        }
+
+        /* Day Timetable Styling */
+        .day-timetable {
+            margin-bottom: 2rem;
+        }
+
+        .day-title {
+            font-size: 1.3rem;
+            color: var(--primary-dark);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .exam-day-title {
+            font-size: 1.3rem;
+            color: var(--exam-accent);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--exam-accent);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .timetable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            min-width: 600px;
+        }
+
+        .timetable th, .timetable td {
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .timetable th {
+            background-color: var(--primary-light);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            font-weight: 600;
+        }
+
+        .exam-table th {
+            background-color: var(--exam-accent);
+        }
+
+        .timetable tr:nth-child(even) {
+            background: #e6f2e6;
+        }
+
+        .exam-table tr:nth-child(even) {
+            background: var(--exam-light);
+        }
+
+        .merged-row {
+            background-color: var(--merged-light) !important;
+        }
+
+        .timetable td.course-cell {
+            background-color: #b2d8b2;
+            font-weight: 600;
+            min-width: 150px;
+        }
+
+        .exam-table td.course-cell {
+            background-color: #d4c1ff;
+            font-weight: 600;
+            min-width: 150px;
+        }
+
+        .merged-cell {
+            background-color: #ffcccc !important;
+        }
+
+        .timetable td.venue-cell {
+            background-color: var(--accent);
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .exam-table td.venue-cell {
+            background-color: #c9b3ff;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .meta {
+            font-size: 0.8rem;
+            font-weight: normal;
+            margin-top: 0.3rem;
+            color: var(--text-dark);
+            opacity: 0.8;
+        }
+
+        .exam-meta {
+            font-size: 0.75rem;
+            font-weight: normal;
+            margin-top: 0.2rem;
+            color: #5a4d6e;
+        }
+
+        .merged-meta {
+            font-size: 0.75rem;
+            font-weight: normal;
+            margin-top: 0.2rem;
+            color: #8b0000;
+        }
+
+        /* Exam specific styles */
+        .exam-badge {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            background-color: var(--exam-accent);
+            color: white;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            margin-left: 0.3rem;
+            vertical-align: middle;
+        }
+
+        .merged-badge {
+            background-color: var(--merged-accent);
+        }
+
+        .shared-badge {
+            background-color: #4ecdc4;
+        }
+
+        .regular-badge {
+            background-color: var(--primary-light);
+            color: var(--text-dark);
+        }
+
+        .courses-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .courses-list li {
+            margin-bottom: 0.3rem;
+            padding-left: 0.5rem;
+            font-size: 0.85rem;
+            text-align: left;
+            
+        }
+
+        .courses-list li:before {
+            content: none;
+        }
+
+        /* Footer */
+        .dashboard-footer {
+            text-align: center;
+            padding: 1.25rem;
+            background: var(--primary-dark);
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-top: auto;
+        }
+
+        .dashboard-footer a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: var(--hover-transition);
+        }
+
+        .dashboard-footer a:hover {
+            color: var(--text-light);
+            text-decoration: underline;
+        }
+
+        /* Empty state styling */
+        .empty-state {
+            text-align: center;
+            padding: 1.5rem;
+            color: #6c757d;
+        }
+
+        .empty-state p {
+            margin-bottom: 0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .dashboard-main {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1.25rem;
+                padding: 1.25rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .dashboard-main {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            }
+            
+            .timetable {
+                min-width: 700px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                padding: 1rem;
+            }
+            
+            .header-top {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .header-title {
+                order: -1;
+                margin: 0;
+            }
+            
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .dashboard-main {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .timetable-search {
+                flex-direction: column;
+            }
+            
+            .timetable-search input,
+            .timetable-search button {
+                width: 100%;
+            }
+            
+            .timetable th, .timetable td {
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+            
+            .card {
+                padding: 1.25rem;
+            }
+            
+            .timetable {
+                min-width: 650px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .dashboard-header h1 {
+                font-size: 1.25rem;
+            }
+            
+            .dashboard-header .subtitle {
+                font-size: 0.8rem;
+            }
+            
+            .nav-bt, .logout-btn, .toggle-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+                width: 100%;
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .card h2 {
+                font-size: 1.1rem;
+            }
+            
+            .timetable th, .timetable td {
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+            
+            .timetable {
+                min-width: 550px;
+            }
+            
+            .day-title, .exam-day-title {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .dashboard-header h1 {
+                font-size: 1.1rem;
+            }
+            
+            .card h2 {
+                font-size: 1rem;
+            }
+            
+            .timetable {
+                min-width: 500px;
+            }
+        }
+/* ===== HIDE LEGACY INNER HEADER (panel-header from base.html is used instead) ===== */
+header.dashboard-header {
+  display: none !important;
+}

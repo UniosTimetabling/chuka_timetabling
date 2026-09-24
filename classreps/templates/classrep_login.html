@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Class Rep Login{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'classreps/css/classrep_login.css' %}">
+{% endblock page_css %}
+
+{% block content %}
+<div class="container">
+ <div class="box">
+ <div class="logo">
+ <h1>Timetable System</h1>
+ <p>Class Representative Portal</p>
+ </div>
+ 
+ <h2>Login to Your Account</h2>
+ 
+ <!-- Login Form -->
+ <form method="POST" id="login-form">
+ {% csrf_token %}
+ <div class="form-group">
+ <input type="text" name="username" placeholder="Username" required>
+ </div>
+ 
+ <div class="form-group">
+ <input type="password" name="password" placeholder="Password" required>
+ </div>
+ 
+ <button type="submit" name="login" class="btn btn-primary">Login</button>
+ 
+ <div class="form-toggle">
+ <a id="reset-toggle">Reset Credentials</a>
+ </div>
+ </form>
+
+ <!-- Reset Form -->
+ <form method="POST" id="reset-form" class="hidden">
+ {% csrf_token %}
+ <h3>Reset Your Credentials</h3>
+ <p style="margin-bottom: 15px; color: var(--secondary); font-size: 0.9rem;">
+ Select your program to reset your login credentials.
+ </p>
+ 
+ <div class="form-group">
+ <select name="program_id" required>
+ <option value="">Select Program</option>
+ {% for prog in programs %}
+ <option value="{{ prog.id }}">{{ prog.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ 
+ <!--<button type="submit" name="reset" class="btn btn-primary">Reset Credentials</button>-->
+ 
+ <div class="form-toggle">
+ <a id="cancel-reset">Back to Login</a>
+ </div>
+ </form>
+
+ <!-- Messages -->
+ {% for msg in messages %}
+ <div class="msg {% if msg.tags %}{{ msg.tags }}{% else %}error{% endif %}">
+ {{ msg }}
+ </div>
+ {% endfor %}
+ </div>
+ </div>
+{% endblock content %}

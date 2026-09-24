@@ -1,0 +1,177 @@
+<!--
+  core/templates/core/error.html
+  ────────────────────────────────
+  Handles ALL framework-level errors (403/404/500 — see core.views.universal_error).
+
+  Deliberately self-contained: no template inheritance, no static files, no
+  external images. An error page is the one place that must never depend
+  on the same site chrome / DB-backed context (nav, site_settings, etc.)
+  that may be exactly what's broken. If the underlying problem is a DB
+  outage, a missing static file, or a template context processor
+  throwing, a "simple text page" that only needs {code, title, msg} is
+  the one thing guaranteed to still render.
+
+  Content/branding mirrors chuka.ac.ke's own real contact details (ICT
+  support address, phone, P.O. Box) rather than placeholder text.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} — Chuka University</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #f4f6f5;
+    color: #1a1a1a;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.55;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #107c41;
+    color: #fff;
+    padding: 18px 24px;
+    text-align: center;
+  }
+  header .wordmark {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  header .tagline {
+    font-size: .8rem;
+    opacity: .85;
+    margin-top: 2px;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .error-box {
+    max-width: 560px;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #d7dbd9;
+    padding: 40px 36px;
+    text-align: center;
+  }
+
+  .error-code {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #107c41;
+    line-height: 1;
+  }
+
+  .error-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 10px 0 16px;
+    color: #1a1a1a;
+  }
+
+  .error-message {
+    font-size: 1rem;
+    color: #444;
+    margin-bottom: 28px;
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+
+  .button {
+    padding: 11px 26px;
+    border: 1px solid #107c41;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .button-primary {
+    background: #107c41;
+    color: #fff;
+  }
+  .button-primary:active { background: #0c5f31; }
+  .button-secondary {
+    background: transparent;
+    color: #107c41;
+  }
+  .button-secondary:active { background: #eaf3ee; }
+
+  .support-box {
+    border-top: 1px solid #e2e5e3;
+    padding-top: 20px;
+    font-size: .85rem;
+    color: #555;
+    text-align: left;
+  }
+  .support-title {
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .support-box a { color: #107c41; text-decoration: none; }
+  .support-box a:hover { text-decoration: underline; }
+  .support-row { margin-bottom: 3px; text-align: center; }
+
+  footer {
+    text-align: center;
+    font-size: .74rem;
+    color: #6b6f6d;
+    padding: 14px 12px;
+    border-top: 1px solid #e2e5e3;
+    background: #fff;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">Chuka University</div>
+  <div class="tagline">Knowledge is Wealth &nbsp;·&nbsp; Timetabling &amp; Examinations System</div>
+</header>
+
+<main>
+  <div class="error-box">
+    <div class="error-code">{{ code }}</div>
+    <div class="error-title">{{ title }}</div>
+    <div class="error-message">{{ msg }}</div>
+
+    <div class="button-group">
+      <button class="button button-primary" onclick="location.reload()">Try Again</button>
+      <a href="/" class="button button-secondary">Return Home</a>
+    </div>
+
+    <div class="support-box">
+      <div class="support-title">Need help?</div>
+      <div class="support-row">ICT Support: <a href="mailto:esupport@chuka.ac.ke">esupport@chuka.ac.ke</a></div>
+      <div class="support-row">Tel: 020 231 0512 / 020 231 0518</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  &copy; {% now "Y" %} Chuka University — P.O. Box 109-60400, Chuka, Kenya
+</footer>
+
+</body>
+</html>

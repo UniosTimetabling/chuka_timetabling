@@ -1,0 +1,85 @@
+{% extends "timetable/base.html" %}
+{% load static %}
+
+{% block title %}Student Timetable Viewer{% endblock title %}
+
+{% block page_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'timetable/css/timetable_timetable_view_timetable.css' %}">
+{% endblock page_css %}
+
+{% block panel_content %}
+<div class="container">
+ <h2>Student Timetable Viewer</h2>
+
+ <!-- FORM -->
+ <div id="form-container" class="form-box">
+ <div class="form-row">
+ <div class="form-field">
+ <label for="student-year">Academic Year</label>
+ <select id="student-year">
+ <option value="">Select Year</option>
+ <option value="1">Year 1</option>
+ <option value="2">Year 2</option>
+ <option value="3">Year 3</option>
+ <option value="4">Year 4</option>
+ <option value="5">Year 5</option>
+ <option value="6">Year 6</option>
+ </select>
+ </div>
+ <div class="form-field">
+ <label for="program-select">Program</label>
+ <select id="program-select">
+ <option value="">Select Program</option>
+ {% for prog in programs %}
+ <option value="{{ prog.id }}">{{ prog.name }}</option>
+ {% endfor %}
+ </select>
+ </div>
+ </div>
+ <div class="form-row">
+ <div class="form-field">
+ <button id="see-btn">See Timetable</button>
+ </div>
+ <div class="form-field">
+ <button id="clear-btn" class="secondary">Clear</button>
+ </div>
+ <div class="form-field">
+ <p>Chuka University timetabling system</p>
+ <p>Help us improve the system. Leave feedback below:</p>
+ <a href="{% url 'feedback_page' %}">
+ <button class="secondary">Give Feedback</button>
+ </a>
+ </div>
+ </div>
+ </div>
+
+ <!-- Viewer Controls -->
+ <div id="viewer-controls" class="hidden">
+ <div class="controls-container">
+ <button id="minimal-btn">Class Rep Timetable</button>
+ <button id="main-btn">Official Timetable</button>
+ <button id="exam-btn">Exam Timetable</button>
+ <button id="back-btn" class="secondary">Change Program</button>
+ </div>
+ <div id="program-summary" class="notice"></div>
+ </div>
+
+ <div id="timetable-container"></div>
+</div>
+
+<!-- Print/Download -->
+<div id="print-actions" class="hidden">
+ <button id="download-img-btn">
+ <span></span> Download Image
+ </button>
+ <button id="print-btn">
+ <span>️</span> Print Timetable
+ </button>
+</div>
+{% endblock panel_content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'timetable/js/timetable_timetable_view_timetable.js' %}"></script>
+{% endblock %}

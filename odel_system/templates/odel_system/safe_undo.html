@@ -1,0 +1,15 @@
+{% extends "course_allocation/base.html" %}
+{% load static %}
+
+{% block page_title %}ODeL Safe Undo{% endblock %}
+
+{% block header_controls %}
+<div class="header-actions">
+    <a href="{% url 'odel_system:allocation_page' %}" class="hdr-btn">&larr; Back to ODeL Allocations</a>
+    <span class="dept-badge">{{ scope.name }}</span>
+</div>
+{% endblock %}
+
+{% block allocation_content %}
+{% include "backup_system/safe_undo_body.html" with su_action_url=action_url su_scope_label=scope.name su_heading="ODeL Course Allocations" %}
+{% endblock %}
