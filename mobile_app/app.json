@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#22B8C7"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ke.ac.chuka.timetable",
@@ -31,7 +33,9 @@
         "CAMERA",
         "RECEIVE_BOOT_COMPLETED",
         "SCHEDULE_EXACT_ALARM",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -48,6 +52,12 @@
           "cameraPermission": "Allow Chuka Timetable to access your camera to scan shared timetable QR codes."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "cd8611a3-54ae-48c0-a2dc-5c39acf2c7d1"
+      }
+    },
+    "owner": "chuka-university"
   }
 }

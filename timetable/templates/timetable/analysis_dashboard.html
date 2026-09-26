@@ -165,6 +165,29 @@
   .day-heading{margin:18px 0 6px;color:var(--green-dark);font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:8px;}
   .day-heading .day-count{font-size:.7rem;font-weight:400;color:var(--muted);}
   @media(max-width:600px){body{padding:12px;} .tab{padding:8px 12px;font-size:.75rem;} .field{min-width:100%;}}
+
+  /* Quick search — small bar under "Back to Dashboard" */
+  .quick-search{display:flex;gap:8px;align-items:center;margin:10px 0 4px;flex-wrap:wrap;}
+  .quick-search input[type=text]{flex:1;min-width:220px;}
+  .quick-search .hint{margin:0;width:100%;}
+  dialog#quickSearchDialog{border:none;border-radius:10px;padding:0;width:min(640px,92vw);max-height:80vh;box-shadow:0 12px 32px rgba(0,0,0,.25);}
+  dialog#quickSearchDialog::backdrop{background:rgba(0,0,0,.45);}
+  .qs-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--grid);position:sticky;top:0;background:#fff;}
+  .qs-head h3{margin:0;font-size:1rem;color:var(--green-dark);}
+  .qs-close{background:transparent;color:var(--muted);border:none;font-size:1.3rem;line-height:1;padding:2px 6px;cursor:pointer;}
+  .qs-close:hover{color:var(--warn);background:transparent;}
+  .qs-body{padding:14px 18px 18px;overflow-y:auto;max-height:calc(80vh - 56px);}
+  .qs-section{margin-bottom:18px;}
+  .qs-section:last-child{margin-bottom:0;}
+  .qs-section h4{margin:0 0 8px;font-size:.85rem;color:var(--green-dark);text-transform:uppercase;letter-spacing:.03em;}
+  .qs-course-row,.qs-lecturer-row{border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.85rem;}
+  .qs-course-row .code{font-weight:700;color:var(--green-dark);}
+  .qs-course-row .name{display:block;margin-top:1px;}
+  .qs-course-row .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;font-size:.78rem;color:var(--muted);}
+  .qs-course-row .meta b{color:var(--text);}
+  .qs-lecturer-row .name{font-weight:700;color:var(--green-dark);}
+  .qs-lecturer-row .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;font-size:.78rem;color:var(--muted);}
+  .qs-lecturer-row .meta b{color:var(--text);}
 </style>
 </head>
 <body>
@@ -173,6 +196,22 @@
   <h1>{{ scope_label }} Analysis &amp; Reports</h1>
   <a class="btn-link" href="{% url 'timetable_dashboard' %}" target="_blank" rel="noopener">Back to Dashboard</a>
 </div>
+
+<!-- ── Quick Search — course/program or lecturer, shown in a dialog ── -->
+<div class="quick-search">
+  <input type="text" id="qsInput" placeholder="Quick search — course code/name, program, or lecturer name…">
+  <button type="button" id="btnQsSearch">Search</button>
+  <p class="hint">Course matches show program, year &amp; semester. Lecturer matches check every lecturer on file, allocated or not.</p>
+</div>
+
+<dialog id="quickSearchDialog">
+  <div class="qs-head">
+    <h3 id="qsDialogTitle">Search results</h3>
+    <button type="button" class="qs-close" id="qsCloseBtn" aria-label="Close">&times;</button>
+  </div>
+  <div class="qs-body" id="qsDialogBody"></div>
+</dialog>
+
 <p class="sub">
   Read-only reporting on top of the live {{ scope_label|lower }} — nothing here edits scheduling data.
   {% if is_exam_scope %}
@@ -703,6 +742,7 @@ const API = {
   exportDeptTimetable: "{% url 'department_timetable_pdf' %}",
   lookup: "{% url 'query_course_schedule_api' %}",
   lookupPdf: "{% url 'export_course_schedule_pdf' %}",
+  quickSearch: "{% url 'quick_search_api' %}",
   uSearch: "{% url 'universal_search_api' %}",
   uSearchPdf: "{% url 'export_universal_search_pdf' %}",
   programAnalysis: "{% url 'program_analysis_api' %}",
@@ -1220,6 +1260,97 @@ document.getElementById('btnLookupPdf').addEventListener('click', function(){
   const params = new URLSearchParams({scope: ANALYSIS_SCOPE});
   codes.forEach(c => params.append('code', c));
   openReportInNewTab(this, `${API.lookupPdf}?${params.toString()}`);
+});
+
+// ====================================================================
+// Quick Search — small course/lecturer box under "Back to Dashboard",
+// results shown in a <dialog> rather than pushed inline into the page.
+// ====================================================================
+async function runQuickSearch(){
+  const q = document.getElementById('qsInput').value.trim();
+  const dialog = document.getElementById('quickSearchDialog');
+  const title = document.getElementById('qsDialogTitle');
+  const body = document.getElementById('qsDialogBody');
+  if (!q){
+    title.textContent = 'Search results';
+    body.innerHTML = '<p class="hint">Enter a course code/name, program, or lecturer name to search.</p>';
+    if (!dialog.open) dialog.showModal();
+    return;
+  }
+
+  title.textContent = `Results for "${q}"`;
+  body.innerHTML = '<p class="hint">Searching…</p>';
+  if (!dialog.open) dialog.showModal();
+
+  try{
+    const res = await fetch(`${API.quickSearch}?q=${encodeURIComponent(q)}&scope=${ANALYSIS_SCOPE}`);
+    const data = await res.json();
+    if (data.status !== 'success'){
+      body.innerHTML = `<p class="hint">${escapeHtml(data.message || 'Search failed.')}</p>`;
+      return;
+    }
+
+    const courses = data.courses || [];
+    const lecturers = data.lecturers || [];
+    if (!courses.length && !lecturers.length){
+      body.innerHTML = '<p class="hint">No courses or lecturers matched that search.</p>';
+      return;
+    }
+
+    let html = '';
+    html += `<div class="qs-section"><h4>Courses (${courses.length})</h4>`;
+    if (courses.length){
+      html += courses.map(c => `
+        <div class="qs-course-row">
+          <span class="code">${escapeHtml(c.course_code)}</span>
+          <span class="name">${escapeHtml(c.course_name)}</span>
+          <div class="meta">
+            <span><b>Program:</b> ${escapeHtml(c.program)}</span>
+            <span><b>Department:</b> ${escapeHtml(c.department)}</span>
+            <span><b>Year:</b> ${escapeHtml(String(c.year))}</span>
+            <span><b>Semester:</b> ${escapeHtml(String(c.semester))}</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      html += '<p class="hint">No matching courses/programs.</p>';
+    }
+    html += '</div>';
+
+    html += `<div class="qs-section"><h4>Lecturers (${lecturers.length})</h4>`;
+    if (lecturers.length){
+      html += lecturers.map(l => `
+        <div class="qs-lecturer-row">
+          <span class="name">${escapeHtml(l.designation ? l.designation + ' ' + l.name : l.name)}</span>
+          <div class="meta">
+            <span><b>Department:</b> ${escapeHtml(l.department)}</span>
+            <span><b>Email:</b> ${escapeHtml(l.email)}</span>
+            <span><b>Payroll No:</b> ${escapeHtml(l.payroll_number)}</span>
+            <span><b>Courses allocated:</b> ${l.course_count}</span>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      html += '<p class="hint">No matching lecturers.</p>';
+    }
+    html += '</div>';
+
+    body.innerHTML = html;
+  } catch(err){
+    body.innerHTML = '<p class="hint">Something went wrong while searching. Please try again.</p>';
+  }
+}
+document.getElementById('btnQsSearch').addEventListener('click', function(){
+  withButtonBusy(this, 'Searching…', runQuickSearch);
+});
+document.getElementById('qsInput').addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){
+    e.preventDefault();
+    document.getElementById('btnQsSearch').click();
+  }
+});
+document.getElementById('qsCloseBtn').addEventListener('click', function(){
+  document.getElementById('quickSearchDialog').close();
 });
 
 // ====================================================================

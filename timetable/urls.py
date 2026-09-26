@@ -204,6 +204,7 @@ urlpatterns += [
     path('timetable/analysis/export-course-schedule/', analysis_reports.export_course_schedule_pdf, name='export_course_schedule_pdf'),
 
     # Universal search (lecturer / program / department / course code)
+    path('timetable/analysis/quick-search/', analysis_reports.quick_search_api, name='quick_search_api'),
     path('timetable/analysis/universal-search/', analysis_reports.universal_search_api, name='universal_search_api'),
     path('timetable/analysis/export-universal-search/', analysis_reports.export_universal_search_pdf, name='export_universal_search_pdf'),
     

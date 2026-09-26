@@ -5020,6 +5020,11 @@ document.addEventListener("DOMContentLoaded", function () {
     loadProgramsForDept(null, keepProgramId, () => { setCrossDeptMode(false); });
   });
 
+  // Cache of the last-seen "signature" (count + newest id/timestamp) per
+  // program, so we can tell cheaply whether the curriculum actually changed
+  // instead of re-fetching and re-rendering the whole course list every time.
+  let _courseListSig = {};
+
   function loadCourses(programId = "") {
     let url = "{% url 'api_course_codes' %}?user_dept_id={{ detected_dept.id }}";
     if (programId) url += `&program_id=${programId}`;
@@ -5070,7 +5075,18 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+    // Prime the signature cache so the very next focus-check knows we're
+    // already up to date and doesn't immediately re-pull.
+    primeCourseListSig(programId);
   }
+
+  function primeCourseListSig(programId) {
+    const key = programId || "__all__";
+    let sigUrl = "{% url 'api_course_codes_signature' %}";
+    if (programId) sigUrl += `?program_id=${programId}`;
+    fetch(sigUrl).then(r => r.json()).then(data => { _courseListSig[key] = data.sig; }).catch(() => {});
+  }
+
   loadCourses();
 
   programSelect.addEventListener("change", function () {
@@ -5141,6 +5157,36 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById('hiddenProgramSemester').value =
       document.getElementById('hiddenProgramCourseId').value = '';
     }
+  });
+
+  // Keep the course-code suggestions live WITHOUT re-pulling the whole
+  // curriculum on every focus. On each focus we only ask the server for a
+  // tiny "signature" (a count + latest id/timestamp — one cheap aggregate
+  // query, not the full course list). If that signature matches what we
+  // already have cached for this program, nothing changed, so we skip the
+  // fetch/re-render entirely. Only when the signature differs (a course was
+  // added/edited/removed elsewhere while this page was open) do we do the
+  // full loadCourses() pull and refresh the dropdown.
+  function checkCourseListForChanges(programId) {
+    const key = programId || "__all__";
+    let sigUrl = "{% url 'api_course_codes_signature' %}";
+    if (programId) sigUrl += `?program_id=${programId}`;
+    return fetch(sigUrl).then(r => r.json()).then(data => {
+      const sig = data.sig;
+      if (_courseListSig[key] !== sig) {
+        _courseListSig[key] = sig;
+        loadCourses(programId);
+      }
+      // else: unchanged since we last checked — skip the full fetch.
+    }).catch(() => {
+      // Signature check failed (e.g. network hiccup) — fall back to a
+      // normal load so the field never gets stuck without suggestions.
+      loadCourses(programId);
+    });
+  }
+
+  courseCodeInput.addEventListener("focus", function () {
+    checkCourseListForChanges(programSelect.value);
   });
 
   courseCodeInput.addEventListener("blur", function () {

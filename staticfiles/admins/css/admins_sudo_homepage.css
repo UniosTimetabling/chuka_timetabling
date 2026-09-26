@@ -1,0 +1,77 @@
+/* admins_sudo_homepage.css — extracted from sudo_homepage.html */
+.hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+.hub-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+  overflow: hidden;
+}
+.hub-card:hover { 
+  transform: translateY(-4px); 
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1); 
+}
+.hub-card.featured {
+  border: 2px solid #0b1f4a;
+  background: #eef2f8;
+}
+.hub-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #ddd;
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}
+.hub-card-icon {
+  width: 36px; 
+  height: 36px; 
+  border-radius: 8px;
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hub-card-icon.blue   { background: #e2e8f0; color: #0b1f4a; }
+.hub-card-icon.green  { background: #d4edda; color: #28a745; }
+.hub-card-icon.orange { background: #fff1e0; color: #f6861f; }
+.hub-card-title { 
+  font-size: 16px; 
+  font-weight: 700; 
+  color: #1e293b; 
+}
+.hub-card-body { 
+  padding: 12px; 
+}
+.hub-link {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between;
+  padding: 10px 12px; 
+  border-radius: 4px;
+  text-decoration: none; 
+  color: #1e293b;
+  font-size: 14px; 
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+.hub-link:hover {
+  background: #eef2f8;
+  border-color: #e2e8f0;
+  color: #0b1f4a;
+}
+.hub-link-arrow { 
+  color: #6c757d; 
+  font-size: 18px; 
+  transition: all 0.2s; 
+}
+.hub-link:hover .hub-link-arrow { 
+  color: #0b1f4a; 
+  transform: translateX(3px); 
+}

@@ -1,0 +1,21 @@
+/* row_click.css
+ * Makes Django admin changelist table rows visually clickable.
+ * Paired with row_click.js, which handles the actual click-to-navigate
+ * behaviour. Excludes the checkbox and action-link columns so existing
+ * selection/edit/delete controls keep working exactly as before.
+ */
+
+#result_list tbody tr.clickable-row {
+  cursor: pointer;
+}
+
+#result_list tbody tr.clickable-row:hover {
+  background-color: var(--selected-row, #f5f8ff);
+}
+
+/* Never treat the selection checkbox or its cell as part of the
+   clickable area, or bulk-select would break. */
+#result_list tbody tr.clickable-row td.action-checkbox,
+#result_list tbody tr.clickable-row input[type="checkbox"] {
+  cursor: default;
+}

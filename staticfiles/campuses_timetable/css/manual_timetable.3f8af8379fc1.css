@@ -1,0 +1,154 @@
+  :root {
+    --green-main: #1f5c24;
+    --green-light: #2e7d32;
+    --green-accent: #388e3c;
+    --green-pale: #e0ece1;
+    --green-bg: #f4f6f4;
+    --green-border: #b0c8b2;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --radius: 3px;
+    --form-w: 340px;
+  }
+
+  #campusPanelRoot, #campusPanelRoot * { box-sizing: border-box; }
+
+  #campusPanelRoot {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, system-ui, sans-serif;
+    font-size: 14px;
+    background: var(--green-bg);
+    color: #111;
+    line-height: 1.45;
+    margin: -1rem -1rem 0;
+    padding: 1rem;
+  }
+
+  /* ── Mode toggle pill, sits in the existing top nav's action toolbar ── */
+  .cmp-schedule-toggle { display:flex; background:rgba(255,255,255,0.12); border-radius:6px; padding:2px; }
+  .cmp-toggle-btn { background:transparent; color:rgba(255,255,255,0.75); text-decoration:none; padding:6px 14px; font-size:0.83rem; font-weight:700; border-radius:5px; cursor:pointer; transition:background 0.12s, color 0.12s; }
+  .cmp-toggle-btn:hover:not(.active) { background:rgba(255,255,255,0.1); color:#fff; }
+  .cmp-toggle-btn.active { background:#fff; color:var(--green-main, #1f5c24); }
+
+  /* ── LAYOUT ── */
+  .container { display:flex; gap:12px; align-items:flex-start; }
+
+  /* ── LEFT PANEL (sticky form column) ── */
+  .left-panel {
+    width:var(--form-w); flex-shrink:0;
+    background:white; padding:16px; border-radius:var(--radius);
+    box-shadow:var(--shadow); border-top:3px solid var(--green-main);
+    height:fit-content; position:sticky; top:12px;
+    max-height:calc(100vh - 24px); overflow-y:auto;
+  }
+  .left-panel h2 { font-size:1rem; color:var(--green-main); border-bottom:1px solid #ddd; padding-bottom:8px; margin-bottom:12px; font-weight:700; display:flex; align-items:center; gap:6px; }
+  .left-panel h2::before { content:"\f64d"; font-family:"bootstrap-icons"; font-size:0.95rem; }
+  .left-panel h3 { font-size:0.9rem; color:#333; margin-bottom:9px; font-weight:700; display:flex; align-items:center; gap:6px; }
+
+  /* ── TABS ── */
+  .tab-container { display:flex; gap:0; margin-bottom:14px; border:1px solid var(--green-border); border-radius:2px; overflow:hidden; }
+  .tab { flex:1; background:#fff; color:var(--green-main); border:none; padding:9px 10px; font-size:0.85rem; font-weight:700; cursor:pointer; transition:background 0.12s, color 0.12s; border-right:1px solid var(--green-border); }
+  .tab:last-child { border-right:none; }
+  .tab.active { background:var(--green-main); color:#fff; }
+  .tab:not(.active):hover { background:var(--green-pale); }
+
+  /* ── FORMS ── */
+  form { margin-bottom:12px; }
+  .form-group { margin-bottom:10px; }
+  label { display:block; margin-bottom:4px; font-weight:600; font-size:0.85rem; color:#333; }
+  input, select {
+    width:100%; padding:7px 10px; margin-bottom:2px;
+    border:1px solid #ccc; border-radius:2px;
+    font-size:0.88rem; transition:border-color 0.12s;
+    color:#111; background:#fff;
+  }
+  input:focus, select:focus { outline:none; border-color:#388e3c; box-shadow:0 0 0 2px rgba(56,142,60,0.12); }
+  .form-row { display:flex; gap:10px; }
+  .form-row .form-group { flex:1; min-width:0; }
+  .campus-badge { display:inline-block; background:var(--green-pale); color:var(--green-main); font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:2px; margin-left:4px; }
+
+  /* ── BUTTONS ── */
+  .btn { display:inline-flex; align-items:center; gap:5px; background:var(--green-main); color:white; border:none; padding:8px 13px; border-radius:2px; cursor:pointer; font-weight:600; font-size:0.88rem; transition:background 0.12s; }
+  .btn:hover { background:#2e7d32; }
+  .btn:active { opacity:0.9; }
+  .btn:disabled { opacity:0.55; cursor:not-allowed; }
+  .btn-success { background:var(--green-main); } .btn-success:hover { background:#2e7d32; }
+  .btn-info { background:#01579b; } .btn-info:hover { background:#0277bd; }
+  .btn-warning { background:#e65100; } .btn-warning:hover { background:#ef6c00; }
+  .btn-danger { background:#b71c1c; } .btn-danger:hover { background:#c62828; }
+  .action-buttons { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .action-buttons .btn { flex:1; justify-content:center; min-width:90px; }
+
+  /* ── MESSAGES ── */
+  .message { padding:8px 11px; border-radius:2px; font-size:0.87rem; margin:8px 0; }
+  .message.success { background:#edf7ed; border-left:3px solid #388e3c; color:#1a4a1e; }
+  .message.error { background:#fdecea; border-left:3px solid #c62828; color:#7f0000; }
+  .message.warning { background:#fdf6e3; border-left:3px solid #e65100; color:#7c3200; }
+  .message.info { background:#e8f1fc; border-left:3px solid #1565c0; color:#0d3475; }
+
+  /* ── INFO BOX ── */
+  .info-box { background:var(--green-pale); border-left:3px solid var(--green-main); border-radius:2px; padding:10px 12px; font-size:0.83rem; color:#1a4a1e; margin-bottom:14px; }
+  .info-box strong { color:var(--green-main); }
+
+  /* ── CONFIG FORM ── */
+  .config-form { border-top:1px solid #ddd; margin-top:4px; padding-top:12px; }
+
+  /* ── SUMMARY ── */
+  .summary-section { border-top:1px solid #ddd; margin-top:12px; padding-top:12px; }
+  .summary-section h3 { font-size:0.9rem; color:#333; margin-bottom:9px; font-weight:700; }
+  .summary-stats { display:flex; gap:8px; }
+  .stat-card { flex:1; background:var(--green-pale); border-radius:2px; padding:10px; text-align:center; }
+  .stat-value { font-size:1.4rem; font-weight:800; color:var(--green-main); line-height:1.1; }
+  .stat-label { font-size:0.72rem; color:#4a6b4c; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; margin-top:2px; }
+
+  /* ── RIGHT PANEL / TIMETABLE GRID — Excel-like ── */
+  .right-panel { flex:1; min-width:0; background:white; padding:16px; border-radius:var(--radius); box-shadow:var(--shadow); border-top:3px solid var(--green-accent); }
+  .right-panel h2 { font-size:1.05rem; color:var(--green-main); margin-bottom:12px; font-weight:700; display:flex; align-items:center; gap:6px; }
+  .right-panel h2::before { content:"\f1f4"; font-family:"bootstrap-icons"; font-size:1rem; }
+
+  .timetable-container { overflow-x:auto; }
+  .table-wrapper { overflow-x:auto; border:1px solid #bbb; border-radius:2px; margin-bottom:4px; }
+  .timetable-container table { width:100%; border-collapse:collapse; min-width:560px; }
+  .timetable-container table th { background:#2e6b32; color:white; padding:7px 10px; font-size:0.82rem; font-weight:700; text-align:center; border-right:1px solid #3d8040; white-space:nowrap; }
+  .timetable-container table td { border:1px solid #d4d4d4; padding:5px 6px; vertical-align:top; text-align:center; font-size:0.82rem; }
+  .date-header { background:#f0f0f0; font-weight:700; font-size:0.82rem; min-width:100px; color:#222; border-right:2px solid #bbb; white-space:nowrap; }
+
+  .timetable-cell { min-height:56px; vertical-align:top; padding:3px 4px !important; }
+  .timetable-cell.empty { background:#fff; }
+  .timetable-cell.filled { background:#f8fcf8; }
+
+  .timetable-entry { padding:2px 0; margin:0; border-radius:0; background:transparent; border:none; border-bottom:1px dashed #e0e0e0; font-size:0.8rem; text-align:left; position:relative; }
+  .timetable-entry:last-child { border-bottom:none; }
+  .course-code { font-weight:700; color:#1a4a1e; font-size:0.8rem; }
+  .lecturer-name { color:#555; font-size:0.74rem; }
+  .student-count { font-size:0.71rem; color:#bf360c; font-weight:600; }
+  .entry-campus { font-size:0.7rem; color:#01579b; font-weight:600; }
+  .delete-entry { background:none; border:none; color:#ccc; font-size:0.9rem; cursor:pointer; padding:0; line-height:1; float:right; transition:color 0.1s; }
+  .delete-entry:hover { color:#b71c1c; }
+
+  .empty-state { text-align:center; padding:50px 20px; color:#888; font-size:0.9rem; }
+  .empty-state i { font-size:2rem; color:#c5d9c6; display:block; margin-bottom:8px; }
+
+  /* ── Toasts reuse base.html's own #toastContainer (.panel-toast-container);
+        these rules just style the toast items we push into it ── */
+  .toast { background:white; border-radius:2px; padding:10px 13px; box-shadow:0 2px 10px rgba(0,0,0,0.14); display:flex; align-items:center; gap:8px; font-size:0.88rem; font-weight:500; pointer-events:all; max-width:340px; border-left:4px solid #ccc; color:#222; animation:toastIn 0.2s ease forwards; }
+  .toast.success { border-left-color:#388e3c; }
+  .toast.warning { border-left-color:#e65100; }
+  .toast.error { border-left-color:#b71c1c; }
+  .toast.info { border-left-color:#1565c0; }
+  .toast-close { background:none; border:none; cursor:pointer; color:#999; font-size:0.95rem; padding:0; margin-left:auto; }
+  @keyframes toastIn { from{opacity:0;transform:translateX(14px)} to{opacity:1;transform:translateX(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateX(14px)} }
+  .spinner { width:14px; height:14px; border:2px solid #ccc; border-top-color:#fff; border-radius:50%; animation:spin 0.55s linear infinite; display:inline-block; vertical-align:middle; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width:1100px) { :root { --form-w: 290px; } }
+  @media (max-width:860px) {
+    .container { flex-direction:column; }
+    .left-panel { width:100%; position:static; max-height:none; }
+    .right-panel { width:100%; }
+  }
+  @media (max-width:600px) {
+    #campusPanelRoot { margin:-0.6rem -0.6rem 0; padding:0.6rem; }
+    .left-panel, .right-panel { padding:12px; }
+    .timetable-container table th, .timetable-container table td { font-size:0.78rem; padding:4px 6px; }
+  }

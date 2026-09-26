@@ -1,0 +1,37 @@
+/* admins_create_cot_user.css — extracted from create_cot_user.html */
+/* Form styling to ensure Django form fields match our style */
+  #cotUserForm input[type="text"],
+  #cotUserForm input[type="email"],
+  #cotUserForm input[type="password"],
+  #cotUserForm select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    background: white;
+  }
+  
+  #cotUserForm input:focus,
+  #cotUserForm select:focus {
+    outline: none;
+    border-color: #0b1f4a;
+    box-shadow: 0 0 0 2px rgba(11,31,74,0.1);
+  }
+  
+  .btn-warning {
+    background: #f6861f;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-block;
+  }
+  
+  .btn-warning:hover {
+    background: #d86b0a;
+  }

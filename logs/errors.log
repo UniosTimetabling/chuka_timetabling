@@ -2,3 +2,187 @@ ERROR 2026-09-24 19:24:19,829 django.request log:246 Internal Server Error: /pub
 ERROR 2026-09-24 19:24:19,832 django.server basehttp:212 "GET /publish-regular-pdf/ HTTP/1.1" 500 366
 ERROR 2026-09-24 19:25:15,297 django.request log:246 Internal Server Error: /publish-regular-pdf/
 ERROR 2026-09-24 19:25:15,297 django.server basehttp:212 "GET /publish-regular-pdf/ HTTP/1.1" 500 366
+ERROR 2026-09-25 12:57:47,099 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-25 13:10:28,656 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-25 13:12:25,482 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-25 13:12:32,940 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-25 13:13:20,800 django.request middleware:45 Unhandled exception on POST /cod/ | user=law | ip=127.0.0.1 | UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:13:21,478 django.request log:246 Internal Server Error: /cod/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:13:21,547 django.server basehttp:212 "POST /cod/ HTTP/1.1" 500 103934
+ERROR 2026-09-25 13:15:31,311 django.request middleware:45 Unhandled exception on POST /cod/ | user=law | ip=127.0.0.1 | UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:15:31,633 django.request log:246 Internal Server Error: /cod/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:15:31,665 django.server basehttp:212 "POST /cod/ HTTP/1.1" 500 103934
+ERROR 2026-09-25 13:25:23,709 django.request middleware:45 Unhandled exception on POST /cod/ | user=law | ip=127.0.0.1 | UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:25:23,851 django.request log:246 Internal Server Error: /cod/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:25:23,861 django.server basehttp:212 "POST /cod/ HTTP/1.1" 500 103934
+ERROR 2026-09-25 13:25:40,425 django.request middleware:45 Unhandled exception on POST /cod/ | user=law | ip=127.0.0.1 | UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:25:40,534 django.request log:246 Internal Server Error: /cod/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:25:40,542 django.server basehttp:212 "POST /cod/ HTTP/1.1" 500 103934
+ERROR 2026-09-25 13:27:18,008 django.request middleware:45 Unhandled exception on POST /cod/ | user=law | ip=127.0.0.1 | UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:27:18,144 django.request log:246 Internal Server Error: /cod/
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/contrib/auth/decorators.py", line 23, in _wrapper_view
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/core/rbac.py", line 295, in _wrapped
+    return view_func(request, *args, **kwargs)
+  File "/home/dravis/Downloads/chuka_timetabling/course_management/cod_panel.py", line 4897, in cod_panel
+    Q(program_id=program_id) | Q(program__isnull=True)
+    ^
+UnboundLocalError: cannot access local variable 'Q' where it is not associated with a value
+ERROR 2026-09-25 13:27:18,152 django.server basehttp:212 "POST /cod/ HTTP/1.1" 500 103934
+ERROR 2026-09-26 09:21:18,473 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-26 09:21:52,892 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+ERROR 2026-09-26 09:22:29,071 django.request middleware:45 Unhandled exception on GET /media/site/logo/chuka.png | user=anonymous | ip=127.0.0.1 | Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist
+Traceback (most recent call last):
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/home/dravis/venvs/myenv/lib/python3.13/site-packages/django/views/static.py", line 40, in serve
+    raise Http404(_("“%(path)s” does not exist") % {"path": fullpath})
+django.http.response.Http404: “/home/dravis/Downloads/chuka_timetabling/media/site/logo/chuka.png” does not exist

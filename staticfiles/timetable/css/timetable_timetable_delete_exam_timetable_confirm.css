@@ -1,0 +1,14 @@
+/*
+ * timetable_timetable_delete_exam_timetable_confirm.css
+ * Extracted from: timetable/templates/timetable/delete_exam_timetable_confirm.html
+ */
+
+body { background: #f8f9fa; }
+        .delete-box {
+            max-width: 600px;
+            margin: 80px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }

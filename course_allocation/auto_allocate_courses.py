@@ -41,6 +41,7 @@ from .config_helpers import (
     make_group_code,
     calculate_split_groups,
     append_group_letter,
+    normalize_course_code,
 )
 from .detect_user_department import detect_user_department
 
@@ -284,6 +285,43 @@ def _archive_semester(target_dept, semester, user, allocation_set=None):
         )
 
 
+def _course_rows_for(courses_iterable):
+    """
+    Collapse an iterable of ProgramCourse rows down to one row per unique
+    course CODE, with a bit of aggregated detail (years/semesters/unit
+    types it runs under, and how many program offerings share the code).
+    Shared by the mapping page's initial render and the save endpoint so
+    the table and the "just saved" row look identical.
+    """
+    by_code = {}
+    for c in courses_iterable:
+        key = normalize_course_code(c.course_code)
+        if not key:
+            continue
+        row = by_code.get(key)
+        if row is None:
+            row = by_code[key] = {
+                "code": c.course_code, "name": c.course_name,
+                "years": set(), "semesters": set(), "types": set(),
+                "program_count": 0,
+            }
+        row["program_count"] += 1
+        row["years"].add(c.year)
+        row["semesters"].add(c.semester)
+        if c.unit_type:
+            row["types"].add(c.get_unit_type_display())
+
+    rows = [{
+        "code": r["code"], "name": r["name"],
+        "years": ", ".join(f"Y{y}" for y in sorted(r["years"])),
+        "semesters": ", ".join(f"S{s}" for s in sorted(r["semesters"])),
+        "types": ", ".join(sorted(r["types"])),
+        "program_count": r["program_count"],
+    } for r in by_code.values()]
+    rows.sort(key=lambda r: r["code"])
+    return rows
+
+
 # ===========================================================================
 # 1. LECTURER COURSE MAPPING
 # ===========================================================================
@@ -307,23 +345,71 @@ def lecturer_course_mapping(request):
     else:
         lecs = list(Lecturer.objects.all().select_related("department").order_by("department__name", "name"))
 
+    # ── Course picker: ONE entry per course CODE, not per program ───────────
+    # ProgramCourse is a per-program row, so a course like "COSC 103" that is
+    # taught in 100 different programs used to appear as 100 separate options
+    # here, and mapping a lecturer meant mapping them to only whichever single
+    # program row was picked. Instead we collapse every ProgramCourse across
+    # EVERY department/program down to one option per normalized course code,
+    # so picking "COSC 103" once represents the course itself -- save_lecturer_mapping
+    # then expands that single pick back out to every program offering it.
+    all_program_courses = ProgramCourse.objects.select_related(
+        "program", "program__department"
+    ).order_by("course_code")
+
+    courses_by_code = {}
+    for pc in all_program_courses:
+        key = normalize_course_code(pc.course_code)
+        if not key:
+            continue
+        entry = courses_by_code.get(key)
+        in_user_dept = bool(user_dept and pc.program.department_id == getattr(user_dept, "id", None))
+        if entry is None:
+            courses_by_code[key] = {
+                "id": pc.id,
+                "course_code": pc.course_code,
+                "course_name": pc.course_name,
+                "dept_id": pc.program.department_id,
+                "dept_name": pc.program.department.name if pc.program.department else "",
+                "program_count": 1,
+                "is_user_dept": in_user_dept,
+            }
+        else:
+            entry["program_count"] += 1
+            # Prefer a representative row from the COD's own department once
+            # one turns up, purely for nicer default labelling.
+            if in_user_dept and not entry["is_user_dept"]:
+                entry.update({
+                    "id": pc.id,
+                    "course_name": pc.course_name,
+                    "dept_id": pc.program.department_id,
+                    "dept_name": pc.program.department.name if pc.program.department else "",
+                    "is_user_dept": True,
+                })
+
     if user_dept:
-        courses = list(ProgramCourse.objects.filter(
-            program__department=user_dept
-        ).select_related("program", "program__department").order_by("course_code"))
-        courses += list(ProgramCourse.objects.exclude(
-            program__department=user_dept
-        ).select_related("program", "program__department").order_by("course_code"))
+        courses = sorted(
+            courses_by_code.values(),
+            key=lambda e: (not e["is_user_dept"], e["course_code"]),
+        )
     else:
-        courses = list(ProgramCourse.objects.all().select_related(
-            "program", "program__department"
-        ).order_by("program__department__name", "course_code"))
+        courses = sorted(courses_by_code.values(), key=lambda e: e["course_code"])
 
     qs = LecturerCourseMapping.objects.all() if is_admin else \
          LecturerCourseMapping.objects.filter(department=user_dept)
-    mappings = qs.select_related("lecturer", "department").prefetch_related("courses").order_by(
+    mappings = list(qs.select_related("lecturer", "department").prefetch_related("courses").order_by(
         "department__name", "lecturer__name"
-    )
+    ))
+
+    # Each mapping's `courses` M2M can now hold every program's row for the
+    # same code (e.g. 100 rows all named "COSC 103"), so collapse them back
+    # down to unique codes -- with a bit of aggregated detail per code --
+    # purely for display in the mappings table (each lecturer's section
+    # lists one row per course code, not one row per program offering it).
+    for m in mappings:
+        m.course_rows = _course_rows_for(m.courses.all())
+        m.unique_codes = [r["code"] for r in m.course_rows]
+        m.unique_codes_count = len(m.course_rows)
 
     return render(request, "course_allocation/lecturer_course_mapping.html", {
         "lecturers": lecs,
@@ -378,14 +464,32 @@ def save_lecturer_mapping(request):
         mapping.save(update_fields=["notes", "updated_at"])
 
     if course_ids:
-        mapping.courses.set(ProgramCourse.objects.filter(id__in=course_ids))
+        # `course_ids` are the *representative* ProgramCourse rows the picker
+        # showed (one per course code). Expand each one back out to EVERY
+        # ProgramCourse row -- in any program, any department -- that shares
+        # its course code, so mapping a lecturer to one "COSC 103" pick maps
+        # them to all programs that run COSC 103, not just the single program
+        # instance the dropdown happened to represent it with.
+        selected = ProgramCourse.objects.filter(id__in=course_ids).only("id", "course_code")
+        codes = {normalize_course_code(c.course_code) for c in selected if c.course_code}
+        if codes:
+            expanded_ids = [
+                pc.id for pc in ProgramCourse.objects.all().only("id", "course_code")
+                if normalize_course_code(pc.course_code) in codes
+            ]
+            mapping.courses.set(expanded_ids)
+        else:
+            mapping.courses.clear()
     else:
         mapping.courses.clear()
 
-    courses_data = [
-        {"id": c.id, "code": c.course_code, "name": c.course_name, "program": c.program.name}
-        for c in mapping.courses.all()
-    ]
+    # Collapse the (possibly very large) set of mapped ProgramCourse rows
+    # back down to one detailed row per unique course code for the UI --
+    # matches the shape the initial page render uses (see _course_rows_for)
+    # so the "just saved" card looks identical to a freshly loaded one.
+    mapped_courses = list(mapping.courses.all())
+    course_rows = _course_rows_for(mapped_courses)
+
     return JsonResponse({
         "success": True,
         "mapping_id": mapping.id,
@@ -393,8 +497,9 @@ def save_lecturer_mapping(request):
         "lecturer_id": lecturer.id,
         "department": dept.name if dept else "",
         "department_id": dept.id if dept else None,
-        "courses_count": mapping.courses.count(),
-        "courses": courses_data,
+        "courses_count": len(course_rows),                # distinct course codes
+        "total_program_offerings": len(mapped_courses),    # total program rows covered
+        "courses": course_rows,
         "notes": mapping.notes,
         "created": created,
     })
@@ -421,6 +526,52 @@ def delete_lecturer_mapping(request):
 
 
 @allowed_roles(Role.COD, Role.COD_ADMIN, Role.SUDO)
+@require_POST
+def remove_mapping_course(request):
+    """
+    Inline per-course-row removal for a lecturer's mapping: drops just one
+    course CODE (every ProgramCourse row nationwide that shares it) from
+    the mapping, without touching the lecturer's other courses. Lets the
+    right-hand table's expanded course rows carry their own quick 'remove'
+    action instead of forcing a full re-save through the form.
+    """
+    if not check_user_permission(request.user, ALL_ALLOWED):
+        return HttpResponseForbidden("No permission.")
+
+    mapping_id = request.POST.get("mapping_id")
+    course_code = request.POST.get("course_code", "")
+
+    try:
+        mapping = LecturerCourseMapping.objects.select_related("department").get(id=mapping_id)
+    except LecturerCourseMapping.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Mapping not found."}, status=404)
+
+    if not check_user_permission(request.user, ADMIN_GROUPS):
+        user_dept = detect_user_department(request.user)
+        if not user_dept or mapping.department_id != user_dept.id:
+            return HttpResponseForbidden("No permission.")
+
+    target = normalize_course_code(course_code)
+    if not target:
+        return JsonResponse({"success": False, "error": "Course code is required."}, status=400)
+
+    to_remove = [
+        c.id for c in mapping.courses.all()
+        if normalize_course_code(c.course_code) == target
+    ]
+    if to_remove:
+        mapping.courses.remove(*to_remove)
+
+    remaining = mapping.courses.count()
+    return JsonResponse({
+        "success": True,
+        "mapping_id": mapping.id,
+        "removed_code": course_code,
+        "remaining_program_offerings": remaining,
+    })
+
+
+@allowed_roles(Role.COD, Role.COD_ADMIN, Role.SUDO)
 @require_GET
 def get_lecturer_mapping(request):
     lecturer_id   = request.GET.get("lecturer_id")
@@ -444,14 +595,24 @@ def get_lecturer_mapping(request):
         mapping = LecturerCourseMapping.objects.prefetch_related("courses").get(
             lecturer=lecturer, department=dept
         )
+        # The picker's <option> values are representative ProgramCourse ids
+        # (one per code) that won't generally match the (possibly hundreds
+        # of) actual ProgramCourse ids stored on the mapping, so also return
+        # normalized course codes -- the form matches picker options against
+        # these to decide what should show as selected.
+        codes = sorted({
+            normalize_course_code(c.course_code)
+            for c in mapping.courses.all() if c.course_code
+        })
         return JsonResponse({
             "success": True,
             "mapping_id": mapping.id,
             "course_ids": list(mapping.courses.values_list("id", flat=True)),
+            "course_codes": codes,
             "notes": mapping.notes,
         })
     except LecturerCourseMapping.DoesNotExist:
-        return JsonResponse({"success": True, "mapping_id": None, "course_ids": [], "notes": ""})
+        return JsonResponse({"success": True, "mapping_id": None, "course_ids": [], "course_codes": [], "notes": ""})
 
 
 # ===========================================================================

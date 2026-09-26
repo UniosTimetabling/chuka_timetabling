@@ -292,7 +292,7 @@
 .cgq-draft-head .dg-btn { font-size: 12px; padding: 6px 10px; }
 .cgq-matrix { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .cgq-matrix th, .cgq-matrix td { padding: 7px 8px; border-bottom: 1px solid #eef1ee; text-align: left; }
-.cgq-matrix thead th { background: #f7fbf8; color: #004d26; font-weight: 700; }
+.cgq-matrix thead th { background: transparent; color: #000000; font-weight: 700; border-bottom: 1px solid #eef1ee; }
 .cgq-matrix tbody tr:hover { background: #fafdfb; }
 .cgq-matrix .cgq-cell { width: 16px; height: 16px; cursor: pointer; }
 .cgq-matrix .cgq-cell:disabled { cursor: not-allowed; opacity: 0.65; }
@@ -359,8 +359,9 @@
 
 .pm-manage table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .pm-manage thead th {
-  background: #004d26; color: #fff; text-align: left; padding: 7px 10px; font-size: 12px;
+  background: transparent; color: #000000; text-align: left; padding: 7px 10px; font-size: 12px;
   font-weight: 700; position: sticky; top: 0; z-index: 2; white-space: nowrap;
+  border-bottom: 1px solid #edf3ee;
 }
 .pm-manage tbody td { padding: 5px 10px; border-bottom: 1px solid #edf3ee; vertical-align: middle; }
 .pm-manage tbody tr:hover td { background: #f7fbf8; }
@@ -380,11 +381,11 @@
 .pm-manage .btn-add { background: #2e7d32; color: #fff; }
 
 /* Stems list headers: Program, then Category */
-.pm-manage .pm-prog-header td { background: #e8f5e9; color: #004d26; padding: 6px 10px; border-bottom: 2px solid #c8e6c9; }
+.pm-manage .pm-prog-header td { background: transparent; color: #000000; padding: 6px 10px; border-bottom: 1px solid #edf3ee; }
 .pm-manage .pm-prog-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .pm-manage .pm-prog-name { font-weight: 800; font-size: 13.5px; }
 .pm-manage .pm-prog-name small { font-weight: 600; color: #5a8a66; margin-left: 6px; font-size: 11.5px; }
-.pm-manage .pm-ys-header td { background: #f0f7f2; color: #000000; font-weight: 700; padding: 3px 10px 3px 18px; border-bottom: 1px solid #deeee2; font-size: 12px; }
+.pm-manage .pm-ys-header td { background: transparent; color: #000000; font-weight: 700; padding: 3px 10px 3px 18px; border-bottom: 1px solid #edf3ee; font-size: 12px; }
 .pm-manage .pm-ys-count { background: #dcedde; color: #2c5d35; border-radius: 9px; padding: 0 7px; font-size: 11px; font-weight: 700; margin-left: 6px; }
 .pm-manage .pm-badge { display: inline-block; background: #eef3ef; color: #3a5540; border-radius: 8px; padding: 1px 7px; font-size: 10.5px; font-weight: 700; margin-left: 4px; }
 
@@ -399,7 +400,7 @@
 .pm-manage .pm-term { margin: 2px 0 10px; width: 100%; }
 .pm-manage .pm-term-head { font-size: 13px; font-weight: 700; color: #004d26; padding: 3px 0 4px; margin-bottom: 4px; border-bottom: 2px solid #a5d6a7; }
 .pm-manage table.pm-course-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12.5px; background: #fff; border: 1px solid #d5e6d9; }
-.pm-manage table.pm-course-table thead th { position: static; background: #004d26; color: #fff; font-size: 12px; font-weight: 700; padding: 5px 10px; border-right: 1px solid #1f6b3f; }
+.pm-manage table.pm-course-table thead th { position: static; background: transparent; color: #000000; font-size: 12px; font-weight: 700; padding: 5px 10px; border-right: 1px solid #edf3ee; border-bottom: 1px solid #edf3ee; }
 .pm-manage table.pm-course-table tbody td { padding: 4px 10px; color: #000000; font-size: 12.5px; border-bottom: 1px solid #e3ede5; border-right: 1px solid #edf3ee; overflow: hidden; text-overflow: ellipsis; }
 .pm-manage table.pm-course-table tbody tr:nth-child(even) td { background: #f7fbf8; }
 .pm-manage table.pm-course-table tbody tr.pm-from-allocation td { background: #e8f1fd; border-bottom-color: #bcd6f7; }
@@ -432,9 +433,9 @@
 
 /* Program header row (stems tab & course groups): solid dark band, centred */
 .pm-manage tbody tr.pm-prog-header td,
-.pm-manage tbody tr.pm-prog-header:hover td { background: #004d26; color: #fff; text-align: center; padding: 10px; border-bottom: 3px solid #002d16; }
+.pm-manage tbody tr.pm-prog-header:hover td { background: transparent; color: #000000; text-align: center; padding: 10px; border-bottom: 1px solid #edf3ee; }
 .pm-manage .pm-prog-line { justify-content: center; }
-.pm-manage .pm-prog-name { font-size: 15px; font-weight: 800; color: #fff; }
+.pm-manage .pm-prog-name { font-size: 15px; font-weight: 800; color: #000000; }
 
 /* Each group / stem / elective name row: CLEAN, PROFESSIONAL HIGHLIGHT (REPLACED HARSH YELLOW) */
 .pm-manage tbody tr[data-id] > td { 
@@ -497,7 +498,7 @@
 #cgStemTable table { border-collapse: collapse; margin-top: 8px; }
 #cgStemTable th, #cgStemTable td { border: 1px solid #dcebdf; padding: 6px 8px; }
 .mp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.mp-table thead th { position: sticky; top: 0; background: #004d26; color: #fff; padding: 7px 10px; text-align: center; font-size: 14px; z-index: 1; }
+.mp-table thead th { position: sticky; top: 0; background: transparent; color: #000000; padding: 7px 10px; text-align: center; font-size: 14px; z-index: 1; border-bottom: 1px solid #e3ede5; }
 .mp-table td { padding: 5px 10px; border-bottom: 1px solid #e3ede5; color: #000000; }
 .mp-table td.c { text-align: center; }
 .mp-table tbody tr:nth-child(even) td { background: #f7fbf8; }
@@ -555,8 +556,8 @@
 #suTable td, #suTable th { padding: 7px 10px; }
 
 /* Bulk "Update number of students" dialog: Program section -> Program Year subsection -> stem rows */
-#bsnTable tr.bsn-prog-row td { background: #004d26; color: #fff; text-align: center; font-weight: 800; font-size: 14px; padding: 9px 10px; border-bottom: 3px solid #002d16; }
-#bsnTable tr.bsn-year-row td { background: #f0f7f2; color: #000; font-weight: 700; padding: 5px 10px 5px 18px; border-bottom: 1px solid #deeee2; font-size: 12.5px; }
+#bsnTable tr.bsn-prog-row td { background: transparent; color: #000000; text-align: center; font-weight: 800; font-size: 14px; padding: 9px 10px; border-bottom: 1px solid #edf3ee; }
+#bsnTable tr.bsn-year-row td { background: transparent; color: #000; font-weight: 700; padding: 5px 10px 5px 18px; border-bottom: 1px solid #edf3ee; font-size: 12.5px; }
 #bsnTable tr.bsn-stem-row td { padding-left: 26px; }
 #bsnTable input.bsn-num { width: 120px; padding: 5px 7px; border: 1px solid #cfe0d3; border-radius: 6px; font-size: 13.5px; }
 #bsnTable tr.bsn-empty-row td { text-align: center; font-style: italic; color: #777; padding: 16px; }

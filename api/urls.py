@@ -21,5 +21,6 @@ urlpatterns=[
     path("lab/timetable/api/", lab_timetable_api.lab_timetable_api, name="lab_timetable_api"),
     path("cot/exam-api/", cot_exam_api.cot_exam_api, name="cot_exam_api"),
      path("api/course-codes/", course_codes_api.api_course_codes, name="api_course_codes"),
+     path("api/course-codes/signature/", course_codes_api.api_course_codes_signature, name="api_course_codes_signature"),
 
 ]

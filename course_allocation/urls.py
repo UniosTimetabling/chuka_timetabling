@@ -45,6 +45,9 @@ urlpatterns += [
     path("get-lecturer-mapping/",
          auto_allocate_courses.get_lecturer_mapping,
          name="get_lecturer_mapping"),
+    path("remove-mapping-course/",
+         auto_allocate_courses.remove_mapping_course,
+         name="remove_mapping_course"),
     # ------------------------------------------------------------------
     # Auto Allocation
     # ------------------------------------------------------------------

@@ -3687,6 +3687,106 @@ def export_universal_search_pdf(request):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# SECTION 6b — Quick Search: the small "course / lecturer" box at the top
+# of the page, next to "Back to Dashboard". Answers two questions fast:
+#   1. Course/program search — "which program, year and semester is this
+#      course in?" — matched against course_code / course_name /
+#      program__name and de-duplicated to one row per course+program.
+#   2. Lecturer search — checked directly against the Lecturer model
+#      (lecturer_portal.Lecturer.name), NOT against CourseAllocation, so a
+#      lecturer with no courses allocated yet still shows up here — unlike
+#      Universal Search below, which only surfaces lecturers who already
+#      have at least one CourseAllocation row.
+# Both halves run off the same one search term; whichever matches
+# something, shows something — it's fine for only one half to have results.
+# ═══════════════════════════════════════════════════════════════════════════
+
+@analysis_access_required
+def quick_search_api(request):
+    """
+    JSON: GET ?q=<term> — the small top-of-page quick search.
+
+    Returns:
+      { "courses": [ {course_code, course_name, program, department,
+                       year, semester}, ... ],
+        "lecturers": [ {name, designation, email, department,
+                         payroll_number, course_count}, ... ] }
+
+    `courses` is scoped to the active AllocationSet(s)/department the same
+    way every other report on this page is (via _apply_allocation_scope /
+    _effective_department_id). `lecturers` is a direct name lookup against
+    the Lecturer model — it deliberately ignores AllocationSet scoping
+    (a lecturer profile isn't allocation-set data), but is still narrowed
+    to the locked department when this session is a shared COD/COD Admin
+    link, so a shared link never leaks another department's staff list.
+    """
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({'status': 'error', 'message': 'Provide a search term via ?q='}, status=400)
+    if len(query) < 2:
+        return JsonResponse({'status': 'success', 'query': query, 'courses': [], 'lecturers': []})
+
+    dept_id = _effective_department_id(request)
+
+    # ── Courses ──────────────────────────────────────────────────────
+    course_qs = CourseAllocation.objects.select_related(
+        'program', 'program__department', 'program_course',
+    ).filter(
+        Q(course_code__icontains=query) |
+        Q(course_name__icontains=query) |
+        Q(program__name__icontains=query)
+    )
+    course_qs = _apply_allocation_scope(course_qs, request)
+    if dept_id:
+        try:
+            course_qs = course_qs.filter(program__department_id=int(dept_id))
+        except (ValueError, TypeError):
+            pass
+
+    seen = set()
+    courses = []
+    for a in course_qs.order_by('program__name', 'course_code')[:200]:
+        key = (a.course_code, a.program_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        courses.append({
+            'course_code': a.course_code,
+            'course_name': a.course_name,
+            'program': getattr(a.program, 'name', 'N/A'),
+            'department': getattr(a.program.department, 'name', 'N/A') if a.program and a.program.department else 'N/A',
+            'year': _get_year_value(a) or 'N/A',
+            'semester': getattr(a.program_course, 'semester', None) or 'N/A',
+        })
+        if len(courses) >= 50:
+            break
+
+    # ── Lecturers — direct Lecturer-model name match ────────────────
+    lecturer_qs = Lecturer.objects.select_related('department').filter(name__icontains=query)
+    if dept_id:
+        try:
+            lecturer_qs = lecturer_qs.filter(department_id=int(dept_id))
+        except (ValueError, TypeError):
+            pass
+
+    lecturers = []
+    for lec in lecturer_qs.order_by('name')[:50]:
+        lecturers.append({
+            'name': lec.name,
+            'designation': lec.get_designation_display() if lec.designation else '',
+            'email': lec.email,
+            'department': getattr(lec.department, 'name', 'Unassigned'),
+            'payroll_number': lec.payroll_number,
+            'course_count': CourseAllocation.objects.filter(lecturer_id=lec.id).count(),
+        })
+
+    return JsonResponse({
+        'status': 'success', 'query': query,
+        'courses': courses, 'lecturers': lecturers,
+    })
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # SECTION 7 — Program Analysis: per-program/year breakdown
 # ═══════════════════════════════════════════════════════════════════════════
 

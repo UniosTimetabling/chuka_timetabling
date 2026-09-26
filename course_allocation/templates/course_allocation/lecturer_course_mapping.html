@@ -2,9 +2,159 @@
 {% load static %}
 {% block page_css %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_course_allocation_lecturer_course_mapping.css' %}">
-<link rel="stylesheet" href="{% static 'course_allocation/css/lect_mapping2.css' %}">
-<link rel="stylesheet" href="{% static 'course_allocation/css/course_allocation_lecturer_course_mapping.css' %}">
+<style>
+/* course_allocation_lecturer_course_mapping.css
+   Lecturer ↔ Course mapping page. Flat, low-chrome layout: no panel
+   header bars, no per-lecturer collapse/expand, normal outward page
+   scroll (no inner scroll boxes except the course checkbox picklist,
+   which is naturally long), content fills the full width given. */
+
+/* ── Alerts ── */
+.msgs { padding: 4px 10px 0; }
+.alert { padding: 9px 13px; border-radius: var(--radius-sm); margin-bottom: 7px; font-size: 12.5px; }
+.alert-success { background: var(--green-50);  border: 1px solid var(--green-400);  color: var(--green-600); }
+.alert-error,
+.alert-danger   { background: #ffebee; border: 1px solid var(--danger); color: var(--danger); }
+.alert-warning  { background: var(--orange-50); border: 1px solid var(--orange-400); color: var(--orange-600); }
+.alert-info     { background: var(--navy-50);   border: 1px solid var(--navy-400);   color: var(--navy-600); }
+
+/* ── Page shell ── */
+.page-content { padding-left: 6px !important; }
+.pg { padding: 6px 10px 16px; box-sizing: border-box; width: 100%; }
+.wrap {
+  display: grid; grid-template-columns: 320px 1fr; gap: 10px; align-items: start; width: 100%;
+  height: calc(100vh - var(--header-h) - 20px); min-height: 420px;
+}
+
+/* ── Panels: plain bordered boxes, no header bar, no wasted radius/shadow.
+   Left form and right table scroll independently of each other and of
+   the page, each capped to the space under the navbar. ── */
+.panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+}
+.pb { padding: 8px 9px; flex: 1; min-height: 0; overflow-y: auto; }
+.pb::-webkit-scrollbar { width: 7px; }
+.pb::-webkit-scrollbar-thumb { background: var(--navy-300); border-radius: 4px; }
+
+/* ── Form fields ── */
+.fr { margin-bottom: 11px; }
+.fr:first-of-type { margin-top: 0; }
+.fr label { display: block; font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; }
+.fr select,
+.fr input[type=text],
+.fr textarea {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 12.5px; background: var(--surface); color: var(--text); transition: border-color .2s;
+  font-family: inherit; box-sizing: border-box;
+}
+.fr select:focus,
+.fr input:focus,
+.fr textarea:focus { outline: none; border-color: var(--green-400); box-shadow: 0 0 0 2px rgba(46,204,113,.13); }
+.fr textarea { resize: vertical; min-height: 50px; }
+.hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; line-height: 1.45; }
+
+/* ── Course picklist (checkboxes, replaces <select multiple>) ──
+   This is the one place that keeps its own scrollbar: the course list
+   can run to hundreds of entries and would otherwise push the Notes
+   field and Save button far down the page. */
+.cpick-search {
+  width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0; font-size: 12.5px; font-family: inherit;
+  background: var(--surface); color: var(--text); box-sizing: border-box;
+}
+.cpick-search:focus { outline: none; border-color: var(--green-400); background: var(--surface); }
+.cpick {
+  max-height: 260px; overflow-y: auto; border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm); background: var(--surface); padding: 2px;
+  box-sizing: border-box;
+}
+.cpick::-webkit-scrollbar { width: 7px; }
+.cpick::-webkit-scrollbar-thumb { background: var(--green-300); border-radius: 4px; }
+.cpick-opt {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 6px 8px; font-size: 12.5px;
+  color: var(--text); border-radius: 5px; cursor: pointer;
+}
+.cpick-opt:hover { background: var(--green-20); }
+.cpick-opt input[type=checkbox] { flex: none; width: 14px; height: 14px; cursor: pointer; accent-color: var(--green-500); }
+.cpick-opt.checked { background: var(--green-50); }
+.cpick-code { font-weight: 700; color: var(--navy-700); white-space: nowrap; }
+.cpick-name { flex: 1 1 140px; min-width: 0; color: var(--text-mid); word-break: break-word; }
+.cpick-badge {
+  flex: none; background: var(--navy-100); color: var(--navy-600); border: 1px solid var(--navy-300);
+  padding: 1px 6px; border-radius: 9px; font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.cpick-empty { padding: 14px 8px; font-size: 12px; color: var(--text-muted); text-align: center; font-style: italic; }
+.cpick-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--text-muted); }
+.cpick-clear { background: none; border: none; color: var(--navy-500); cursor: pointer; font-size: 11.5px; text-decoration: underline; padding: 0; font-family: inherit; }
+.cpick-clear:hover { color: var(--navy-700); }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 8px 15px; border: none; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: var(--transition); white-space: nowrap; font-family: inherit; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-g  { background: var(--green-500);  color: #fff; } .btn-g:hover:not(:disabled)  { background: var(--green-600); }
+.btn-gr { background: #616161; color: #fff; }           .btn-gr:hover:not(:disabled) { background: #424242; }
+.btn-r  { background: var(--danger);     color: #fff; } .btn-r:hover:not(:disabled)  { background: #a81b12; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+/* ── Status message ── */
+#fSt { margin-top: 10px; padding: 8px 11px; border-radius: var(--radius-sm); font-size: 12px; display: none; }
+#fSt.ok  { background: var(--green-50);  color: var(--green-600);  display: block; border: 1px solid var(--green-300); }
+#fSt.err { background: #ffebee; color: var(--danger);  display: block; border: 1px solid var(--danger); }
+
+/* ── Right panel toolbar ── */
+.ttbar {
+  display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-bottom: 1px solid var(--border-light);
+  background: var(--green-20); flex-wrap: wrap; border-radius: 6px 6px 0 0; flex: none;
+}
+.ttbar input { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12.5px; width: 240px; max-width: 100%; font-family: inherit; background: var(--surface); color: var(--text); }
+.ttbar input:focus { outline: none; border-color: var(--green-400); }
+.tcnt { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+
+/* ── Lecturer sections (right panel body) — always expanded, no cards,
+   just a name row + its table, separated by a light rule ── */
+.lec-list { padding: 2px 0; flex: 1; min-height: 0; overflow-y: auto; }
+.lec-list::-webkit-scrollbar { width: 8px; }
+.lec-list::-webkit-scrollbar-thumb { background: var(--navy-300); border-radius: 4px; }
+.lec-sec { padding: 9px 10px; border-bottom: 1px solid var(--border-light); }
+.lec-sec:last-child { border-bottom: none; }
+.lec-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 7px; }
+.lec-name { font-size: 13.5px; font-weight: 700; color: var(--navy-800); }
+.lec-meta { font-size: 11.5px; color: var(--text-muted); }
+.lec-count { font-size: 11px; font-weight: 700; color: var(--green-600); background: var(--green-100); border: 1px solid var(--green-200); padding: 1px 8px; border-radius: 9px; }
+.lec-actions { margin-left: auto; display: flex; gap: 10px; }
+
+/* table-layout:fixed + percentage colgroup so the columns always span the
+   full width of the panel (instead of shrinking to content and leaving a
+   blank strip on the right), with long text wrapping inside its column
+   rather than being clipped or forcing horizontal scroll. */
+.course-tbl { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
+.course-tbl thead tr { background: var(--surface); }
+.course-tbl thead th { padding: 6px 9px; text-align: left; font-weight: 700; color: var(--text-mid); border-bottom: 2px solid var(--border); overflow: hidden; text-overflow: ellipsis; }
+.course-tbl tbody tr { border-bottom: 1px solid var(--border-light); }
+.course-tbl tbody tr:last-child { border-bottom: none; }
+.course-tbl tbody tr:hover { background: var(--green-20); }
+.course-tbl td { padding: 6px 9px; vertical-align: top; word-break: break-word; overflow-wrap: break-word; }
+.course-tbl .cc { font-weight: 700; color: var(--navy-700); }
+.course-tbl .muted { color: var(--text-muted); }
+.course-tbl .act-col { text-align: center; }
+.empty-row td { text-align: center; color: var(--text-muted); padding: 12px; font-style: italic; }
+.row-rm {
+  background: none; border: 1px solid var(--border); color: var(--danger); width: 22px; height: 22px;
+  border-radius: 50%; cursor: pointer; font-size: 11px; line-height: 1; font-family: inherit;
+}
+.row-rm:hover { background: #ffebee; border-color: var(--danger); }
+
+.erow-card { text-align: center; color: var(--text-muted); padding: 30px 10px; font-style: italic; font-size: 12.5px; }
+
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--green-500); border-radius: 50%; animation: rot .7s linear infinite; vertical-align: middle; margin-right: 3px; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .wrap { grid-template-columns: 1fr; height: auto; }
+  .panel { height: auto; max-height: 70vh; }
+}
+</style>
 {% endblock page_css %}
 
 {% block title %}Lecturer Course Mapping{% endblock %}
@@ -21,13 +171,6 @@
 
 {% block allocation_content %}
 
-<div class="infobar">
- Logged in as: <strong>{{ request.user.username }}</strong>&nbsp;|&nbsp;Role:
- {% if is_superuser %}Superuser (all departments)
- {% elif is_admin %}Admin (all departments)
- {% else %}COD &mdash; {{ user_department.name }}{% endif %}
-</div>
-
 <div class="msgs" id="msgBox">
  {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
 </div>
@@ -35,9 +178,8 @@
 <div class="pg">
 <div class="wrap">
 
- <!-- FORM -->
+ <!-- LEFT: FORM -->
  <div class="panel">
- <div class="ph" id="formTitle"><i class="fas fa-link" style="margin-right:6px;opacity:.8;"></i>Assign Courses to Lecturer</div>
  <div class="pb">
  <input type="hidden" id="mappingId">
 
@@ -66,16 +208,25 @@
  </div>
 
  <div class="fr">
- <label>Courses <span style="color:var(--danger)">*</span></label>
- <input type="text" class="filter-inp" id="cFilt" placeholder="Filter by code or name...">
- <select id="cSel" multiple>
+ <label>Course Codes <span style="color:var(--danger)">*</span></label>
+ <input type="text" class="cpick-search" id="cFilt" placeholder="Filter by code or name...">
+ <div class="cpick" id="cPick">
  {% for c in courses %}
- <option value="{{ c.id }}" data-dept="{{ c.program.department.id }}">
- {{ c.course_code }} &ndash; {{ c.course_name }} ({{ c.program.name }}, Y{{ c.year }}S{{ c.semester }})
- </option>
+ <label class="cpick-opt" data-text="{{ c.course_code|lower }} {{ c.course_name|lower }}">
+ <input type="checkbox" class="cpick-cb" value="{{ c.id }}" data-code="{{ c.course_code }}" data-dept="{{ c.dept_id|default:'' }}">
+ <span class="cpick-code">{{ c.course_code }}</span>
+ <span class="cpick-name">{{ c.course_name }}</span>
+ {% if c.program_count > 1 %}<span class="cpick-badge">{{ c.program_count }} programs</span>{% endif %}
+ </label>
+ {% empty %}
+ <div class="cpick-empty">No courses found.</div>
  {% endfor %}
- </select>
- <div class="hint">Hold Ctrl / Cmd to select multiple courses</div>
+ </div>
+ <div class="cpick-foot">
+   <span id="cPickCount">0 selected</span>
+   <button type="button" class="cpick-clear" id="cPickClearBtn">Clear selection</button>
+ </div>
+ <div class="hint">Picking a course code (e.g. COSC 103) qualifies the lecturer to teach it in <strong>every</strong> program that runs it &mdash; not just one program.</div>
  </div>
 
  <div class="fr">
@@ -91,43 +242,53 @@
  </div>
  </div>
 
- <!-- TABLE -->
+ <!-- RIGHT: LECTURER SECTIONS -->
  <div class="panel">
- <div class="ph"><i class="fas fa-table" style="margin-right:6px;opacity:.8;"></i>Current Mappings</div>
  <div class="ttbar">
  <input type="text" id="tSrch" placeholder="Search lecturer, department, course...">
- <span class="tcnt" id="rCnt">{{ mappings|length }} mapping(s)</span>
+ <span class="tcnt" id="rCnt">{{ mappings|length }} lecturer(s)</span>
  </div>
- <div class="tscroll">
- <table>
- <thead>
- <tr><th>#</th><th>Lecturer</th><th>Department</th><th>Courses</th><th>Notes</th><th>Actions</th></tr>
- </thead>
- <tbody id="tBody">
+ <div class="lec-list" id="tBody">
  {% for mp in mappings %}
- <tr data-id="{{ mp.id }}">
- <td>{{ forloop.counter }}</td>
- <td>{{ mp.lecturer.display_name }}</td>
- <td>{{ mp.department.name|default:"&mdash;" }}</td>
- <td>
- <div class="tags">
- {% for c in mp.courses.all|slice:":5" %}<span class="tag">{{ c.course_code }}</span>{% endfor %}
- {% if mp.courses.count > 5 %}<span class="tag tag-more">+{{ mp.courses.count|add:"-5" }}</span>{% endif %}
+ <div class="lec-sec" data-id="{{ mp.id }}">
+   <div class="lec-head">
+     <span class="lec-name">{{ mp.lecturer.display_name }}</span>
+     <span class="lec-meta">{{ mp.department.name|default:"—" }}{% if mp.notes %} &middot; {{ mp.notes|truncatechars:60 }}{% endif %}</span>
+     <span class="lec-count">{{ mp.unique_codes_count }} course{{ mp.unique_codes_count|pluralize }}</span>
+     <div class="lec-actions">
+       <button class="lnk" onclick="loadMap({{ mp.id }},{{ mp.lecturer.id }},{{ mp.department.id|default:'null' }})">Edit</button>
+       <button class="lnk lnk-r" onclick="delMap({{ mp.id }},this)">Delete</button>
+     </div>
+   </div>
+   <table class="course-tbl">
+     <colgroup>
+       <col style="width:10%"><col style="width:32%"><col style="width:8%">
+       <col style="width:8%"><col style="width:16%"><col style="width:10%"><col style="width:6%">
+     </colgroup>
+     <thead><tr><th>Code</th><th>Course Name</th><th>Year</th><th>Sem</th><th>Type</th><th>Programs</th><th></th></tr></thead>
+     <tbody>
+     {% for c in mp.course_rows %}
+     <tr>
+       <td class="cc">{{ c.code }}</td>
+       <td>{{ c.name }}</td>
+       <td class="muted">{{ c.years|default:"—" }}</td>
+       <td class="muted">{{ c.semesters|default:"—" }}</td>
+       <td class="muted">{{ c.types|default:"—" }}</td>
+       <td class="muted">{{ c.program_count }}</td>
+       <td class="act-col"><button class="row-rm" title="Remove this course from this lecturer" onclick="rmCourse({{ mp.id }},'{{ c.code|escapejs }}',this)">&times;</button></td>
+     </tr>
+     {% empty %}
+     <tr class="empty-row"><td colspan="7">No courses assigned yet.</td></tr>
+     {% endfor %}
+     </tbody>
+   </table>
  </div>
- </td>
- <td>{{ mp.notes|default:"&mdash;"|truncatechars:50 }}</td>
- <td>
- <button class="lnk" onclick="loadMap({{ mp.id }},{{ mp.lecturer.id }},{{ mp.department.id|default:'null' }})">Edit</button>
- <button class="lnk lnk-r" onclick="delMap({{ mp.id }},this)">Delete</button>
- </td>
- </tr>
  {% empty %}
- <tr class="erow"><td colspan="6">No mappings yet. Use the form to add one.</td></tr>
+ <div class="erow-card" id="emptyCard">No mappings yet. Use the form to add one.</div>
  {% endfor %}
- </tbody>
- </table>
  </div>
- </div><!-- wrap -->
+ </div>
+</div><!-- wrap -->
 </div><!-- pg -->
 {% endblock %}
 
@@ -144,19 +305,41 @@ const CSRF=()=>{const m=document.cookie.match(/csrftoken=([^;]+)/);return m?m[1]
 const URL_SAVE   ="{% url 'save_lecturer_mapping' %}";
 const URL_DELETE ="{% url 'delete_lecturer_mapping' %}";
 const URL_GET    ="{% url 'get_lecturer_mapping' %}";
+const URL_RM     ="{% url 'remove_mapping_course' %}";
 
+function normCode(s){return (s||'').replace(/\s+/g,'').toUpperCase();}
+
+/* ── Course checkbox picklist ── */
+function updatePickCount(){
+  const n=document.querySelectorAll('#cPick .cpick-cb:checked').length;
+  document.getElementById('cPickCount').textContent=n+' selected';
+}
+document.querySelectorAll('#cPick .cpick-cb').forEach(cb=>{
+  cb.addEventListener('change',()=>{
+    cb.closest('.cpick-opt').classList.toggle('checked',cb.checked);
+    updatePickCount();
+  });
+});
 document.getElementById('cFilt').addEventListener('input',function(){
-  const q=this.value.toLowerCase();
-  document.querySelectorAll('#cSel option').forEach(o=>{o.hidden=!!q&&!o.text.toLowerCase().includes(q)});
+  const q=this.value.toLowerCase().trim();
+  document.querySelectorAll('#cPick .cpick-opt').forEach(o=>{
+    o.style.display=(!q||o.dataset.text.includes(q))?'':'none';
+  });
+});
+document.getElementById('cPickClearBtn').addEventListener('click',()=>{
+  document.querySelectorAll('#cPick .cpick-cb').forEach(cb=>{cb.checked=false;cb.closest('.cpick-opt').classList.remove('checked');});
+  updatePickCount();
 });
 
+/* ── Search / filter lecturer sections ── */
 document.getElementById('tSrch').addEventListener('input',function(){
   const q=this.value.toLowerCase();let v=0;
-  document.querySelectorAll('#tBody tr:not(.erow)').forEach(r=>{
-    const show=!q||r.textContent.toLowerCase().includes(q);
-    r.style.display=show?'':'none';if(show)v++;
+  document.querySelectorAll('#tBody .lec-sec').forEach(sec=>{
+    const show=!q||sec.textContent.toLowerCase().includes(q);
+    sec.style.display=show?'':'none';
+    if(show)v++;
   });
-  document.getElementById('rCnt').textContent=v+' mapping(s)';
+  document.getElementById('rCnt').textContent=v+' lecturer(s)';
 });
 
 function loadMap(mId,lId,dId){
@@ -167,14 +350,21 @@ function loadMap(mId,lId,dId){
   fetch(`${URL_GET}?lecturer_id=${lId}&department_id=${dId||''}`)
     .then(r=>r.json()).then(d=>{
       if(d.success){
-        Array.from(document.getElementById('cSel').options).forEach(o=>{
-          o.selected=d.course_ids.includes(parseInt(o.value));
+        // Match by normalized course CODE, not option id: the picker's
+        // checkboxes are representative rows (one per code), while the
+        // mapping itself can hold many ProgramCourse rows for that same
+        // code across every program that runs it.
+        const codes=new Set((d.course_codes||[]).map(normCode));
+        document.querySelectorAll('#cPick .cpick-cb').forEach(cb=>{
+          const sel=codes.has(normCode(cb.dataset.code));
+          cb.checked=sel;
+          cb.closest('.cpick-opt').classList.toggle('checked',sel);
         });
+        updatePickCount();
         document.getElementById('nInp').value=d.notes||'';
       }
     });
   document.getElementById('saveTxt').textContent='Update Mapping';
-  document.getElementById('formTitle').textContent='Edit Mapping';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -182,16 +372,17 @@ document.getElementById('clearBtn').addEventListener('click',()=>{
   ['mappingId','nInp','cFilt'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('lSel').value='';
   const ds=document.getElementById('dSel');if(ds&&ds.tagName==='SELECT')ds.value='';
-  Array.from(document.getElementById('cSel').options).forEach(o=>{o.selected=false;o.hidden=false;});
+  document.querySelectorAll('#cPick .cpick-opt').forEach(o=>{o.style.display='';});
+  document.querySelectorAll('#cPick .cpick-cb').forEach(cb=>{cb.checked=false;cb.closest('.cpick-opt').classList.remove('checked');});
+  updatePickCount();
   const st=document.getElementById('fSt');st.className='';st.textContent='';
   document.getElementById('saveTxt').textContent='Save Mapping';
-  document.getElementById('formTitle').textContent='Assign Courses to Lecturer';
 });
 
 document.getElementById('saveBtn').addEventListener('click',async()=>{
   const lId=document.getElementById('lSel').value;
   if(!lId){showSt('Please select a lecturer.','err');return}
-  const cIds=Array.from(document.getElementById('cSel').selectedOptions).map(o=>o.value);
+  const cIds=Array.from(document.querySelectorAll('#cPick .cpick-cb:checked')).map(cb=>cb.value);
   const ds=document.getElementById('dSel');
   const dId=ds&&ds.tagName==='SELECT'?ds.value:'';
   const body=new URLSearchParams();
@@ -205,11 +396,11 @@ document.getElementById('saveBtn').addEventListener('click',async()=>{
     const r=await fetch(URL_SAVE,{method:'POST',headers:{'X-CSRFToken':CSRF(),'Content-Type':'application/x-www-form-urlencoded'},body});
     const d=await r.json();
     if(d.success){
-      showSt((d.created?'Mapping created.':'Mapping updated.')+` ${d.courses_count} course(s) assigned.`,'ok');
-      renderRow(d);
+      const extra=(d.total_program_offerings>d.courses_count)?` (covering ${d.total_program_offerings} program offerings)`:'';
+      showSt((d.created?'Mapping created.':'Mapping updated.')+` ${d.courses_count} course code(s) assigned${extra}.`,'ok');
+      renderSection(d);
       document.getElementById('mappingId').value=d.mapping_id;
       document.getElementById('saveTxt').textContent='Update Mapping';
-      document.getElementById('formTitle').textContent='Edit Mapping';
     }else{showSt(d.error||'Save failed.','err');document.getElementById('saveTxt').textContent='Save Mapping';}
   }catch(e){showSt('Error: '+e.message,'err');document.getElementById('saveTxt').textContent='Save Mapping';}
   finally{btn.disabled=false;}
@@ -217,24 +408,46 @@ document.getElementById('saveBtn').addEventListener('click',async()=>{
 
 function showSt(msg,cls){const el=document.getElementById('fSt');el.textContent=msg;el.className=cls;}
 
-function renderRow(d){
-  const tbody=document.getElementById('tBody');
-  const erow=tbody.querySelector('.erow');if(erow)erow.remove();
-  const tagHtml=d.courses.slice(0,5).map(c=>`<span class="tag">${c.code}</span>`).join('')
-    +(d.courses.length>5?`<span class="tag tag-more">+${d.courses.length-5}</span>`:'');
+function escHtml(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function courseRowsHtml(mappingId,courses){
+  if(!courses||!courses.length) return '<tr class="empty-row"><td colspan="7">No courses assigned yet.</td></tr>';
+  return courses.map(c=>`<tr>
+    <td class="cc">${escHtml(c.code)}</td><td>${escHtml(c.name)}</td>
+    <td class="muted">${escHtml(c.years)||'&mdash;'}</td><td class="muted">${escHtml(c.semesters)||'&mdash;'}</td>
+    <td class="muted">${escHtml(c.types)||'&mdash;'}</td><td class="muted">${c.program_count}</td>
+    <td class="act-col"><button class="row-rm" title="Remove this course from this lecturer" onclick="rmCourse(${mappingId},'${(c.code||'').replace(/'/g,"\\'")}',this)">&times;</button></td>
+  </tr>`).join('');
+}
+
+function renderSection(d){
+  const list=document.getElementById('tBody');
+  const emptyCard=document.getElementById('emptyCard');if(emptyCard)emptyCard.remove();
   const lId=document.getElementById('lSel').value;
   const ds=document.getElementById('dSel');
-  const dId=ds&&ds.tagName==='SELECT'?ds.value||'null':'null';
-  const n=tbody.querySelectorAll('tr:not(.erow)').length;
-  const cells=`<td>${d.created?n+1:tbody.querySelector('[data-id="${d.mapping_id}"]')?.querySelector('td')?.textContent||n}</td>
-    <td>${d.lecturer}</td><td>${d.department||'&mdash;'}</td>
-    <td><div class="tags">${tagHtml}</div></td><td>&mdash;</td>
-    <td><button class="lnk" onclick="loadMap(${d.mapping_id},${lId},${dId})">Edit</button>
-    <button class="lnk lnk-r" onclick="delMap(${d.mapping_id},this)">Delete</button></td>`;
-  let row=tbody.querySelector(`tr[data-id="${d.mapping_id}"]`);
-  if(row){row.innerHTML=cells;}
-  else{row=document.createElement('tr');row.dataset.id=d.mapping_id;row.innerHTML=cells;tbody.prepend(row);}
-  document.getElementById('rCnt').textContent=tbody.querySelectorAll('tr:not(.erow)').length+' mapping(s)';
+  const dId=ds&&ds.tagName==='SELECT'?(ds.value||'null'):'null';
+  const n=d.courses.length;
+  const html=`<div class="lec-head">
+      <span class="lec-name">${escHtml(d.lecturer)}</span>
+      <span class="lec-meta">${escHtml(d.department)||'&mdash;'}</span>
+      <span class="lec-count">${n} course${n===1?'':'s'}</span>
+      <div class="lec-actions">
+        <button class="lnk" onclick="loadMap(${d.mapping_id},${lId},${dId})">Edit</button>
+        <button class="lnk lnk-r" onclick="delMap(${d.mapping_id},this)">Delete</button>
+      </div>
+    </div>
+    <table class="course-tbl">
+      <colgroup>
+        <col style="width:10%"><col style="width:32%"><col style="width:8%">
+        <col style="width:8%"><col style="width:16%"><col style="width:10%"><col style="width:6%">
+      </colgroup>
+      <thead><tr><th>Code</th><th>Course Name</th><th>Year</th><th>Sem</th><th>Type</th><th>Programs</th><th></th></tr></thead>
+      <tbody>${courseRowsHtml(d.mapping_id,d.courses)}</tbody>
+    </table>`;
+  let sec=list.querySelector(`.lec-sec[data-id="${d.mapping_id}"]`);
+  if(sec){sec.innerHTML=html;}
+  else{sec=document.createElement('div');sec.className='lec-sec';sec.dataset.id=d.mapping_id;sec.innerHTML=html;list.prepend(sec);}
+  document.getElementById('rCnt').textContent=list.querySelectorAll('.lec-sec').length+' lecturer(s)';
 }
 
 async function delMap(mId,btn){
@@ -244,13 +457,41 @@ async function delMap(mId,btn){
     const r=await fetch(URL_DELETE,{method:'POST',headers:{'X-CSRFToken':CSRF(),'Content-Type':'application/x-www-form-urlencoded'},body:`mapping_id=${mId}`});
     const d=await r.json();
     if(d.success){
-      const row=document.querySelector(`#tBody tr[data-id="${mId}"]`);if(row)row.remove();
-      const left=document.querySelectorAll('#tBody tr:not(.erow)').length;
-      document.getElementById('rCnt').textContent=left+' mapping(s)';
-      if(!left)document.getElementById('tBody').innerHTML='<tr class="erow"><td colspan="6">No mappings found.</td></tr>';
+      const sec=document.querySelector(`#tBody .lec-sec[data-id="${mId}"]`);if(sec)sec.remove();
+      const left=document.querySelectorAll('#tBody .lec-sec').length;
+      document.getElementById('rCnt').textContent=left+' lecturer(s)';
+      if(!left)document.getElementById('tBody').innerHTML='<div class="erow-card" id="emptyCard">No mappings found.</div>';
       if(document.getElementById('mappingId').value==mId)document.getElementById('clearBtn').click();
     }else{alert(d.error||'Delete failed.');btn.disabled=false;}
   }catch(e){alert('Error: '+e.message);btn.disabled=false;}
+}
+
+async function rmCourse(mappingId,code,btn){
+  if(!confirm(`Remove ${code} from this lecturer?`))return;
+  btn.disabled=true;
+  try{
+    const r=await fetch(URL_RM,{method:'POST',headers:{'X-CSRFToken':CSRF(),'Content-Type':'application/x-www-form-urlencoded'},
+      body:`mapping_id=${mappingId}&course_code=${encodeURIComponent(code)}`});
+    const d=await r.json();
+    if(d.success){
+      const row=btn.closest('tr');
+      const tbody=row.parentElement;
+      row.remove();
+      if(!tbody.querySelector('tr'))tbody.innerHTML='<tr class="empty-row"><td colspan="7">No courses assigned yet.</td></tr>';
+      const sec=btn.closest('.lec-sec');
+      const remaining=tbody.querySelectorAll('tr:not(.empty-row)').length;
+      const countEl=sec.querySelector('.lec-count');
+      if(countEl)countEl.textContent=remaining+' course'+(remaining===1?'':'s');
+      // If this mapping is currently loaded in the form, drop the checkbox too
+      if(document.getElementById('mappingId').value==mappingId){
+        document.querySelectorAll('#cPick .cpick-cb').forEach(cb=>{
+          if(normCode(cb.dataset.code)===normCode(code)){cb.checked=false;cb.closest('.cpick-opt').classList.remove('checked');}
+        });
+        updatePickCount();
+      }
+    }else{alert(d.error||'Remove failed.');}
+  }catch(e){alert('Error: '+e.message);}
+  finally{btn.disabled=false;}
 }
 </script>
 {% endblock extra_js %}

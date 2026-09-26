@@ -8,7 +8,7 @@
 // needs to change.
 // ---------------------------------------------------------------------------
 
-export const BASE_URL = 'http://127.0.0.1:8001'; // TODO: set real domain
+export const BASE_URL = 'https://ubuntu-chuka-timetabling.tail48fa8b.ts.net:8443'; // TODO: set real domain
 
 export const ENDPOINTS = {
   studentLogin: `${BASE_URL}/api/mobile/auth/student/`, // POST { regNo }

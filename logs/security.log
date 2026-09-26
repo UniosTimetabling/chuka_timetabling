@@ -1,0 +1,13 @@
+INFO 2026-09-25 12:57:46,870 security views:109 Logout | user=biologicalscience | ip=127.0.0.1
+INFO 2026-09-25 12:57:56,105 security views:84 Login success | user=agriculture | ip=127.0.0.1
+INFO 2026-09-25 13:10:28,476 security views:109 Logout | user=education | ip=127.0.0.1
+INFO 2026-09-25 13:10:45,640 security views:84 Login success | user=director | ip=127.0.0.1
+INFO 2026-09-25 13:12:25,245 security views:109 Logout | user=agriculture | ip=127.0.0.1
+WARNING 2026-09-25 13:12:32,855 security views:99 Login failure | attempted_user=law | ip=127.0.0.1
+INFO 2026-09-25 13:12:43,842 security views:84 Login success | user=law | ip=127.0.0.1
+INFO 2026-09-26 09:21:18,307 security views:109 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-26 09:21:38,204 security views:84 Login success | user=director | ip=127.0.0.1
+INFO 2026-09-26 09:21:52,680 security views:109 Logout | user=director | ip=127.0.0.1
+INFO 2026-09-26 09:21:58,098 security views:84 Login success | user=dravis | ip=127.0.0.1
+INFO 2026-09-26 09:22:28,934 security views:109 Logout | user=dravis | ip=127.0.0.1
+INFO 2026-09-26 09:22:37,604 security views:84 Login success | user=education | ip=127.0.0.1

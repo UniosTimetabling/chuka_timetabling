@@ -1,0 +1,262 @@
+/*
+ * classreps_classrep_dashboard.css
+ * Extracted from: classreps/templates/classrep_dashboard.html
+ */
+
+:root {
+      --primary: #0056d2;
+      --primary-light: #e6efff;
+      --secondary: #6c757d;
+      --success: #28a745;
+      --warning: #ffc107;
+      --light: #f8f9fa;
+      --dark: #343a40;
+      --border: #dee2e6;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --radius: 8px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #eef2f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    /* Header */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+    
+    header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    
+    /* Main Container */
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    /* Panels */
+    .panel {
+      flex: 1;
+      min-width: 300px;
+      background: white;
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .panel-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--dark);
+    }
+    
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    
+    th, td {
+      border: 1px solid var(--border);
+      padding: 10px;
+      text-align: left;
+    }
+    
+    th {
+      background: var(--light);
+      font-weight: 600;
+    }
+    
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      background: var(--primary);
+      color: white;
+      padding: 8px 15px;
+      border-radius: var(--radius);
+      border: none;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+      background: #0044a8;
+      transform: translateY(-2px);
+    }
+    
+    .btn-small {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
+    
+    /* Forms */
+    form {
+      margin-top: 15px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 1rem;
+    }
+    
+    /* Alerts */
+    .alert {
+      margin-top: 15px;
+      padding: 10px 15px;
+      border-radius: var(--radius);
+      display: none;
+    }
+    
+    .alert-success {
+      background: #d1e7dd;
+      color: #0f5132;
+      border: 1px solid #badbcc;
+    }
+    
+    .alert-warning {
+      background: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+    }
+    
+    /* Notifications */
+    .notifications {
+      margin-top: 20px;
+    }
+    
+    .notifications ul {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    .notifications li {
+      padding: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .notifications li:last-child {
+      border-bottom: none;
+    }
+    
+    .notification-time {
+      font-size: 0.8rem;
+      color: var(--secondary);
+      display: block;
+    }
+    
+    /* Empty states */
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: var(--secondary);
+    }
+    
+    /* Full-width section */
+    .full-width {
+      width: 100%;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+      
+      .container {
+        padding: 10px;
+        gap: 15px;
+      }
+      
+      .panel {
+        min-width: 100%;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      
+      th, td {
+        padding: 8px 5px;
+        font-size: 0.9rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      th, td {
+        padding: 6px 3px;
+        font-size: 0.85rem;
+      }
+      
+      .btn {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+    }
+    
+    /* Animation for alerts */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .alert {
+      animation: fadeIn 0.5s ease;
+    }
